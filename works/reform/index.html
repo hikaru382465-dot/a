@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>丸山リフォーム | 制作サンプル</title>
+<meta name="description" content="架空のリフォーム会社の施工実績ページ（制作サンプル）">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #2d2a26;
+    --accent: #b5482e;
+    --dark: #1f2937;
+    --sub: #f5f1ec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+  .sample-bar { background: #333; color: #fff; text-align: center; font-size: 12px; padding: 4px; }
+  .hero {
+    min-height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+    padding: 40px 24px; color: #fff;
+    background: linear-gradient(90deg, rgba(20,16,14,.75), rgba(20,16,14,.25)),
+      url("https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1600") center/cover;
+  }
+  .hero .badge { background: var(--accent); padding: 4px 14px; font-size: 13px; font-weight: 700; display: inline-block; }
+  .hero h1 { font-size: clamp(26px, 5.5vw, 42px); font-weight: 900; margin: 16px 0; max-width: 640px; }
+  .cta { display: inline-block; margin-top: 12px; padding: 14px 32px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
+  section { max-width: 960px; margin: 0 auto; padding: 64px 16px; }
+  h2 { font-size: 24px; margin-bottom: 32px; font-weight: 900; border-left: 5px solid var(--accent); padding-left: 12px; }
+  .works { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+  .wcard img { width: 100%; height: 180px; object-fit: cover; }
+  .wcard .body { background: var(--sub); padding: 16px; }
+  .wcard .tag { display: inline-block; background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; margin-bottom: 8px; }
+  table.price { width: 100%; border-collapse: collapse; }
+  table.price th, table.price td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #e5ded4; }
+  table.price td:last-child { text-align: right; color: var(--accent); font-weight: 700; }
+  .dark { background: var(--dark); color: #e5e7eb; text-align: center; }
+  .dark dl { display: inline-grid; grid-template-columns: 100px 1fr; gap: 10px 16px; text-align: left; margin: 24px 0; }
+  .dark dt { color: #f3a689; }
+  footer { text-align: center; padding: 24px; font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+<div class="sample-bar">※これは制作サンプルです。実在の会社ではありません。</div>
+
+<div class="hero">
+  <span class="badge">創業25年・施工実績1,200件以上</span>
+  <h1>住み慣れた家を、<br>これから先も長く暮らせる家に。</h1>
+  <a class="cta" href="#contact">無料見積もりを依頼する</a>
+</div>
+
+<section>
+  <h2>施工実績</h2>
+  <div class="works">
+    <div class="wcard">
+      <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600" alt="キッチンリフォーム">
+      <div class="body"><span class="tag">キッチン</span><h3>対面式キッチンへの全面改装</h3></div>
+    </div>
+    <div class="wcard">
+      <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600" alt="浴室リフォーム">
+      <div class="body"><span class="tag">浴室</span><h3>断熱浴槽への交換工事</h3></div>
+    </div>
+    <div class="wcard">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600" alt="外壁リフォーム">
+      <div class="body"><span class="tag">外壁・屋根</span><h3>外壁塗装・屋根の張り替え</h3></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--sub)">
+  <h2>費用の目安</h2>
+  <table class="price">
+    <tr><th>キッチン交換</th><td>60万円〜</td></tr>
+    <tr><th>浴室リフォーム</th><td>80万円〜</td></tr>
+    <tr><th>外壁塗装</th><td>70万円〜</td></tr>
+    <tr><th>水まわり一式</th><td>150万円〜</td></tr>
+  </table>
+  <p style="margin-top:16px;font-size:14px;color:#666">※建物の状態により異なります。現地調査のうえ正式にお見積もりいたします。</p>
+</section>
+
+<div class="dark" id="contact">
+  <h2 style="color:#fff;border-color:#f3a689;display:inline-block">無料見積もり・お問い合わせ</h2>
+  <br>
+  <dl>
+    <dt>電話</dt><dd>000-0000-0000</dd>
+    <dt>受付時間</dt><dd>9:00〜18:00（日曜休）</dd>
+    <dt>対応エリア</dt><dd>○○県内一円</dd>
+  </dl>
+  <br>
+  <a class="cta" href="#contact">WEBから見積もり依頼</a>
+</div>
+
+<footer>&copy; 丸山リフォーム（制作サンプル）</footer>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>のびのび学習塾 | 制作サンプル</title>
+<meta name="description" content="架空の学習塾の入塾案内ページ（制作サンプル）">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1e293b;
+    --accent: #2563eb;
+    --sub: #eef4ff;
+    --cta: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+  .sample-bar { background: #333; color: #fff; text-align: center; font-size: 12px; padding: 4px; }
+  .hero { background: var(--sub); padding: 56px 16px; text-align: center; }
+  .hero .badge { display: inline-block; background: var(--accent); color: #fff; padding: 4px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .hero h1 { font-size: clamp(24px, 5vw, 38px); font-weight: 900; margin: 16px 0; }
+  .hero h1 span { color: var(--accent); }
+  .cta { display: inline-block; margin-top: 12px; padding: 16px 36px; background: var(--cta); color: #fff; font-weight: 700; border-radius: 8px; text-decoration: none; box-shadow: 0 4px 0 #b9790a; }
+  section { max-width: 880px; margin: 0 auto; padding: 56px 16px; }
+  h2 { text-align: center; font-size: 24px; margin-bottom: 32px; font-weight: 900; }
+  .worries { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .worries li { background: var(--sub); padding: 16px; border-radius: 8px; font-weight: 700; }
+  .worries li::before { content: "😟 "; }
+  .courses { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+  .course { border: 2px solid var(--sub); border-radius: 12px; padding: 20px; }
+  .course h3 { color: var(--accent); margin-bottom: 8px; }
+  .course .price { font-weight: 700; margin-top: 8px; }
+  .steps { counter-reset: step; list-style: none; }
+  .steps li { counter-increment: step; padding: 16px 16px 16px 56px; position: relative; background: var(--sub); border-radius: 8px; margin-bottom: 12px; }
+  .steps li::before { content: counter(step); position: absolute; left: 16px; top: 16px; width: 28px; height: 28px; background: var(--accent); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+  .final { background: var(--accent); color: #fff; text-align: center; padding: 56px 16px; }
+  footer { text-align: center; padding: 24px; font-size: 12px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="sample-bar">※これは制作サンプルです。実在の塾ではありません。</div>
+
+<div class="hero">
+  <span class="badge">小学生〜中学生対象・地域密着</span>
+  <h1>「わかる」が増えると、<br><span>勉強が好きになる。</span></h1>
+  <p>一人ひとりのペースに合わせた少人数指導で、お子さまの「わかった！」を増やします。</p>
+  <a class="cta" href="#trial">無料体験授業に申し込む</a>
+</div>
+
+<section>
+  <h2>こんなお悩みありませんか？</h2>
+  <ul class="worries">
+    <li>宿題をなかなかやらない</li>
+    <li>授業についていけているか不安</li>
+    <li>集団塾だと質問しづらいみたい</li>
+    <li>勉強のやり方がわかっていない</li>
+  </ul>
+</section>
+
+<section style="background:var(--sub)">
+  <h2>コース紹介</h2>
+  <div class="courses">
+    <div class="course">
+      <h3>小学生コース</h3>
+      <p>基礎学力の定着と、勉強習慣づくりをサポートします。</p>
+      <p class="price">月謝 8,800円〜</p>
+    </div>
+    <div class="course">
+      <h3>中学生コース</h3>
+      <p>定期テスト対策と、志望校に合わせた受験対策を行います。</p>
+      <p class="price">月謝 13,200円〜</p>
+    </div>
+    <div class="course">
+      <h3>個別フォローコース</h3>
+      <p>苦手科目だけをピンポイントで指導します。</p>
+      <p class="price">月謝 6,600円〜</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>ご入塾までの流れ</h2>
+  <ol class="steps">
+    <li>無料体験授業のお申し込み</li>
+    <li>学力チェック・面談（保護者様同席）</li>
+    <li>コース・カリキュラムのご提案</li>
+    <li>ご入塾</li>
+  </ol>
+</section>
+
+<div class="final" id="trial">
+  <h2 style="color:#fff">無料体験授業、受付中</h2>
+  <p style="margin-bottom:20px">お電話：000-0000-0000（受付 13:00〜21:00・日祝休み）</p>
+  <a class="cta" href="#trial" style="background:#fff;color:var(--accent);box-shadow:none">WEBで申し込む</a>
+</div>
+
+<footer>&copy; のびのび学習塾（制作サンプル）</footer>
+</body>
+</html>
