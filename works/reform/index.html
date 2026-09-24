@@ -45,6 +45,10 @@
     padding: 8px 12px; border: 3px solid #8a6d4a;
     min-width: 58%;
   }
+  /* 写真が画面に入ったら、黒板を現場で立てかけるように置く。JavaScriptが動かないときは最初から見える */
+  .js .board { opacity: 0; transform: translateY(-16px) rotate(-5deg); transition: opacity .25s ease-out, transform .45s cubic-bezier(.3, 1.6, .5, 1); }
+  .js .board.in { opacity: 1; transform: translateY(0) rotate(-1deg); }
+  @media (prefers-reduced-motion: reduce) { .js .board { opacity: 1; transform: none; transition: none; } }
   .board table { border-collapse: collapse; width: 100%; }
   .board td { padding: 1px 0; border-bottom: 1px solid rgba(243, 241, 232, .35); }
   .board td:first-child { width: 3.2em; opacity: .8; }
@@ -143,5 +147,13 @@
 </div>
 
 <footer>&copy; 丸山リフォーム（制作サンプル）</footer>
+<script>
+  document.documentElement.classList.add('js');
+  const boards = document.querySelectorAll('.board');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.6 });
+  boards.forEach((b) => io.observe(b));
+</script>
 </body>
 </html>

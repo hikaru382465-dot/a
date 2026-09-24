@@ -32,7 +32,11 @@
   .hero h1 { font-size: clamp(25px, 6.5vw, 44px); line-height: 1.5; margin-top: 8px; }
   /* 先生が赤ペンで丸をつけたように見せる */
   .hero .circled { position: relative; display: inline-block; padding: 0 6px; }
-  .hero .circled::after { content: ""; position: absolute; inset: -4px -6px; border: 3px solid var(--red); border-radius: 50%; transform: rotate(-3deg); }
+  /* 先生が赤ペンで丸をつける動き。ページを開いて少ししてから、一筆で描く */
+  .hero .pen { position: absolute; left: -12px; top: -10px; width: calc(100% + 24px); height: calc(100% + 20px); overflow: visible; pointer-events: none; }
+  .hero .pen path { fill: none; stroke: var(--red); stroke-width: 3px; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .9s .6s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .hero .pen path { animation: none; stroke-dashoffset: 0; } }
   .hero p { margin-top: 16px; }
   .cta { display: inline-block; margin-top: 24px; background: var(--blue); color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-weight: 700; }
 
@@ -69,7 +73,7 @@
 <main>
   <div class="hero">
     <p class="who">小学生・中学生の個別指導／○○駅から歩いて5分</p>
-    <h1>「<span class="circled">わかった</span>」が増えると、<br>勉強は好きになる。</h1>
+    <h1>「<span class="circled">わかった<svg class="pen" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" vector-effect="non-scaling-stroke" d="M 34 14 C 95 -4, 188 6, 192 38 C 196 70, 112 80, 52 73 C 8 68, 2 32, 40 15 C 64 5, 96 3, 128 8"/></svg></span>」が増えると、<br>勉強は好きになる。</h1>
     <p>先生1人に生徒は3人まで。質問しやすい少人数で、お子さまのペースに合わせて教えます。</p>
     <a class="cta" href="#trial">無料体験を申し込む</a>
   </div>
