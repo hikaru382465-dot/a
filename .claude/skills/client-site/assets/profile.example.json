@@ -1,0 +1,12 @@
+{
+  "name": "【本名】",
+  "address": "【住所（省略してもよい）】",
+  "contact": "【連絡先（省略してもよい）】",
+  "bank": {
+    "bankName": "【銀行名】",
+    "branch": "【支店名】",
+    "accountType": "普通",
+    "accountNumber": "【口座番号】",
+    "accountHolder": "【口座名義（カタカナ）】"
+  }
+}
