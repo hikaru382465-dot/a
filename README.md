@@ -10,6 +10,9 @@
 | `works/cafe/` | 制作サンプル①：カフェの紹介ページ |
 | `works/seitai/` | 制作サンプル②：整体院の集客LP |
 | `docs/coconala-listing.md` | ココナラに出品するときの文章テンプレート |
+| `docs/coconala-listing-update.md` | 2つ目のサービス（修正・更新）の出品文 |
+| `docs/proposal-template.md` | クラウドワークス・ランサーズ用の提案文 |
+| `.claude/skills/client-site/` | お客さんの案件を進めるためのスキル（ヒアリング→制作→チェック→納品） |
 
 ## 4週間プラン（週20時間）
 
