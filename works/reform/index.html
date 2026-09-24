@@ -5,90 +5,141 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>丸山リフォーム | 制作サンプル</title>
 <meta name="description" content="架空のリフォーム会社の施工実績ページ（制作サンプル）">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Klee+One:wght@600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #ffffff;
-    --text: #2d2a26;
-    --accent: #b5482e;
-    --dark: #1f2937;
-    --sub: #f5f1ec;
+    --bg: #eceae5;
+    --white: #f8f7f4;
+    --ink: #22201d;
+    --ink-soft: #5a5650;
+    --board: #2f4a3c;
+    --chalk: #f3f1e8;
+    --red: #b8362a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+  body { font-family: "Zen Kaku Gothic New", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.85; font-size: 16px; }
   .sample-bar { background: #333; color: #fff; text-align: center; font-size: 12px; padding: 4px; }
-  .hero {
-    min-height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
-    padding: 40px 24px; color: #fff;
-    background: linear-gradient(90deg, rgba(20,16,14,.75), rgba(20,16,14,.25)),
-      url("https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1600") center/cover;
+
+  header { background: var(--white); border-bottom: 3px solid var(--ink); }
+  header .inner { max-width: 1000px; margin: 0 auto; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header .name { font-weight: 900; font-size: 22px; }
+  header .tel { font-weight: 700; color: var(--ink); text-decoration: none; font-size: 18px; }
+  header .tel small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-soft); text-align: right; }
+
+  .hero { max-width: 1000px; margin: 0 auto; padding: 40px 20px 20px; }
+  .hero h1 { font-size: clamp(28px, 5.5vw, 44px); font-weight: 900; line-height: 1.45; }
+  .hero p { margin-top: 14px; max-width: 36em; color: var(--ink-soft); }
+
+  section { max-width: 1000px; margin: 0 auto; padding: 36px 20px; }
+  h2 { font-size: 24px; font-weight: 900; margin-bottom: 20px; }
+
+  /* 施工事例は、現場で撮る工事写真と同じように黒板を添える */
+  .works { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .photo { background: var(--white); padding: 10px; }
+  .shot { position: relative; }
+  .photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .board {
+    position: absolute; left: 10px; bottom: 10px;
+    background: var(--board); color: var(--chalk);
+    font-family: "Klee One", cursive; font-weight: 600; font-size: 13px; line-height: 1.6;
+    padding: 8px 12px; border: 3px solid #8a6d4a;
+    min-width: 58%;
   }
-  .hero .badge { background: var(--accent); padding: 4px 14px; font-size: 13px; font-weight: 700; display: inline-block; }
-  .hero h1 { font-size: clamp(26px, 5.5vw, 42px); font-weight: 900; margin: 16px 0; max-width: 640px; }
-  .cta { display: inline-block; margin-top: 12px; padding: 14px 32px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
-  section { max-width: 960px; margin: 0 auto; padding: 64px 16px; }
-  h2 { font-size: 24px; margin-bottom: 32px; font-weight: 900; border-left: 5px solid var(--accent); padding-left: 12px; }
-  .works { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
-  .wcard img { width: 100%; height: 180px; object-fit: cover; }
-  .wcard .body { background: var(--sub); padding: 16px; }
-  .wcard .tag { display: inline-block; background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; margin-bottom: 8px; }
-  table.price { width: 100%; border-collapse: collapse; }
-  table.price th, table.price td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #e5ded4; }
-  table.price td:last-child { text-align: right; color: var(--accent); font-weight: 700; }
-  .dark { background: var(--dark); color: #e5e7eb; text-align: center; }
-  .dark dl { display: inline-grid; grid-template-columns: 100px 1fr; gap: 10px 16px; text-align: left; margin: 24px 0; }
-  .dark dt { color: #f3a689; }
-  footer { text-align: center; padding: 24px; font-size: 12px; color: #999; }
+  .board table { border-collapse: collapse; width: 100%; }
+  .board td { padding: 1px 0; border-bottom: 1px solid rgba(243, 241, 232, .35); }
+  .board td:first-child { width: 3.2em; opacity: .8; }
+  .photo .comment { padding: 12px 4px 4px; font-size: 15px; }
+
+  .cost { background: var(--white); padding: 24px 20px; }
+  .cost table { width: 100%; border-collapse: collapse; }
+  .cost th, .cost td { padding: 14px 0; border-bottom: 1px solid #d6d2ca; text-align: left; font-weight: 400; }
+  .cost td { text-align: right; font-weight: 700; white-space: nowrap; }
+  .cost .note { margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+
+  .contact { background: var(--ink); color: var(--white); }
+  .contact .inner { max-width: 1000px; margin: 0 auto; padding: 44px 20px; }
+  .contact h2 { color: var(--white); }
+  .contact p { color: #cfcac1; }
+  .contact .big-tel { display: inline-block; margin-top: 18px; font-size: 30px; font-weight: 900; color: var(--white); text-decoration: none; border-bottom: 3px solid var(--red); }
+  .contact .form-link { display: inline-block; margin-top: 22px; margin-left: 0; padding: 12px 28px; background: var(--red); color: #fff; text-decoration: none; font-weight: 700; }
+  .contact dl { margin-top: 24px; display: grid; grid-template-columns: 7em 1fr; gap: 4px 16px; color: #cfcac1; font-size: 15px; }
+  @media (max-width: 520px) { .contact dl { grid-template-columns: 1fr; } }
+
+  footer { text-align: center; padding: 24px; font-size: 12px; color: var(--ink-soft); }
 </style>
 </head>
 <body>
 <div class="sample-bar">※これは制作サンプルです。実在の会社ではありません。</div>
 
+<header>
+  <div class="inner">
+    <div class="name">丸山リフォーム</div>
+    <a class="tel" href="tel:0000000000">000-0000-0000<small>9:00〜18:00・日曜休み</small></a>
+  </div>
+</header>
+
 <div class="hero">
-  <span class="badge">創業25年・施工実績1,200件以上</span>
-  <h1>住み慣れた家を、<br>これから先も長く暮らせる家に。</h1>
-  <a class="cta" href="#contact">無料見積もりを依頼する</a>
+  <h1>住み慣れた家を、<br>あと30年暮らせる家に。</h1>
+  <p>キッチン・お風呂などの水まわりから外壁まで。地元○○市で25年、下見から完成まで同じ担当者がうかがいます。</p>
 </div>
 
 <section>
-  <h2>施工実績</h2>
+  <h2>最近の施工事例</h2>
   <div class="works">
-    <div class="wcard">
-      <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600" alt="キッチンリフォーム">
-      <div class="body"><span class="tag">キッチン</span><h3>対面式キッチンへの全面改装</h3></div>
+    <div class="photo">
+      <div class="shot"><img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=700" alt="改装後の対面キッチン">
+      <div class="board"><table>
+        <tr><td>工事</td><td>キッチン改装</td></tr>
+        <tr><td>場所</td><td>○○市 T様邸</td></tr>
+        <tr><td>工期</td><td>5日間</td></tr>
+      </table></div></div>
+      <p class="comment">壁付けのキッチンを対面式に。料理しながらお子さんの様子が見えるようになりました。</p>
     </div>
-    <div class="wcard">
-      <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600" alt="浴室リフォーム">
-      <div class="body"><span class="tag">浴室</span><h3>断熱浴槽への交換工事</h3></div>
+    <div class="photo">
+      <div class="shot"><img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=700" alt="交換後の浴室">
+      <div class="board"><table>
+        <tr><td>工事</td><td>浴室交換</td></tr>
+        <tr><td>場所</td><td>○○市 S様邸</td></tr>
+        <tr><td>工期</td><td>4日間</td></tr>
+      </table></div></div>
+      <p class="comment">冬の寒さが気になるとのご相談で、断熱浴槽と床に交換しました。</p>
     </div>
-    <div class="wcard">
-      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600" alt="外壁リフォーム">
-      <div class="body"><span class="tag">外壁・屋根</span><h3>外壁塗装・屋根の張り替え</h3></div>
+    <div class="photo">
+      <div class="shot"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700" alt="塗装後の外壁">
+      <div class="board"><table>
+        <tr><td>工事</td><td>外壁塗装</td></tr>
+        <tr><td>場所</td><td>○○市 K様邸</td></tr>
+        <tr><td>工期</td><td>12日間</td></tr>
+      </table></div></div>
+      <p class="comment">ひび割れの補修から。足場を組んだついでに雨どいも交換しています。</p>
     </div>
   </div>
 </section>
 
-<section style="background:var(--sub)">
+<section>
   <h2>費用の目安</h2>
-  <table class="price">
-    <tr><th>キッチン交換</th><td>60万円〜</td></tr>
-    <tr><th>浴室リフォーム</th><td>80万円〜</td></tr>
-    <tr><th>外壁塗装</th><td>70万円〜</td></tr>
-    <tr><th>水まわり一式</th><td>150万円〜</td></tr>
-  </table>
-  <p style="margin-top:16px;font-size:14px;color:#666">※建物の状態により異なります。現地調査のうえ正式にお見積もりいたします。</p>
+  <div class="cost">
+    <table>
+      <tr><th>キッチン交換</th><td>60万円〜</td></tr>
+      <tr><th>浴室の交換</th><td>80万円〜</td></tr>
+      <tr><th>外壁塗装（30坪前後）</th><td>70万円〜</td></tr>
+      <tr><th>水まわり一式</th><td>150万円〜</td></tr>
+    </table>
+    <p class="note">家の状態によって変わります。下見のあと、項目ごとの内訳が入ったお見積もりをお出しします。</p>
+  </div>
 </section>
 
-<div class="dark" id="contact">
-  <h2 style="color:#fff;border-color:#f3a689;display:inline-block">無料見積もり・お問い合わせ</h2>
-  <br>
-  <dl>
-    <dt>電話</dt><dd>000-0000-0000</dd>
-    <dt>受付時間</dt><dd>9:00〜18:00（日曜休）</dd>
-    <dt>対応エリア</dt><dd>○○県内一円</dd>
-  </dl>
-  <br>
-  <a class="cta" href="#contact">WEBから見積もり依頼</a>
+<div class="contact">
+  <div class="inner">
+    <h2>下見・お見積もりは無料です</h2>
+    <p>「まだ決めていないけど、いくらかかるか知りたい」という段階のご相談も歓迎しています。</p>
+    <a class="big-tel" href="tel:0000000000">000-0000-0000</a><br>
+    <a class="form-link" href="#">WEBで見積もりを依頼する</a>
+    <dl>
+      <dt>受付時間</dt><dd>9:00〜18:00（日曜休み）</dd>
+      <dt>対応エリア</dt><dd>○○県内</dd>
+    </dl>
+  </div>
 </div>
 
 <footer>&copy; 丸山リフォーム（制作サンプル）</footer>
