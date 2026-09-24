@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>丸山リフォーム | 制作サンプル</title>
+<meta name="description" content="架空のリフォーム会社の施工実績ページ（制作サンプル）">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Klee+One:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eceae5;
+    --white: #f8f7f4;
+    --ink: #22201d;
+    --ink-soft: #5a5650;
+    --board: #2f4a3c;
+    --chalk: #f3f1e8;
+    --red: #b8362a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Zen Kaku Gothic New", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.85; font-size: 16px; }
+
+  header { background: var(--white); border-bottom: 3px solid var(--ink); }
+  header .inner { max-width: 1000px; margin: 0 auto; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header .name { font-weight: 900; font-size: 22px; }
+  header .tel { font-weight: 700; color: var(--ink); text-decoration: none; font-size: 18px; }
+  header .tel small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-soft); text-align: right; }
+
+  .hero { max-width: 1000px; margin: 0 auto; padding: 40px 20px 20px; }
+  .hero h1 { font-size: clamp(28px, 5.5vw, 44px); font-weight: 900; line-height: 1.45; }
+  .hero p { margin-top: 14px; max-width: 36em; color: var(--ink-soft); }
+
+  section { max-width: 1000px; margin: 0 auto; padding: 36px 20px; }
+  h2 { font-size: 24px; font-weight: 900; margin-bottom: 20px; }
+
+  /* 施工事例は、現場で撮る工事写真と同じように黒板を添える */
+  .works { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .photo { background: var(--white); padding: 10px; }
+  .shot { position: relative; }
+  .photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .board {
+    position: absolute; left: 10px; bottom: 10px;
+    background: var(--board); color: var(--chalk);
+    font-family: "Klee One", cursive; font-weight: 600; font-size: 13px; line-height: 1.6;
+    padding: 8px 12px; border: 3px solid #8a6d4a;
+    min-width: 58%;
+  }
+  /* 写真が画面に入ったら、黒板を現場で立てかけるように置く。JavaScriptが動かないときは最初から見える */
+  .js .board { opacity: 0; transform: translateY(-16px) rotate(-5deg); transition: opacity .25s ease-out, transform .45s cubic-bezier(.3, 1.6, .5, 1); }
+  .js .board.in { opacity: 1; transform: translateY(0) rotate(-1deg); }
+  @media (prefers-reduced-motion: reduce) { .js .board { opacity: 1; transform: none; transition: none; } }
+  .board table { border-collapse: collapse; width: 100%; }
+  .board td { padding: 1px 0; border-bottom: 1px solid rgba(243, 241, 232, .35); }
+  .board td:first-child { width: 3.2em; opacity: .8; }
+  .photo .comment { padding: 12px 4px 4px; font-size: 15px; }
+
+  .cost { background: var(--white); padding: 24px 20px; }
+  .cost table { width: 100%; border-collapse: collapse; }
+  .cost th, .cost td { padding: 14px 0; border-bottom: 1px solid #d6d2ca; text-align: left; font-weight: 400; }
+  .cost td { text-align: right; font-weight: 700; white-space: nowrap; }
+  .cost .note { margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+
+  .contact { background: var(--ink); color: var(--white); }
+  .contact .inner { max-width: 1000px; margin: 0 auto; padding: 44px 20px; }
+  .contact h2 { color: var(--white); }
+  .contact p { color: #cfcac1; }
+  .contact .big-tel { display: inline-block; margin-top: 18px; font-size: 30px; font-weight: 900; color: var(--white); text-decoration: none; border-bottom: 3px solid var(--red); }
+  .contact .form-link { display: inline-block; margin-top: 22px; margin-left: 0; padding: 12px 28px; background: var(--red); color: #fff; text-decoration: none; font-weight: 700; }
+  .contact dl { margin-top: 24px; display: grid; grid-template-columns: 7em 1fr; gap: 4px 16px; color: #cfcac1; font-size: 15px; }
+  @media (max-width: 520px) { .contact dl { grid-template-columns: 1fr; } }
+
+  footer { text-align: center; padding: 24px; font-size: 12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="name">丸山リフォーム</div>
+    <a class="tel" href="tel:0000000000">000-0000-0000<small>9:00〜18:00・日曜休み</small></a>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>住み慣れた家を、<br>あと30年暮らせる家に。</h1>
+  <p>キッチン・お風呂などの水まわりから外壁まで。地元○○市で25年、下見から完成まで同じ担当者がうかがいます。</p>
+</div>
+
+<section>
+  <h2>最近の施工事例</h2>
+  <div class="works">
+    <div class="photo">
+      <div class="shot"><img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=700" alt="改装後の対面キッチン">
+      <div class="board"><table>
+        <tr><td>工事</td><td>キッチン改装</td></tr>
+        <tr><td>場所</td><td>○○市 T様邸</td></tr>
+        <tr><td>工期</td><td>5日間</td></tr>
+      </table></div></div>
+      <p class="comment">壁付けのキッチンを対面式に。料理しながらお子さんの様子が見えるようになりました。</p>
+    </div>
+    <div class="photo">
+      <div class="shot"><img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=700" alt="交換後の浴室">
+      <div class="board"><table>
+        <tr><td>工事</td><td>浴室交換</td></tr>
+        <tr><td>場所</td><td>○○市 S様邸</td></tr>
+        <tr><td>工期</td><td>4日間</td></tr>
+      </table></div></div>
+      <p class="comment">冬の寒さが気になるとのご相談で、断熱浴槽と床に交換しました。</p>
+    </div>
+    <div class="photo">
+      <div class="shot"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700" alt="塗装後の外壁">
+      <div class="board"><table>
+        <tr><td>工事</td><td>外壁塗装</td></tr>
+        <tr><td>場所</td><td>○○市 K様邸</td></tr>
+        <tr><td>工期</td><td>12日間</td></tr>
+      </table></div></div>
+      <p class="comment">ひび割れの補修から。足場を組んだついでに雨どいも交換しています。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>費用の目安</h2>
+  <div class="cost">
+    <table>
+      <tr><th>キッチン交換</th><td>60万円〜</td></tr>
+      <tr><th>浴室の交換</th><td>80万円〜</td></tr>
+      <tr><th>外壁塗装（30坪前後）</th><td>70万円〜</td></tr>
+      <tr><th>水まわり一式</th><td>150万円〜</td></tr>
+    </table>
+    <p class="note">家の状態によって変わります。下見のあと、項目ごとの内訳が入ったお見積もりをお出しします。</p>
+  </div>
+</section>
+
+<div class="contact">
+  <div class="inner">
+    <h2>下見・お見積もりは無料です</h2>
+    <p>「まだ決めていないけど、いくらかかるか知りたい」という段階のご相談も歓迎しています。</p>
+    <a class="big-tel" href="tel:0000000000">000-0000-0000</a><br>
+    <a class="form-link" href="#">WEBで見積もりを依頼する</a>
+    <dl>
+      <dt>受付時間</dt><dd>9:00〜18:00（日曜休み）</dd>
+      <dt>対応エリア</dt><dd>○○県内</dd>
+    </dl>
+  </div>
+</div>
+
+<footer>&copy; 丸山リフォーム（制作サンプル）</footer>
+<script>
+  document.documentElement.classList.add('js');
+  const boards = document.querySelectorAll('.board');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.6 });
+  boards.forEach((b) => io.observe(b));
+</script>
+</body>
+</html>

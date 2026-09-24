@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Komorebi | 制作サンプル</title>
+<meta name="description" content="架空のカフェのお店紹介ページ（制作サンプル）">
+<link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --leaf: #2f4a3a;
+    --leaf-soft: #5d7566;
+    --paper: #f1f3ec;
+    --sun: #e3ad3e;
+    --line: #c9d0c3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Zen Maru Gothic", sans-serif; background: var(--paper); color: var(--leaf); line-height: 1.9; font-size: 16px; }
+  h1, h2, .shop { font-family: "Kaisei Decol", serif; }
+
+  header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; max-width: 1040px; margin: 0 auto; }
+  header .shop { font-size: 20px; font-weight: 700; }
+  header a { color: var(--leaf); font-size: 14px; text-decoration: none; border-bottom: 1px solid var(--sun); }
+
+  /* 写真と文字を横に並べる。写真は木漏れ日の光を残すため暗く塗らない */
+  .hero { max-width: 1040px; margin: 0 auto; padding: 8px 20px 56px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+  .hero .photo { position: relative; border-radius: 180px 180px 4px 4px; overflow: hidden; }
+  .hero img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+  /* 木漏れ日：明るい光の層（after）と葉の影の層（before）を、反対向きにゆっくり揺らす */
+  .hero .photo::before, .hero .photo::after {
+    content: ""; position: absolute; inset: -25%; pointer-events: none;
+  }
+  .hero .photo::before {
+    background:
+      radial-gradient(ellipse 30% 20% at 40% 50%, rgba(70, 54, 24, .22), transparent 70%),
+      radial-gradient(ellipse 22% 28% at 70% 62%, rgba(70, 54, 24, .2), transparent 70%),
+      radial-gradient(ellipse 28% 18% at 30% 78%, rgba(70, 54, 24, .18), transparent 70%);
+    mix-blend-mode: multiply;
+    animation: sway-shade 7s ease-in-out infinite alternate;
+  }
+  .hero .photo::after {
+    background:
+      radial-gradient(ellipse 6% 4.5% at 28% 30%, rgba(255, 232, 160, .95), transparent 60%),
+      radial-gradient(ellipse 4% 5% at 38% 36%, rgba(255, 232, 160, .8), transparent 60%),
+      radial-gradient(ellipse 7% 5% at 62% 26%, rgba(255, 232, 160, .9), transparent 60%),
+      radial-gradient(ellipse 5% 3.5% at 55% 48%, rgba(255, 232, 160, .75), transparent 60%),
+      radial-gradient(ellipse 6% 4% at 47% 62%, rgba(255, 232, 160, .85), transparent 60%),
+      radial-gradient(ellipse 4% 5% at 34% 72%, rgba(255, 232, 160, .7), transparent 60%),
+      radial-gradient(ellipse 5% 4% at 70% 70%, rgba(255, 232, 160, .75), transparent 60%),
+      radial-gradient(ellipse 3.5% 3% at 66% 40%, rgba(255, 232, 160, .7), transparent 60%);
+    mix-blend-mode: screen;
+    animation: sway-light 7s ease-in-out infinite alternate;
+  }
+  @keyframes sway-light { from { transform: translate(-5%, -3%) rotate(-3deg); opacity: .75; } to { transform: translate(5%, 3%) rotate(3deg); opacity: 1; } }
+  @keyframes sway-shade { from { transform: translate(4%, 3%) rotate(2deg); } to { transform: translate(-4%, -3%) rotate(-2deg); } }
+  @media (prefers-reduced-motion: reduce) { .hero .photo::before, .hero .photo::after { animation: none; } }
+  .hero h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.45; font-weight: 700; }
+  .hero p { margin-top: 18px; color: var(--leaf-soft); }
+  .hero .open { margin-top: 26px; display: inline-block; padding: 6px 0; border-top: 1px solid var(--leaf); border-bottom: 1px solid var(--leaf); font-size: 14px; }
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; gap: 24px; }
+    .hero .photo { border-radius: 120px 120px 4px 4px; }
+    .hero img { aspect-ratio: 4 / 3; }
+  }
+
+  section { max-width: 720px; margin: 0 auto; padding: 56px 20px; }
+  h2 { font-size: 26px; font-weight: 700; margin-bottom: 20px; }
+  h2::after { content: ""; display: block; width: 36px; height: 6px; margin-top: 8px; background: var(--sun); border-radius: 3px; }
+
+  /* 店の黒板メニューのように、品名と価格を点線でつなぐ */
+  .menu-group + .menu-group { margin-top: 32px; }
+  .menu-group h3 { font-size: 15px; color: var(--leaf-soft); font-weight: 400; margin-bottom: 6px; }
+  .menu-item { display: flex; align-items: baseline; gap: 8px; padding: 10px 0; }
+  .menu-item .name { font-weight: 700; }
+  .menu-item .dots { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); }
+  .menu-item .price { font-weight: 700; white-space: nowrap; }
+  .menu-item small { display: block; font-weight: 400; color: var(--leaf-soft); font-size: 13.5px; }
+  .menu-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 28px; }
+  .menu-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; display: block; }
+
+  .access { background: var(--leaf); color: var(--paper); }
+  .access-inner { max-width: 720px; margin: 0 auto; padding: 56px 20px; }
+  .access h2::after { background: var(--sun); }
+  .access dl { display: grid; grid-template-columns: 6em 1fr; gap: 10px 16px; }
+  .access dt { color: var(--sun); }
+  .access a { color: var(--paper); }
+  .access .map { margin-top: 28px; width: 100%; height: 260px; border: 0; border-radius: 4px; background: #3d5a48; }
+  @media (max-width: 520px) { .access dl { grid-template-columns: 1fr; gap: 0; } .access dd { margin-bottom: 12px; } }
+
+  footer { text-align: center; padding: 24px; font-size: 12px; color: var(--leaf-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="shop">Café Komorebi</div>
+  <a href="#access">お店の場所</a>
+</header>
+
+<div class="hero">
+  <div class="photo"><img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200" alt="窓から光が差し込むカフェの店内"></div>
+  <div>
+    <h1>窓ぎわの席で、<br>朝のコーヒーを。</h1>
+    <p>豆は毎朝、店の奥で焙煎しています。大きな窓から入る光のなかで、一杯ずつ淹れたコーヒーと手作りのお菓子をどうぞ。</p>
+    <span class="open">9:00 – 18:00 ／ 水曜定休</span>
+  </div>
+</div>
+
+<section>
+  <h2>メニュー</h2>
+  <div class="menu-group">
+    <h3>コーヒー</h3>
+    <div class="menu-item"><span class="name">本日のハンドドリップ<small>その日の焙煎から、店主が選びます</small></span><span class="dots"></span><span class="price">¥550</span></div>
+    <div class="menu-item"><span class="name">カフェオレ</span><span class="dots"></span><span class="price">¥600</span></div>
+  </div>
+  <div class="menu-group">
+    <h3>お菓子・軽食</h3>
+    <div class="menu-item"><span class="name">ベイクドチーズケーキ</span><span class="dots"></span><span class="price">¥480</span></div>
+    <div class="menu-item"><span class="name">季節のホットサンド<small>11:00からのご提供です</small></span><span class="dots"></span><span class="price">¥880</span></div>
+  </div>
+  <div class="menu-photos">
+    <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400" alt="ハンドドリップのコーヒー">
+    <img src="https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=400" alt="ベイクドチーズケーキ">
+    <img src="https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=400" alt="ホットサンド">
+  </div>
+</section>
+
+<div class="access" id="access">
+  <div class="access-inner">
+    <h2>お店の場所</h2>
+    <dl>
+      <dt>住所</dt><dd>○○県○○市○○町1-2-3（サンプル）</dd>
+      <dt>営業時間</dt><dd>9:00〜18:00（L.O. 17:30）</dd>
+      <dt>定休日</dt><dd>毎週水曜日</dd>
+      <dt>電話</dt><dd><a href="tel:0000000000">000-0000-0000</a></dd>
+    </dl>
+    <div class="map" role="img" aria-label="地図（サンプルのため表示していません）"></div>
+  </div>
+</div>
+
+<footer>&copy; Café Komorebi（制作サンプル）</footer>
+</body>
+</html>

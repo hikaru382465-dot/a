@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>やすらぎ整体院 | 制作サンプル</title>
+<meta name="description" content="架空の整体院の集客用ページ（制作サンプル）">
+<!-- 年配の方も読みやすいよう、UD（ユニバーサルデザイン）書体を使う -->
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --soft: #f1f5f4;
+    --ink: #1f2d2b;
+    --ink-soft: #4d5e5b;
+    --teal: #1d6b63;
+    --line: #d5dfdd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "BIZ UDPGothic", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.9; font-size: 17px; padding-bottom: 76px; }
+
+  .top { max-width: 760px; margin: 0 auto; padding: 40px 20px 48px; }
+  .top .place { font-size: 15px; color: var(--ink-soft); }
+  .top h1 { font-size: clamp(28px, 6vw, 42px); line-height: 1.5; margin-top: 10px; }
+  .top img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; margin-top: 28px; border-radius: 6px; }
+
+  section { max-width: 760px; margin: 0 auto; padding: 48px 20px; }
+  h2 { font-size: 24px; margin-bottom: 20px; }
+
+  /* お悩みは、来院される方の言葉そのままで書く */
+  .voices-of-pain { background: var(--soft); }
+  .voices-of-pain ul { list-style: none; }
+  .voices-of-pain li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .voices-of-pain li:last-child { border-bottom: none; }
+
+  .reason h3 { font-size: 19px; color: var(--teal); }
+  .reason p { color: var(--ink-soft); margin-top: 4px; }
+  .reason + .reason { margin-top: 28px; }
+
+  .price { border: 2px solid var(--teal); border-radius: 6px; padding: 28px 24px; }
+  .price .label { font-weight: 700; }
+  .price .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .price .row:last-of-type { border-bottom: none; }
+  .price .yen { font-size: 28px; font-weight: 700; color: var(--teal); white-space: nowrap; }
+  .price .note { font-size: 14px; color: var(--ink-soft); margin-top: 10px; }
+
+  blockquote { padding: 4px 0 4px 18px; border-left: 3px solid var(--teal); }
+  blockquote + blockquote { margin-top: 24px; }
+  blockquote cite { display: block; margin-top: 6px; font-style: normal; font-size: 14px; color: var(--ink-soft); }
+
+  .info dl { display: grid; grid-template-columns: 6em 1fr; gap: 8px 16px; }
+  .info dt { font-weight: 700; }
+  @media (max-width: 520px) { .info dl { grid-template-columns: 1fr; gap: 0; } .info dd { margin-bottom: 10px; } }
+
+  /* スマホで見ている人がいつでも電話できるよう、画面下に固定する */
+  .call-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--teal); padding: 10px 16px; display: flex; justify-content: center; }
+  .call-bar a { display: block; width: 100%; max-width: 480px; text-align: center; color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; padding: 12px; border: 2px solid #fff; border-radius: 6px; }
+  .call-bar small { display: block; font-weight: 400; font-size: 13px; }
+
+  footer { text-align: center; padding: 24px; font-size: 13px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <p class="place">○○駅 東口から歩いて3分・完全予約制</p>
+  <h1>肩や腰のつらさ、<br>何年も我慢して<br>いませんか。</h1>
+  <img src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=1200" alt="施術を受けている様子">
+</div>
+
+<section class="voices-of-pain">
+  <h2>こんな方が来院されています</h2>
+  <ul>
+    <li>「デスクワークで、夕方になると肩が上がらない」</li>
+    <li>「朝起きると、腰が痛くてすぐに動けない」</li>
+    <li>「マッサージに行っても、3日で元に戻ってしまう」</li>
+    <li>「頭痛が続いて、薬が手放せない」</li>
+  </ul>
+</section>
+
+<section>
+  <h2>当院の施術について</h2>
+  <div class="reason">
+    <h3>最初の30分は、お話を伺う時間です</h3>
+    <p>いつから、どんなときに痛むのか。お体の状態を確かめてから、施術の方針をご説明します。</p>
+  </div>
+  <div class="reason">
+    <h3>ボキボキしない、やさしい施術</h3>
+    <p>強い力は使いません。整体が初めての方や、ご年配の方にも安心して受けていただけます。</p>
+  </div>
+  <div class="reason">
+    <h3>ご自宅でできるストレッチをお伝えします</h3>
+    <p>通院の間も良い状態が続くよう、毎日5分でできる体操をお教えします。</p>
+  </div>
+</section>
+
+<section>
+  <h2>料金</h2>
+  <div class="price">
+    <div class="row"><span class="label">初回（お話＋施術）</span><span class="yen">¥3,300</span></div>
+    <div class="row"><span class="label">2回目以降</span><span class="yen">¥6,600</span></div>
+    <p class="note">すべて税込です。初回は通常¥6,600のところ、半額でお受けしています。</p>
+  </div>
+</section>
+
+<section>
+  <h2>来院された方の声</h2>
+  <blockquote>長年の肩こりが楽になりました。説明が丁寧で、安心して通えています。<cite>30代・会社員（サンプル文）</cite></blockquote>
+  <blockquote>やさしい施術で驚きました。教わったストレッチを毎朝続けています。<cite>50代・主婦（サンプル文）</cite></blockquote>
+</section>
+
+<section class="info">
+  <h2>院の情報</h2>
+  <dl>
+    <dt>住所</dt><dd>○○県○○市○○町4-5-6（サンプル）</dd>
+    <dt>受付時間</dt><dd>10:00〜20:00</dd>
+    <dt>休み</dt><dd>日曜・祝日</dd>
+  </dl>
+</section>
+
+<footer>&copy; やすらぎ整体院（制作サンプル）</footer>
+
+<div class="call-bar">
+  <a href="tel:0000000000">電話で予約する<small>000-0000-0000（10:00〜20:00）</small></a>
+</div>
+</body>
+</html>

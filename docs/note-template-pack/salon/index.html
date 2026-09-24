@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hair Salon 凛 | 制作サンプル</title>
+<meta name="description" content="架空の美容室のご案内ページ（制作サンプル）">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfbf9;
+    --ink: #2b2725;
+    --ink-soft: #6a625d;
+    --plum: #5b2a3c;
+    --line: #e2dcd6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Noto Sans JP", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.95; font-size: 16px; }
+  h1, h2, h3, .jp { font-family: "Shippori Mincho", serif; }
+
+  /* 店名の「凛」を縦書きで大きく置き、写真と並べる */
+  .hero { max-width: 1000px; margin: 0 auto; padding: 48px 20px; display: grid; grid-template-columns: auto 1fr; gap: 36px; align-items: start; }
+  .hero .vertical { writing-mode: vertical-rl; font-family: "Shippori Mincho", serif; }
+  .hero .vertical h1 { font-size: clamp(64px, 12vw, 120px); font-weight: 700; line-height: 1; color: var(--plum); }
+  .hero .vertical p { font-size: 17px; margin-right: 18px; letter-spacing: .2em; color: var(--ink-soft); white-space: nowrap; }
+  /* 「凛」を筆でおろすように上から現し、そのあと添え書きを出す */
+  .hero .vertical h1 { inline-size: 1em; animation: brush 1.3s .3s cubic-bezier(.6, 0, .2, 1) both; }
+  .hero .vertical p { animation: fade .8s 1.5s ease-out both; }
+  @keyframes brush { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .hero .vertical h1, .hero .vertical p { animation: none; } }
+  .hero img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
+  .hero .caption { margin-top: 14px; font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 600px) {
+    .hero { gap: 18px; }
+    .hero .vertical h1 { font-size: 72px; }
+    .hero .vertical p { font-size: 15px; margin-right: 10px; }
+  }
+
+  section { max-width: 720px; margin: 0 auto; padding: 56px 20px; }
+  h2 { font-size: 26px; font-weight: 700; margin-bottom: 24px; }
+
+  .staff { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .staff img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+  .staff h3 { font-size: 19px; margin-top: 12px; }
+  .staff .role { font-size: 14px; color: var(--ink-soft); }
+  .staff p { font-size: 14.5px; margin-top: 6px; }
+  @media (max-width: 520px) { .staff { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 16px 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+  th { font-family: "Shippori Mincho", serif; font-size: 17px; }
+  td { text-align: right; white-space: nowrap; }
+  .menu-note { margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+
+  .visit { border-top: 1px solid var(--ink); }
+  .visit dl { display: grid; grid-template-columns: 6em 1fr; gap: 10px 16px; }
+  .visit dt { color: var(--ink-soft); }
+  .visit a.tel { color: var(--ink); }
+  .reserve { display: inline-block; margin-top: 28px; padding: 14px 36px; background: var(--plum); color: #fff; text-decoration: none; font-size: 15px; }
+  @media (max-width: 520px) { .visit dl { grid-template-columns: 1fr; gap: 0; } .visit dd { margin-bottom: 10px; } }
+
+  footer { text-align: center; padding: 24px; font-size: 12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="vertical">
+    <h1>凛</h1>
+    <p>髪に、ゆっくり向き合う</p>
+  </div>
+  <div>
+    <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=900" alt="落ち着いた雰囲気の店内">
+    <p class="caption">席は二つだけ。完全予約制で、ほかのお客様と重ならない時間をご用意しています。</p>
+  </div>
+</div>
+
+<section>
+  <h2>担当するふたり</h2>
+  <div class="staff">
+    <div>
+      <img src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=500" alt="店長の高橋">
+      <h3>高橋 円</h3>
+      <div class="role">店長（サンプル）</div>
+      <p>くせ毛を活かしたカットが得意です。朝のセットが楽になる形をご提案します。</p>
+    </div>
+    <div>
+      <img src="https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=500" alt="スタイリストの中村">
+      <h3>中村 葵</h3>
+      <div class="role">スタイリスト（サンプル）</div>
+      <p>白髪ぼかしのカラーを担当しています。明るすぎない色味もご相談ください。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>メニュー</h2>
+  <table>
+    <tr><th>カット</th><td>¥5,500</td></tr>
+    <tr><th>カット＋カラー</th><td>¥11,000</td></tr>
+    <tr><th>カット＋パーマ</th><td>¥13,200</td></tr>
+    <tr><th>トリートメント</th><td>¥3,300</td></tr>
+    <tr><th>ヘッドスパ</th><td>¥4,400</td></tr>
+  </table>
+  <p class="menu-note">すべて税込です。髪の長さによって料金が変わる場合は、事前にお伝えします。</p>
+</section>
+
+<section class="visit">
+  <h2>ご予約・お店の場所</h2>
+  <dl>
+    <dt>住所</dt><dd>○○県○○市○○町2-3-4（サンプル）</dd>
+    <dt>営業時間</dt><dd>10:00〜20:00</dd>
+    <dt>定休日</dt><dd>毎週月曜日</dd>
+    <dt>電話</dt><dd><a class="tel" href="tel:0000000000">000-0000-0000</a></dd>
+  </dl>
+  <a class="reserve" href="#">WEBで予約する</a>
+</section>
+
+<footer>&copy; Hair Salon 凛（制作サンプル）</footer>
+</body>
+</html>
