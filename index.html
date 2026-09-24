@@ -3,120 +3,304 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ひかる | Web制作ポートフォリオ</title>
-<meta name="description" content="小さなお店・個人事業主向けのホームページ・LP制作">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<title>ひかる | Web制作</title>
+<meta name="description" content="現場の段取り力で、小さなお店のホームページをつくる。ひかるのWeb制作ポートフォリオ">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f7f8fa;
-    --text: #1f2933;
-    --accent: #3b6ef5;
-    --card: #ffffff;
+    --paper: #faf9f4;
+    --ink: #17253a;
+    --ink-soft: #4b5b70;
+    --line: #d8d4c4;
+    --line-strong: #17253a;
+    --orange: #d1560f;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
-  .hero { padding: 96px 16px 64px; text-align: center; }
-  .hero h1 { font-size: clamp(26px, 5vw, 40px); }
-  .hero h1 span { color: var(--accent); }
-  .hero p { margin-top: 12px; color: #52606d; }
-  section { max-width: 960px; margin: 0 auto; padding: 48px 16px; }
-  h2 { font-size: 24px; margin-bottom: 24px; border-left: 4px solid var(--accent); padding-left: 12px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
-  .card { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
-  .card h3 { margin-bottom: 8px; }
-  .card .price { color: var(--accent); font-weight: 700; font-size: 20px; margin: 8px 0; }
-  .work { text-decoration: none; color: inherit; display: block; transition: transform .2s; }
-  .work:hover { transform: translateY(-4px); }
-  .work .thumb {
-    height: 160px; border-radius: 8px; margin-bottom: 12px; position: relative; overflow: hidden;
-    background-size: cover; background-position: center;
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Noto Sans JP", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.85;
   }
-  .work .thumb::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,0) 60%); }
-  .work .thumb span { position: absolute; left: 12px; bottom: 10px; color: #fff; font-weight: 700; font-size: 18px; z-index: 1; }
-  .flow { list-style: none; counter-reset: step; }
-  .flow li { counter-increment: step; background: var(--card); margin-bottom: 12px; padding: 16px 16px 16px 56px; border-radius: 8px; position: relative; }
-  .flow li::before { content: counter(step); position: absolute; left: 16px; top: 16px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 14px; }
-  .contact { text-align: center; }
-  .btn { display: inline-block; padding: 14px 40px; background: var(--accent); color: #fff; border-radius: 999px; text-decoration: none; font-weight: 700; }
-  footer { text-align: center; padding: 32px; font-size: 12px; color: #9aa5b1; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  main { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---- header ---- */
+  header {
+    max-width: 880px; margin: 0 auto; padding: 28px 20px 0;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  header .logo { font-weight: 900; font-size: 18px; letter-spacing: .04em; }
+  header .logo .mono { color: var(--orange); font-size: 12px; margin-left: 6px; }
+  header nav a { margin-left: 18px; font-size: 13px; color: var(--ink-soft); text-decoration: none; }
+
+  /* ---- hero ---- */
+  .hero {
+    max-width: 880px; margin: 0 auto; padding: 64px 20px 56px;
+    position: relative;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.5), transparent 85%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.5), transparent 85%);
+    opacity: .55;
+    pointer-events: none;
+  }
+  .hero-inner { position: relative; }
+  .hero .num { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
+  .hero h1 {
+    font-size: clamp(30px, 6vw, 46px);
+    font-weight: 900;
+    line-height: 1.4;
+    max-width: 12em;
+  }
+  .hero p.lead {
+    margin-top: 20px; max-width: 34em;
+    font-size: 15.5px; color: var(--ink-soft);
+  }
+  .hero .cta {
+    display: inline-block; margin-top: 32px;
+    padding: 13px 30px;
+    background: var(--ink); color: var(--paper);
+    text-decoration: none; font-weight: 700; font-size: 14.5px;
+    border: 2px solid var(--ink);
+  }
+  .hero .cta:hover { background: var(--paper); color: var(--ink); }
+
+  /* ---- section frame ---- */
+  section { padding: 52px 20px; border-top: 1px solid var(--line); }
+  .section-head {
+    display: flex; align-items: baseline; gap: 14px; margin-bottom: 30px;
+  }
+  .section-head .idx { font-size: 13px; color: var(--orange); }
+  .section-head h2 { font-size: 21px; font-weight: 900; }
+  .section-head .en { font-size: 11px; color: var(--ink-soft); letter-spacing: .06em; }
+
+  /* ---- strength ---- */
+  .strength p { max-width: 40em; color: var(--ink-soft); font-size: 15px; }
+  .strength strong { color: var(--ink); font-weight: 700; }
+
+  /* ---- works: ledger list ---- */
+  .ledger { border-top: 1px solid var(--line-strong); }
+  .ledger-row {
+    display: grid; grid-template-columns: 84px 1fr auto;
+    gap: 18px; align-items: center;
+    padding: 18px 0; border-bottom: 1px solid var(--line);
+    text-decoration: none; color: inherit;
+  }
+  .ledger-row .ph {
+    width: 84px; height: 64px; background-size: cover; background-position: center;
+    border: 1px solid var(--ink); position: relative;
+  }
+  .ledger-row .ph::after {
+    content: ""; position: absolute; top: -5px; right: -5px;
+    width: 10px; height: 10px; background: var(--orange);
+  }
+  .ledger-row .name { font-weight: 700; font-size: 16px; }
+  .ledger-row .desc { font-size: 13.5px; color: var(--ink-soft); margin-top: 3px; }
+  .ledger-row .tag {
+    font-size: 11px; color: var(--ink-soft); white-space: nowrap;
+  }
+  .ledger-row:hover .name { text-decoration: underline; }
+  @media (max-width: 560px) {
+    .ledger-row { grid-template-columns: 60px 1fr; }
+    .ledger-row .ph { width: 60px; height: 48px; }
+    .ledger-row .tag { grid-column: 2; }
+  }
+
+  /* ---- pricing: spec table ---- */
+  table.spec { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.spec th { text-align: left; font-size: 11px; color: var(--ink-soft); font-weight: 500; padding: 0 0 10px; border-bottom: 1px solid var(--line-strong); }
+  table.spec td { padding: 16px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.spec td.name { font-weight: 700; width: 40%; }
+  table.spec td.desc { color: var(--ink-soft); font-size: 13px; }
+  table.spec td.price { text-align: right; white-space: nowrap; font-weight: 700; }
+  @media (max-width: 560px) {
+    table.spec, table.spec tbody, table.spec tr { display: block; }
+    table.spec thead { display: none; }
+    table.spec tr { border-bottom: 1px solid var(--line); padding: 16px 0; }
+    table.spec td { display: block; border: none; padding: 2px 0; }
+    table.spec td.price { text-align: left; }
+  }
+
+  /* ---- flow ---- */
+  .flow { border-top: 1px solid var(--line-strong); }
+  .flow-row { display: flex; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .flow-row .n { font-family: "JetBrains Mono", monospace; font-weight: 600; color: var(--orange); font-size: 14px; flex-shrink: 0; width: 2.2em; }
+  .flow-row .t { font-weight: 700; font-size: 14.5px; }
+  .flow-row .d { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ---- contact ---- */
+  .contact-box {
+    border: 1px solid var(--ink); padding: 32px 24px;
+  }
+  .contact-box p { color: var(--ink-soft); font-size: 14px; margin-bottom: 20px; }
+  .contact-box .cta {
+    display: inline-block; padding: 13px 30px;
+    background: var(--orange); color: var(--paper);
+    text-decoration: none; font-weight: 700; font-size: 14.5px;
+    border: 2px solid var(--orange);
+  }
+  .contact-box .cta:hover { background: var(--paper); color: var(--orange); }
+
+  footer { max-width: 880px; margin: 0 auto; padding: 24px 20px 40px; font-size: 12px; color: var(--ink-soft); display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
 
+<header>
+  <div class="logo">ひかる<span class="mono">WEB</span></div>
+  <nav>
+    <a href="#works">実績</a>
+    <a href="#price">料金</a>
+    <a href="#contact">相談する</a>
+  </nav>
+</header>
+
 <div class="hero">
-  <h1>小さなお店の<span>ホームページ</span>、<br>まるごとお任せください。</h1>
-  <p>スマホで見やすく、お客様に伝わるサイトを、手ごろな価格でお作りします。</p>
+  <div class="hero-inner">
+    <p class="num mono">SMALL SHOP WEBSITE PRODUCTION</p>
+    <h1>段取りを間違えないことが、いちばんの武器です。</h1>
+    <p class="lead">
+      本業は施工管理。現場で鍛えた「聞く・決める・仕上げる」段取り力で、小さなお店・個人事業主のホームページを一つひとつ丁寧につくっています。
+    </p>
+    <a class="cta" href="#works">実績を見る</a>
+  </div>
 </div>
 
-<section>
-  <h2>制作実績（サンプル）</h2>
-  <div class="grid">
-    <a class="card work" href="works/cafe/">
-      <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600')"><span>Café Komorebi</span></div>
-      <h3>カフェのお店紹介ページ</h3>
-      <p>メニュー・店舗情報を1ページにまとめた、温かい雰囲気のデザイン。</p>
+<section id="strength" class="strength">
+  <div class="section-head">
+    <span class="idx mono">01</span>
+    <h2>強み</h2>
+  </div>
+  <p>
+    お客様の要望を正確に聞き取り、工程どおりに仕上げて引き渡す——それが本業の施工管理で毎日やっていることです。ホームページ制作でも同じで、<strong>「言った・言わない」を残さないヒアリング</strong>と、<strong>約束した納期を守る</strong>ことを大切にしています。特に工務店・リフォーム会社など建築関連のお仕事は、業界の言葉や事情を理解したうえでご提案できます。
+  </p>
+</section>
+
+<section id="works">
+  <div class="section-head">
+    <span class="idx mono">02</span>
+    <h2>制作実績（サンプル）</h2>
+  </div>
+  <div class="ledger">
+    <a class="ledger-row" href="works/cafe/">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=300')"></div>
+      <div>
+        <div class="name">Café Komorebi</div>
+        <div class="desc">カフェのお店紹介ページ。メニュー・店舗情報を1ページにまとめた構成</div>
+      </div>
+      <div class="tag mono">飲食</div>
     </a>
-    <a class="card work" href="works/seitai/">
-      <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=600')"><span>やすらぎ整体院</span></div>
-      <h3>整体院の集客用LP</h3>
-      <p>お悩み→理由→料金→予約と、予約につながる流れで構成。</p>
+    <a class="ledger-row" href="works/seitai/">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=300')"></div>
+      <div>
+        <div class="name">やすらぎ整体院</div>
+        <div class="desc">お悩み→理由→料金→予約と、予約につながる流れで構成したLP</div>
+      </div>
+      <div class="tag mono">整体</div>
     </a>
-    <a class="card work" href="works/salon/">
-      <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600')"><span>Hair Salon Rin</span></div>
-      <h3>美容室のご案内ページ</h3>
-      <p>スタイリスト紹介とメニューで、来店イメージを伝えるデザイン。</p>
+    <a class="ledger-row" href="works/salon/">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300')"></div>
+      <div>
+        <div class="name">Hair Salon Rin</div>
+        <div class="desc">スタイリスト紹介とメニューで、来店イメージを伝えるデザイン</div>
+      </div>
+      <div class="tag mono">美容</div>
     </a>
-    <a class="card work" href="works/juku/">
-      <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600')"><span>のびのび学習塾</span></div>
-      <h3>学習塾の入塾案内LP</h3>
-      <p>保護者の不安に答えながら、体験授業の申込につなげる構成。</p>
+    <a class="ledger-row" href="works/juku/">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=300')"></div>
+      <div>
+        <div class="name">のびのび学習塾</div>
+        <div class="desc">保護者の不安に答えながら、体験授業の申込につなげる構成</div>
+      </div>
+      <div class="tag mono">学習塾</div>
     </a>
-    <a class="card work" href="works/reform/">
-      <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=600')"><span>丸山リフォーム</span></div>
-      <h3>リフォーム会社の施工実績ページ</h3>
-      <p>施工事例と料金の目安で、見積もり相談への安心感を作る構成。</p>
+    <a class="ledger-row" href="works/reform/">
+      <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=300')"></div>
+      <div>
+        <div class="name">丸山リフォーム</div>
+        <div class="desc">施工事例と料金の目安で、見積もり相談への安心感をつくる構成</div>
+      </div>
+      <div class="tag mono">建築</div>
     </a>
   </div>
 </section>
 
-<section>
-  <h2>料金プラン</h2>
-  <div class="grid">
-    <div class="card">
-      <h3>ライトプラン</h3>
-      <p class="price">¥15,000〜</p>
-      <p>1ページのお店紹介サイト。スマホ対応、公開サポート込み。</p>
-    </div>
-    <div class="card">
-      <h3>集客LPプラン</h3>
-      <p class="price">¥30,000〜</p>
-      <p>予約・問い合わせを増やすための縦長ページ。構成案の作成から対応。</p>
-    </div>
-    <div class="card">
-      <h3>修正・更新</h3>
-      <p class="price">¥3,000〜</p>
-      <p>既存サイトの文章・画像の差し替え、ちょっとした修正。</p>
-    </div>
+<section id="price">
+  <div class="section-head">
+    <span class="idx mono">03</span>
+    <h2>料金</h2>
+  </div>
+  <table class="spec">
+    <thead><tr><th>プラン</th><th>内容</th><th style="text-align:right">価格</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="name">ライトプラン</td>
+        <td class="desc">1ページのお店紹介サイト。スマホ対応・公開サポート込み</td>
+        <td class="price">¥20,000〜</td>
+      </tr>
+      <tr>
+        <td class="name">集客LPプラン</td>
+        <td class="desc">予約・問い合わせを増やす縦長ページ。構成案の作成から対応</td>
+        <td class="price">¥30,000〜</td>
+      </tr>
+      <tr>
+        <td class="name">修正・更新</td>
+        <td class="desc">既存サイトの文章・画像の差し替え、5か所まで</td>
+        <td class="price">¥3,000〜</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="flow" class="flow">
+  <div class="section-head">
+    <span class="idx mono">04</span>
+    <h2>ご依頼の流れ</h2>
+  </div>
+  <div class="flow-row">
+    <span class="n mono">01</span>
+    <div><div class="t">ヒアリング</div><div class="d">お店の雰囲気やご希望を伺います</div></div>
+  </div>
+  <div class="flow-row">
+    <span class="n mono">02</span>
+    <div><div class="t">お見積もり・構成案</div><div class="d">内容をすり合わせてからご発注いただけます</div></div>
+  </div>
+  <div class="flow-row">
+    <span class="n mono">03</span>
+    <div><div class="t">制作</div><div class="d">途中経過をご確認いただきながら進めます</div></div>
+  </div>
+  <div class="flow-row">
+    <span class="n mono">04</span>
+    <div><div class="t">修正</div><div class="d">2回まで無料で対応します</div></div>
+  </div>
+  <div class="flow-row">
+    <span class="n mono">05</span>
+    <div><div class="t">公開・納品</div><div class="d">表示確認のうえ、完了となります</div></div>
   </div>
 </section>
 
-<section>
-  <h2>ご依頼の流れ</h2>
-  <ol class="flow">
-    <li>お問い合わせ・ヒアリング（お店の雰囲気やご希望を伺います）</li>
-    <li>お見積もり・構成案のご提出</li>
-    <li>デザイン・制作（途中経過を共有します）</li>
-    <li>修正対応（2回まで無料）</li>
-    <li>公開・納品</li>
-  </ol>
+<section id="contact">
+  <div class="section-head">
+    <span class="idx mono">05</span>
+    <h2>お問い合わせ</h2>
+  </div>
+  <div class="contact-box">
+    <p>まずはお気軽にご相談ください。ヒアリングのうえ、お見積もりをお出しします。</p>
+    <a class="cta" href="#">ココナラから相談する</a>
+  </div>
 </section>
 
-<section class="contact">
-  <h2 style="text-align:left">お問い合わせ</h2>
-  <p style="margin-bottom:24px">まずはお気軽にご相談ください。</p>
-  <a class="btn" href="#">ココナラから相談する</a>
-</section>
-
-<footer>&copy; ひかる</footer>
+<footer>
+  <span>&copy; ひかる</span>
+  <span class="mono">WEB PRODUCTION</span>
+</footer>
 </body>
 </html>
