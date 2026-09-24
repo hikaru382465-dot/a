@@ -27,20 +27,34 @@
   .hero { max-width: 1040px; margin: 0 auto; padding: 8px 20px 56px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
   .hero .photo { position: relative; border-radius: 180px 180px 4px 4px; overflow: hidden; }
   .hero img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
-  /* 葉のすき間から入る光が、ゆっくり揺れる */
-  .hero .photo::after {
-    content: ""; position: absolute; inset: -20%;
-    background:
-      radial-gradient(circle at 20% 30%, rgba(255, 236, 170, .55) 0 6%, transparent 14%),
-      radial-gradient(circle at 70% 20%, rgba(255, 236, 170, .45) 0 4%, transparent 11%),
-      radial-gradient(circle at 55% 65%, rgba(255, 236, 170, .4) 0 5%, transparent 12%),
-      radial-gradient(circle at 30% 80%, rgba(255, 236, 170, .35) 0 3%, transparent 9%);
-    mix-blend-mode: soft-light;
-    animation: sway 9s ease-in-out infinite alternate;
-    pointer-events: none;
+  /* 木漏れ日：明るい光の層（after）と葉の影の層（before）を、反対向きにゆっくり揺らす */
+  .hero .photo::before, .hero .photo::after {
+    content: ""; position: absolute; inset: -25%; pointer-events: none;
   }
-  @keyframes sway { from { transform: translate(-3%, -2%) rotate(-2deg); } to { transform: translate(3%, 2%) rotate(2deg); } }
-  @media (prefers-reduced-motion: reduce) { .hero .photo::after { animation: none; } }
+  .hero .photo::before {
+    background:
+      radial-gradient(ellipse 30% 20% at 40% 50%, rgba(70, 54, 24, .22), transparent 70%),
+      radial-gradient(ellipse 22% 28% at 70% 62%, rgba(70, 54, 24, .2), transparent 70%),
+      radial-gradient(ellipse 28% 18% at 30% 78%, rgba(70, 54, 24, .18), transparent 70%);
+    mix-blend-mode: multiply;
+    animation: sway-shade 7s ease-in-out infinite alternate;
+  }
+  .hero .photo::after {
+    background:
+      radial-gradient(ellipse 6% 4.5% at 28% 30%, rgba(255, 232, 160, .95), transparent 60%),
+      radial-gradient(ellipse 4% 5% at 38% 36%, rgba(255, 232, 160, .8), transparent 60%),
+      radial-gradient(ellipse 7% 5% at 62% 26%, rgba(255, 232, 160, .9), transparent 60%),
+      radial-gradient(ellipse 5% 3.5% at 55% 48%, rgba(255, 232, 160, .75), transparent 60%),
+      radial-gradient(ellipse 6% 4% at 47% 62%, rgba(255, 232, 160, .85), transparent 60%),
+      radial-gradient(ellipse 4% 5% at 34% 72%, rgba(255, 232, 160, .7), transparent 60%),
+      radial-gradient(ellipse 5% 4% at 70% 70%, rgba(255, 232, 160, .75), transparent 60%),
+      radial-gradient(ellipse 3.5% 3% at 66% 40%, rgba(255, 232, 160, .7), transparent 60%);
+    mix-blend-mode: screen;
+    animation: sway-light 7s ease-in-out infinite alternate;
+  }
+  @keyframes sway-light { from { transform: translate(-5%, -3%) rotate(-3deg); opacity: .75; } to { transform: translate(5%, 3%) rotate(3deg); opacity: 1; } }
+  @keyframes sway-shade { from { transform: translate(4%, 3%) rotate(2deg); } to { transform: translate(-4%, -3%) rotate(-2deg); } }
+  @media (prefers-reduced-motion: reduce) { .hero .photo::before, .hero .photo::after { animation: none; } }
   .hero h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.45; font-weight: 700; }
   .hero p { margin-top: 18px; color: var(--leaf-soft); }
   .hero .open { margin-top: 26px; display: inline-block; padding: 6px 0; border-top: 1px solid var(--leaf); border-bottom: 1px solid var(--leaf); font-size: 14px; }
