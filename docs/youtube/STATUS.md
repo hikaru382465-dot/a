@@ -14,7 +14,7 @@
   - 第2話「おすそ分けをくれる隣の奥さん」約4〜5分 → `docs/horror-scripts/02-osusowake.md`
   - VOICEVOXに読み込ませる1行1文のテキスト → `docs/horror-scripts/voicevox/`
 - 作り方の手順書（ひかる向け）：`docs/horror-scripts/HOW-TO-MAKE.md`
-- 第1話の投稿準備物（新規）：`docs/horror-scripts/01-yubinuke-upload-package.md`（タイトル案・概要欄コピペ文・タグ）、サムネイル下案 `docs/horror-scripts/thumbnails/01-yubinuke.svg`（プレビュー：同フォルダの`01-yubinuke-preview.png`）
+- 第1話の投稿準備物：`docs/horror-scripts/01-yubinuke-upload-package.md`（タイトル案・概要欄コピペ文・タグ）、サムネイル**確定** `docs/horror-scripts/thumbnails/01-yubinuke-preview.png`（ひかる提供の古い家の写真に文字を重ねたもの。最初のイラスト版は不採用）
 - 第1話の「コトン」効果音：確定 → `docs/horror-scripts/sfx/01-koton.wav`（ひかるが実際の郵便受けを撮った動画から切り出した本物の音。台本の途中とラストの2か所で使う）
 - 第1話のナレーション：**51行すべて完成** → `docs/horror-scripts/audio/01-narration-draft.wav`（3分7秒）、行ごとの開始・終了時間は`01-narration-timing.json`（テロップをぴったり合わせるのに使う）。抜けていた47番のセリフも録り直してもらい、組み込み済み
 - 第1話の背景写真：**完成** → `docs/horror-scripts/images/01-yubinuke/`（ぱくたそ・Pixabayからひかるが厳選。外観・廊下2種・玄関・部屋の中・郵便受け2種の7枚）
