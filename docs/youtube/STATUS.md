@@ -16,10 +16,14 @@
 - 作り方の手順書（ひかる向け）：`docs/horror-scripts/HOW-TO-MAKE.md`
 - 第1話の投稿準備物（新規）：`docs/horror-scripts/01-yubinuke-upload-package.md`（タイトル案・概要欄コピペ文・タグ）、サムネイル下案 `docs/horror-scripts/thumbnails/01-yubinuke.svg`（プレビュー：同フォルダの`01-yubinuke-preview.png`）
 - 第1話の「コトン」効果音：確定 → `docs/horror-scripts/sfx/01-koton.wav`（ひかるが実際の郵便受けを撮った動画から切り出した本物の音。台本の途中とラストの2か所で使う）
+- 第1話のナレーション：VOICEVOXから1行ずつ（53個）のwavで届いた。つなげて`docs/horror-scripts/audio/01-narration-draft.wav`（3分3秒）を作成、行ごとの開始・終了時間も`01-narration-timing.json`に保存済み（テロップをぴったり合わせるのに使う）
+  - **47番のセリフ「中を開けると、一枚の紙にこう書かれていました。」の音声だけ抜けている** → ひかるに録り直してもらう必要あり
 
 ## 進行中・次にやること
 
-1. **ひかる待ち**：家のPCのVOICEVOXで第1話の音声（wav）を作る＋Pixabayで背景写真を3〜5枚保存 → このセッションに送る（「コトン」の効果音は確定済みなので不要）
+1. **ひかる待ち**：
+   - 抜けている47番のセリフの音声を1行だけ録って送る（VOICEVOXで「青山龍星」「しっとり」、他の行と同じ設定）
+   - Pixabayで背景写真を3〜5枚保存して送る
 2. 届いたら、Claudeが動画に組み立てる（横長の本編）
 3. 本編の一番怖い場面を60秒に切り出して、縦長のショートを作る
 4. 1本目の手順が固まったら、`skill-creator` で「怪談動画を作る」スキルにする
