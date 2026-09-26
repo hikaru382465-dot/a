@@ -50,7 +50,8 @@
   - 描画は `--browser-executable=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell` を付ける（普通のchromeは失敗する）
   - 入口のファイルで `registerRoot()` を呼ぶ
 - Google Fontsは使える。音声合成サービスには、この環境からはつながらない
-- ひかるが環境の「ネットワークアクセス」設定に`soundeffect-lab.info`と`pixabay.com`を追加済み（2026-09-26）
-  - `soundeffect-lab.info`：つながるようになった。ただしmp3への直リンクだけだと403で弾かれるので、`curl -A "Mozilla/5.0" -e "https://soundeffect-lab.info/sound/various/"`のようにUser-AgentとRefererを付ける必要がある
-  - `pixabay.com`：最初`pixabay.co`と打ち間違えていたのが原因で403だった。ひかるが`pixabay.com`に修正済み（2026-09-26）。ただし環境の設定変更は「新しいセッションから適用」なので、このセッションではまだ403のまま → 次の新しいセッションで`curl`で確認する
+- ひかるが環境の「ネットワークアクセス」設定に`soundeffect-lab.info`・`pixabay.com`・`maou.audio`を追加済み（2026-09-26）
+  - `soundeffect-lab.info`：つながる。mp3への直リンクだけだと403で弾かれるので、`curl -A "Mozilla/5.0" -e "https://soundeffect-lab.info/sound/various/"`のようにUser-AgentとRefererを付ける必要がある
+  - `maou.audio`：追加してすぐ、**同じセッションの中で**つながるようになった（新しいセッションを待たなくてもよかった）。ここもmp3ダウンロードにはReferer必須
+  - `pixabay.com`：まだ403で弾かれる。maou.audioは追加後すぐ使えたので「設定は新しいセッションから」という前の予想は誤りだった可能性が高い → pixabay.comだけまだ何か設定ミス（打ち間違いなど）が残っていそう。ひかるにもう一度見てもらう
   - この設定は環境（クラウドの箱）ではなく別の場所にあるようで、箱を作り直しても消えない可能性がある
