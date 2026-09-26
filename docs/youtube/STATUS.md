@@ -41,5 +41,8 @@
 - Remotion：作業用フォルダで `npm install remotion @remotion/cli @remotion/renderer react react-dom`
   - 描画は `--browser-executable=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell` を付ける（普通のchromeは失敗する）
   - 入口のファイルで `registerRoot()` を呼ぶ
-- Google Fontsは使える。Pixabay・Unsplash・音声合成サービスには、この環境からはつながらない
-- 効果音サイト（効果音ラボ、OtoLogic、Pixabayの効果音、freesoundなど）もつながらない（2026-09-26確認）。npm・pypiにある効果音集（uisfx、arcadeなど）は合成音やゲーム用の電子音ばかりで使えなかった → 効果音はひかるに保存して送ってもらう。つなぎたい場合は、クラウド環境の設定の「ネットワークアクセス」で、そのサイトを許可する必要がある
+- Google Fontsは使える。音声合成サービスには、この環境からはつながらない
+- ひかるが環境の「ネットワークアクセス」設定に`soundeffect-lab.info`と`pixabay.com`を追加済み（2026-09-26）
+  - `soundeffect-lab.info`：つながるようになった。ただしmp3への直リンクだけだと403で弾かれるので、`curl -A "Mozilla/5.0" -e "https://soundeffect-lab.info/sound/various/"`のようにUser-AgentとRefererを付ける必要がある
+  - `pixabay.com`：まだ403で弾かれる（設定が反映されていないか保存できていない可能性あり。ひかるに再確認してもらう）
+  - この設定は環境（クラウドの箱）ではなく別の場所にあるようで、箱を作り直しても消えない可能性がある。次のセッションでまず`curl`で確認する
