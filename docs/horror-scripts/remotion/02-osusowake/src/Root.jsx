@@ -1,17 +1,19 @@
 import { Composition } from "remotion";
-import { HorrorVideo } from "./Video";
-import scenes from "./scenes.json";
+import { FullEpisode, STORY_FRAMES } from "./FullEpisode";
+import outroCta from "./outro_cta.json";
 
 const FPS = 30;
-const totalSeconds = scenes.totalDuration + scenes.outroPad;
-const DURATION_IN_FRAMES = Math.ceil(totalSeconds * FPS);
+const OUTRO_FRAMES = Math.ceil(
+  (outroCta.totalDuration + outroCta.tailPad) * FPS
+);
+const DURATION_IN_FRAMES = STORY_FRAMES + OUTRO_FRAMES;
 
 export const RemotionRoot = () => {
   return (
     <>
       <Composition
         id="Osusowake02"
-        component={HorrorVideo}
+        component={FullEpisode}
         durationInFrames={DURATION_IN_FRAMES}
         fps={FPS}
         width={1920}
