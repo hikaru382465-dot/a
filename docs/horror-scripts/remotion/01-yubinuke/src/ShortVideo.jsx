@@ -114,42 +114,48 @@ function SubscribeArrow({ currentTime }) {
     });
   }
 
-  // gentle bobbing/nudging motion toward the bottom-left subscribe area
-  const bob = Math.sin((currentTime - START) * 5) * 10;
-  const nudgeX = Math.sin((currentTime - START) * 5) * -6;
+  // gentle bobbing motion, nudging along the curve's own direction (no extra rotation)
+  const bob = Math.sin((currentTime - START) * 4.5) * 8;
 
   return (
     <AbsoluteFill style={{ opacity }}>
       <div
         style={{
           position: "absolute",
-          left: "10%",
-          bottom: "16%",
-          transform: `translate(${nudgeX}px, ${bob}px) rotate(-18deg)`,
+          left: "6%",
+          bottom: "14%",
+          transform: `translateY(${bob}px)`,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.8))",
         }}
       >
-        <svg width="90" height="120" viewBox="0 0 90 120">
+        <svg width="110" height="130" viewBox="0 0 110 130">
+          <defs>
+            <marker
+              id="arrowheadSub"
+              markerWidth="8"
+              markerHeight="8"
+              refX="4"
+              refY="4"
+              orient="auto"
+            >
+              <path d="M0,0 L8,4 L0,8 z" fill="#ffffff" />
+            </marker>
+          </defs>
           <path
-            d="M45 5 C 20 30, 15 70, 40 100"
+            d="M85 12 C 45 8, 15 40, 22 95"
             fill="none"
             stroke="#ffffff"
             strokeWidth="7"
             strokeLinecap="round"
-          />
-          <path
-            d="M40 100 L 22 88 M40 100 L 30 116"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="7"
-            strokeLinecap="round"
+            markerEnd="url(#arrowheadSub)"
           />
         </svg>
         <div
           style={{
-            marginTop: 4,
+            marginTop: 2,
             fontFamily: "'IPAGothic', 'Noto Sans JP', sans-serif",
             fontWeight: 700,
             fontSize: 30,
@@ -158,8 +164,79 @@ function SubscribeArrow({ currentTime }) {
             whiteSpace: "nowrap",
           }}
         >
-          ここ登録↑
+          ここ登録
         </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+function LikeArrow({ currentTime, start, end }) {
+  if (currentTime < start || currentTime > end) return null;
+  const FADE_T = 0.4;
+  let opacity = 1;
+  if (currentTime < start + FADE_T) {
+    opacity = interpolate(currentTime, [start, start + FADE_T], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  } else if (currentTime > end - FADE_T) {
+    opacity = interpolate(currentTime, [end - FADE_T, end], [1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  }
+  const bob = Math.sin((currentTime - start) * 4.5) * 8;
+
+  return (
+    <AbsoluteFill style={{ opacity }}>
+      <div
+        style={{
+          position: "absolute",
+          right: "4%",
+          top: "42%",
+          transform: `translateY(${bob}px)`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.8))",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'IPAGothic', 'Noto Sans JP', sans-serif",
+            fontWeight: 700,
+            fontSize: 30,
+            color: "#ffffff",
+            textShadow: "0 2px 6px rgba(0,0,0,0.9)",
+            whiteSpace: "nowrap",
+            marginBottom: 2,
+          }}
+        >
+          いいねも
+        </div>
+        <svg width="90" height="110" viewBox="0 0 90 110">
+          <defs>
+            <marker
+              id="arrowheadLike"
+              markerWidth="8"
+              markerHeight="8"
+              refX="4"
+              refY="4"
+              orient="auto"
+            >
+              <path d="M0,0 L8,4 L0,8 z" fill="#ffffff" />
+            </marker>
+          </defs>
+          <path
+            d="M15 10 C 55 8, 78 35, 70 80"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="7"
+            strokeLinecap="round"
+            markerEnd="url(#arrowheadLike)"
+          />
+        </svg>
       </div>
     </AbsoluteFill>
   );
@@ -335,6 +412,11 @@ export const HorrorShort = () => {
       ))}
 
       <EndCard
+        currentTime={currentTime}
+        start={scenes.totalDuration + 0.3}
+        end={scenes.totalDuration + scenes.outroPad}
+      />
+      <LikeArrow
         currentTime={currentTime}
         start={scenes.totalDuration + 0.3}
         end={scenes.totalDuration + scenes.outroPad}
