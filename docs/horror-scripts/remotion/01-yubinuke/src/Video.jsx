@@ -130,7 +130,7 @@ function Caption({ cap, currentTime }) {
 }
 
 const reveal = scenes.captions.find((c) => c.line === 47);
-const BGM_BASE_VOLUME = 0.08;
+const BGM_BASE_VOLUME = 0.045;
 
 function bgmVolumeAt(t) {
   const totalEnd = scenes.totalDuration + scenes.outroPad;
