@@ -43,7 +43,7 @@
 
 1. **ひかる確認待ち**：ナレーション（56行、3分31秒）を送付済み → `docs/horror-scripts/audio/02-narration-draft.wav`、タイミングは`02-narration-timing.json`
    - ナレーター「青山龍星」、奥さんのセリフは「冥鳴ひまり（ノーマル）」で聞き分けOK。抜けている行なし
-   - 効果音は今回「コトン」ではなく、壁のメモが見える場面用に紙がめくれる音などがあると良さそう（`02-osusowake.md`の演出メモ参照）。Claude側で効果音ラボから探す
+   - 効果音：**確定** → `docs/horror-scripts/sfx/02-paper-turn.mp3`（効果音ラボ「newspaper-turn-over1」、紙をめくる音。壁のメモに気づく場面で使用）
    - 背景写真：**完成** → `docs/horror-scripts/images/02-osusowake/`（8枚）
      - 外観・玄関ドア：`ext-01-apartment-vending.jpg`（Wikimedia、CC BY 2.0、撮影者「Nori Norisa」クレジット必要、詳細は同フォルダの`CREDITS.md`）
      - 外観その2：`ext-02-rusty-2story.jpg`（ぱくたそ、錆びた二階建て、台本によりマッチ）
