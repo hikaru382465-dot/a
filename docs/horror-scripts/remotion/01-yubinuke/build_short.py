@@ -4,6 +4,7 @@ with open("src/scenes.json", encoding="utf-8") as f:
     full = json.load(f)
 
 SHORT_START = 127.456  # line 35 start: "退去の連絡もないまま、ある日突然いなくなってしまって。"
+SHORT_TITLE = "【実話】引っ越し先の郵便受けに届いた、知らない名前の手紙"
 totalEnd = full["totalDuration"] + full["outroPad"]
 SHORT_DUR = totalEnd - SHORT_START
 
@@ -38,6 +39,7 @@ data = {
     "totalDuration": round(SHORT_DUR, 3),
     "outroPad": 0.0,
     "narrationOffset": SHORT_START,
+    "title": SHORT_TITLE,
     "captions": captions,
     "scenes": scenes,
     "sfx": sfx,

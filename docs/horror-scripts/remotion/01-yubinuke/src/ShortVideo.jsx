@@ -66,6 +66,36 @@ function SceneImage({ scene, index, currentTime }) {
   );
 }
 
+function TitleBar({ title }) {
+  if (!title) return null;
+  const m = title.match(/^(【[^】]+】)(.*)$/);
+  const bracket = m ? m[1] : null;
+  const rest = m ? m[2] : title;
+  return (
+    <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "center" }}>
+      <div
+        style={{
+          marginTop: 90,
+          width: "88%",
+          textAlign: "center",
+          fontFamily: "'IPAGothic', 'Noto Sans JP', sans-serif",
+          fontWeight: 700,
+          lineHeight: 1.35,
+          textShadow: "0 2px 8px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.9)",
+        }}
+      >
+        {bracket && (
+          <span style={{ color: "#ff2b2b", fontSize: 56, fontWeight: 900 }}>
+            {bracket}
+            <br />
+          </span>
+        )}
+        <span style={{ color: "#f5f5f0", fontSize: 50 }}>{rest}</span>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
 function Caption({ cap, currentTime }) {
   const { start, end, text, emphasis } = cap;
   if (currentTime < start - CAP_FADE || currentTime > end + 0.15) return null;
@@ -95,7 +125,7 @@ function Caption({ cap, currentTime }) {
 
   return (
     <AbsoluteFill
-      style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 220 }}
+      style={{ justifyContent: "center", alignItems: "center" }}
     >
       <div
         style={{
@@ -172,6 +202,8 @@ export const HorrorShort = () => {
       {scenes.scenes.map((scene, i) => (
         <SceneImage key={i} scene={scene} index={i} currentTime={currentTime} />
       ))}
+
+      <TitleBar title={scenes.title} />
 
       {scenes.captions.map((cap, i) => (
         <Caption key={i} cap={cap} currentTime={currentTime} />
