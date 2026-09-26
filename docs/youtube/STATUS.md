@@ -44,10 +44,14 @@
 1. **ひかる待ち**：VOICEVOXで音声を作る（`docs/horror-scripts/voicevox/02-osusowake.txt`を読み込む）＋残りの背景写真を保存して送る
    - ナレーターは第1話と同じ「青山龍星」でOK。ただし隣の奥さんのセリフ（「」で囲まれた部分）だけ、演出メモの通り**別のキャラクター（落ち着いた女性の声、おすすめ：冥鳴ひまり）**にすると聞き分けやすい
    - 効果音は今回「コトン」ではなく、壁のメモが見える場面用に紙がめくれる音などがあると良さそう（`02-osusowake.md`の演出メモ参照）。無理に探さなくても、Claude側で効果音ラボから探せる
-   - 背景写真の進捗：
-     - **外観・玄関ドア：確定** → `docs/horror-scripts/images/02-osusowake/ext-01-apartment-vending.jpg`（Wikimedia Commons、CC BY 2.0、撮影者「Nori Norisa」のクレジット表記が必要。詳細は同フォルダの`CREDITS.md`）
-     - 廊下：Wikimedia Commonsの候補2枚をひかるに確認依頼中（河原町団地の写真、これもCC BY 2.0でクレジット必要）
-     - タッパー・おかず、壁一面のメモ：まだ。ぱくたそ・Pixabayでひかるが探す予定
+   - 背景写真：**ほぼ揃った** → `docs/horror-scripts/images/02-osusowake/`
+     - 外観・玄関ドア：`ext-01-apartment-vending.jpg`（Wikimedia、CC BY 2.0、撮影者「Nori Norisa」クレジット必要、詳細は同フォルダの`CREDITS.md`）
+     - 外観その2：`ext-02-rusty-2story.jpg`（ぱくたそ、錆びた二階建て、台本によりマッチ）
+     - 廊下：`hallway-01-dark-door.jpg`、`hallway-02-stairs.jpg`（ぱくたそ）
+     - おかず：`food-01-curry.jpg`（カレーライス、台本の「昨日はカレーだったのね」の場面にぴったり）
+     - 壁一面のメモ：`wall-01-notes.jpg`（ぱくたそ、貼り紙だらけの壁。今回は話の核心の場面なので内容がぴったり）
+     - Wikimedia Commonsの廊下候補（河原町団地）2枚は保留・不要になった
+     - 残りは「隣人の部屋の中がちらっと見える」場面くらい。無くても組み立てられる
    - WikimediaやOpenverseはCloudflareのボット対策・レート制限で自動ダウンロードできないため、**Claudeが検索して候補を提示 → ひかるがリンクを開いて確認・保存して送る**という分担がうまくいくと判明
 2. 素材が揃ったら、Claudeが本編動画を組み立てる（第1話と同じRemotionの仕組みを流用）
 3. 一番怖い場面（壁のメモを見てしまう場面〜ラスト）を切り出してショートを作る
