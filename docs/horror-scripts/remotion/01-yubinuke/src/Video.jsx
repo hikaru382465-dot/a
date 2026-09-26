@@ -130,9 +130,9 @@ function Caption({ cap, currentTime }) {
 }
 
 const reveal = scenes.captions.find((c) => c.line === 47);
-const BGM_BASE_VOLUME = 0.16;
+const BGM_BASE_VOLUME = 0.08;
 
-function bgmVolumeAt(t, fps) {
+function bgmVolumeAt(t) {
   const totalEnd = scenes.totalDuration + scenes.outroPad;
   // fade in at the very start
   let v = interpolate(t, [0, 2.5], [0, BGM_BASE_VOLUME], {
@@ -191,7 +191,7 @@ export const HorrorVideo = () => {
         <Audio
           src={staticFile("bgm.mp3")}
           loop
-          volume={(f) => bgmVolumeAt(f / fps, fps)}
+          volume={bgmVolumeAt(currentTime)}
         />
       </Sequence>
 
