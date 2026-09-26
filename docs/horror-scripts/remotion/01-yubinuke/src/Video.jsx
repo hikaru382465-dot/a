@@ -129,9 +129,50 @@ function Caption({ cap, currentTime }) {
   );
 }
 
+const reveal = scenes.captions.find((c) => c.line === 47);
+const BGM_BASE_VOLUME = 0.16;
+
+function bgmVolumeAt(t, fps) {
+  const totalEnd = scenes.totalDuration + scenes.outroPad;
+  // fade in at the very start
+  let v = interpolate(t, [0, 2.5], [0, BGM_BASE_VOLUME], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  // duck to silence around the big reveal line, then fade back in
+  const duckStart = reveal.start - 0.6;
+  const duckOutEnd = reveal.start - 0.1;
+  const duckInStart = reveal.end + 0.2;
+  const duckInEnd = reveal.end + 1.4;
+  if (t > duckStart && t < duckInEnd) {
+    if (t < duckOutEnd) {
+      v = interpolate(t, [duckStart, duckOutEnd], [v, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
+    } else if (t < duckInStart) {
+      v = 0;
+    } else {
+      v = interpolate(t, [duckInStart, duckInEnd], [0, BGM_BASE_VOLUME], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
+    }
+  }
+  // fade out at the very end
+  v = Math.min(
+    v,
+    interpolate(t, [totalEnd - 2.5, totalEnd], [BGM_BASE_VOLUME, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    })
+  );
+  return Math.max(0, v);
+}
+
 export const HorrorVideo = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
   const currentTime = frame / fps;
 
   return (
@@ -145,6 +186,14 @@ export const HorrorVideo = () => {
       ))}
 
       <Audio src={staticFile("narration.wav")} />
+
+      <Sequence from={0} durationInFrames={durationInFrames}>
+        <Audio
+          src={staticFile("bgm.mp3")}
+          loop
+          volume={(f) => bgmVolumeAt(f / fps, fps)}
+        />
+      </Sequence>
 
       {scenes.sfx.map((s, i) => (
         <Sequence key={i} from={Math.round(s.time * fps)}>
