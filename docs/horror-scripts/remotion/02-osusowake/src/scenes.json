@@ -1,0 +1,470 @@
+{
+  "totalDuration": 211.2,
+  "outroPad": 3.0,
+  "captions": [
+    {
+      "line": 1,
+      "text": "これは、私が大学を卒業して、一人暮らしを始めた年の話です。",
+      "start": 0.0,
+      "end": 6.101,
+      "emphasis": false
+    },
+    {
+      "line": 2,
+      "text": "住んでいたのは、二階建ての小さなアパート。",
+      "start": 6.101,
+      "end": 9.653,
+      "emphasis": false
+    },
+    {
+      "line": 3,
+      "text": "隣の部屋には、五十代くらいの奥さんが一人で住んでいました。",
+      "start": 9.653,
+      "end": 14.507,
+      "emphasis": false
+    },
+    {
+      "line": 4,
+      "text": "引っ越しの挨拶に行ったとき、その奥さんはとても嬉しそうに、",
+      "start": 14.507,
+      "end": 19.36,
+      "emphasis": false
+    },
+    {
+      "line": 5,
+      "text": "「若い人が来てくれて安心だわ。何かあったら、いつでも言ってね」",
+      "start": 19.36,
+      "end": 24.8,
+      "emphasis": false
+    },
+    {
+      "line": 6,
+      "text": "と笑ってくれました。",
+      "start": 24.8,
+      "end": 26.155,
+      "emphasis": false
+    },
+    {
+      "line": 7,
+      "text": "それから、奥さんはよく「おすそ分け」をくれるようになりました。",
+      "start": 26.155,
+      "end": 31.435,
+      "emphasis": false
+    },
+    {
+      "line": 8,
+      "text": "筑前煮、きんぴらごぼう、炊き込みご飯。",
+      "start": 31.435,
+      "end": 35.531,
+      "emphasis": false
+    },
+    {
+      "line": 9,
+      "text": "どれも丁寧に作られていて、タッパーに入れて、",
+      "start": 35.531,
+      "end": 39.659,
+      "emphasis": false
+    },
+    {
+      "line": 10,
+      "text": "ドアノブに袋ごと掛けておいてくれるんです。",
+      "start": 39.659,
+      "end": 42.592,
+      "emphasis": false
+    },
+    {
+      "line": 11,
+      "text": "実家を出たばかりだった私には、それが本当にありがたかった。",
+      "start": 42.592,
+      "end": 47.563,
+      "emphasis": false
+    },
+    {
+      "line": 12,
+      "text": "タッパーを返すときには、お菓子を添えてお礼を言っていました。",
+      "start": 47.563,
+      "end": 51.979,
+      "emphasis": false
+    },
+    {
+      "line": 13,
+      "text": "最初に「あれ？」と思ったのは、ひと月ほど経った頃です。",
+      "start": 51.979,
+      "end": 57.429,
+      "emphasis": false
+    },
+    {
+      "line": 14,
+      "text": "タッパーを返しに行ったとき、奥さんがこう言いました。",
+      "start": 57.429,
+      "end": 61.195,
+      "emphasis": false
+    },
+    {
+      "line": 15,
+      "text": "「昨日はカレーだったのね。辛口が好きなの？",
+      "start": 61.195,
+      "end": 64.768,
+      "emphasis": false
+    },
+    {
+      "line": 16,
+      "text": "私は甘口派だから、今度甘口も食べてみて」",
+      "start": 64.768,
+      "end": 68.864,
+      "emphasis": false
+    },
+    {
+      "line": 17,
+      "text": "確かに、前の晩はカレーを作っていました。",
+      "start": 68.864,
+      "end": 72.501,
+      "emphasis": false
+    },
+    {
+      "line": 18,
+      "text": "匂いが廊下に出ていたのかな。",
+      "start": 72.501,
+      "end": 74.656,
+      "emphasis": false
+    },
+    {
+      "line": 19,
+      "text": "そう思って、そのときは笑って流しました。",
+      "start": 74.656,
+      "end": 78.293,
+      "emphasis": false
+    },
+    {
+      "line": 20,
+      "text": "でも、辛口だということまで、どうして分かったんだろう。",
+      "start": 78.293,
+      "end": 82.912,
+      "emphasis": false
+    },
+    {
+      "line": 21,
+      "text": "市販のルーの箱は、ゴミに出す前でした。",
+      "start": 82.912,
+      "end": 86.283,
+      "emphasis": false
+    },
+    {
+      "line": 22,
+      "text": "それから、奥さんの言葉が少しずつ気になるようになりました。",
+      "start": 86.283,
+      "end": 90.581,
+      "emphasis": false
+    },
+    {
+      "line": 23,
+      "text": "「最近、帰りが遅いのね。昨日は十一時四十二分だったでしょう」",
+      "start": 90.581,
+      "end": 96.448,
+      "emphasis": true
+    },
+    {
+      "line": 24,
+      "text": "「日曜日はずっと家にいたのね。電気、つけっぱなしだったから」",
+      "start": 96.448,
+      "end": 101.728,
+      "emphasis": true
+    },
+    {
+      "line": 25,
+      "text": "「あのピンクのカーディガン、似合ってたわよ」",
+      "start": 101.728,
+      "end": 104.896,
+      "emphasis": true
+    },
+    {
+      "line": 26,
+      "text": "ピンクのカーディガンを着たのは、一度だけ。",
+      "start": 104.896,
+      "end": 108.192,
+      "emphasis": false
+    },
+    {
+      "line": 27,
+      "text": "それも、近所のコンビニに行った五分くらいの間です。",
+      "start": 108.192,
+      "end": 112.619,
+      "emphasis": false
+    },
+    {
+      "line": 28,
+      "text": "十一時四十二分。",
+      "start": 112.619,
+      "end": 114.475,
+      "emphasis": false
+    },
+    {
+      "line": 29,
+      "text": "分単位で、帰宅の時間を覚えている。",
+      "start": 114.475,
+      "end": 117.707,
+      "emphasis": false
+    },
+    {
+      "line": 30,
+      "text": "私は、奥さんの前で、笑顔をつくるのが苦しくなっていきました。",
+      "start": 117.707,
+      "end": 123.211,
+      "emphasis": false
+    },
+    {
+      "line": 31,
+      "text": "決定的だったのは、ある土曜日の午後です。",
+      "start": 123.211,
+      "end": 126.72,
+      "emphasis": false
+    },
+    {
+      "line": 32,
+      "text": "いつものようにタッパーを返しに行くと、",
+      "start": 126.72,
+      "end": 129.355,
+      "emphasis": false
+    },
+    {
+      "line": 33,
+      "text": "その日は奥さんが出てくるまでに、少し時間がかかりました。",
+      "start": 129.355,
+      "end": 134.005,
+      "emphasis": false
+    },
+    {
+      "line": 34,
+      "text": "そして、ドアが半分ほど開いたとき、",
+      "start": 134.005,
+      "end": 137.195,
+      "emphasis": false
+    },
+    {
+      "line": 35,
+      "text": "奥さんの肩ごしに、部屋の中が見えてしまったんです。",
+      "start": 137.195,
+      "end": 141.397,
+      "emphasis": false
+    },
+    {
+      "line": 36,
+      "text": "玄関から続く廊下の壁一面に、",
+      "start": 141.397,
+      "end": 144.149,
+      "emphasis": false
+    },
+    {
+      "line": 37,
+      "text": "メモ用紙が、びっしりと貼られていました。",
+      "start": 144.149,
+      "end": 147.339,
+      "emphasis": false
+    },
+    {
+      "line": 38,
+      "text": "遠くて全部は読めませんでした。",
+      "start": 147.339,
+      "end": 149.675,
+      "emphasis": false
+    },
+    {
+      "line": 39,
+      "text": "でも、一番手前の一枚だけは、はっきり見えました。",
+      "start": 149.675,
+      "end": 154.656,
+      "emphasis": false
+    },
+    {
+      "line": 40,
+      "text": "「二〇二号室　帰宅　二十三時四十二分　ピンクのカーディガン」",
+      "start": 154.656,
+      "end": 161.003,
+      "emphasis": true
+    },
+    {
+      "line": 41,
+      "text": "二〇二号室。",
+      "start": 161.003,
+      "end": 162.347,
+      "emphasis": false
+    },
+    {
+      "line": 42,
+      "text": "私の部屋です。",
+      "start": 162.347,
+      "end": 163.755,
+      "emphasis": false
+    },
+    {
+      "line": 43,
+      "text": "奥さんは、私の視線に気づいたのか、",
+      "start": 163.755,
+      "end": 166.923,
+      "emphasis": false
+    },
+    {
+      "line": 44,
+      "text": "すっとドアを細くして、いつもと同じ笑顔で言いました。",
+      "start": 166.923,
+      "end": 171.307,
+      "emphasis": false
+    },
+    {
+      "line": 45,
+      "text": "「いつもありがとうね。また作ったら、持っていくから」",
+      "start": 171.307,
+      "end": 175.456,
+      "emphasis": false
+    },
+    {
+      "line": 46,
+      "text": "私は、その日のうちに実家に電話をして、",
+      "start": 175.456,
+      "end": 179.008,
+      "emphasis": false
+    },
+    {
+      "line": 47,
+      "text": "一週間後には、そのアパートを出ました。",
+      "start": 179.008,
+      "end": 182.411,
+      "emphasis": false
+    },
+    {
+      "line": 48,
+      "text": "奥さんには、何も言いませんでした。",
+      "start": 182.411,
+      "end": 185.301,
+      "emphasis": false
+    },
+    {
+      "line": 49,
+      "text": "引っ越し先も、もちろん教えていません。",
+      "start": 185.301,
+      "end": 188.661,
+      "emphasis": false
+    },
+    {
+      "line": 50,
+      "text": "新しい部屋での生活にも慣れた、ひと月後のことです。",
+      "start": 188.661,
+      "end": 193.024,
+      "emphasis": false
+    },
+    {
+      "line": 51,
+      "text": "仕事から帰ると、玄関のドアノブに、",
+      "start": 193.024,
+      "end": 196.427,
+      "emphasis": false
+    },
+    {
+      "line": 52,
+      "text": "見覚えのある袋が掛かっていました。",
+      "start": 196.427,
+      "end": 198.955,
+      "emphasis": false
+    },
+    {
+      "line": 53,
+      "text": "中には、タッパーがひとつ。",
+      "start": 198.955,
+      "end": 201.536,
+      "emphasis": false
+    },
+    {
+      "line": 54,
+      "text": "甘口のカレーが入っていました。",
+      "start": 201.536,
+      "end": 203.797,
+      "emphasis": false
+    },
+    {
+      "line": 55,
+      "text": "そして、ふたの上に、一枚のメモが貼られていました。",
+      "start": 203.797,
+      "end": 208.373,
+      "emphasis": false
+    },
+    {
+      "line": 56,
+      "text": "「お引っ越し先でも、お元気でね」",
+      "start": 208.373,
+      "end": 211.2,
+      "emphasis": true
+    }
+  ],
+  "scenes": [
+    {
+      "start": 0.0,
+      "end": 14.507,
+      "image": "ext-02-rusty-2story.jpg"
+    },
+    {
+      "start": 14.507,
+      "end": 31.435,
+      "image": "ext-01-apartment-vending.jpg"
+    },
+    {
+      "start": 31.435,
+      "end": 61.195,
+      "image": "food-02-osusowake.jpg"
+    },
+    {
+      "start": 61.195,
+      "end": 90.581,
+      "image": "food-01-curry.jpg"
+    },
+    {
+      "start": 90.581,
+      "end": 126.72,
+      "image": "hallway-01-dark-door.jpg"
+    },
+    {
+      "start": 126.72,
+      "end": 137.195,
+      "image": "door-01-peek-inside.jpg"
+    },
+    {
+      "start": 137.195,
+      "end": 166.923,
+      "image": "wall-01-notes.jpg"
+    },
+    {
+      "start": 166.923,
+      "end": 175.456,
+      "image": "door-01-peek-inside.jpg"
+    },
+    {
+      "start": 175.456,
+      "end": 193.024,
+      "image": "hallway-02-stairs.jpg"
+    },
+    {
+      "start": 193.024,
+      "end": 198.955,
+      "image": "ext-01-apartment-vending.jpg"
+    },
+    {
+      "start": 198.955,
+      "end": 203.797,
+      "image": "food-01-curry.jpg"
+    },
+    {
+      "start": 203.797,
+      "end": 214.2,
+      "image": "wall-01-notes.jpg"
+    }
+  ],
+  "sfx": [
+    {
+      "time": 144.049,
+      "label": "paper-turn (wall of notes reveal, before line37)"
+    },
+    {
+      "time": 208.273,
+      "label": "paper-turn (final note reveal, before line56)"
+    }
+  ]
+}
