@@ -98,7 +98,11 @@
 
 ### ポートフォリオタブ（別欄・URLはここに）
 ```
+制作サンプル一覧
 https://hikaru382465-dot.github.io/a/
+
+ホームページテンプレート5種セット（note）
+https://note.com/open_yucca7177/n/nb461d1ce1d47
 ```
 
 ### 業務領域
