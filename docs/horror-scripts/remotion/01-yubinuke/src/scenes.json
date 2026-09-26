@@ -1,0 +1,420 @@
+{
+  "totalDuration": 187.275,
+  "outroPad": 3.0,
+  "captions": [
+    {
+      "line": 1,
+      "text": "これは、私が去年、一人暮らしを始めたときに体験した話です。",
+      "start": 0.0,
+      "end": 5.824,
+      "emphasis": false
+    },
+    {
+      "line": 2,
+      "text": "社会人になって、初めて借りたアパート。",
+      "start": 5.824,
+      "end": 9.216,
+      "emphasis": false
+    },
+    {
+      "line": 3,
+      "text": "築年数は古いけど、駅から近くて、家賃も安い。",
+      "start": 9.216,
+      "end": 14.613,
+      "emphasis": false
+    },
+    {
+      "line": 4,
+      "text": "内見のときは特に何も感じませんでした。",
+      "start": 14.613,
+      "end": 17.867,
+      "emphasis": false
+    },
+    {
+      "line": 5,
+      "text": "引っ越して一週間ほど経った頃、郵便受けを開けると、",
+      "start": 17.867,
+      "end": 22.229,
+      "emphasis": false
+    },
+    {
+      "line": 6,
+      "text": "見覚えのない名前宛ての手紙が届いていました。",
+      "start": 22.229,
+      "end": 25.547,
+      "emphasis": false
+    },
+    {
+      "line": 7,
+      "text": "「佐野様」と書かれています。",
+      "start": 25.547,
+      "end": 27.968,
+      "emphasis": true
+    },
+    {
+      "line": 8,
+      "text": "私の苗字ではありません。",
+      "start": 27.968,
+      "end": 30.08,
+      "emphasis": false
+    },
+    {
+      "line": 9,
+      "text": "前の住人宛ての誤配だろうと思って、",
+      "start": 30.08,
+      "end": 33.088,
+      "emphasis": false
+    },
+    {
+      "line": 10,
+      "text": "郵便受けの横にある「転居先不明」の箱に入れておきました。",
+      "start": 33.088,
+      "end": 38.581,
+      "emphasis": false
+    },
+    {
+      "line": 11,
+      "text": "でも、その翌週も、また同じ名前の手紙が届いていました。",
+      "start": 38.581,
+      "end": 43.883,
+      "emphasis": false
+    },
+    {
+      "line": 12,
+      "text": "今度は速達で。",
+      "start": 43.883,
+      "end": 45.344,
+      "emphasis": false
+    },
+    {
+      "line": 13,
+      "text": "不動産屋に電話をして聞いてみると、",
+      "start": 45.344,
+      "end": 48.0,
+      "emphasis": false
+    },
+    {
+      "line": 14,
+      "text": "「あの部屋、前の住人が退去してからもう半年経ってますよ。",
+      "start": 48.0,
+      "end": 52.779,
+      "emphasis": false
+    },
+    {
+      "line": 15,
+      "text": "郵便局にも転送届は出してもらってるはずなんですけどね」",
+      "start": 52.779,
+      "end": 57.184,
+      "emphasis": false
+    },
+    {
+      "line": 16,
+      "text": "と言われました。",
+      "start": 57.184,
+      "end": 58.293,
+      "emphasis": false
+    },
+    {
+      "line": 17,
+      "text": "半年前に退去した人宛ての手紙が、",
+      "start": 58.293,
+      "end": 61.216,
+      "emphasis": false
+    },
+    {
+      "line": 18,
+      "text": "なぜ今になって、しかも速達で届くのか。",
+      "start": 61.216,
+      "end": 64.693,
+      "emphasis": false
+    },
+    {
+      "line": 19,
+      "text": "少し気味が悪かったですが、その時はまだ、",
+      "start": 64.693,
+      "end": 68.224,
+      "emphasis": false
+    },
+    {
+      "line": 20,
+      "text": "「郵便局の手違いだろう」くらいにしか思っていませんでした。",
+      "start": 68.224,
+      "end": 72.864,
+      "emphasis": false
+    },
+    {
+      "line": 21,
+      "text": "異変に気づいたのは、それから数日後の深夜でした。",
+      "start": 72.864,
+      "end": 77.099,
+      "emphasis": false
+    },
+    {
+      "line": 22,
+      "text": "トイレに起きたとき、玄関の郵便受けのあたりから、",
+      "start": 77.099,
+      "end": 81.109,
+      "emphasis": false
+    },
+    {
+      "line": 23,
+      "text": "コトン、と小さな音がしたんです。",
+      "start": 81.109,
+      "end": 84.053,
+      "emphasis": false
+    },
+    {
+      "line": 24,
+      "text": "こんな時間に、誰かがポストに何かを入れている。",
+      "start": 84.053,
+      "end": 88.171,
+      "emphasis": false
+    },
+    {
+      "line": 25,
+      "text": "怖くなって、ドアスコープからそっと外を覗きました。",
+      "start": 88.171,
+      "end": 92.064,
+      "emphasis": false
+    },
+    {
+      "line": 26,
+      "text": "廊下には誰もいません。",
+      "start": 92.064,
+      "end": 93.856,
+      "emphasis": false
+    },
+    {
+      "line": 27,
+      "text": "でも、郵便受けの蓋が、まだ小さく揺れていました。",
+      "start": 93.856,
+      "end": 98.645,
+      "emphasis": false
+    },
+    {
+      "line": 28,
+      "text": "翌朝、恐る恐る郵便受けを開けると、",
+      "start": 98.645,
+      "end": 102.208,
+      "emphasis": false
+    },
+    {
+      "line": 29,
+      "text": "また「佐野様」宛ての手紙が入っていました。",
+      "start": 102.208,
+      "end": 106.389,
+      "emphasis": true
+    },
+    {
+      "line": 30,
+      "text": "消印はありません。",
+      "start": 106.389,
+      "end": 108.096,
+      "emphasis": false
+    },
+    {
+      "line": 31,
+      "text": "つまり、誰かが直接、手で投函したということです。",
+      "start": 108.096,
+      "end": 113.493,
+      "emphasis": false
+    },
+    {
+      "line": 32,
+      "text": "さすがに怖くなって、大家さんに相談しました。",
+      "start": 113.493,
+      "end": 117.568,
+      "emphasis": false
+    },
+    {
+      "line": 33,
+      "text": "大家さんは少し言いにくそうにしながら、こう言いました。",
+      "start": 117.568,
+      "end": 121.824,
+      "emphasis": false
+    },
+    {
+      "line": 34,
+      "text": "「実はその佐野さんって方、あなたの前にその部屋に住んでた方なんですけど……",
+      "start": 121.824,
+      "end": 127.456,
+      "emphasis": false
+    },
+    {
+      "line": 35,
+      "text": "退去の連絡もないまま、ある日突然いなくなってしまって。",
+      "start": 127.456,
+      "end": 132.0,
+      "emphasis": false
+    },
+    {
+      "line": 36,
+      "text": "荷物も置いたままだったので、家族の方に連絡して、",
+      "start": 132.0,
+      "end": 136.032,
+      "emphasis": false
+    },
+    {
+      "line": 37,
+      "text": "こちらで処分させてもらったんです」",
+      "start": 136.032,
+      "end": 138.581,
+      "emphasis": false
+    },
+    {
+      "line": 38,
+      "text": "「もしかして、その手紙を届けに来てるのって……」",
+      "start": 138.581,
+      "end": 141.909,
+      "emphasis": false
+    },
+    {
+      "line": 39,
+      "text": "そう聞くと、大家さんは黙ってしまいました。",
+      "start": 141.909,
+      "end": 145.419,
+      "emphasis": false
+    },
+    {
+      "line": 40,
+      "text": "その日を境に、私は郵便受けを見るのが怖くなりました。",
+      "start": 145.419,
+      "end": 150.325,
+      "emphasis": false
+    },
+    {
+      "line": 41,
+      "text": "それでも生活のために毎日確認しないわけにはいきません。",
+      "start": 150.325,
+      "end": 154.709,
+      "emphasis": false
+    },
+    {
+      "line": 42,
+      "text": "一週間後、いつものように郵便受けを開けると、",
+      "start": 154.709,
+      "end": 158.741,
+      "emphasis": false
+    },
+    {
+      "line": 43,
+      "text": "今度は「佐野様」ではなく、",
+      "start": 158.741,
+      "end": 161.963,
+      "emphasis": true
+    },
+    {
+      "line": 44,
+      "text": "私の名前が書かれた手紙が入っていました。",
+      "start": 161.963,
+      "end": 165.184,
+      "emphasis": false
+    },
+    {
+      "line": 45,
+      "text": "差出人の欄には、何も書かれていません。",
+      "start": 165.184,
+      "end": 168.853,
+      "emphasis": false
+    },
+    {
+      "line": 46,
+      "text": "中を開けると、一枚の紙にこう書かれていました。",
+      "start": 168.853,
+      "end": 172.875,
+      "emphasis": false
+    },
+    {
+      "line": 47,
+      "text": "「次はあなたの番です」",
+      "start": 172.875,
+      "end": 174.677,
+      "emphasis": true
+    },
+    {
+      "line": 48,
+      "text": "私はその日のうちに、あの部屋を出ました。",
+      "start": 174.677,
+      "end": 178.155,
+      "emphasis": false
+    },
+    {
+      "line": 49,
+      "text": "今でも、夜遅くに郵便受けを覗くたびに、",
+      "start": 178.155,
+      "end": 181.963,
+      "emphasis": false
+    },
+    {
+      "line": 50,
+      "text": "あの音を思い出します。",
+      "start": 181.963,
+      "end": 183.765,
+      "emphasis": false
+    },
+    {
+      "line": 51,
+      "text": "コトン、という、小さな音を。",
+      "start": 183.765,
+      "end": 187.275,
+      "emphasis": false
+    }
+  ],
+  "scenes": [
+    {
+      "start": 0.0,
+      "end": 17.867,
+      "image": "ext-01-apartment.jpg"
+    },
+    {
+      "start": 17.867,
+      "end": 45.344,
+      "image": "mailbox-01-orange.jpg"
+    },
+    {
+      "start": 45.344,
+      "end": 72.864,
+      "image": "room-01-interior.jpg"
+    },
+    {
+      "start": 72.864,
+      "end": 98.645,
+      "image": "hallway-01-blurred.jpg"
+    },
+    {
+      "start": 98.645,
+      "end": 113.493,
+      "image": "mailbox-02-note-mesh.jpg"
+    },
+    {
+      "start": 113.493,
+      "end": 145.419,
+      "image": "entrance-01-intercom-note.jpg"
+    },
+    {
+      "start": 145.419,
+      "end": 172.875,
+      "image": "mailbox-01-orange.jpg"
+    },
+    {
+      "start": 172.875,
+      "end": 174.677,
+      "image": "mailbox-02-note-mesh.jpg"
+    },
+    {
+      "start": 174.677,
+      "end": 190.275,
+      "image": "hallway-02-bw-pipes.jpg"
+    }
+  ],
+  "sfx": [
+    {
+      "time": 84.103,
+      "label": "koton after line23"
+    },
+    {
+      "time": 187.625,
+      "label": "koton after final line"
+    }
+  ]
+}
