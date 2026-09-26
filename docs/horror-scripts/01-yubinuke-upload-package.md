@@ -11,9 +11,9 @@
 
 ## サムネイル
 
-`docs/horror-scripts/thumbnails/01-yubinuke.svg`（プレビュー画像：`01-yubinuke-preview.png`、1280×720でそのまま使えるサイズ）
+`docs/horror-scripts/thumbnails/01-yubinuke-preview.png`（1280×720、そのまま使えるサイズ）
 
-Claudeが作った下案です。文字とポストのシルエットだけのシンプルなデザインなので、このまま使ってもOKですし、Pixabayの写真を背景に差し替えたい場合は言ってください。
+ひかるが用意した古い家の写真（`01-yubinuke-house-source.jpg`）を背景に、文字を重ねたものに確定。前のシンプルなイラスト版（`01-yubinuke.svg`）は不採用。
 
 ## 概要欄（コピペ用）
 
