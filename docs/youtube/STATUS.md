@@ -14,6 +14,7 @@
   - 第2話「おすそ分けをくれる隣の奥さん」約4〜5分 → `docs/horror-scripts/02-osusowake.md`
   - VOICEVOXに読み込ませる1行1文のテキスト → `docs/horror-scripts/voicevox/`
 - 作り方の手順書（ひかる向け）：`docs/horror-scripts/HOW-TO-MAKE.md`
+- 第1話の投稿準備物（新規）：`docs/horror-scripts/01-yubinuke-upload-package.md`（タイトル案・概要欄コピペ文・タグ）、サムネイル下案 `docs/horror-scripts/thumbnails/01-yubinuke.svg`（プレビュー：同フォルダの`01-yubinuke-preview.png`）
 
 ## 進行中・次にやること
 
@@ -21,6 +22,7 @@
 2. 届いたら、Claudeが動画に組み立てる（横長の本編）
 3. 本編の一番怖い場面を60秒に切り出して、縦長のショートを作る
 4. 1本目の手順が固まったら、`skill-creator` で「怪談動画を作る」スキルにする
+5. 気になる点：`HOW-TO-MAKE.md`は「ひかるがCapCutで編集する」前提で書かれているが、現状の方針は「Claudeがffmpeg/Remotionで組み立てる」。素材が届いて実際に組み立てるときに、手順書とズレていないか確認する
 
 ## 決めたこと
 
