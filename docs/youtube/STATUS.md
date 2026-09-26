@@ -44,14 +44,14 @@
 1. **ひかる確認待ち**：ナレーション（56行、3分31秒）を送付済み → `docs/horror-scripts/audio/02-narration-draft.wav`、タイミングは`02-narration-timing.json`
    - ナレーター「青山龍星」、奥さんのセリフは「冥鳴ひまり（ノーマル）」で聞き分けOK。抜けている行なし
    - 効果音は今回「コトン」ではなく、壁のメモが見える場面用に紙がめくれる音などがあると良さそう（`02-osusowake.md`の演出メモ参照）。Claude側で効果音ラボから探す
-   - 背景写真：**ほぼ揃った** → `docs/horror-scripts/images/02-osusowake/`
+   - 背景写真：**完成** → `docs/horror-scripts/images/02-osusowake/`（8枚）
      - 外観・玄関ドア：`ext-01-apartment-vending.jpg`（Wikimedia、CC BY 2.0、撮影者「Nori Norisa」クレジット必要、詳細は同フォルダの`CREDITS.md`）
      - 外観その2：`ext-02-rusty-2story.jpg`（ぱくたそ、錆びた二階建て、台本によりマッチ）
      - 廊下：`hallway-01-dark-door.jpg`、`hallway-02-stairs.jpg`（ぱくたそ）
-     - おかず：`food-01-curry.jpg`（カレーライス、台本の「昨日はカレーだったのね」の場面にぴったり）
-     - 壁一面のメモ：`wall-01-notes.jpg`（ぱくたそ、貼り紙だらけの壁。今回は話の核心の場面なので内容がぴったり）
-     - Wikimedia Commonsの廊下候補（河原町団地）2枚は保留・不要になった
-     - 残りは「隣人の部屋の中がちらっと見える」場面くらい。無くても組み立てられる
+     - おかず：`food-01-curry.jpg`（カレーライス）、`food-02-osusowake.jpg`（おすそ分けの筑前煮・炊き込みご飯風）
+     - 壁一面のメモ：`wall-01-notes.jpg`（ぱくたそ、貼り紙だらけの壁。話の核心場面にぴったり）
+     - ドアの隙間：`door-01-peek-inside.jpg`（ドアが半分開いて中が見える場面にぴったりの構図）
+     - Wikimedia Commonsの廊下候補（河原町団地）2枚は不要になった
    - WikimediaやOpenverseはCloudflareのボット対策・レート制限で自動ダウンロードできないため、**Claudeが検索して候補を提示 → ひかるがリンクを開いて確認・保存して送る**という分担がうまくいくと判明
 2. 素材が揃ったら、Claudeが本編動画を組み立てる（第1話と同じRemotionの仕組みを流用）
 3. 一番怖い場面（壁のメモを見てしまう場面〜ラスト）を切り出してショートを作る
