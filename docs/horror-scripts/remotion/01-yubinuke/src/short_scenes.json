@@ -1,0 +1,155 @@
+{
+  "shortStart": 127.456,
+  "totalDuration": 62.819,
+  "outroPad": 0.0,
+  "narrationOffset": 127.456,
+  "captions": [
+    {
+      "line": 35,
+      "text": "退去の連絡もないまま、ある日突然いなくなってしまって。",
+      "start": 0.0,
+      "end": 4.544,
+      "emphasis": false
+    },
+    {
+      "line": 36,
+      "text": "荷物も置いたままだったので、家族の方に連絡して、",
+      "start": 4.544,
+      "end": 8.576,
+      "emphasis": false
+    },
+    {
+      "line": 37,
+      "text": "こちらで処分させてもらったんです」",
+      "start": 8.576,
+      "end": 11.125,
+      "emphasis": false
+    },
+    {
+      "line": 38,
+      "text": "「もしかして、その手紙を届けに来てるのって……」",
+      "start": 11.125,
+      "end": 14.453,
+      "emphasis": false
+    },
+    {
+      "line": 39,
+      "text": "そう聞くと、大家さんは黙ってしまいました。",
+      "start": 14.453,
+      "end": 17.963,
+      "emphasis": false
+    },
+    {
+      "line": 40,
+      "text": "その日を境に、私は郵便受けを見るのが怖くなりました。",
+      "start": 17.963,
+      "end": 22.869,
+      "emphasis": false
+    },
+    {
+      "line": 41,
+      "text": "それでも生活のために毎日確認しないわけにはいきません。",
+      "start": 22.869,
+      "end": 27.253,
+      "emphasis": false
+    },
+    {
+      "line": 42,
+      "text": "一週間後、いつものように郵便受けを開けると、",
+      "start": 27.253,
+      "end": 31.285,
+      "emphasis": false
+    },
+    {
+      "line": 43,
+      "text": "今度は「佐野様」ではなく、",
+      "start": 31.285,
+      "end": 34.507,
+      "emphasis": true
+    },
+    {
+      "line": 44,
+      "text": "私の名前が書かれた手紙が入っていました。",
+      "start": 34.507,
+      "end": 37.728,
+      "emphasis": false
+    },
+    {
+      "line": 45,
+      "text": "差出人の欄には、何も書かれていません。",
+      "start": 37.728,
+      "end": 41.397,
+      "emphasis": false
+    },
+    {
+      "line": 46,
+      "text": "中を開けると、一枚の紙にこう書かれていました。",
+      "start": 41.397,
+      "end": 45.419,
+      "emphasis": false
+    },
+    {
+      "line": 47,
+      "text": "「次はあなたの番です」",
+      "start": 45.419,
+      "end": 47.221,
+      "emphasis": true
+    },
+    {
+      "line": 48,
+      "text": "私はその日のうちに、あの部屋を出ました。",
+      "start": 47.221,
+      "end": 50.699,
+      "emphasis": false
+    },
+    {
+      "line": 49,
+      "text": "今でも、夜遅くに郵便受けを覗くたびに、",
+      "start": 50.699,
+      "end": 54.507,
+      "emphasis": false
+    },
+    {
+      "line": 50,
+      "text": "あの音を思い出します。",
+      "start": 54.507,
+      "end": 56.309,
+      "emphasis": false
+    },
+    {
+      "line": 51,
+      "text": "コトン、という、小さな音を。",
+      "start": 56.309,
+      "end": 59.819,
+      "emphasis": false
+    }
+  ],
+  "scenes": [
+    {
+      "start": 0.0,
+      "end": 17.963,
+      "image": "entrance-01-intercom-note.jpg"
+    },
+    {
+      "start": 17.963,
+      "end": 45.419,
+      "image": "mailbox-01-orange.jpg"
+    },
+    {
+      "start": 45.419,
+      "end": 47.221,
+      "image": "mailbox-02-note-mesh.jpg"
+    },
+    {
+      "start": 47.221,
+      "end": 62.819,
+      "image": "hallway-02-bw-pipes.jpg"
+    }
+  ],
+  "sfx": [
+    {
+      "time": 60.169,
+      "label": "koton after final line"
+    }
+  ]
+}
