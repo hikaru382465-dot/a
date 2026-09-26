@@ -1,0 +1,450 @@
+[
+  {
+    "file": "002_青山龍星（しっとり）_これは、私が大学を….wav",
+    "line": 1,
+    "speaker": "aoyama",
+    "start": 0.0,
+    "end": 6.101,
+    "duration": 6.101
+  },
+  {
+    "file": "003_青山龍星（しっとり）_住んでいたのは、二….wav",
+    "line": 2,
+    "speaker": "aoyama",
+    "start": 6.101,
+    "end": 9.653,
+    "duration": 3.552
+  },
+  {
+    "file": "004_青山龍星（しっとり）_隣の部屋には、五十….wav",
+    "line": 3,
+    "speaker": "aoyama",
+    "start": 9.653,
+    "end": 14.507,
+    "duration": 4.853
+  },
+  {
+    "file": "005_青山龍星（しっとり）_引っ越しの挨拶に行….wav",
+    "line": 4,
+    "speaker": "aoyama",
+    "start": 14.507,
+    "end": 19.36,
+    "duration": 4.853
+  },
+  {
+    "file": "006_冥鳴ひまり（ノーマル）_「若い人が来てくれ….wav",
+    "line": 5,
+    "speaker": "himari",
+    "start": 19.36,
+    "end": 24.8,
+    "duration": 5.44
+  },
+  {
+    "file": "007_青山龍星（しっとり）_と笑ってくれました。.wav",
+    "line": 6,
+    "speaker": "aoyama",
+    "start": 24.8,
+    "end": 26.155,
+    "duration": 1.355
+  },
+  {
+    "file": "008_青山龍星（しっとり）_それから、奥さんは….wav",
+    "line": 7,
+    "speaker": "aoyama",
+    "start": 26.155,
+    "end": 31.435,
+    "duration": 5.28
+  },
+  {
+    "file": "009_青山龍星（しっとり）_筑前煮、きんぴらご….wav",
+    "line": 8,
+    "speaker": "aoyama",
+    "start": 31.435,
+    "end": 35.531,
+    "duration": 4.096
+  },
+  {
+    "file": "010_青山龍星（しっとり）_どれも丁寧に作られ….wav",
+    "line": 9,
+    "speaker": "aoyama",
+    "start": 35.531,
+    "end": 39.659,
+    "duration": 4.128
+  },
+  {
+    "file": "011_青山龍星（しっとり）_ドアノブに袋ごと掛….wav",
+    "line": 10,
+    "speaker": "aoyama",
+    "start": 39.659,
+    "end": 42.592,
+    "duration": 2.933
+  },
+  {
+    "file": "012_青山龍星（しっとり）_実家を出たばかりだ….wav",
+    "line": 11,
+    "speaker": "aoyama",
+    "start": 42.592,
+    "end": 47.563,
+    "duration": 4.971
+  },
+  {
+    "file": "013_青山龍星（しっとり）_タッパーを返すとき….wav",
+    "line": 12,
+    "speaker": "aoyama",
+    "start": 47.563,
+    "end": 51.979,
+    "duration": 4.416
+  },
+  {
+    "file": "014_青山龍星（しっとり）_最初に「あれ？」と….wav",
+    "line": 13,
+    "speaker": "aoyama",
+    "start": 51.979,
+    "end": 57.429,
+    "duration": 5.451
+  },
+  {
+    "file": "015_青山龍星（しっとり）_タッパーを返しに行….wav",
+    "line": 14,
+    "speaker": "aoyama",
+    "start": 57.429,
+    "end": 61.195,
+    "duration": 3.765
+  },
+  {
+    "file": "016_冥鳴ひまり（ノーマル）_「昨日はカレーだっ….wav",
+    "line": 15,
+    "speaker": "himari",
+    "start": 61.195,
+    "end": 64.768,
+    "duration": 3.573
+  },
+  {
+    "file": "017_冥鳴ひまり（ノーマル）_私は甘口派だから、….wav",
+    "line": 16,
+    "speaker": "himari",
+    "start": 64.768,
+    "end": 68.864,
+    "duration": 4.096
+  },
+  {
+    "file": "018_青山龍星（しっとり）_確かに、前の晩はカ….wav",
+    "line": 17,
+    "speaker": "aoyama",
+    "start": 68.864,
+    "end": 72.501,
+    "duration": 3.637
+  },
+  {
+    "file": "019_青山龍星（しっとり）_匂いが廊下に出てい….wav",
+    "line": 18,
+    "speaker": "aoyama",
+    "start": 72.501,
+    "end": 74.656,
+    "duration": 2.155
+  },
+  {
+    "file": "020_青山龍星（しっとり）_そう思って、そのと….wav",
+    "line": 19,
+    "speaker": "aoyama",
+    "start": 74.656,
+    "end": 78.293,
+    "duration": 3.637
+  },
+  {
+    "file": "021_青山龍星（しっとり）_でも、辛口だという….wav",
+    "line": 20,
+    "speaker": "aoyama",
+    "start": 78.293,
+    "end": 82.912,
+    "duration": 4.619
+  },
+  {
+    "file": "022_青山龍星（しっとり）_市販のルーの箱は、….wav",
+    "line": 21,
+    "speaker": "aoyama",
+    "start": 82.912,
+    "end": 86.283,
+    "duration": 3.371
+  },
+  {
+    "file": "023_青山龍星（しっとり）_それから、奥さんの….wav",
+    "line": 22,
+    "speaker": "aoyama",
+    "start": 86.283,
+    "end": 90.581,
+    "duration": 4.299
+  },
+  {
+    "file": "024_冥鳴ひまり（ノーマル）_「最近、帰りが遅い….wav",
+    "line": 23,
+    "speaker": "himari",
+    "start": 90.581,
+    "end": 96.448,
+    "duration": 5.867
+  },
+  {
+    "file": "025_冥鳴ひまり（ノーマル）_「日曜日はずっと家….wav",
+    "line": 24,
+    "speaker": "himari",
+    "start": 96.448,
+    "end": 101.728,
+    "duration": 5.28
+  },
+  {
+    "file": "026_冥鳴ひまり（ノーマル）_「あのピンクのカー….wav",
+    "line": 25,
+    "speaker": "himari",
+    "start": 101.728,
+    "end": 104.896,
+    "duration": 3.168
+  },
+  {
+    "file": "027_青山龍星（しっとり）_ピンクのカーディガ….wav",
+    "line": 26,
+    "speaker": "aoyama",
+    "start": 104.896,
+    "end": 108.192,
+    "duration": 3.296
+  },
+  {
+    "file": "028_青山龍星（しっとり）_それも、近所のコン….wav",
+    "line": 27,
+    "speaker": "aoyama",
+    "start": 108.192,
+    "end": 112.619,
+    "duration": 4.427
+  },
+  {
+    "file": "029_青山龍星（しっとり）_十一時四十二分。.wav",
+    "line": 28,
+    "speaker": "aoyama",
+    "start": 112.619,
+    "end": 114.475,
+    "duration": 1.856
+  },
+  {
+    "file": "030_青山龍星（しっとり）_分単位で、帰宅の時….wav",
+    "line": 29,
+    "speaker": "aoyama",
+    "start": 114.475,
+    "end": 117.707,
+    "duration": 3.232
+  },
+  {
+    "file": "031_青山龍星（しっとり）_私は、奥さんの前で….wav",
+    "line": 30,
+    "speaker": "aoyama",
+    "start": 117.707,
+    "end": 123.211,
+    "duration": 5.504
+  },
+  {
+    "file": "032_青山龍星（しっとり）_決定的だったのは、….wav",
+    "line": 31,
+    "speaker": "aoyama",
+    "start": 123.211,
+    "end": 126.72,
+    "duration": 3.509
+  },
+  {
+    "file": "033_青山龍星（しっとり）_いつものようにタッ….wav",
+    "line": 32,
+    "speaker": "aoyama",
+    "start": 126.72,
+    "end": 129.355,
+    "duration": 2.635
+  },
+  {
+    "file": "034_青山龍星（しっとり）_その日は奥さんが出….wav",
+    "line": 33,
+    "speaker": "aoyama",
+    "start": 129.355,
+    "end": 134.005,
+    "duration": 4.651
+  },
+  {
+    "file": "035_青山龍星（しっとり）_そして、ドアが半分….wav",
+    "line": 34,
+    "speaker": "aoyama",
+    "start": 134.005,
+    "end": 137.195,
+    "duration": 3.189
+  },
+  {
+    "file": "036_青山龍星（しっとり）_奥さんの肩ごしに、….wav",
+    "line": 35,
+    "speaker": "aoyama",
+    "start": 137.195,
+    "end": 141.397,
+    "duration": 4.203
+  },
+  {
+    "file": "037_青山龍星（しっとり）_玄関から続く廊下の….wav",
+    "line": 36,
+    "speaker": "aoyama",
+    "start": 141.397,
+    "end": 144.149,
+    "duration": 2.752
+  },
+  {
+    "file": "038_青山龍星（しっとり）_メモ用紙が、びっし….wav",
+    "line": 37,
+    "speaker": "aoyama",
+    "start": 144.149,
+    "end": 147.339,
+    "duration": 3.189
+  },
+  {
+    "file": "039_青山龍星（しっとり）_遠くて全部は読めま….wav",
+    "line": 38,
+    "speaker": "aoyama",
+    "start": 147.339,
+    "end": 149.675,
+    "duration": 2.336
+  },
+  {
+    "file": "040_青山龍星（しっとり）_でも、一番手前の一….wav",
+    "line": 39,
+    "speaker": "aoyama",
+    "start": 149.675,
+    "end": 154.656,
+    "duration": 4.981
+  },
+  {
+    "file": "041_青山龍星（しっとり）_「二〇二号室　帰宅….wav",
+    "line": 40,
+    "speaker": "aoyama",
+    "start": 154.656,
+    "end": 161.003,
+    "duration": 6.347
+  },
+  {
+    "file": "042_青山龍星（しっとり）_二〇二号室。.wav",
+    "line": 41,
+    "speaker": "aoyama",
+    "start": 161.003,
+    "end": 162.347,
+    "duration": 1.344
+  },
+  {
+    "file": "043_青山龍星（しっとり）_私の部屋です。.wav",
+    "line": 42,
+    "speaker": "aoyama",
+    "start": 162.347,
+    "end": 163.755,
+    "duration": 1.408
+  },
+  {
+    "file": "044_青山龍星（しっとり）_奥さんは、私の視線….wav",
+    "line": 43,
+    "speaker": "aoyama",
+    "start": 163.755,
+    "end": 166.923,
+    "duration": 3.168
+  },
+  {
+    "file": "045_青山龍星（しっとり）_すっとドアを細くし….wav",
+    "line": 44,
+    "speaker": "aoyama",
+    "start": 166.923,
+    "end": 171.307,
+    "duration": 4.384
+  },
+  {
+    "file": "046_冥鳴ひまり（ノーマル）_「いつもありがとう….wav",
+    "line": 45,
+    "speaker": "himari",
+    "start": 171.307,
+    "end": 175.456,
+    "duration": 4.149
+  },
+  {
+    "file": "047_青山龍星（しっとり）_私は、その日のうち….wav",
+    "line": 46,
+    "speaker": "aoyama",
+    "start": 175.456,
+    "end": 179.008,
+    "duration": 3.552
+  },
+  {
+    "file": "048_青山龍星（しっとり）_一週間後には、その….wav",
+    "line": 47,
+    "speaker": "aoyama",
+    "start": 179.008,
+    "end": 182.411,
+    "duration": 3.403
+  },
+  {
+    "file": "049_青山龍星（しっとり）_奥さんには、何も言….wav",
+    "line": 48,
+    "speaker": "aoyama",
+    "start": 182.411,
+    "end": 185.301,
+    "duration": 2.891
+  },
+  {
+    "file": "050_青山龍星（しっとり）_引っ越し先も、もち….wav",
+    "line": 49,
+    "speaker": "aoyama",
+    "start": 185.301,
+    "end": 188.661,
+    "duration": 3.36
+  },
+  {
+    "file": "051_青山龍星（しっとり）_新しい部屋での生活….wav",
+    "line": 50,
+    "speaker": "aoyama",
+    "start": 188.661,
+    "end": 193.024,
+    "duration": 4.363
+  },
+  {
+    "file": "052_青山龍星（しっとり）_仕事から帰ると、玄….wav",
+    "line": 51,
+    "speaker": "aoyama",
+    "start": 193.024,
+    "end": 196.427,
+    "duration": 3.403
+  },
+  {
+    "file": "053_青山龍星（しっとり）_見覚えのある袋が掛….wav",
+    "line": 52,
+    "speaker": "aoyama",
+    "start": 196.427,
+    "end": 198.955,
+    "duration": 2.528
+  },
+  {
+    "file": "054_青山龍星（しっとり）_中には、タッパーが….wav",
+    "line": 53,
+    "speaker": "aoyama",
+    "start": 198.955,
+    "end": 201.536,
+    "duration": 2.581
+  },
+  {
+    "file": "055_青山龍星（しっとり）_甘口のカレーが入っ….wav",
+    "line": 54,
+    "speaker": "aoyama",
+    "start": 201.536,
+    "end": 203.797,
+    "duration": 2.261
+  },
+  {
+    "file": "056_青山龍星（しっとり）_そして、ふたの上に….wav",
+    "line": 55,
+    "speaker": "aoyama",
+    "start": 203.797,
+    "end": 208.373,
+    "duration": 4.576
+  },
+  {
+    "file": "057_冥鳴ひまり（ノーマル）_「お引っ越し先でも….wav",
+    "line": 56,
+    "speaker": "himari",
+    "start": 208.373,
+    "end": 211.2,
+    "duration": 2.827
+  }
+]
