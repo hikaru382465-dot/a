@@ -7,7 +7,9 @@ import shortScenes from "./short_scenes.json";
 const FPS = 30;
 const totalSeconds = scenes.totalDuration + scenes.outroPad;
 const DURATION_IN_FRAMES = Math.ceil(totalSeconds * FPS);
-const SHORT_DURATION_IN_FRAMES = Math.ceil(shortScenes.totalDuration * FPS);
+const SHORT_DURATION_IN_FRAMES = Math.ceil(
+  (shortScenes.totalDuration + shortScenes.outroPad) * FPS
+);
 
 export const RemotionRoot = () => {
   return (

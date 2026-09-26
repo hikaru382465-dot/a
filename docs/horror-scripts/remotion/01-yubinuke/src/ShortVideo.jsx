@@ -96,6 +96,130 @@ function TitleBar({ title }) {
   );
 }
 
+function SubscribeArrow({ currentTime }) {
+  const START = 0.3;
+  const END = 3.6;
+  if (currentTime < START || currentTime > END) return null;
+
+  let opacity = 1;
+  if (currentTime < START + 0.3) {
+    opacity = interpolate(currentTime, [START, START + 0.3], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  } else if (currentTime > END - 0.4) {
+    opacity = interpolate(currentTime, [END - 0.4, END], [1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  }
+
+  // gentle bobbing/nudging motion toward the bottom-left subscribe area
+  const bob = Math.sin((currentTime - START) * 5) * 10;
+  const nudgeX = Math.sin((currentTime - START) * 5) * -6;
+
+  return (
+    <AbsoluteFill style={{ opacity }}>
+      <div
+        style={{
+          position: "absolute",
+          left: "10%",
+          bottom: "16%",
+          transform: `translate(${nudgeX}px, ${bob}px) rotate(-18deg)`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <svg width="90" height="120" viewBox="0 0 90 120">
+          <path
+            d="M45 5 C 20 30, 15 70, 40 100"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path
+            d="M40 100 L 22 88 M40 100 L 30 116"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div
+          style={{
+            marginTop: 4,
+            fontFamily: "'IPAGothic', 'Noto Sans JP', sans-serif",
+            fontWeight: 700,
+            fontSize: 30,
+            color: "#ffffff",
+            textShadow: "0 2px 6px rgba(0,0,0,0.9)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ここ登録↑
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+function EndCard({ currentTime, start, end }) {
+  if (currentTime < start || currentTime > end) return null;
+  const FADE_T = 0.4;
+  let opacity = 1;
+  if (currentTime < start + FADE_T) {
+    opacity = interpolate(currentTime, [start, start + FADE_T], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  } else if (currentTime > end - FADE_T) {
+    opacity = interpolate(currentTime, [end - FADE_T, end], [1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+  }
+  const pulse = 1 + Math.sin((currentTime - start) * 4) * 0.03;
+
+  return (
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <div
+        style={{
+          opacity,
+          textAlign: "center",
+          fontFamily: "'IPAGothic', 'Noto Sans JP', sans-serif",
+          fontWeight: 700,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 56,
+            color: "#ff2b2b",
+            fontWeight: 900,
+            textShadow: "0 0 16px rgba(255,0,0,0.7), 0 2px 8px rgba(0,0,0,0.9)",
+            transform: `scale(${pulse})`,
+          }}
+        >
+          続きは本編で
+        </div>
+        <div
+          style={{
+            marginTop: 26,
+            fontSize: 38,
+            color: "#f5f5f0",
+            textShadow: "0 2px 8px rgba(0,0,0,0.9)",
+          }}
+        >
+          チャンネル登録して
+          <br />
+          次の話も見てね
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
 function Caption({ cap, currentTime }) {
   const { start, end, text, emphasis } = cap;
   if (currentTime < start - CAP_FADE || currentTime > end + 0.15) return null;
@@ -156,7 +280,7 @@ const reveal = scenes.captions.find(
 const BGM_BASE_VOLUME = 0.045;
 
 function bgmVolumeAt(t) {
-  const totalEnd = scenes.totalDuration;
+  const totalEnd = scenes.totalDuration + scenes.outroPad;
   let v = interpolate(t, [0, 1.5], [0, BGM_BASE_VOLUME], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -204,10 +328,17 @@ export const HorrorShort = () => {
       ))}
 
       <TitleBar title={scenes.title} />
+      <SubscribeArrow currentTime={currentTime} />
 
       {scenes.captions.map((cap, i) => (
         <Caption key={i} cap={cap} currentTime={currentTime} />
       ))}
+
+      <EndCard
+        currentTime={currentTime}
+        start={scenes.totalDuration + 0.3}
+        end={scenes.totalDuration + scenes.outroPad}
+      />
 
       <Audio src={staticFile("narration_short.wav")} />
 
@@ -226,7 +357,10 @@ export const HorrorShort = () => {
           backgroundColor: "black",
           opacity: interpolate(
             currentTime,
-            [scenes.totalDuration - 1.0, scenes.totalDuration],
+            [
+              scenes.totalDuration + scenes.outroPad - 1.0,
+              scenes.totalDuration + scenes.outroPad,
+            ],
             [0, 1],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           ),
