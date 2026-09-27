@@ -4,9 +4,12 @@ with open("src/scenes.json", encoding="utf-8") as f:
     full = json.load(f)
 
 SHORT_START = 134.005  # line34開始：「そして、ドアが半分ほど開いたとき、」
+# line45終わり：「いつもありがとうね。また作ったら、持っていくから」
+# ここで切って「続きは本編で」につなげる（引っ越し〜新居にも届くオチは本編だけの特典にする）
+SHORT_END = 175.456
 SHORT_TITLE = "【実話】おすそ分けをくれる隣人の部屋に、貼られていたもの"
 SHORT_OUTRO_PAD = 3.5  # 終わりに「続きは本編で」を出す時間
-totalEnd = full["totalDuration"] + full["outroPad"]
+totalEnd = SHORT_END
 SHORT_DUR = totalEnd - SHORT_START
 
 def clip(items, key_start="start", key_end="end"):
