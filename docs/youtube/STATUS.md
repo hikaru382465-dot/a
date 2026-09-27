@@ -65,7 +65,7 @@
 ## 決めたこと（エンディングのCTA、全話共通）
 
 - 本編の最後、話が終わって画面が真っ黒になった後に、**語り手と同じ声（VOICEVOX「青山龍星」しっとり）でチャンネル登録・高評価を促すナレーション**を追加することに決定。「チャンネル登録」「高評価」の文字はズームインのテロップで強調
-- セリフ・音声：**完成** → `docs/horror-scripts/audio/outro-cta.wav`（`docs/horror-scripts/voicevox/outro-cta.txt`をVOICEVOX「青山龍星（しっとり）」で録音・正規化済み）
+- セリフ・音声（第1・2話で使用中）：`docs/horror-scripts/audio/outro-cta.wav`（`docs/horror-scripts/voicevox/outro-cta.txt`をVOICEVOX「青山龍星（しっとり）」で録音・正規化済み）
   ```
   ……この話、どこかで聞いたことがある方は、いませんか。
   今日の話は、ここまでです。
@@ -74,6 +74,11 @@
   ```
 - 全話共通の「決まり文句」として1回録音した音声を使い回す（毎回録り直さなくていい）。Remotion側は`docs/horror-scripts/remotion/build_outro_cta.py`で各話のプロジェクトに`outro_cta.json`を生成し、`OutroCTA.jsx`（新しい話にコピーして使う共通コンポーネント）で真っ黒画面の後に追加する
 - 第2話に反映済み。第1話にも後で同じ手順で追加できる
+- **コメント募集の呼びかけを追加**（2026-09-27、**第3話から反映**。1・2話は上記のままでいい）→ `docs/horror-scripts/voicevox/outro-cta.txt`に2行追加、VOICEVOX自動化ツール用の`speaker_key|セリフ`形式に変更済み。ひかるの録音待ち
+  ```
+  もし、あなたにも人に言えないような体験を、コメントに書いてもらえたら、この番組で紹介するかもしれません。
+  あなたの体験が、誰かの眠れない夜になるかもしれません。
+  ```
 
 ## 決めたこと
 
