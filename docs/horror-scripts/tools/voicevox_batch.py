@@ -31,6 +31,7 @@ ENGINE_URL = "http://127.0.0.1:50021"
 # (名前, スタイル名) はVOICEVOXの表示とまったく同じ文字列にすること。
 SPEAKERS = {
     "aoyama": ("青山龍星", "しっとり"),
+    "aoyama_whisper": ("青山龍星", "囁き"),  # ラストの決め台詞など、恐怖を強調したい行に使う
     "himari": ("冥鳴ひまり", "ノーマル"),
 }
 DEFAULT_SPEAKER = "aoyama"
