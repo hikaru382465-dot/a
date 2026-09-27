@@ -1,0 +1,217 @@
+{
+  "shortStart": 134.005,
+  "totalDuration": 80.195,
+  "outroPad": 3.5,
+  "narrationOffset": 134.005,
+  "title": "【実話】おすそ分けをくれる隣人の部屋に、貼られていたもの",
+  "captions": [
+    {
+      "line": 34,
+      "text": "そして、ドアが半分ほど開いたとき、",
+      "start": 0.0,
+      "end": 3.19,
+      "emphasis": false
+    },
+    {
+      "line": 35,
+      "text": "奥さんの肩ごしに、部屋の中が見えてしまったんです。",
+      "start": 3.19,
+      "end": 7.392,
+      "emphasis": false
+    },
+    {
+      "line": 36,
+      "text": "玄関から続く廊下の壁一面に、",
+      "start": 7.392,
+      "end": 10.144,
+      "emphasis": false
+    },
+    {
+      "line": 37,
+      "text": "メモ用紙が、びっしりと貼られていました。",
+      "start": 10.144,
+      "end": 13.334,
+      "emphasis": false
+    },
+    {
+      "line": 38,
+      "text": "遠くて全部は読めませんでした。",
+      "start": 13.334,
+      "end": 15.67,
+      "emphasis": false
+    },
+    {
+      "line": 39,
+      "text": "でも、一番手前の一枚だけは、はっきり見えました。",
+      "start": 15.67,
+      "end": 20.651,
+      "emphasis": false
+    },
+    {
+      "line": 40,
+      "text": "「二〇二号室　帰宅　二十三時四十二分　ピンクのカーディガン」",
+      "start": 20.651,
+      "end": 26.998,
+      "emphasis": true
+    },
+    {
+      "line": 41,
+      "text": "二〇二号室。",
+      "start": 26.998,
+      "end": 28.342,
+      "emphasis": false
+    },
+    {
+      "line": 42,
+      "text": "私の部屋です。",
+      "start": 28.342,
+      "end": 29.75,
+      "emphasis": false
+    },
+    {
+      "line": 43,
+      "text": "奥さんは、私の視線に気づいたのか、",
+      "start": 29.75,
+      "end": 32.918,
+      "emphasis": false
+    },
+    {
+      "line": 44,
+      "text": "すっとドアを細くして、いつもと同じ笑顔で言いました。",
+      "start": 32.918,
+      "end": 37.302,
+      "emphasis": false
+    },
+    {
+      "line": 45,
+      "text": "「いつもありがとうね。また作ったら、持っていくから」",
+      "start": 37.302,
+      "end": 41.451,
+      "emphasis": false
+    },
+    {
+      "line": 46,
+      "text": "私は、その日のうちに実家に電話をして、",
+      "start": 41.451,
+      "end": 45.003,
+      "emphasis": false
+    },
+    {
+      "line": 47,
+      "text": "一週間後には、そのアパートを出ました。",
+      "start": 45.003,
+      "end": 48.406,
+      "emphasis": false
+    },
+    {
+      "line": 48,
+      "text": "奥さんには、何も言いませんでした。",
+      "start": 48.406,
+      "end": 51.296,
+      "emphasis": false
+    },
+    {
+      "line": 49,
+      "text": "引っ越し先も、もちろん教えていません。",
+      "start": 51.296,
+      "end": 54.656,
+      "emphasis": false
+    },
+    {
+      "line": 50,
+      "text": "新しい部屋での生活にも慣れた、ひと月後のことです。",
+      "start": 54.656,
+      "end": 59.019,
+      "emphasis": false
+    },
+    {
+      "line": 51,
+      "text": "仕事から帰ると、玄関のドアノブに、",
+      "start": 59.019,
+      "end": 62.422,
+      "emphasis": false
+    },
+    {
+      "line": 52,
+      "text": "見覚えのある袋が掛かっていました。",
+      "start": 62.422,
+      "end": 64.95,
+      "emphasis": false
+    },
+    {
+      "line": 53,
+      "text": "中には、タッパーがひとつ。",
+      "start": 64.95,
+      "end": 67.531,
+      "emphasis": false
+    },
+    {
+      "line": 54,
+      "text": "甘口のカレーが入っていました。",
+      "start": 67.531,
+      "end": 69.792,
+      "emphasis": false
+    },
+    {
+      "line": 55,
+      "text": "そして、ふたの上に、一枚のメモが貼られていました。",
+      "start": 69.792,
+      "end": 74.368,
+      "emphasis": false
+    },
+    {
+      "line": 56,
+      "text": "「お引っ越し先でも、お元気でね」",
+      "start": 74.368,
+      "end": 77.195,
+      "emphasis": true
+    }
+  ],
+  "scenes": [
+    {
+      "start": 0.0,
+      "end": 3.19,
+      "image": "door-01-peek-inside.jpg"
+    },
+    {
+      "start": 3.19,
+      "end": 32.918,
+      "image": "wall-01-notes.jpg"
+    },
+    {
+      "start": 32.918,
+      "end": 41.451,
+      "image": "door-01-peek-inside.jpg"
+    },
+    {
+      "start": 41.451,
+      "end": 59.019,
+      "image": "hallway-02-stairs.jpg"
+    },
+    {
+      "start": 59.019,
+      "end": 64.95,
+      "image": "ext-01-apartment-vending.jpg"
+    },
+    {
+      "start": 64.95,
+      "end": 69.792,
+      "image": "food-01-curry.jpg"
+    },
+    {
+      "start": 69.792,
+      "end": 80.195,
+      "image": "wall-01-notes.jpg"
+    }
+  ],
+  "sfx": [
+    {
+      "time": 10.044,
+      "label": "paper-turn (wall of notes reveal, before line37)"
+    },
+    {
+      "time": 74.268,
+      "label": "paper-turn (final note reveal, before line56)"
+    }
+  ]
+}
