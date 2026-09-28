@@ -1,0 +1,184 @@
+{
+  "shortStart": 197.12,
+  "totalDuration": 85.472,
+  "outroPad": 3.5,
+  "narrationOffset": 197.12,
+  "title": "【実話】誰かが、まだ合鍵を持っている",
+  "captions": [
+    {
+      "line": 39,
+      "text": "「実は、前の住人のかたに、合鍵をお返しいただいてないんです」",
+      "start": 0.0,
+      "end": 4.992,
+      "emphasis": true
+    },
+    {
+      "line": 40,
+      "text": "「連絡が取れなくなってしまって、鍵を交換する手続きも、後回しになっていて……」",
+      "start": 4.992,
+      "end": 10.837,
+      "emphasis": false
+    },
+    {
+      "line": 41,
+      "text": "その言葉を聞いて、背筋が冷たくなりました。",
+      "start": 10.837,
+      "end": 14.133,
+      "emphasis": false
+    },
+    {
+      "line": 42,
+      "text": "誰かが、私の知らないところで、この部屋に出入りしている。",
+      "start": 14.133,
+      "end": 18.251,
+      "emphasis": false
+    },
+    {
+      "line": 43,
+      "text": "しかも、その誰かは、掃除やゴミ出しまで、していく。",
+      "start": 18.251,
+      "end": 22.635,
+      "emphasis": false
+    },
+    {
+      "line": 44,
+      "text": "まるで、今でもここに住んでいるかのように。",
+      "start": 22.635,
+      "end": 25.6,
+      "emphasis": false
+    },
+    {
+      "line": 45,
+      "text": "大家さんに頼んで、すぐに鍵を交換してもらいました。",
+      "start": 25.6,
+      "end": 29.44,
+      "emphasis": false
+    },
+    {
+      "line": 46,
+      "text": "それから一週間ほどは、何も起きませんでした。",
+      "start": 29.44,
+      "end": 32.843,
+      "emphasis": false
+    },
+    {
+      "line": 47,
+      "text": "これで終わったと、私は少しずつ、安心し始めていました。",
+      "start": 32.843,
+      "end": 37.525,
+      "emphasis": false
+    },
+    {
+      "line": 48,
+      "text": "そんなある夜、お風呂から上がって、鏡の曇りを拭こうとしたときのことです。",
+      "start": 37.525,
+      "end": 42.827,
+      "emphasis": false
+    },
+    {
+      "line": 49,
+      "text": "鏡に、指でなぞったような文字が、うっすらと浮かび上がりました。",
+      "start": 42.827,
+      "end": 47.68,
+      "emphasis": false
+    },
+    {
+      "line": 50,
+      "text": "「おかえり」",
+      "start": 47.68,
+      "end": 48.384,
+      "emphasis": true
+    },
+    {
+      "line": 51,
+      "text": "自分が書いた覚えなんて、ありませんでした。",
+      "start": 48.384,
+      "end": 51.573,
+      "emphasis": false
+    },
+    {
+      "line": 52,
+      "text": "その夜は、一睡もできませんでした。",
+      "start": 51.573,
+      "end": 54.389,
+      "emphasis": false
+    },
+    {
+      "line": 53,
+      "text": "それでも、疲れがたまっていたせいかもしれないと、無理やり自分を納得させました。",
+      "start": 54.389,
+      "end": 60.096,
+      "emphasis": false
+    },
+    {
+      "line": 54,
+      "text": "一週間後の夜、友人の家に泊めてもらい、翌朝、家に帰ってきたときのことです。",
+      "start": 60.096,
+      "end": 66.795,
+      "emphasis": false
+    },
+    {
+      "line": 55,
+      "text": "玄関のドアに、鍵がかかっていませんでした。",
+      "start": 66.795,
+      "end": 70.069,
+      "emphasis": false
+    },
+    {
+      "line": 56,
+      "text": "鍵は、確かに交換したはずでした。",
+      "start": 70.069,
+      "end": 72.832,
+      "emphasis": false
+    },
+    {
+      "line": 57,
+      "text": "恐る恐る部屋に入ると、テーブルの上に、見覚えのないマグカップが置かれていました。",
+      "start": 72.832,
+      "end": 78.699,
+      "emphasis": false
+    },
+    {
+      "line": 58,
+      "text": "中には、まだ湯気の残る、お茶が入っていました。",
+      "start": 78.699,
+      "end": 82.432,
+      "emphasis": false
+    },
+    {
+      "line": 59,
+      "text": "誰かが、ついさっきまで、ここにいた。",
+      "start": 82.432,
+      "end": 85.472,
+      "emphasis": false
+    }
+  ],
+  "scenes": [
+    {
+      "start": 0.0,
+      "end": 25.6,
+      "image": "hallway-01-vending-dark.jpg"
+    },
+    {
+      "start": 25.6,
+      "end": 37.525,
+      "image": "entrance-01-shoes.jpg"
+    },
+    {
+      "start": 37.525,
+      "end": 60.096,
+      "image": "mirror-01-dirty-atmospheric.jpg"
+    },
+    {
+      "start": 60.096,
+      "end": 72.832,
+      "image": "hallway-01-vending-dark.jpg"
+    },
+    {
+      "start": 72.832,
+      "end": 85.472,
+      "image": "table-01-mug.jpg"
+    }
+  ],
+  "sfx": []
+}
