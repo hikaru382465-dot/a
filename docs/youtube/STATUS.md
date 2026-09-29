@@ -2,7 +2,7 @@
 
 セッションの最初に読み、作業が終わったら「最終更新」と「進行中・次にやること」を書き換える。
 
-最終更新：2026-09-29（**第3話、本編・ショートとも公開済み！**本編`IxPEIiaHJKs`（7分11秒）、ショート`P2hO6tULMQM`（1分30秒）、初コメントも来た／第1・2話のショート再生が初日以降伸び悩んでいる件を確認・対応／**第4話のナレーション完成**（`04-narration-draft.wav`、4分40秒）／第5・6話は台本OK済みでナレーション待ち）
+最終更新：2026-09-29（**第3話、本編・ショートとも公開済み！**本編`IxPEIiaHJKs`（7分11秒）、ショート`P2hO6tULMQM`（1分30秒）、初コメントも来た／第1・2話のショート再生が初日以降伸び悩んでいる件を確認・対応／**第4話、ナレーション・効果音・背景写真すべて完成！**次はRemotionで動画組み立て／第5・6話は台本OK済みでナレーション待ち）
 
 ## 現状
 
@@ -66,11 +66,12 @@
      - 1か所（32行目「その観葉植物、右にずらしたほうが、日当たりいいですよ」）だけ話者が冥鳴ひまりではなく青山龍星になっていたため、ひかるにその1行だけ冥鳴ひまりで読み直してもらい、差し替えて完成
      - 58行を結合し、他話と同じ`dynaudnorm`+`loudnorm`（`-ar 24000`）で正規化
    - **効果音、確定**：「いいね」通知音・DM通知音とも候補A（いいね＝「ポン、柔らかい音」、DM＝「ピロン」）に決定 → `docs/horror-scripts/sfx/04-like-notification.mp3`、`docs/horror-scripts/sfx/04-dm-notification.mp3`に保存済み
-   - **背景写真、収集中**：`docs/horror-scripts/images/04-shizuku-room/`
+   - **背景写真、完成！**：`docs/horror-scripts/images/04-shizuku-room/`に11枚
      - 第3話の写真から流用OK（ひかる了承済み）：`moving-01-boxes.jpg`（引っ越し段ボール）、`silhouette-01-woman-night.jpg`（人影シルエット）、`conbini-01-night.jpg`（コンビニ夜景）、`phone-01-hand.jpg`（スマホの手、通知画面の場面にも使う）
-     - ひかるが新規に探して確定した3枚：`phone-02-dark-blanket.jpg`（スマホの画面を見る手元・夜）、`window-01-curtain-moon.jpg`（夜のカーテン越しの窓）、`stairwell-01-emergency-night.jpg`（隣の非常階段。話の核心の場面用で特に良い一枚）
+     - ひかるが新規に探して確定：`phone-02-dark-blanket.jpg`（スマホの画面を見る手元・夜）、`window-01-curtain-moon.jpg`（夜のカーテン越しの窓）、`stairwell-01-emergency-night.jpg`（隣の非常階段。話の核心の場面用で特に良い一枚）、`room-01-dark-plants.jpg`（一人暮らしの部屋、観葉植物2つ）、`laundry-01-night-rack.png`（夜の物干しの洗濯物）、`ext-01-new-apartment-night.jpg`（新しい部屋の外観）、`cigarette-01-wet-pavement.jpg`（たばこの吸い殻）
      - 却下：明るいリビングの写真（雰囲気が合わない）、3DCGの部屋のパース図（実写じゃないので不採用。今後も3DCG・イラストは同じ理由で不採用にする）
-     - **残り4枠**：#2一人暮らしの部屋（本棚・観葉植物、暗め希望で探し直し中）、#3ベランダの洗濯物、#6たばこの吸い殻、#10新しい部屋の外観。#7警察官・パトカーは任意枠なので無理に探さなくてOK
+     - #7警察官・パトカー（任意枠）は未収集だが、なくても成立するので見送り
+   - **次にやること**：Remotionで11枚の写真をシーンに割り当てて動画組み立て（第3話の`build_scenes3.py`と同じ要領）
    - **次にやること**：背景写真集め → Remotionで動画組み立て
 2. **台本・VOICEVOX用テキストとも下書き完成**：第5話「先輩は、入社前の私を知っていた」→ `docs/horror-scripts/05-mizuno-senpai.md`、VOICEVOX用は`docs/horror-scripts/voicevox/05-mizuno-senpai.txt`（54行）
    - **「実話」の通常運用に戻した**（第4話だけが特別回。ひかるから特に指定はなかったが、チャンネルの基本に一旦戻す判断をした→ 違えばひかるに直してもらう）
