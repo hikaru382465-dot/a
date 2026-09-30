@@ -65,6 +65,7 @@
 <div id="flash"></div>
 <div id="end" class="ov"></div>
 
+<script src="assets/phonebooth.glb.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -74,6 +75,7 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // ================= 基本 =================
@@ -212,6 +214,26 @@ const bulb=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.2),M({color:0xffffff,emi
 // 壁の当たり判定
 solid(B.x-bw/2,B.z,.1,bw);solid(B.x+bw/2,B.z,.1,bw);solid(B.x,B.z-bw/2,bw,.1);
 const doorCol=solid(B.x,B.z+bw/2,bw,.1);doorCol.active=false;
+
+// ---------- Blenderで作った本格モデルがあれば、手作りの箱ボックスと入れ替える ----------
+const procMeshes=[];booth.traverse(o=>{if(o.isMesh&&o!==sgn&&o!==bulb)procMeshes.push(o);});
+const glbMats=[];let glbLcd=null;
+(function loadBoothModel(){
+  const b64=window.PHONEBOOTH_GLB_B64;if(!b64)return;
+  try{
+    const bin=atob(b64),buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+    new GLTFLoader().parse(buf.buffer,'',gltf=>{
+      const root=gltf.scene,door=root.getObjectByName('Door');
+      if(door){door.removeFromParent();doorG.add(door);door.position.set(0,0,0);door.rotation.set(0,0,0);}
+      booth.add(root);procMeshes.forEach(m=>m.visible=false);
+      root.traverse(o=>{if(!o.isMesh)return;const m=o.material;
+        if(m.name==='Glass'){m.depthWrite=false;m.transparent=true;}else{o.castShadow=true;o.receiveShadow=true;}
+        m.envMap=envTex;m.envMapIntensity=m.name==='Glass'?.06:.12;m.needsUpdate=true;
+        if(!glbMats.includes(m))glbMats.push(m);
+        if(m.name==='LCD'){glbLcd=m;m.userData.base=m.emissiveIntensity;}});
+    },err=>console.warn('電話ボックスのモデルを読めませんでした',err));
+  }catch(e){console.warn(e);}
+})();
 
 // ---------- ガラスに貼られる怖い張り紙 ----------
 const POSTER_TEXTS=['かえして','みてる','でられない','うしろ','たすけて','あけて','まってた','ずっと\nここに','なんで\nきたの','み ぃ つ け た','いっしょに','こっちを\nみて'];
@@ -604,6 +626,7 @@ function update(dt){
     hbTimer-=dt;if(hbTimer<=0&&ac){const iv=Math.max(.42,1.1-stage*.16);hbTimer=iv;thump(58,.28+stage*.06);setTimeout(()=>thump(50,.18),140);}
   }
   const dark=state==='trapped'&&ev.phase==='dark';
+  glbMats.forEach(m=>m.envMapIntensity=(m.name==='Glass'?.06:.12)*lightMul);if(glbLcd)glbLcd.emissiveIntensity=glbLcd.userData.base*(.2+.8*lightMul);
   frameMat.envMapIntensity=.12*lightMul;glassMat.envMapIntensity=.06*lightMul;pmat.envMapIntensity=.15*lightMul;
   boothLight.intensity=4.5*lightMul;bulb.material.emissiveIntensity=1.6*lightMul;lcdM.material.emissiveIntensity=.2+.8*lightMul;
   flash.visible=flashOn&&!dark;
