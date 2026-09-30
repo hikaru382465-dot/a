@@ -1,5 +1,5 @@
 """
-公衆電話ボックス＋緑の公衆電話機を作るBlender用スクリプト
+公衆電話ボックス（NTTの新しいタイプ）＋蛍光グリーンのデジタル公衆電話を作るBlender用スクリプト
 
 【ひかるのパソコンで使うとき】
   1. Blender（無料・blender.org）を入れて起動
@@ -12,12 +12,13 @@
 
 単位はメートル。ゲーム側の大きさ（幅1.5m・高さ2.3m）に合わせてある。
 名前：Door（蝶番が原点）、Booth_Frame、Booth_Glass、Booth_Roof、Phone、Phone_Handset、Phone_Cord
+光る材質の名前：Tube（蛍光灯）、LCD（液晶）
 """
 import bpy, math, os, sys
 import numpy as np
 
 # ------------ 調整できる数字 ------------
-BW = 1.5          # ボックスの幅（メートル）
+BW = 1.25         # ボックスの幅と奥行き（メートル。本物は約1m、ゲームで動けるよう少し広め）
 BH = 2.3          # 高さ
 RUST = 0.3        # さびの量 0〜1
 DIRT = 0.5        # ガラスの汚れの量 0〜1
@@ -74,6 +75,22 @@ paint = paint * (1 - .35 * np.clip(fbm(N, 4) - .55, 0, 1)[..., None]) + scratch[
 paint_rough = np.clip(.45 + rust_mask * .45 + (n3 - .5) * .2, 0, 1)
 img_paint = make_image('paint_color', np.clip(paint, 0, 1))
 img_paint_r = make_image('paint_rough', paint_rough, srgb=False)
+# ブロンズ色のアルミ（縦のブラシ目＋下ほど汚れ）
+streak = fbm(N, 3)[:1, :] * 0 + rng.random((1, N)).astype(np.float32)
+streak = (streak + np.roll(streak, 1, 1) + np.roll(streak, -1, 1)) / 3
+zz = np.linspace(0, 1, N, dtype=np.float32)[:, None]
+bronze = np.array([.115, .085, .065], np.float32)[None, None] * (.8 + .35 * streak[..., None] + .2 * (n3[..., None] - .5)) * (1 - .35 * (zz ** 2)[..., None])
+img_bronze = make_image('bronze_color', np.clip(bronze, 0, 1))
+img_bronze_r = make_image('bronze_rough', np.clip(.32 + .25 * streak + .3 * (zz ** 2), 0, 1), srgb=False)
+# 青い料金案内板（青地に白い表）
+info = np.zeros((160, 256, 3), np.float32); info[:] = (.05, .22, .55)
+info[:22] = (.02, .12, .4); info[22:26] = (.9, .75, .1)
+for r in range(6):
+    y = 34 + r * 20
+    info[y:y + 14, 10:246] = (.93, .95, .97)
+    for c in range(1, 5): info[y:y + 14, 10 + c * 47:12 + c * 47] = (.05, .22, .55)
+    info[y + 5:y + 8, 16:40] = (.1, .2, .5)
+img_info = make_image('info_panel', np.clip(info + rng.normal(0, .015, info.shape).astype(np.float32), 0, 1))
 dirt = np.clip((fbm(N, 7) - .35) * 1.8 * DIRT * 1.6, 0, 1)
 img_glass_r = make_image('glass_rough', np.clip(.04 + dirt * .8, 0, 1), srgb=False)
 img_glass_c = make_image('glass_color', np.clip(np.stack([.8 - dirt * .4, .92 - dirt * .35, .88 - dirt * .5], -1), 0, 1))
@@ -99,22 +116,26 @@ def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img
     if rough_img: tex(rough_img, 'Roughness')
     return m
 
-M_PAINT = new_mat('PaintGreen', metallic=.35, color_img=img_paint, rough_img=img_paint_r)
-M_PAINT2 = new_mat('PhonePaint', (.2, .45, .25), metallic=.3, rough=.4)
+M_BRONZE = new_mat('Bronze', metallic=.85, color_img=img_bronze, rough_img=img_bronze_r)
 M_GLASS = new_mat('Glass', (.8, .92, .88), rough=.03, alpha=.12, color_img=img_glass_c, rough_img=img_glass_r)
-M_METAL = new_mat('Chrome', (.75, .75, .72), metallic=1., rough=.28)
+M_GRAY = new_mat('GrayPaint', (.36, .37, .38), metallic=.4, rough=.55)
+M_STEEL = new_mat('Steel', (.7, .7, .7), metallic=1., rough=.3)
+M_GREEN = new_mat('PhoneGreen', (.28, .68, .05), rough=.32)
 M_BLACK = new_mat('BlackPlastic', (.015, .015, .015), rough=.35)
-M_KEY = new_mat('KeyBeige', (.7, .68, .6), rough=.5)
-M_GRAY = new_mat('GrayMetal', (.22, .23, .22), metallic=.6, rough=.55)
-M_LCD = new_mat('LCD', (.02, .05, .02), rough=.2, emis=(.1, 1., .2), emis_s=.9)
-M_PAPER = new_mat('Paper', (.75, .72, .6), rough=.9)
+M_KEY = new_mat('KeyGray', (.62, .62, .58), rough=.45)
+M_LCD = new_mat('LCD', (.15, .25, .08), rough=.2, emis=(.75, 1., .35), emis_s=.9)
+M_TUBE = new_mat('Tube', (.9, .95, .9), rough=.3, emis=(.95, 1., .95), emis_s=3.)
+M_CEIL = new_mat('Ceiling', (.75, .75, .72), rough=.7)
+M_INFO = new_mat('InfoPanel', color_img=img_info, rough=.4)
+M_BOOK = [new_mat('Book%d' % i, c, rough=.8) for i, c in enumerate([(.1, .2, .55), (.75, .65, .15), (.8, .8, .78), (.15, .35, .2)])]
 
 # ---------- 部品を作る道具 ----------
 GROUPS = {}
-def add_box(group, name, size, loc, mat, bevel=.004):
+def add_box(group, name, size, loc, mat, bevel=.004, rot=None):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
     o = bpy.context.active_object; o.name = name; o.scale = size
-    bpy.ops.object.transform_apply(scale=True)
+    if rot: o.rotation_euler = rot
+    bpy.ops.object.transform_apply(scale=True, rotation=bool(rot))
     if bevel:
         m = o.modifiers.new('bv', 'BEVEL'); m.width = min(bevel, min(size) * .45); m.segments = 2
     o.data.materials.append(mat)
@@ -126,11 +147,16 @@ def add_cyl(group, name, r, depth, loc, mat, rot=(0, 0, 0), verts=24):
     o.data.materials.append(mat); bpy.ops.object.shade_smooth()
     GROUPS.setdefault(group, []).append(o); return o
 
+def add_plane(group, name, size, loc, mat, rot):
+    bpy.ops.mesh.primitive_plane_add(size=1, location=loc, rotation=rot)
+    o = bpy.context.active_object; o.name = name; o.scale = (size[0], size[1], 1)
+    bpy.ops.object.transform_apply(scale=True)
+    o.data.materials.append(mat)
+    GROUPS.setdefault(group, []).append(o); return o
+
 def join(group, final_name, origin=None):
     objs = GROUPS[group]
     for o in bpy.context.selected_objects: o.select_set(False)
-    for o in objs: o.select_set(True)
-    bpy.context.view_layer.objects.active = objs[0]
     for o in objs:                                   # 面取りを確定してから合体
         bpy.context.view_layer.objects.active = o
         for m in list(o.modifiers): bpy.ops.object.modifier_apply(modifier=m.name)
@@ -144,95 +170,122 @@ def join(group, final_name, origin=None):
     return res
 
 FRONT = -HALF     # 正面（プレイヤー側）は -Y、奥の壁は +Y
+POST = .06
 
-# ================= 枠（柱・横の桟・ネジ） =================
+# ================= 枠（ブロンズ色のアルミ） =================
 for sx in (-1, 1):
     for sy in (-1, 1):
-        add_box('frame', 'post', (.09, .09, BH), (sx * HALF, sy * HALF, BH / 2), M_PAINT, .008)
-rails_z = [.06, .95, 1.5, BH - .03]
-for z in rails_z:
-    add_box('frame', 'rail_back', (BW, .06, .07), (0, HALF, z), M_PAINT, .006)
-    for sx in (-1, 1):
-        add_box('frame', 'rail_side', (.06, BW, .07), (sx * HALF, 0, z), M_PAINT, .006)
-add_box('frame', 'rail_front_top', (BW, .06, .07), (0, FRONT, BH - .03), M_PAINT, .006)
-add_box('frame', 'sill_front', (BW - .1, .1, .05), (0, FRONT, .025), M_GRAY, .004)      # 足もとの敷居
-for z in rails_z:                                # ネジ
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            add_cyl('frame', 'bolt', .009, .01, (sx * HALF * 1.0, sy * (HALF - .0), z), M_METAL, rot=(math.pi / 2, 0, 0), verts=10)
-# 天井の明かり受け
-add_box('frame', 'light_housing', (.6, .24, .05), (0, 0, BH - .05), M_GRAY, .008)
-add_box('frame', 'light_cover', (.52, .18, .02), (0, 0, BH - .085), M_KEY, .004)
+        add_box('frame', 'post', (POST, POST, BH), (sx * HALF, sy * HALF, BH / 2), M_BRONZE, .006)
+# 足もとの幅木（3面）と、前の敷居
+add_box('frame', 'kick_back', (BW, .05, .12), (0, HALF, .07), M_BRONZE, .004)
+for sx in (-1, 1):
+    add_box('frame', 'kick_side', (.05, BW, .12), (sx * HALF, 0, .07), M_BRONZE, .004)
+add_box('frame', 'sill_front', (BW - .1, .12, .05), (0, FRONT, .025), M_GRAY, .004)
+# 上の帯（ヘッダー）
+add_box('frame', 'header_back', (BW, .05, .15), (0, HALF, BH - .075), M_BRONZE, .004)
+for sx in (-1, 1):
+    add_box('frame', 'header_side', (.05, BW, .15), (sx * HALF, 0, BH - .075), M_BRONZE, .004)
+add_box('frame', 'header_front', (BW, .1, .17), (0, FRONT, BH - .085), M_BRONZE, .006)
+# 外側の台座（鉄の台）
+for (sz, loc) in (((BW + .1, .05, .06), (0, HALF + .05, .03)), ((BW + .1, .05, .06), (0, FRONT - .05, .03)),
+                  ((.05, BW + .1, .06), (-HALF - .05, 0, .03)), ((.05, BW + .1, .06), (HALF + .05, 0, .03))):
+    add_box('frame', 'plinth', sz, loc, M_GRAY, .004)
+# 天井（白っぽい板）と蛍光灯2本
+add_box('frame', 'ceiling', (BW - .08, BW - .08, .03), (0, 0, BH - .17), M_CEIL, .004)
+for sx in (-1, 1):
+    add_cyl('frame', 'tube', .02, .85, (sx * .27, 0, BH - .2), M_TUBE, rot=(math.pi / 2, 0, 0), verts=14)
+    add_box('frame', 'tube_holder', (.06, .07, .02), (sx * .27, .45, BH - .19), M_GRAY, .003)
+    add_box('frame', 'tube_holder', (.06, .07, .02), (sx * .27, -.45, BH - .19), M_GRAY, .003)
+# 角のゴムのふち（黒）
+for sx in (-1, 1):
+    for sy in (-1, 1):
+        add_box('frame', 'gasket', (.012, .012, BH - .3), (sx * (HALF - POST / 2 - .006), sy * (HALF - POST / 2 - .006), BH / 2 - .02), M_BLACK, 0)
 
-# ================= ガラス =================
-panes = [(.09, .92), (.98, 1.47), (1.53, BH - .07)]
-for (z0, z1) in panes:
-    h = z1 - z0; zc = (z0 + z1) / 2
-    add_box('glass', 'pane_back', (BW - .1, .012, h), (0, HALF - .01, zc), M_GLASS, 0)
-    for sx in (-1, 1):
-        add_box('glass', 'pane_side', (.012, BW - .1, h), (sx * (HALF - .01), 0, zc), M_GLASS, 0)
+# ================= ガラス（下は幅木の上から、上はヘッダーの下まで） =================
+GZ0, GZ1 = .13, BH - .16
+gh = GZ1 - GZ0; gzc = (GZ0 + GZ1) / 2
+add_box('glass', 'pane_back', (BW - POST, .01, gh), (0, HALF - .01, gzc), M_GLASS, 0)
+for sx in (-1, 1):
+    add_box('glass', 'pane_side', (.01, BW - POST, gh), (sx * (HALF - .01), 0, gzc), M_GLASS, 0)
 
 # ================= 屋根 =================
-add_box('roof', 'roof_main', (BW + .3, BW + .3, .12), (0, 0, BH + .06), M_PAINT, .02)
-add_box('roof', 'roof_lip', (BW + .36, BW + .36, .03), (0, 0, BH + .015), M_PAINT, .01)
-add_box('roof', 'roof_top', (BW - .1, BW - .1, .05), (0, 0, BH + .145), M_PAINT, .015)
+add_box('roof', 'roof_main', (BW + .22, BW + .22, .1), (0, 0, BH + .05), M_BRONZE, .015)
+add_box('roof', 'roof_cap', (BW + .1, BW + .1, .05), (0, 0, BH + .125), M_BRONZE, .01)
+add_cyl('roof', 'antenna', .008, .9, (HALF - .15, HALF - .15, BH + .55), M_STEEL, verts=8)
 
-# ================= ドア（蝶番が原点） =================
+# ================= ドア（ガラスの折りたたみドアに見える形。蝶番が原点） =================
 HINGE = (-HALF + .02, FRONT, 0)
 DW = BW - .05
-def dbox(name, size, off, mat, bevel=.005):
+def dbox(name, size, off, mat, bevel=.004):
     return add_box('door', name, size, (HINGE[0] + off[0], HINGE[1] + off[1], off[2]), mat, bevel)
-dbox('d_v1', (.08, .05, BH - .1), (.04, 0, (BH - .1) / 2 + .05), M_PAINT, .006)
-dbox('d_v2', (.08, .05, BH - .1), (DW - .04, 0, (BH - .1) / 2 + .05), M_PAINT, .006)
-for z in (.08, .95, BH - .08):
-    dbox('d_h', (DW, .05, .08), (DW / 2, 0, z), M_PAINT, .006)
-for (z0, z1) in ((.12, .91), (.99, BH - .12)):
-    dbox('d_glass', (DW - .14, .012, z1 - z0), (DW / 2, 0, (z0 + z1) / 2), M_GLASS, 0)
-# 取っ手（縦の金属バー）と鍵穴板
-dbox('d_hplate', (.05, .012, .5), (DW - .1, -.03, 1.05), M_GRAY, .003)
-add_cyl('door', 'd_hbar', .014, .42, (HINGE[0] + DW - .1, HINGE[1] - .07, 1.05), M_METAL)
-add_cyl('door', 'd_hpost1', .008, .06, (HINGE[0] + DW - .1, HINGE[1] - .04, .88), M_METAL, rot=(math.pi / 2, 0, 0), verts=12)
-add_cyl('door', 'd_hpost2', .008, .06, (HINGE[0] + DW - .1, HINGE[1] - .04, 1.22), M_METAL, rot=(math.pi / 2, 0, 0), verts=12)
-for z in (.35, 1.2, 2.05):                       # 蝶番
-    add_cyl('door', 'd_hinge', .014, .12, (HINGE[0] - .01, HINGE[1], z), M_METAL, verts=12)
+DZ0, DZ1 = .1, BH - .17
+dh = DZ1 - DZ0
+for x in (.025, DW / 2 - .02, DW / 2 + .02, DW - .025):      # 縦の枠（中央は2本で折り目に見える）
+    dbox('d_v', (.04, .045, dh), (x, 0, DZ0 + dh / 2), M_BRONZE, .004)
+for z in (DZ0 + .04, DZ1 - .04):
+    dbox('d_h', (DW, .045, .08), (DW / 2, 0, z), M_BRONZE, .004)
+dbox('d_glassL', (DW / 2 - .085, .008, dh - .1), (DW / 4 - .005, 0, DZ0 + dh / 2), M_GLASS, 0)
+dbox('d_glassR', (DW / 2 - .085, .008, dh - .1), (DW * .75 + .005, 0, DZ0 + dh / 2), M_GLASS, 0)
+# 引き手（縦のステンレスの棒）
+add_cyl('door', 'd_pull', .012, .5, (HINGE[0] + DW / 2 + .1, HINGE[1] - .06, 1.05), M_STEEL)
+for z in (.85, 1.25):
+    add_cyl('door', 'd_pullpost', .007, .05, (HINGE[0] + DW / 2 + .1, HINGE[1] - .035, z), M_STEEL, rot=(math.pi / 2, 0, 0), verts=10)
+# 蝶番
+for z in (.35, 1.2, 2.0):
+    add_cyl('door', 'd_hinge', .012, .1, (HINGE[0] - .008, HINGE[1], z), M_STEEL, verts=10)
 
-# ================= 電話機（奥の壁） =================
-PY = HALF - .16          # 本体の奥行き位置
-PZ = 1.18
-add_box('phone', 'wall_plate', (.5, .02, .82), (0, HALF - .02, PZ - .05), M_GRAY, .006)
-add_box('phone', 'p_body', (.36, .22, .56), (0, PY, PZ), M_PAINT2, .02)
-add_box('phone', 'p_top', (.38, .24, .04), (0, PY, PZ + .29), M_PAINT2, .015)
-face_y = PY - .11
-add_box('phone', 'lcd', (.2, .008, .07), (0, face_y - .003, PZ + .2), M_LCD, .002)
-add_box('phone', 'keyplate', (.22, .01, .27), (0, face_y - .002, PZ + .02), M_BLACK, .004)
+# ================= 奥の壁：灰色の柱・青い料金案内板・電話機・台 =================
+PILLAR_Y = HALF - .12                 # 柱の中心
+PF = PILLAR_Y - .10                   # 柱の手前の面（電話機はここに取り付く）
+add_box('phone', 'pillar', (.4, .2, 1.4), (0, PILLAR_Y, .78 + .7), M_GRAY, .006)
+add_box('phone', 'pillar_cap', (.42, .22, .03), (0, PILLAR_Y, 2.17), M_GRAY, .004)
+for sx in (-1, 1):                    # 柱の下の脚
+    add_box('phone', 'leg', (.04, .04, .78), (sx * .17, PILLAR_Y, .39), M_GRAY, .004)
+# 青い料金案内板（少し前に傾ける）
+tilt = math.radians(-12)
+add_box('phone', 'info_frame', (.5, .035, .32), (0, PF - .02, 1.86), M_GRAY, .004, rot=(tilt, 0, 0))
+add_plane('phone', 'info_face', (.46, .28), (0, PF - .0435, 1.86), M_INFO, rot=(math.pi / 2 + tilt, 0, 0))
+# 電話機（蛍光グリーン）
+PZ = 1.2
+BD_ = .14
+PYc = PF - BD_ / 2
+add_box('phone', 'p_body', (.27, BD_, .36), (0, PYc, PZ), M_GREEN, .022)
+face_y = PYc - BD_ / 2
+add_box('phone', 'lcd_frame', (.17, .01, .075), (0, face_y - .004, PZ + .12), M_BLACK, .003)
+add_box('phone', 'lcd', (.15, .006, .055), (0, face_y - .009, PZ + .12), M_LCD, .002)
+add_box('phone', 'keyplate', (.16, .008, .17), (0, face_y - .003, PZ - .01), M_BLACK, .004)
 for r in range(4):
     for c in range(3):
-        add_box('phone', 'key', (.05, .012, .036), ((c - 1) * .064, face_y - .009, PZ + .1 - r * .058), M_KEY, .006)
-add_box('phone', 'coin_slot', (.11, .014, .05), (0.0, face_y - .004, PZ - .17), M_METAL, .005)
-add_box('phone', 'coin_return', (.08, .014, .035), (0.0, face_y - .004, PZ - .23), M_BLACK, .004)
-# 棚と電話帳
-add_box('phone', 'shelf', (.42, .42, .03), (0, HALF - .22, .86), M_GRAY, .006)
-add_box('phone', 'directory', (.24, .06, .3), (0, HALF - .28, .86 + .17), M_PAPER, .004).rotation_euler = (math.radians(-12), 0, 0)
-add_cyl('phone', 'directory_chain', .004, .3, (.13, HALF - .28, .78), M_METAL, verts=8)
+        add_box('phone', 'key', (.036, .01, .026), ((c - 1) * .046, face_y - .011, PZ + .045 - r * .039), M_KEY, .004)
+add_box('phone', 'card_slot', (.1, .01, .022), (0, face_y - .004, PZ - .115), M_BLACK, .003)
+add_box('phone', 'coin_slot', (.06, .012, .05), (.06, face_y - .005, PZ - .15), M_STEEL, .003)
+# 右側の灰色の台（電話帳が置いてある）と、足のせ
+add_box('phone', 'desk', (.42, .42, .03), (.41, HALF - .23, .95), M_GRAY, .005)
+add_box('phone', 'desk_leg', (.03, .03, .93), (.58, HALF - .05, .47), M_GRAY, .003)
+add_box('phone', 'desk_leg', (.03, .03, .93), (.58, HALF - .4, .47), M_GRAY, .003)
+for i, m in enumerate(M_BOOK):
+    add_box('phone', 'book', (.2 - i * .015, .26, .035), (.42, HALF - .25, .985 + i * .037), m, .003, rot=(0, 0, math.radians(i * 7 - 8)))
+add_box('phone', 'footrest', (.4, .04, .03), (0, HALF - .09, .28), M_GRAY, .004)
 
-# ================= 受話器 =================
-HX = -.235
-HYc = face_y - .055
-for name, z, r, d in (('h_ear', PZ + .13, .04, .06), ('h_mouth', PZ - .13, .04, .06)):
-    add_cyl('handset', name, r, d, (HX, HYc, z), M_BLACK, rot=(0, 0, 0), verts=24)
-add_cyl('handset', 'h_grip', .022, .26, (HX, HYc, PZ), M_BLACK, verts=20)
-add_box('handset', 'h_cradle', (.045, .05, .3), (HX, face_y - .025, PZ), M_GRAY, .006)
+# ================= 受話器（電話機と同じ緑・左側に立てて掛ける） =================
+HX = -.185
+HYc = face_y - .035
+add_box('handset', 'h_cradle', (.05, .06, .3), (HX + .02, face_y - .022, PZ + .02), M_BLACK, .006)
+add_cyl('handset', 'h_grip', .022, .26, (HX, HYc, PZ + .02), M_GREEN, verts=20)
+for name, z in (('h_ear', PZ + .17), ('h_mouth', PZ - .13)):
+    add_cyl('handset', name, .038, .07, (HX, HYc, z), M_GREEN, verts=24)
+    add_cyl('handset', name + '_grille', .03, .01, (HX, HYc - .036, z), M_BLACK, rot=(math.pi / 2, 0, 0), verts=16)
 
-# ================= コード（曲がった金属コード） =================
+# ================= コード（金属のコード） =================
 bpy.ops.curve.primitive_bezier_curve_add()
 cv = bpy.context.active_object; cv.name = 'Phone_Cord'
 sp = cv.data.splines[0]
-pts = [(HX, HYc, PZ - .16), (HX - .06, HYc - .06, PZ - .3), (HX + .02, HYc - .1, PZ - .42), (HX + .1, PZ * 0 + face_y - .02, PZ - .25)]
+pts = [(HX, HYc, PZ - .19), (HX - .05, HYc - .05, PZ - .3), (HX + .03, HYc - .07, PZ - .42), (HX + .1, face_y - .01, PZ - .19)]
 sp.bezier_points.add(len(pts) - 2)
 for bp, p in zip(sp.bezier_points, pts):
     bp.co = p; bp.handle_left_type = bp.handle_right_type = 'AUTO'
 cv.data.bevel_depth = .006; cv.data.bevel_resolution = 4; cv.data.resolution_u = 24
-cv.data.materials.append(M_GRAY)
+cv.data.materials.append(M_STEEL)
 bpy.ops.object.select_all(action='DESELECT'); cv.select_set(True); bpy.context.view_layer.objects.active = cv
 bpy.ops.object.convert(target='MESH')
 cord = bpy.context.active_object
@@ -245,10 +298,6 @@ door = join('door', 'Door', origin=HINGE)
 phone = join('phone', 'Phone')
 handset = join('handset', 'Phone_Handset')
 cord.name = 'Phone_Cord'
-for o in (frame, glass, roof, door, phone, handset, cord):
-    bpy.context.view_layer.objects.active = o
-    o.select_set(True)
-bpy.ops.object.shade_flat() if False else None
 
 # ---------- 見た目の確認用の光（ゲームには出力されない設定でもOK） ----------
 if '--nolight' not in sys.argv:
@@ -271,7 +320,7 @@ print('書き出しました:', glb, os.path.getsize(glb) // 1024, 'KB')
 if '--norender' not in sys.argv:
     scene.render.engine = 'CYCLES'; scene.cycles.samples = 32; scene.cycles.device = 'CPU'
     scene.render.resolution_x, scene.render.resolution_y = 640, 800
-    bpy.ops.object.camera_add(location=(1.9, -3.3, 1.6), rotation=(math.radians(80), 0, math.radians(30)))
+    bpy.ops.object.camera_add(location=(1.7, -3.0, 1.5), rotation=(math.radians(82), 0, math.radians(30)))
     scene.camera = bpy.context.active_object
     scene.world = bpy.data.worlds.new('w'); scene.world.use_nodes = True
     scene.world.node_tree.nodes['Background'].inputs['Color'].default_value = (.02, .025, .03, 1)

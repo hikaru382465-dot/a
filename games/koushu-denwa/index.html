@@ -175,7 +175,7 @@ box(5,.12,5,M({map:concTex,bumpMap:concTex,bumpScale:3,roughness:.9}),B.x,.06,B.
 const frameMat=M({color:0x2f6b3a,roughness:.5,metalness:.55,envMap:envTex,envMapIntensity:.12});
 const rustMat=M({color:0x3a4a3a,roughness:.8,metalness:.3});
 const glassMat=M({color:0x9fd0c4,transparent:true,opacity:.09,roughness:.03,metalness:.2,envMap:envTex,envMapIntensity:.06,side:THREE.DoubleSide,depthWrite:false});
-const bw=1.5,bh=2.3;
+const bw=1.25,bh=2.3;
 for(const x of[-bw/2,bw/2])for(const z of[-bw/2,bw/2]){box(.09,bh,.09,frameMat,x,bh/2,z,true,booth);}
 for(const y of[.06,.95,1.5,bh]){
   for(const [w,d,x,z] of[[bw,.06,0,-bw/2],[.06,bw,-bw/2,0],[.06,bw,bw/2,0]]) box(w,.06,d,frameMat,x,y,z,false,booth);
@@ -185,9 +185,9 @@ for(const [w,d,x,z] of[[bw,.02,0,-bw/2],[.02,bw,-bw/2,0],[.02,bw,bw/2,0]]){
   const g=new THREE.Mesh(new THREE.BoxGeometry(w,bh-.1,d),glassMat);g.position.set(x,bh/2,z);booth.add(g);}
 box(bw+.3,.14,bw+.3,M({color:0x1f4a28,metalness:.4,roughness:.5}),0,bh+.07,0,true,booth);
 // 屋根の電話マーク（消えかけの看板）
-const signTex=tex(128,64,(g,w,h)=>{g.fillStyle='#164a24';g.fillRect(0,0,w,h);g.fillStyle='#cfe8cf';g.font='bold 34px sans-serif';g.textAlign='center';g.fillText('公衆電話',64,42);speck(g,w,h,600,.3,true);});
-const sgn=new THREE.Mesh(new THREE.PlaneGeometry(.9,.3),M({map:signTex,emissive:0x224422,emissiveMap:signTex,emissiveIntensity:.6}));
-sgn.position.set(0,bh+.35,bw/2+.16);booth.add(sgn);
+const signTex=tex(256,48,(g,w,h)=>{g.fillStyle='#134a25';g.fillRect(0,0,w,h);g.fillStyle='#d9f0d9';g.font='bold 30px sans-serif';g.textAlign='center';g.fillText('公衆電話',w/2,36);speck(g,w,h,500,.3,true);});
+const sgn=new THREE.Mesh(new THREE.PlaneGeometry(.8,.15),M({map:signTex,emissive:0x224422,emissiveMap:signTex,emissiveIntensity:.7}));
+sgn.position.set(0,bh-.085,bw/2+.056);booth.add(sgn);
 
 // ドア（左端が蝶番。最初は外に開いている）
 const doorW=bw-.05;
@@ -209,15 +209,16 @@ for(let r=0;r<4;r++)for(let c=0;c<3;c++){const k=new THREE.Mesh(new THREE.PlaneG
 box(.34,.04,.5,M({color:0x222}),0,-.38,.15,false,phone); // 台
 
 // ボックス内のライト（ちらつく）
-const boothLight=new THREE.PointLight(0xe8ffe8,4.5,11,1.6);boothLight.position.set(0,2.05,0);boothLight.castShadow=true;boothLight.shadow.mapSize.set(1024,1024);booth.add(boothLight);
+const boothLight=new THREE.PointLight(0xe8ffe8,2.4,11,1.6);boothLight.position.set(0,2.05,0);boothLight.castShadow=true;boothLight.shadow.mapSize.set(1024,1024);boothLight.shadow.bias=-.0008;boothLight.shadow.normalBias=.03;booth.add(boothLight);
 const bulb=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.2),M({color:0xffffff,emissive:0xe6ffe6,emissiveIntensity:2}));bulb.position.set(0,2.2,0);booth.add(bulb);
 // 壁の当たり判定
-solid(B.x-bw/2,B.z,.1,bw);solid(B.x+bw/2,B.z,.1,bw);solid(B.x,B.z-bw/2,bw,.1);
-const doorCol=solid(B.x,B.z+bw/2,bw,.1);doorCol.active=false;
+solid(B.x-bw/2,B.z,.02,bw);solid(B.x+bw/2,B.z,.02,bw);solid(B.x,B.z-bw/2,bw,.02);
+solid(B.x,B.z-.39,.4,.48); // 電話機の柱（プレイヤーが近づきすぎないよう手前まで）
+const doorCol=solid(B.x,B.z+bw/2,bw,.02);doorCol.active=false;
 
 // ---------- Blenderで作った本格モデルがあれば、手作りの箱ボックスと入れ替える ----------
 const procMeshes=[];booth.traverse(o=>{if(o.isMesh&&o!==sgn&&o!==bulb)procMeshes.push(o);});
-const glbMats=[];let glbLcd=null;
+const glbMats=[];const glbEmis=[];
 (function loadBoothModel(){
   const b64=window.PHONEBOOTH_GLB_B64;if(!b64)return;
   try{
@@ -225,12 +226,12 @@ const glbMats=[];let glbLcd=null;
     new GLTFLoader().parse(buf.buffer,'',gltf=>{
       const root=gltf.scene,door=root.getObjectByName('Door');
       if(door){door.removeFromParent();doorG.add(door);door.position.set(0,0,0);door.rotation.set(0,0,0);}
-      booth.add(root);procMeshes.forEach(m=>m.visible=false);
+      booth.add(root);procMeshes.forEach(m=>m.visible=false);bulb.visible=false;
       root.traverse(o=>{if(!o.isMesh)return;const m=o.material;
         if(m.name==='Glass'){m.depthWrite=false;m.transparent=true;}else{o.castShadow=true;o.receiveShadow=true;}
         m.envMap=envTex;m.envMapIntensity=m.name==='Glass'?.06:.12;m.needsUpdate=true;
         if(!glbMats.includes(m))glbMats.push(m);
-        if(m.name==='LCD'){glbLcd=m;m.userData.base=m.emissiveIntensity;}});
+        if(m.name==='LCD'||m.name==='Tube'){m.userData.base=m.emissiveIntensity;glbEmis.push(m);}});
     },err=>console.warn('電話ボックスのモデルを読めませんでした',err));
   }catch(e){console.warn(e);}
 })();
@@ -275,8 +276,8 @@ function addPoster(parent,px,py,pz,ry,tex_,size=1){
   ];
   walls.forEach((w,wi)=>{
     for(let c=0;c<3;c++)for(let r=0;r<3;r++){
-      if(wi===0&&r<2&&c===1)continue; // 電話機の前は空ける
-      const u=(c-1)*.42+(Math.random()-.5)*.1,y=.62+r*.62+(Math.random()-.5)*.1;
+      if(wi===0&&c===1)continue; // 電話機の前は空ける
+      const u=(c-1)*.34+(Math.random()-.5)*.08,y=.62+r*.62+(Math.random()-.5)*.1;
       const k=kinds[Math.random()*kinds.length|0];
       const [x,yy,z]=w.pos(u,y);
       posters.push(addPoster(w.p,x,yy,z,w.ry,posterTex(k,POSTER_TEXTS[Math.random()*POSTER_TEXTS.length|0]),.9+Math.random()*.4));
@@ -287,7 +288,7 @@ function addPoster(parent,px,py,pz,ry,tex_,size=1){
     g.fillStyle='#7a0c0c';g.textAlign='center';g.font='bold 28px serif';
     [...'あの日を'].forEach((ch,i)=>g.fillText(ch,w*.68,34+i*30));[...'おして'].forEach((ch,i)=>g.fillText(ch,w*.32,34+i*30));
     g.fillStyle='#222';g.font='14px serif';g.fillText('（4けた）',w/2,160);});
-  hintPoster=addPoster(booth,0,1.85,-bw/2+.03,0,ht,1.15);
+  hintPoster=addPoster(booth,0,1.56,-bw/2+.22,0,ht,.72);
 }
 function revealPosters(frac){
   const n=Math.floor(posters.length*Math.min(1,frac));
@@ -532,13 +533,13 @@ const pad=$('pad');['1','2','3','4','5','6','7','8','9','*','0','#'].forEach(k=>
 
 const targets=[
   {pos:new THREE.Vector3(board.x+.1,1.55,board.z),dist:3.2,ok:()=>state==='explore',prompt:'E：新聞の切り抜きを読む',act:openPaper},
-  {pos:new THREE.Vector3(B.x,1.25,B.z-.55),dist:1.35,ok:()=>state==='trapped'&&!dialOpen,prompt:'E：受話器を取る',act:openDial},
+  {pos:new THREE.Vector3(B.x,1.3,B.z-.36),dist:1.2,ok:()=>state==='trapped'&&!dialOpen,prompt:'E：受話器を取る',act:openDial},
 ];
 let curTarget=null;
 function findTarget(){
   curTarget=null;if(paperOpen||dialOpen||state==='dead')return;
   const fw=new THREE.Vector3();camera.getWorldDirection(fw);
-  for(const t of targets){if(!t.ok())continue;const d=t.pos.clone().sub(camera.position);const dist=d.length();if(dist>t.dist)continue;d.normalize();if(d.dot(fw)>.8){curTarget=t;break;}}
+  for(const t of targets){if(!t.ok())continue;const d=t.pos.clone().sub(camera.position);const dist=d.length();if(dist>t.dist)continue;d.normalize();if(d.dot(fw)>(t.dist<2?.72:.8)){curTarget=t;break;}}
   const p=$('prompt');p.style.display=curTarget?'block':'none';if(curTarget)p.textContent=curTarget.prompt;
   if(isTouch)$('act').style.display=curTarget?'block':'none';
 }
@@ -583,7 +584,7 @@ addEventListener('touchend',e=>{for(const t of e.changedTouches)delete touch[t.i
 
 // 懐中電灯
 const flash=new THREE.SpotLight(0xfff0d0,55,28,Math.PI/7,.5,1.3);flash.position.set(0,-.1,0);flash.target.position.set(0,0,-1);
-flash.castShadow=true;flash.shadow.mapSize.set(1024,1024);camera.add(flash,flash.target);
+flash.castShadow=true;flash.shadow.bias=-.0006;flash.shadow.normalBias=.03;flash.shadow.mapSize.set(1024,1024);camera.add(flash,flash.target);
 
 // ================= 毎フレーム =================
 function collide(x,z){const r=.3;
@@ -606,7 +607,7 @@ function update(dt){
   // ドアの動き
   doorAngle+=(doorTarget-doorAngle)*Math.min(1,dt*doorSpeed);doorG.rotation.y=doorAngle;
   // ボックスに入ったら閉じ込められる
-  if(state==='explore'&&Math.abs(L.x)<.42&&L.z<.25&&L.z>-.6)trap();
+  if(state==='explore'&&Math.abs(L.x)<.33&&L.z<.25&&L.z>-.6)trap();
   // 森の入口ふきん：遠くの人影（一度だけ）
   if(state==='explore'&&!glimpsed&&camera.position.z<-24&&hasRead){glimpsed=true;
     ghost.position.set(B.x,0,B.z+2.2);head.rotation.set(0,0,.1);ghost.visible=true;ghostLook();whisper();
@@ -626,10 +627,10 @@ function update(dt){
     hbTimer-=dt;if(hbTimer<=0&&ac){const iv=Math.max(.42,1.1-stage*.16);hbTimer=iv;thump(58,.28+stage*.06);setTimeout(()=>thump(50,.18),140);}
   }
   const dark=state==='trapped'&&ev.phase==='dark';
-  glbMats.forEach(m=>m.envMapIntensity=(m.name==='Glass'?.06:.12)*lightMul);if(glbLcd)glbLcd.emissiveIntensity=glbLcd.userData.base*(.2+.8*lightMul);
+  glbMats.forEach(m=>m.envMapIntensity=(m.name==='Glass'?.06:.12)*lightMul);glbEmis.forEach(m=>m.emissiveIntensity=m.userData.base*(m.name==='LCD'?.2+.8*lightMul:lightMul));
   frameMat.envMapIntensity=.12*lightMul;glassMat.envMapIntensity=.06*lightMul;pmat.envMapIntensity=.15*lightMul;
-  boothLight.intensity=4.5*lightMul;bulb.material.emissiveIntensity=1.6*lightMul;lcdM.material.emissiveIntensity=.2+.8*lightMul;
-  flash.visible=flashOn&&!dark;
+  boothLight.intensity=2.4*lightMul;bulb.material.emissiveIntensity=1.6*lightMul;lcdM.material.emissiveIntensity=.2+.8*lightMul;
+  flash.visible=flashOn&&!dark;flash.intensity=(Math.abs(L.x)<.7&&Math.abs(L.z)<.7)?4:55; // ボックスの中は近いので弱める
   // ライト消灯時は幽霊も見えない
   if(dark&&!ev.final)ghost.visible=false;else if(state==='trapped'&&stage>0&&stage<5&&!ghost.visible)ghost.visible=true;
   boardLamp.intensity=4.2+Math.sin(tGame*11)*.6+Math.sin(tGame*4.3)*.5;
