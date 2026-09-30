@@ -31,6 +31,8 @@ except NameError:                                   # BlenderのText画面から
     HERE = os.path.dirname(bpy.data.filepath) if bpy.data.filepath else os.path.expanduser('~')
 OUT_DIR = os.path.normpath(os.path.join(HERE, '..', 'assets')) if os.path.basename(HERE) == 'blender' else os.path.join(HERE, 'assets')
 os.makedirs(OUT_DIR, exist_ok=True)
+TEX_DIR = os.path.join(OUT_DIR, 'tex')
+sys.path.insert(0, HERE)
 
 rng = np.random.default_rng(SEED)
 HALF = BW / 2
@@ -120,13 +122,14 @@ M_BRONZE = new_mat('Bronze', metallic=.85, color_img=img_bronze, rough_img=img_b
 M_GLASS = new_mat('Glass', (.8, .92, .88), rough=.03, alpha=.12, color_img=img_glass_c, rough_img=img_glass_r)
 M_GRAY = new_mat('GrayPaint', (.36, .37, .38), metallic=.4, rough=.55)
 M_STEEL = new_mat('Steel', (.7, .7, .7), metallic=1., rough=.3)
-M_GREEN = new_mat('PhoneGreen', (.28, .68, .05), rough=.32)
 M_BLACK = new_mat('BlackPlastic', (.015, .015, .015), rough=.35)
-M_KEY = new_mat('KeyGray', (.62, .62, .58), rough=.45)
-M_LCD = new_mat('LCD', (.15, .25, .08), rough=.2, emis=(.75, 1., .35), emis_s=.9)
 M_TUBE = new_mat('Tube', (.9, .95, .9), rough=.3, emis=(.95, 1., .95), emis_s=3.)
 M_CEIL = new_mat('Ceiling', (.75, .75, .72), rough=.7)
-M_INFO = new_mat('InfoPanel', color_img=img_info, rough=.4)
+def load_img(fname, srgb=True):
+    im = bpy.data.images.load(os.path.join(TEX_DIR, fname), check_existing=True)
+    im.colorspace_settings.name = 'sRGB' if srgb else 'Non-Color'; im.pack(); return im
+M_INFO = new_mat('InfoPanel', color_img=load_img('info_panel.png'), rough=.4)
+M_CAUTION = new_mat('CautionSticker', color_img=load_img('caution_sticker.png'), rough=.5)
 M_BOOK = [new_mat('Book%d' % i, c, rough=.8) for i, c in enumerate([(.1, .2, .55), (.75, .65, .15), (.8, .8, .78), (.15, .35, .2)])]
 
 # ---------- 部品を作る道具 ----------
@@ -234,7 +237,7 @@ for z in (.85, 1.25):
 for z in (.35, 1.2, 2.0):
     add_cyl('door', 'd_hinge', .012, .1, (HINGE[0] - .008, HINGE[1], z), M_STEEL, verts=10)
 
-# ================= 奥の壁：灰色の柱・青い料金案内板・電話機・台 =================
+# ================= 奥の壁：灰色の柱・青い料金案内板・台 =================
 PILLAR_Y = HALF - .12                 # 柱の中心
 PF = PILLAR_Y - .10                   # 柱の手前の面（電話機はここに取り付く）
 add_box('phone', 'pillar', (.4, .2, 1.4), (0, PILLAR_Y, .78 + .7), M_GRAY, .006)
@@ -245,59 +248,27 @@ for sx in (-1, 1):                    # 柱の下の脚
 tilt = math.radians(-12)
 add_box('phone', 'info_frame', (.5, .035, .32), (0, PF - .02, 1.86), M_GRAY, .004, rot=(tilt, 0, 0))
 add_plane('phone', 'info_face', (.46, .28), (0, PF - .0435, 1.86), M_INFO, rot=(math.pi / 2 + tilt, 0, 0))
-# 電話機（蛍光グリーン）
-PZ = 1.2
-BD_ = .14
-PYc = PF - BD_ / 2
-add_box('phone', 'p_body', (.27, BD_, .36), (0, PYc, PZ), M_GREEN, .022)
-face_y = PYc - BD_ / 2
-add_box('phone', 'lcd_frame', (.17, .01, .075), (0, face_y - .004, PZ + .12), M_BLACK, .003)
-add_box('phone', 'lcd', (.15, .006, .055), (0, face_y - .009, PZ + .12), M_LCD, .002)
-add_box('phone', 'keyplate', (.16, .008, .17), (0, face_y - .003, PZ - .01), M_BLACK, .004)
-for r in range(4):
-    for c in range(3):
-        add_box('phone', 'key', (.036, .01, .026), ((c - 1) * .046, face_y - .011, PZ + .045 - r * .039), M_KEY, .004)
-add_box('phone', 'card_slot', (.1, .01, .022), (0, face_y - .004, PZ - .115), M_BLACK, .003)
-add_box('phone', 'coin_slot', (.06, .012, .05), (.06, face_y - .005, PZ - .15), M_STEEL, .003)
-# 右側の灰色の台（電話帳が置いてある）と、足のせ
+# 右側の灰色の台（電話帳）と、足のせ
 add_box('phone', 'desk', (.42, .42, .03), (.41, HALF - .23, .95), M_GRAY, .005)
+add_box('phone', 'desk_lip', (.42, .02, .05), (.41, HALF - .445, .965), M_GRAY, .004)
 add_box('phone', 'desk_leg', (.03, .03, .93), (.58, HALF - .05, .47), M_GRAY, .003)
 add_box('phone', 'desk_leg', (.03, .03, .93), (.58, HALF - .4, .47), M_GRAY, .003)
-for i, m in enumerate(M_BOOK):
-    add_box('phone', 'book', (.2 - i * .015, .26, .035), (.42, HALF - .25, .985 + i * .037), m, .003, rot=(0, 0, math.radians(i * 7 - 8)))
+for i, m_ in enumerate(M_BOOK):
+    add_box('phone', 'book', (.2 - i * .015, .26, .035), (.42, HALF - .25, .985 + i * .037), m_, .003, rot=(0, 0, math.radians(i * 7 - 8)))
 add_box('phone', 'footrest', (.4, .04, .03), (0, HALF - .09, .28), M_GRAY, .004)
+# 注意シール（右の壁のガラスの内側）
+add_plane('phone', 'caution', (.22, .33), (HALF - .022, -.05, 1.5), M_CAUTION, rot=(math.pi / 2, 0, -math.pi / 2))
 
-# ================= 受話器（電話機と同じ緑・左側に立てて掛ける） =================
-HX = -.185
-HYc = face_y - .035
-add_box('handset', 'h_cradle', (.05, .06, .3), (HX + .02, face_y - .022, PZ + .02), M_BLACK, .006)
-add_cyl('handset', 'h_grip', .022, .26, (HX, HYc, PZ + .02), M_GREEN, verts=20)
-for name, z in (('h_ear', PZ + .17), ('h_mouth', PZ - .13)):
-    add_cyl('handset', name, .038, .07, (HX, HYc, z), M_GREEN, verts=24)
-    add_cyl('handset', name + '_grille', .03, .01, (HX, HYc - .036, z), M_BLACK, rot=(math.pi / 2, 0, 0), verts=16)
-
-# ================= コード（金属のコード） =================
-bpy.ops.curve.primitive_bezier_curve_add()
-cv = bpy.context.active_object; cv.name = 'Phone_Cord'
-sp = cv.data.splines[0]
-pts = [(HX, HYc, PZ - .19), (HX - .05, HYc - .05, PZ - .3), (HX + .03, HYc - .07, PZ - .42), (HX + .1, face_y - .01, PZ - .19)]
-sp.bezier_points.add(len(pts) - 2)
-for bp, p in zip(sp.bezier_points, pts):
-    bp.co = p; bp.handle_left_type = bp.handle_right_type = 'AUTO'
-cv.data.bevel_depth = .006; cv.data.bevel_resolution = 4; cv.data.resolution_u = 24
-cv.data.materials.append(M_STEEL)
-bpy.ops.object.select_all(action='DESELECT'); cv.select_set(True); bpy.context.view_layer.objects.active = cv
-bpy.ops.object.convert(target='MESH')
-cord = bpy.context.active_object
+# ================= 電話機（実物の写真を見本にした、別スクリプトの部品） =================
+import phone_builder
+phone_parts = phone_builder.build_phone(TEX_DIR, (0, PF, 1.0))
 
 # ================= 合体して名前をつける =================
 frame = join('frame', 'Booth_Frame')
 glass = join('glass', 'Booth_Glass')
 roof = join('roof', 'Booth_Roof')
 door = join('door', 'Door', origin=HINGE)
-phone = join('phone', 'Phone')
-handset = join('handset', 'Phone_Handset')
-cord.name = 'Phone_Cord'
+phone = join('phone', 'Booth_Interior')
 
 # ---------- 見た目の確認用の光（ゲームには出力されない設定でもOK） ----------
 if '--nolight' not in sys.argv:
@@ -307,8 +278,12 @@ if '--nolight' not in sys.argv:
 # ---------- 書き出し ----------
 glb = os.path.join(OUT_DIR, 'phonebooth.glb')
 for o in bpy.data.objects: o.select_set(o.type == 'MESH')
-bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_selection=True, export_apply=True, export_yup=True,
-                          export_image_format='JPEG', export_jpeg_quality=85)
+# Unreal Engine 用（FBX。1単位=1メートルのまま。画像も中に入れる）
+UE_DIR = os.path.join(OUT_DIR, 'unreal'); os.makedirs(UE_DIR, exist_ok=True)
+bpy.ops.export_scene.fbx(filepath=os.path.join(UE_DIR, 'PhoneBooth.fbx'), use_selection=True, apply_scale_options='FBX_SCALE_UNITS',
+                         path_mode='COPY', embed_textures=True, mesh_smooth_type='FACE', add_leaf_bones=False, bake_space_transform=True)
+print('Unreal用:', os.path.join(UE_DIR, 'PhoneBooth.fbx'))
+bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_selection=True, export_apply=True, export_yup=True, export_image_format='AUTO')
 # ファイルを直接開いても読めるように、文字の形にした版も作る
 import base64
 with open(glb, 'rb') as f: b64 = base64.b64encode(f.read()).decode()
@@ -327,5 +302,13 @@ if '--norender' not in sys.argv:
     bpy.ops.object.light_add(type='AREA', location=(2.5, -2.5, 3)); A = bpy.context.active_object; A.data.energy = 300; A.data.size = 3
     A.rotation_euler = (math.radians(50), 0, math.radians(40))
     scene.render.filepath = os.path.join(OUT_DIR, 'phonebooth_preview.png')
+    bpy.ops.render.render(write_still=True)
+    # 電話機のアップ
+    from mathutils import Vector
+    bpy.ops.object.camera_add(location=(.42, -.42, 1.42))
+    cam2 = bpy.context.active_object
+    cam2.rotation_euler = (Vector((0, .25, 1.2)) - cam2.location).to_track_quat('-Z', 'Y').to_euler()
+    scene.camera = cam2; scene.render.resolution_x, scene.render.resolution_y = 800, 900
+    scene.render.filepath = os.path.join(OUT_DIR, 'phone_preview.png')
     bpy.ops.render.render(write_still=True)
     print('確認画像:', scene.render.filepath)

@@ -213,7 +213,7 @@ const boothLight=new THREE.PointLight(0xe8ffe8,2.4,11,1.6);boothLight.position.s
 const bulb=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.2),M({color:0xffffff,emissive:0xe6ffe6,emissiveIntensity:2}));bulb.position.set(0,2.2,0);booth.add(bulb);
 // 壁の当たり判定
 solid(B.x-bw/2,B.z,.02,bw);solid(B.x+bw/2,B.z,.02,bw);solid(B.x,B.z-bw/2,bw,.02);
-solid(B.x,B.z-.39,.4,.48); // 電話機の柱（プレイヤーが近づきすぎないよう手前まで）
+solid(B.x,B.z-.3625,.4,.525); // 電話機の柱（プレイヤーが近づきすぎないよう手前まで）
 const doorCol=solid(B.x,B.z+bw/2,bw,.02);doorCol.active=false;
 
 // ---------- Blenderで作った本格モデルがあれば、手作りの箱ボックスと入れ替える ----------
@@ -288,7 +288,7 @@ function addPoster(parent,px,py,pz,ry,tex_,size=1){
     g.fillStyle='#7a0c0c';g.textAlign='center';g.font='bold 28px serif';
     [...'あの日を'].forEach((ch,i)=>g.fillText(ch,w*.68,34+i*30));[...'おして'].forEach((ch,i)=>g.fillText(ch,w*.32,34+i*30));
     g.fillStyle='#222';g.font='14px serif';g.fillText('（4けた）',w/2,160);});
-  hintPoster=addPoster(booth,0,1.56,-bw/2+.22,0,ht,.72);
+  hintPoster=addPoster(booth,0,1.62,-bw/2+.23,0,ht,.7);
 }
 function revealPosters(frac){
   const n=Math.floor(posters.length*Math.min(1,frac));
@@ -533,7 +533,7 @@ const pad=$('pad');['1','2','3','4','5','6','7','8','9','*','0','#'].forEach(k=>
 
 const targets=[
   {pos:new THREE.Vector3(board.x+.1,1.55,board.z),dist:3.2,ok:()=>state==='explore',prompt:'E：新聞の切り抜きを読む',act:openPaper},
-  {pos:new THREE.Vector3(B.x,1.3,B.z-.36),dist:1.2,ok:()=>state==='trapped'&&!dialOpen,prompt:'E：受話器を取る',act:openDial},
+  {pos:new THREE.Vector3(B.x,1.28,B.z-.28),dist:1.2,ok:()=>state==='trapped'&&!dialOpen,prompt:'E：受話器を取る',act:openDial},
 ];
 let curTarget=null;
 function findTarget(){
@@ -630,7 +630,7 @@ function update(dt){
   glbMats.forEach(m=>m.envMapIntensity=(m.name==='Glass'?.06:.12)*lightMul);glbEmis.forEach(m=>m.emissiveIntensity=m.userData.base*(m.name==='LCD'?.2+.8*lightMul:lightMul));
   frameMat.envMapIntensity=.12*lightMul;glassMat.envMapIntensity=.06*lightMul;pmat.envMapIntensity=.15*lightMul;
   boothLight.intensity=2.4*lightMul;bulb.material.emissiveIntensity=1.6*lightMul;lcdM.material.emissiveIntensity=.2+.8*lightMul;
-  flash.visible=flashOn&&!dark;flash.intensity=(Math.abs(L.x)<.7&&Math.abs(L.z)<.7)?4:55; // ボックスの中は近いので弱める
+  flash.visible=flashOn&&!dark;flash.intensity=(Math.abs(L.x)<.7&&Math.abs(L.z)<.7)?2.6:55; // ボックスの中は近いので弱める
   // ライト消灯時は幽霊も見えない
   if(dark&&!ev.final)ghost.visible=false;else if(state==='trapped'&&stage>0&&stage<5&&!ghost.visible)ghost.visible=true;
   boardLamp.intensity=4.2+Math.sin(tGame*11)*.6+Math.sin(tGame*4.3)*.5;
