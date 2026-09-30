@@ -42,6 +42,7 @@
 </head>
 <body>
 <div id="msg" class="ov"><h1>公衆電話</h1>
+  <div id="loadmsg" style="color:#e88">読み込み中…（このまま変わらないときは、ネットにつながっているか確認してね）</div>
   <div>クリックして始める<br>
   移動：W A S D ／ 見回す：マウス ／ 調べる：E<br>
   ライト：F ／ 走る：Shift ／ やめる：Esc<br>
@@ -73,6 +74,7 @@ function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15
 const R=mulberry32(19980714);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const $=id=>document.getElementById(id);
+document.getElementById('loadmsg')?.remove();
 const isTouch=matchMedia('(pointer:coarse)').matches;
 
 const scene=new THREE.Scene();
@@ -483,16 +485,25 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyE'&&!e.repeat)interact();
 });
 addEventListener('keyup',e=>keys[e.code]=false);
-function begin(){started=true;startAudio();if(isTouch){locked=true;msg.style.display='none';}else renderer.domElement.requestPointerLock?.();}
+let dragLook=false,dragging=false;
+function begin(){
+  started=true;msg.style.display='none';
+  try{startAudio();}catch(e){}
+  if(isTouch){locked=true;return;}
+  try{const r=renderer.domElement.requestPointerLock?.();if(r&&r.catch)r.catch(()=>{});}catch(e){}
+  setTimeout(()=>{if(!document.pointerLockElement){dragLook=true;locked=true;say('マウスを押しながら動かすと見回せます',5000);}},400);
+}
 msg.addEventListener('click',begin);
-document.addEventListener('click',()=>{if(started&&!locked&&!dialOpen&&!paperOpen&&state!=='dead'&&state!=='escaped'&&!isTouch)renderer.domElement.requestPointerLock?.();});
+document.addEventListener('click',()=>{if(started&&!locked&&!dragLook&&!dialOpen&&!paperOpen&&state!=='dead'&&state!=='escaped'&&!isTouch)renderer.domElement.requestPointerLock?.();});
 document.addEventListener('pointerlockchange',()=>{
   locked=document.pointerLockElement===renderer.domElement;
-  if(locked){msg.style.display='none';return;}
+  if(locked){dragLook=false;msg.style.display='none';return;}
+  if(dragLook){locked=true;return;}
   if(paperOpen)closePaper();
   if(!dialOpen&&state!=='dead'&&state!=='escaped')msg.style.display='flex';
 });
-addEventListener('mousemove',e=>{if(!locked||paperOpen||dialOpen)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.4,Math.min(1.4,pitch-e.movementY*.0022));});
+addEventListener('mousedown',()=>{dragging=true;});addEventListener('mouseup',()=>{dragging=false;});
+addEventListener('mousemove',e=>{if(!locked||paperOpen||dialOpen||(dragLook&&!dragging))return;yaw-=e.movementX*.0022;pitch=Math.max(-1.4,Math.min(1.4,pitch-e.movementY*.0022));});
 const touch={};
 addEventListener('touchstart',e=>{for(const t of e.changedTouches)touch[t.identifier]={x:t.clientX,y:t.clientY,left:t.clientX<innerWidth/2,px:t.clientX,py:t.clientY};});
 addEventListener('touchmove',e=>{for(const t of e.changedTouches){const s=touch[t.identifier];if(!s)continue;
