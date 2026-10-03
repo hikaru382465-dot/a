@@ -95,3 +95,12 @@ FBXから来る材質は簡単なものなので、次の3つだけ手で直す�
 | 新聞を読む | 掲示板の近くで E キー → UMG に文章を表示 |
 
 作るときは、Claude が Blueprint の作り方を1ノードずつ説明できる（画面を見ながら一緒に進められる）。
+
+
+## 森と地面（setup_forest.py）
+
+1. 先に `setup_phonebooth.py` を実行して、L_Booth を開いておく
+2. Output Log の Cmd 欄に `py "…/unreal/setup_forest.py"`
+3. 木の数は先頭の `TREE_COUNT`（既定70）、岩は `ROCK_COUNT`。重いときは減らす
+4. FabのMegascansの木を使うなら、取り込んだフォルダを `EXTERNAL_TREE_FOLDER` に書く
+5. やり直しは、もう一度実行するだけ（前回の生成物はタグ `KD_Forest` で消える）
