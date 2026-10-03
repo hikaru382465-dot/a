@@ -56,7 +56,7 @@ import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 
 /* ---------- 基本設定 ---------- */
 const BASE_Y = 0.04;
-const HEIGHTS = {short:0.9, standard:1.2, tall:1.6};
+const HEIGHTS = {short:1.1, standard:1.4, tall:1.75};
 const PI2 = Math.PI*2;
 
 const rng = seed => { let s = (seed*9301+49297)%2147483647 || 1; return () => (s = (s*16807)%2147483647)/2147483647; };
@@ -180,6 +180,43 @@ function cookie(shapes, icingColor, decalTex, depth=.07){
   return g;
 }
 
+
+function loopGeo(L,Hh,W,s){ // リボンの輪：帯が立ち上がって輪になる
+  return gridGeo(64,8,(u,v)=>{
+    const phi=u*PI2, e=(1-Math.cos(phi))/2, sh=Math.pow(e,.4);
+    const w=W*(.28+.72*Math.sin(phi/2)), y=(v-.15)*w;
+    return [s*L*e, y+.05*Math.sin(phi*2)*v, Hh*Math.sin(phi)*sh*(1+.15*v)];
+  });
+}
+function dilate(src,r){ const [c,g]=mkCanvas(src.width); for(let k=0;k<16;k++){ const a=k/16*PI2; g.drawImage(src,Math.cos(a)*r,Math.sin(a)*r); } g.drawImage(src,0,0); return c; }
+function outlineShape(cv,S){ // 絵のふちをたどってクッキーの形にする
+  const N=cv.width, d=cv.getContext('2d').getImageData(0,0,N,N).data;
+  const at=(x,y)=>x>=0&&y>=0&&x<N&&y<N&&d[(y*N+x)*4+3]>60;
+  const D=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+  let sx=-1,sy=-1; for(let i=0;i<N*N&&sx<0;i++) if(d[i*4+3]>60){ sx=i%N; sy=i/N|0; }
+  let cx=sx,cy=sy,bx=sx-1,by=sy; const pts=[[cx,cy]];
+  for(let n=0;n<40000;n++){
+    const j=D.findIndex(q=>q[0]===bx-cx&&q[1]===by-cy);
+    let moved=false;
+    for(let k=1;k<=8;k++){ const i=(j+k)%8, nx=cx+D[i][0], ny=cy+D[i][1];
+      if(at(nx,ny)){ const pi=(i+7)%8; bx=cx+D[pi][0]; by=cy+D[pi][1]; cx=nx; cy=ny; moved=true; break; } }
+    if(!moved||(cx===sx&&cy===sy))break; pts.push([cx,cy]);
+  }
+  let q=pts.filter((_,i)=>i%4===0);
+  for(let it=0;it<3;it++) q=q.map((p,i)=>{ const a=q[(i+q.length-1)%q.length], b=q[(i+1)%q.length]; return [(a[0]+2*p[0]+b[0])/4,(a[1]+2*p[1]+b[1])/4]; });
+  const sh=new THREE.Shape(); q.forEach(([x,y],i)=>{ const X=(x-N/2)*S, Y=-(y-N/2)*S; i?sh.lineTo(X,Y):sh.moveTo(X,Y); }); sh.closePath(); return sh;
+}
+function figureCookie(variant,c,c2,depth=.07){
+  const N=256,S=1.25/N, [cv,g]=mkCanvas(512); DECAL[variant](g,c,c2);
+  const [sm,sg]=mkCanvas(N); sg.drawImage(cv,0,0,N,N);
+  const base=outlineShape(dilate(sm,1.5),S), edge=outlineShape(dilate(sm,8),S);
+  const grp=new THREE.Group();
+  grp.add(new THREE.Mesh(new THREE.ExtrudeGeometry([edge],{depth,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:2,curveSegments:8}),mat('#d9a45e',{roughness:.9,bumpMap:noiseTex,bumpScale:.6})));
+  const ic=new THREE.Mesh(new THREE.ExtrudeGeometry([base],{depth:.02,bevelEnabled:false,curveSegments:8}),mat('#fffaf0',{roughness:.35})); ic.position.z=depth+.012; grp.add(ic);
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(N*S,N*S),mat('#fff',{map:toTex(cv),transparent:true,roughness:.35,polygonOffset:true,polygonOffsetFactor:-1}));
+  pl.position.z=depth+.036; grp.add(pl); return grp;
+}
+
 const B = {
   board(p){
     const g=new THREE.Group();
@@ -187,7 +224,7 @@ const B = {
     const m=new THREE.Mesh(geo,mat(p.color,{roughness:.8})); m.position.y=.02; g.add(m); return g;
   },
   body(p){
-    const g=new THREE.Group(), h=HEIGHTS[p.variant]||1.2;
+    const g=new THREE.Group(), h=HEIGHTS[p.variant]||1.4;
     const bm=creamMat(p.color); bm.bumpMap=noiseTex.clone(); bm.bumpMap.repeat.set(40,2); bm.bumpMap.needsUpdate=true; bm.bumpScale=.9;
     const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,h,128),bm); m.position.y=BASE_Y+h/2; g.add(m); return g;
   },
@@ -220,35 +257,40 @@ const B = {
       g.add(new THREE.Mesh(frillGeo(y-.17,.3,30,1.0,.05),fm));
       const f2=new THREE.Mesh(frillGeo(y-.1,.28,30,.99,.045),fm); f2.rotation.y=Math.PI/30; g.add(f2);
     }else if(p.variant==='seaweed'){
-      for(let i=0;i<18;i++) for(let k=0;k<3;k++){
-        const h=.22+r()*.3, a=(i+k*.28)/18*PI2;
-        const m=put(new THREE.Mesh(new THREE.ConeGeometry(.1,h,5),cm),a,1.0+(k-1)*.03,y+h/2-.03);
-        m.scale.z=.6; m.rotation.x=-.12;
+      for(let i=0;i<16;i++){
+        const a0=(i+.5)/16*PI2, nf=3+(i%2);
+        for(let k=0;k<nf;k++){
+          const h=.3+r()*.3, lean=(k-(nf-1)/2)*.22, n=5, a=a0+lean*.12;
+          const leaf=new THREE.Group();
+          for(let j=0;j<n;j++){ const sc=1-j*.13, ch=new THREE.Mesh(new THREE.ConeGeometry(.12*sc,h/n*1.7,4),cm); ch.position.y=j*h/n; ch.scale.z=.45; ch.rotation.y=Math.PI/4; leaf.add(ch); }
+          put(leaf,a,1.0+r()*.06,y-.04); leaf.rotation.x=-.18-r()*.15; leaf.rotation.z=lean;
+        }
       }
     }
     return g;
   },
   bow(p,ctx){
     const g=new THREE.Group(); if(p.variant==='none')return g;
-    const m=mat(p.color,{roughness:.55,side:THREE.DoubleSide}), dm=mat(p.color2,{roughness:.55});
-    const ty=ctx.topY, bowG=new THREE.Group(); bowG.position.set(0,ty+.02,0); g.add(bowG);
+    const m=mat(p.color,{roughness:.5,side:THREE.DoubleSide,bumpMap:noiseTex,bumpScale:.25}), dm=mat(p.color2,{roughness:.5});
+    const ty=ctx.topY, bowG=new THREE.Group(); bowG.position.set(0,ty+.03,-.08); g.add(bowG);
     for(const s of [-1,1]){
-      const loop=new THREE.Mesh(new THREE.TorusGeometry(.2,.032,10,28),m);
-      loop.scale.set(1.35,1,6); loop.position.set(s*.27,.2,0); loop.rotation.y=s*.12; loop.rotation.z=s*.1; bowG.add(loop);
+      const loop=new THREE.Mesh(loopGeo(.8,.2,.8,s),m); loop.rotation.z=s*.28; loop.rotation.y=s*.12; bowG.add(loop);
     }
-    const knot=new THREE.Mesh(new THREE.BoxGeometry(.17,.2,.24),m); knot.position.y=.17; bowG.add(knot);
-    const H=ty-BASE_Y-.2, ang=Math.atan2(.35,.94);
+    const knot=new THREE.Mesh(new THREE.BoxGeometry(.2,.32,.36),m); knot.position.y=.12; bowG.add(knot);
+    const H=ty-BASE_Y-.25, th=p.variant==='polka'?1.05:.6, w=.46;
     for(const s of [-1,1]){
-      const strip=new THREE.Mesh(new THREE.BoxGeometry(.26,.025,1.0),m);
-      strip.position.set(s*.175,ty+.015,.47); strip.rotation.y=s*ang; g.add(strip);
-      const c0=s*Math.asin(.35), w=.28;
-      const panel=new THREE.Mesh(new THREE.CylinderGeometry(1.03,1.03,H,12,1,true,c0-w/2,w),m);
+      const t=s*th, dir=[Math.sin(t),Math.cos(t)];
+      const strip=new THREE.Mesh(new THREE.BoxGeometry(w*.9,.025,1.0),m);
+      strip.position.set(dir[0]*.5,ty+.015,dir[1]*.5); strip.rotation.y=t; g.add(strip);
+      const panel=new THREE.Mesh(new THREE.CylinderGeometry(1.03,1.03,H,16,1,true,t-w/2,w),m);
       panel.position.y=ty-H/2; g.add(panel);
       if(p.variant==='polka'){
-        const dot=(x,y,z,face)=>{ const d=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.012,20).rotateX(Math.PI/2),dm); d.position.set(x,y,z); if(face)d.lookAt(x*2,y,z*2); else d.rotation.x=Math.PI/2-.0; g.add(d); };
-        for(let k=0;k<5;k++){ const yy=ty-.2-k*H/5.5, off=(k%2?.04:-.04); const a=c0+off; dot(Math.sin(a)*1.036,yy,Math.cos(a)*1.036,true); }
-        for(let k=0;k<4;k++){ const t=.2+k*.2; const d=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.012,20),dm); d.position.set(s*.35*t+(k%2?.04:-.04)*s,ty+.03,.94*t); g.add(d); }
-        const lp=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.012,16).rotateX(Math.PI/2),dm); lp.position.set(s*.45,.3,.1); bowG.add(lp);
+        for(let k=0;k<6;k++){ const a=t+(k%2?.1:-.1), yy=ty-.16-k*H/6.3;
+          const d=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.012,20).rotateX(Math.PI/2),dm);
+          d.position.set(Math.sin(a)*1.036,yy,Math.cos(a)*1.036); d.lookAt(Math.sin(a)*2,yy,Math.cos(a)*2); g.add(d); }
+        for(let k=0;k<4;k++){ const tt=.3+k*.2, off=(k%2?.08:-.08);
+          const d=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.012,20),dm);
+          d.position.set(dir[0]*tt+dir[1]*off,ty+.03,dir[1]*tt-dir[0]*off); g.add(d); }
       }
     }
     return g;
@@ -260,9 +302,7 @@ const B = {
   },
   topper(p,ctx){
     const g=new THREE.Group(); if(p.variant==='none')return g;
-    const shape={shark:'oval',crab:'oval',fish:'oval',turtle:'round',minnie:'round',cat:'round',star:'star'}[p.variant];
-    const [cv,cg]=mkCanvas(512); DECAL[p.variant](cg,p.color,p.color2);
-    const c=cookie(SHAPES[shape](),shape==='star'?p.color:'#fffaf0',shape==='star'?null:toTex(cv));
+    const c=p.variant==='star'?cookie(SHAPES.star(),p.color,null):figureCookie(p.variant,p.color,p.color2);
     const slot={topper1:[-.55,-.2,.35,.08],topper2:[0,-.5,0,0],topper3:[.55,-.2,-.35,-.08]}[p.id];
     c.scale.setScalar(.85); c.position.set(slot[0],ctx.topY+.45,slot[1]); c.rotation.set(-.14,slot[2],slot[3]); g.add(c); return g;
   },
@@ -278,7 +318,7 @@ const B = {
       starfish:()=>new THREE.Mesh(new THREE.ExtrudeGeometry(starShape(.26,.11),{depth:.05,bevelEnabled:true,bevelSize:.02,bevelThickness:.02,bevelSegments:3}),mat(p.color,{roughness:.6,bumpMap:noiseTex,bumpScale:1})),
       shells:()=>{ const s=new THREE.Mesh(new THREE.SphereGeometry(.12,10,6),mat(p.color,{roughness:.35,flatShading:true})); s.scale.set(1,.9,.4); return s; },
       pearls:()=>{ const rr=.04+r()*.04; return new THREE.Mesh(new THREE.SphereGeometry(rr,16,12),mat(p.color,{roughness:.15,metalness:.3,envMapIntensity:1.2})); },
-      roses:()=>{ const rg=new THREE.Group(), mm=creamMat(p.color); for(let k=0;k<4;k++){ const t=new THREE.Mesh(new THREE.TorusGeometry(.13-.027*k,.04,10,24),mm); t.position.z=.025*k; rg.add(t); } const c=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),mm); c.position.z=.1; rg.add(c); return rg; },
+      roses:()=>{ const rg=new THREE.Group(), mm=creamMat(p.color); const g1=rosetteGeo(.2,.15,6).rotateX(Math.PI/2); const m1=new THREE.Mesh(g1,mm); rg.add(m1); const m2=new THREE.Mesh(rosetteGeo(.12,.14,5).rotateX(Math.PI/2),mm); m2.position.z=.07; m2.rotation.z=.6; rg.add(m2); const base=new THREE.Mesh(new THREE.SphereGeometry(.17,16,10),mm); base.scale.z=.45; base.position.z=-.01; rg.add(base); return rg; },
       dots:()=>new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.015,24).rotateX(Math.PI/2),m())
     }[p.variant];
     for(let i=0;i<n;i++){
@@ -301,7 +341,7 @@ const B = {
     let px=Math.min(150,260/lines.length); do{ x.font=`${p.variant==='script'?'italic ':'bold '}${px}px ${font}`; px-=4; }while(px>20&&Math.max(...lines.map(l=>x.measureText(l).width))>900);
     x.fillStyle=p.color; x.textAlign='center'; x.textBaseline='middle'; const lh=parseInt(x.font.match(/(\d+)px/)[1])*1.1;
     lines.forEach((l,i)=>x.fillText(l,512,150+(i-(lines.length-1)/2)*lh));
-    const h=HEIGHTS[ctx.bodyVariant]||1.2, hh=.55, arc=1.9;
+    const h=HEIGHTS[ctx.bodyVariant]||1.4, hh=.55, arc=1.9;
     const m=new THREE.Mesh(new THREE.CylinderGeometry(1.004,1.004,hh,48,1,true,-arc/2,arc),mat('#fff',{map:toTex(c),transparent:true,roughness:.4,polygonOffset:true,polygonOffsetFactor:-1}));
     m.position.y=BASE_Y+h*.38; g.add(m); return g;
   }
@@ -353,9 +393,9 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();
 scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04).texture;
-const camera=new THREE.PerspectiveCamera(40,1,.1,60); camera.position.set(3.6,3.0,5.0);
+const camera=new THREE.PerspectiveCamera(40,1,.1,60); camera.position.set(1.2,3.6,6.0);
 const controls=new OrbitControls(camera,renderer.domElement);
-controls.target.set(0,1,0); controls.enableDamping=true; controls.minDistance=2.5; controls.maxDistance=10; controls.maxPolarAngle=Math.PI/2-.02; controls.update();
+controls.target.set(0,1.0,0); controls.enableDamping=true; controls.minDistance=2.5; controls.maxDistance=10; controls.maxPolarAngle=Math.PI/2-.02; controls.update();
 
 scene.add(new THREE.HemisphereLight('#fff4ee','#c8cfe0',.9));
 const key=new THREE.DirectionalLight('#fff1e6',2.2); key.position.set(4,6,3); key.castShadow=true;
@@ -371,7 +411,7 @@ const root=new THREE.Group(); scene.add(root);
 const groups={};
 let state=[], sel=null, current='ocean';
 
-const ctxOf=()=>{ const body=state.find(p=>p.id==='body'); return {topY:BASE_Y+(HEIGHTS[body.variant]||1.2), bodyVariant:body.variant}; };
+const ctxOf=()=>{ const body=state.find(p=>p.id==='body'); return {topY:BASE_Y+(HEIGHTS[body.variant]||1.4), bodyVariant:body.variant}; };
 const disposeTree=o=>o.traverse(c=>{ if(c.geometry)c.geometry.dispose(); if(c.material){ if(c.material.map)c.material.map.dispose(); c.material.dispose(); } });
 function setHighlight(g,on){ g.traverse(c=>{ const m=c.material; if(m&&m.emissive){ m.emissive.set(on?'#5a3a10':'#000000'); } }); }
 
