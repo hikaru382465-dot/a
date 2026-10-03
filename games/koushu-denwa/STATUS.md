@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-03（第7版：Unreal一括セットアップスクリプトを追加。VC++警告の対処をREADMEに追記）
+最終更新：2026-10-03（第8版：Unreal 5.3.2 で電話ボックスの取り込み成功。夜の見た目まで確認）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -56,7 +56,18 @@
 GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 → Unreal Engine 5 は動く（ハードウェアの光線追跡は使わず、ソフトウェア方式のLumenなら1080p〜1440pで遊べる目安）。Blenderも快適。
 
+## Unreal Engine での到達点（2026-10-03）
+
+- ひかるのPCで Unreal 5.3.2 を使用（5.8.0 は VC++ 警告が出るため使わない）。プロジェクト名 `MyProject4`（`Documents/Unreal Projects/MyProject4`）
+- `unreal/setup_phonebooth.py` を実行 → 全手順 OK（FBX・画像・材質・配置・光・霧・ポストプロセス・DoorHinge・保存）。レベルは `/Game/KoushuDenwa/Maps/L_Booth`
+- 見た目の調整値：PostProcess の「露出補正」= **-7.8**（この版は値が大きいほど明るい。-6.5〜-7.8で調整）、TubeLight_L/R の Intensity = 1500 lm
+- 写真どおりに出ている：パネルの印刷、液晶、テンキー、SOS、下の扉、受話器、コード、料金板、注意シール、電話帳
+- 注意：UEのプロジェクトはリポジトリの外（PC内）にある。大事なファイルは `assets/unreal/PhoneBooth.fbx` とスクリプト
+
 ## 進行中・次にやること
+
+- **次の候補**：①地面を森の土にする（ひかるのPCにある ambientCG / Poly Haven の素材を使う）→ 森の木 ②ゲームのしくみを Blueprint で作る（閉じ込め・ライト点滅・張り紙・幽霊・電話の謎）③ ガラスの汚れ・霧の調整
+- 作るときは、設計を Opus 5.5、実装を Sonnet 5.5 でやる（CLAUDE.md の決まり）
 
 - **ひかる**：UE起動時に「Visual C++ redistributable 14.42 is outdated」の警告が出た → `unreal/README.md` の「0. 最初に」の手順で `vc_redist.x64.exe` を入れて再起動。その後「1. 自動セットアップ」を実行し、Output Logの `[KD]` の行を送る
 - Claude：`unreal/setup_phonebooth.py`（Opus 5.5が設計、Sonnet 5.5が実装）は疑似環境での試運転と構文チェックのみ。実機のログが来たらAPI名を直す
