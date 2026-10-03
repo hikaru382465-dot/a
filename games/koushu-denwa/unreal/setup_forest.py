@@ -35,6 +35,9 @@ FOREST_RADIUS = 4500.0              # 森の広がり（cm）。4500 = 半径45m
 CLEARING_RADIUS = 650.0             # 電話ボックスのまわりの空き地（cm）
 PATH_HALF_WIDTH = 300.0             # 道のまわりに木を置かない幅（cm）
 EXTERNAL_TREE_FOLDER = ""           # 例 "/Game/Fab" 。空なら、自作の木を使う
+GROUND_DARK = 0.35        # 地面の暗さ（小さいほど暗い。1.0でそのまま）
+MOON_INTENSITY = 0.2      # 月の光（setup_phonebooth.py では 0.5）
+SKY_INTENSITY = 0.12      # 空の光（同 0.3）
 FOG_DENSITY = 0.045                 # 森の霧の濃さ
 # --------------------------------------------------
 
@@ -241,9 +244,15 @@ def tex_node(mat, tex, y=0, normal=False, tiling=None):
     return e
 
 
-def mk_tex_material(name, color, normal=None, rough=None, rough_const=0.9, tiling=None, metallic=0.0):
+def mk_tex_material(name, color, normal=None, rough=None, rough_const=0.9, tiling=None, metallic=0.0, dark=1.0):
     m = new_material(name)
-    mel.connect_material_property(tex_node(m, color, -300, tiling=tiling), "", MP.MP_BASE_COLOR)
+    base = tex_node(m, color, -300, tiling=tiling)
+    if dark != 1.0:                               # 色を暗くする（1.0 = そのまま）
+        mul = x_(m, unreal.MaterialExpressionMultiply, -500, -300)
+        mel.connect_material_expressions(base, "", mul, "A")
+        mel.connect_material_expressions(c1(m, dark, -200), "", mul, "B")
+        base = mul
+    mel.connect_material_property(base, "", MP.MP_BASE_COLOR)
     if normal is not None:
         mel.connect_material_property(tex_node(m, normal, 0, normal=True, tiling=tiling), "", MP.MP_NORMAL)
     if rough is not None:
@@ -260,8 +269,8 @@ def s_materials():
     T = STATE["tex"]
     M = {}
     # 地面は 12000cm の板に、200cm ごとに画像を繰り返す＝60回
-    M["ground"] = mk_tex_material("M_ForestGround", T["forest_ground_color"], T.get("forest_ground_normal"), T.get("forest_ground_rough"), tiling=(60, 60))
-    M["path"] = mk_tex_material("M_ForestPath", T["forest_path_color"], T.get("forest_path_normal"), rough_const=0.92, tiling=(2.5, 1.5))
+    M["ground"] = mk_tex_material("M_ForestGround", T["forest_ground_color"], T.get("forest_ground_normal"), T.get("forest_ground_rough"), tiling=(60, 60), dark=GROUND_DARK)
+    M["path"] = mk_tex_material("M_ForestPath", T["forest_path_color"], T.get("forest_path_normal"), rough_const=0.92, tiling=(2.5, 1.5), dark=GROUND_DARK + 0.1)
     M["Bark"] = mk_tex_material("M_Bark", T["bark_color"], T.get("bark_normal"), rough_const=0.92)
     M["Leaves"] = mk_tex_material("M_Leaves", T["leaves_color"], T.get("leaves_normal"), rough_const=0.9)
     M["Rock"] = mk_tex_material("M_Rock", T["rock_color"], T.get("rock_normal"), rough_const=0.88)
@@ -276,6 +285,7 @@ def s_import_trees():
     ui = unreal.FbxImportUI()
     setp(ui, "import_mesh", True)
     setp(ui, "import_as_skeletal", False)
+    setp(ui, "automated_import_should_detect_type", False)
     setp(ui, "import_materials", False)
     setp(ui, "import_textures", False)
     setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_STATIC_MESH)
@@ -283,7 +293,7 @@ def s_import_trees():
     setp(d, "combine_meshes", False)
     setp(d, "build_nanite", True)                 # 細かい形を軽く描ける
     setp(d, "auto_generate_collision", False)
-    setp(d, "transform_vertex_to_absolute", False)
+    setp(d, "transform_vertex_to_absolute", True)      # 向き（横倒し）を直す。電話ボックスと同じ設定
     t = unreal.AssetImportTask()
     t.set_editor_property("automated", True)
     t.set_editor_property("replace_existing", True)
@@ -422,6 +432,32 @@ def s_ground():
 
 
 # ---------------- 7) 木・岩・切り株を散らす ----------------
+_ORIENT = {}
+
+
+def orient_for(mesh):
+    """取り込んだ形が横倒しのとき、立つ向き (roll, pitch) を試して決める。
+    試したうち、足もとが地面(z=0)にいちばん近いものを選ぶ（同点なら背の高いほう）。"""
+    key = mesh.get_path_name()
+    if key in _ORIENT:
+        return _ORIENT[key]
+    best = None
+    tmp = spawn(unreal.StaticMeshActor, (0, 0, 0), (0, 0, 0))
+    comp = tmp.get_component_by_class(unreal.StaticMeshComponent)
+    comp.set_static_mesh(mesh)
+    for roll, pitch in ((0, 0), (90, 0), (-90, 0), (0, 90), (0, -90), (180, 0)):
+        tmp.set_actor_rotation(unreal.Rotator(roll, pitch, 0), False)
+        o, e = tmp.get_actor_bounds(False)
+        low = abs(o.z - e.z) / max(e.z, 1e-6)
+        score = (round(low, 2), -e.z)
+        if best is None or score < best[0]:
+            best = (score, roll, pitch)
+    eas().destroy_actor(tmp)
+    _ORIENT[key] = (best[1], best[2])
+    log("  向きの補正 %s → roll=%s pitch=%s" % (mesh.get_name(), best[1], best[2]))
+    return _ORIENT[key]
+
+
 def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None):
     meshes = STATE["meshes"][kind]
     if not meshes:
@@ -443,7 +479,8 @@ def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None)
             continue
         s = rng.uniform(*scale_range)
         m = rng.choice(meshes)
-        act = spawn(unreal.StaticMeshActor, (x, y, 0), (rng.uniform(-tilt, tilt), rng.uniform(-tilt, tilt), rng.random() * 360.0))
+        base_roll, base_pitch = orient_for(m)
+        act = spawn(unreal.StaticMeshActor, (x, y, 0), (base_roll + rng.uniform(-tilt, tilt), base_pitch + rng.uniform(-tilt, tilt), rng.random() * 360.0))
         comp = act.get_component_by_class(unreal.StaticMeshComponent)
         comp.set_static_mesh(m)
         setp(comp, "mobility", unreal.ComponentMobility.STATIC)
@@ -459,7 +496,8 @@ def s_scatter():
     placed = []
     # 取り込み後の大きさの確認：松の高さが 700〜1500cm くらいなら、1倍でよい
     m = STATE["meshes"]["pine"][0]
-    h = m.get_bounds().box_extent.z * 2.0
+    ext = m.get_bounds().box_extent
+    h = max(ext.x, ext.y, ext.z) * 2.0           # 横倒しでも測れるよう、いちばん長い辺を使う
     unit = 1.0 if h > 300 else 100.0
     STATE["unit"] = unit
     log("松Aの高さ=%.1f → 倍率の補正=%s" % (h, unit))
@@ -503,6 +541,16 @@ def s_fog():
     log("霧の濃さ = %s" % FOG_DENSITY)
 
 
+def s_night():
+    sun = find_actor("Moon")
+    if sun is not None:
+        setp(sun.get_component_by_class(unreal.DirectionalLightComponent), "intensity", MOON_INTENSITY)
+    sky = find_actor("SkyLight")
+    if sky is not None:
+        setp(sky.get_component_by_class(unreal.SkyLightComponent), "intensity", SKY_INTENSITY)
+    log("月=%s 空=%s に下げました" % (MOON_INTENSITY, SKY_INTENSITY))
+
+
 def s_save():
     unreal.EditorAssetLibrary.save_directory(GAME_DIR, only_if_is_dirty=False, recursive=True)
     try:
@@ -523,6 +571,7 @@ def main():
     step("木・岩を散らす", s_scatter, ["木・岩の取り込み", "地面・道・足もと"])
     step("倍率の補正", s_fix_scale, ["木・岩を散らす"])
     step("霧", s_fog, ["環境確認"])
+    step("夜の明るさ", s_night, ["環境確認"])
     step("保存", s_save, ["環境確認"])
     log("SUMMARY: " + ", ".join("%s=%s" % (k, v) for k, v in RESULTS.items()))
     failed = [k for k, v in RESULTS.items() if v == "FAIL"]
