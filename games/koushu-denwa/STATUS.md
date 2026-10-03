@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **約20分の構成**：`unreal/GAME_PLAN.md` の後半に5章の構成を追加。ひかるが内容を確認（変えたい所を伝える）→ 段階1を作る
+
 - **ゲームのしくみ**：計画は `unreal/GAME_PLAN.md`（段階1〜4）。次は段階1（歩く→ドアが閉まる→点滅）の `setup_game.py` を作る
 
 - **森と地面（第12版）**：`blender/make_trees.py`（松3・枯れ木2・切り株・岩2 → `assets/unreal/Trees.fbx`）、森の画像（土・道・樹皮・葉・岩）、`unreal/setup_forest.py`（地面・道・足もとのコンクリ・木と岩を散らす・霧）を追加。**Unrealでは未確認**（疑似環境で構文のみ）
