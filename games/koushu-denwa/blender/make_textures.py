@@ -233,6 +233,8 @@ def make_body():
     save('phone_body_albedo.png', Image.fromarray((srgb * 255).astype(np.uint8)))
     rough = np.clip(.26 + AGE * .20 + dirt * .5 + sc * .3 + dust * .3 + st * .2 + rust * .5 + moss * .3 + (n - .5) * .1, 0, 1)
     save('phone_body_rough.png', Image.fromarray((rough * 255).astype(np.uint8)))
+    hb = (fbm(N, N, 8) - .5) * .35 - rust * .7 - sc * .45 + moss * .2 + (fbm(N, N, 9) - .5) * .25     # オレンジの皮のような細かい凹凸＋さびの穴＋傷
+    save('phone_body_normal.png', normal_from_height(hb, 9.0))
 
 # ======================================================================
 # 4b) ガラスの汚れ（下ほど濃い・雨だれ・手形の拭き跡）
@@ -284,6 +286,8 @@ def make_bronze():
     save('bronze_color.png', Image.fromarray((np.clip(bronze, 0, 1) * 255).astype(np.uint8)))
     rough = np.clip(.32 + .25 * streak + .3 * zz ** 2 + powder * .5 + rust * .5, 0, 1)
     save('bronze_rough.png', Image.fromarray((np.clip(rough, 0, 1) * 255).astype(np.uint8)))
+    hbz = streak * .12 + (fbm(N, N, 9) - .5) * .5 + powder * .6 - rust * .8                          # ブラシ目＋白い粉は盛り上がる＋さびは穴
+    save('bronze_normal.png', normal_from_height(hbz, 5.0))
 
 # ======================================================================
 # 4d) 灰色の塗装（柱・台・台座）：はがれ・さびの染み出し
@@ -301,6 +305,8 @@ def make_gray():
     col = col * (1 - grime[..., None] * .55)
     save('gray_paint_color.png', Image.fromarray((np.clip(col, 0, 1) * 255).astype(np.uint8)))
     save('gray_paint_rough.png', Image.fromarray((np.clip(.55 + rm * .3 + grime * .2, 0, 1) * 255).astype(np.uint8)))
+    hg = (fbm(N, N, 9) - .5) * .35 - rm * .6 + np.clip(np.abs(np.gradient(rm)[0]) + np.abs(np.gradient(rm)[1]), 0, 1) * 6 * .15   # はがれはへこみ、ふちは盛り上がる
+    save('gray_paint_normal.png', normal_from_height(hg, 5.0))
 
 # ======================================================================
 # 4e) 天井（水のしみ・カビ）と床（よごれたコンクリート・落ち葉・ひび）
@@ -313,6 +319,7 @@ def make_ceiling():
     mold = np.clip((fbm(N, N, 8) - .6) * 5, 0, 1) * AGE
     col = col * (1 - mold[..., None] * .8) + mold[..., None] * .8 * np.array([.06, .07, .05])         # 黒カビ
     save('ceiling_color.png', Image.fromarray((np.clip(col, 0, 1) * 255).astype(np.uint8)))
+    save('ceiling_normal.png', normal_from_height((fbm(N, N, 8) - .5) * .4 - mold * .4 + stain * .1, 8.0))
 
 def make_floor():
     N = 512
@@ -332,6 +339,8 @@ def make_floor():
             ang += (rng.random() - .5) * .8; x += math.cos(ang) * 22; y += math.sin(ang) * 22; pts.append((x, y))
         d.line(pts, fill=(18, 18, 16), width=2)
     save('floor_color.png', im)
+    lum = np.asarray(im.convert('L')).astype(np.float32) / 255
+    save('floor_normal.png', normal_from_height(lum * .5 + (fbm(N, N, 9) - .5) * .6, 10.0))
     save('floor_rough.png', Image.fromarray((np.clip(.75 + dirt * .2, 0, 1) * 255).astype(np.uint8)))
 
 # ======================================================================

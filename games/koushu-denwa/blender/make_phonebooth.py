@@ -92,11 +92,13 @@ def load_img(fname, srgb=True):
     im.colorspace_settings.name = 'sRGB' if srgb else 'Non-Color'; im.pack(); return im
 img_bronze = load_img('bronze_color.png'); img_bronze_r = load_img('bronze_rough.png', False)
 img_glass_c = load_img('glass_color.png'); img_glass_r = load_img('glass_rough.png', False)
+img_bronze_n = load_img('bronze_normal.png', False); img_gray_n = load_img('gray_paint_normal.png', False)
+img_ceil_n = load_img('ceiling_normal.png', False); img_floor_n = load_img('floor_normal.png', False)
 img_gray = load_img('gray_paint_color.png'); img_gray_r = load_img('gray_paint_rough.png', False)
 img_ceil = load_img('ceiling_color.png'); img_floor = load_img('floor_color.png'); img_floor_r = load_img('floor_rough.png', False)
 
 # ---------- 材質 ----------
-def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img=None, rough_img=None, emis=None, emis_s=0., alpha_img=False):
+def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img=None, rough_img=None, emis=None, emis_s=0., alpha_img=False, normal_img=None, normal_s=1.):
     m = bpy.data.materials.new(name); m.use_nodes = True
     b = m.node_tree.nodes['Principled BSDF']
     b.inputs['Base Color'].default_value = (*color, 1)
@@ -117,16 +119,20 @@ def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img
         ta = [n for n in nt.nodes if n.type == 'TEX_IMAGE' and n.image == color_img][0]
         nt.links.new(ta.outputs['Alpha'], b.inputs['Alpha'])        # 汚れの濃いところは不透明に
     if rough_img: tex(rough_img, 'Roughness')
+    if normal_img:
+        nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = normal_s
+        tn = nt.nodes.new('ShaderNodeTexImage'); tn.image = normal_img
+        nt.links.new(tn.outputs['Color'], nm.inputs['Color']); nt.links.new(nm.outputs['Normal'], b.inputs['Normal'])
     return m
 
-M_BRONZE = new_mat('Bronze', metallic=.85, color_img=img_bronze, rough_img=img_bronze_r)
+M_BRONZE = new_mat('Bronze', metallic=.85, color_img=img_bronze, rough_img=img_bronze_r, normal_img=img_bronze_n, normal_s=1.2)
 M_GLASS = new_mat('Glass', (.8, .92, .88), rough=.03, alpha=.12, color_img=img_glass_c, rough_img=img_glass_r, alpha_img=True)
-M_GRAY = new_mat('GrayPaint', (.36, .37, .38), metallic=.25, rough=.55, color_img=img_gray, rough_img=img_gray_r)
+M_GRAY = new_mat('GrayPaint', (.36, .37, .38), metallic=.25, rough=.55, color_img=img_gray, rough_img=img_gray_r, normal_img=img_gray_n, normal_s=1.2)
 M_STEEL = new_mat('Steel', (.7, .7, .7), metallic=1., rough=.3)
 M_BLACK = new_mat('BlackPlastic', (.015, .015, .015), rough=.35)
 M_TUBE = new_mat('Tube', (.9, .9, .85), rough=.3, emis=(1., 1. - .2 * AGE, 1. - .45 * AGE), emis_s=3.)   # 古い蛍光灯は黄ばむ
-M_CEIL = new_mat('Ceiling', (.75, .75, .72), rough=.7, color_img=img_ceil)
-M_FLOOR = new_mat('FloorConcrete', (.4, .4, .38), rough=.8, color_img=img_floor, rough_img=img_floor_r)
+M_CEIL = new_mat('Ceiling', (.75, .75, .72), rough=.7, color_img=img_ceil, normal_img=img_ceil_n)
+M_FLOOR = new_mat('FloorConcrete', (.4, .4, .38), rough=.8, color_img=img_floor, rough_img=img_floor_r, normal_img=img_floor_n, normal_s=1.3)
 M_INFO = new_mat('InfoPanel', color_img=load_img('info_panel.png'), rough=.4)
 M_CAUTION = new_mat('CautionSticker', color_img=load_img('caution_sticker.png'), rough=.5)
 M_BOOK = [new_mat('Book%d' % i, tuple(v * (1 - .5 * AGE) for v in c), rough=.9) for i, c in enumerate([(.1, .2, .55), (.75, .65, .15), (.8, .8, .78), (.15, .35, .2)])]   # 古い電話帳は色あせて暗い

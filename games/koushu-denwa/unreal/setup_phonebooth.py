@@ -209,6 +209,7 @@ TEX_FILES = [
     "phone_body_albedo.png", "phone_body_rough.png", "caution_sticker.png", "info_panel.png",
     "bronze_color.png", "bronze_rough.png", "glass_color.png", "glass_rough.png", "glass_dirt.png",   # 古び（汚れ）
     "gray_paint_color.png", "gray_paint_rough.png", "ceiling_color.png", "floor_color.png", "floor_rough.png",   # 廃墟
+    "phone_body_normal.png", "bronze_normal.png", "gray_paint_normal.png", "ceiling_normal.png", "floor_normal.png",   # 凹凸（のっぺり対策）
 ]
 
 
@@ -237,6 +238,7 @@ def s_import_tex():
         if "normal" in name:
             setp(a, "compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
             setp(a, "srgb", False)
+            setp(a, "flip_green_channel", True)     # Blender(OpenGL)の凹凸をUnreal(DirectX)向きにそろえる
         elif "rough" in name or name == "glass_dirt":
             setp(a, "compression_settings", unreal.TextureCompressionSettings.TC_MASKS)
             setp(a, "srgb", False)
@@ -306,7 +308,7 @@ def mk_solid(name, color, metallic, rough, spec=0.5):
     return m
 
 
-def mk_textured(name, albedo, rough_tex=None, rough_const=0.5, metallic=0.0, tint=1.0):
+def mk_textured(name, albedo, rough_tex=None, rough_const=0.5, metallic=0.0, tint=1.0, normal_tex=None):
     m = new_material(name)
     base = tex_node(m, albedo, -200)
     if tint != 1.0:      # 色を暗く・明るく（1より小さいと暗い）
@@ -317,6 +319,8 @@ def mk_textured(name, albedo, rough_tex=None, rough_const=0.5, metallic=0.0, tin
     else:
         mel.connect_material_property(c1(m, rough_const, 100), "", MP.MP_ROUGHNESS)
     mel.connect_material_property(c1(m, metallic, 200), "", MP.MP_METALLIC)
+    if normal_tex is not None:
+        mel.connect_material_property(tex_node(m, normal_tex, 300, normal=True), "", MP.MP_NORMAL)
     finish(m)
     return m
 
@@ -339,15 +343,15 @@ def s_materials():
         M[name] = mk_solid("M_" + name, col, met, rg)
     # 画像つきの材質
     if "bronze_color" in T:       # 枠：ブラシ目・白い腐食粉・さび
-        M["Bronze"] = mk_textured("M_Bronze", T["bronze_color"], T.get("bronze_rough"), metallic=0.85)
+        M["Bronze"] = mk_textured("M_Bronze", T["bronze_color"], T.get("bronze_rough"), metallic=0.85, normal_tex=T.get("bronze_normal"))
     if "gray_paint_color" in T:   # 柱・台・台座：塗装はがれ・さび
-        M["GrayPaint"] = mk_textured("M_GrayPaint", T["gray_paint_color"], T.get("gray_paint_rough"), metallic=0.25)
+        M["GrayPaint"] = mk_textured("M_GrayPaint", T["gray_paint_color"], T.get("gray_paint_rough"), metallic=0.25, normal_tex=T.get("gray_paint_normal"))
     if "ceiling_color" in T:      # 天井：水のしみ・カビ
-        M["Ceiling"] = mk_textured("M_Ceiling", T["ceiling_color"], rough_const=0.7)
+        M["Ceiling"] = mk_textured("M_Ceiling", T["ceiling_color"], rough_const=0.7, normal_tex=T.get("ceiling_normal"))
     if "floor_color" in T:        # 床：泥・落ち葉・ひび
-        M["FloorConcrete"] = mk_textured("M_FloorConcrete", T["floor_color"], T.get("floor_rough"))
+        M["FloorConcrete"] = mk_textured("M_FloorConcrete", T["floor_color"], T.get("floor_rough"), normal_tex=T.get("floor_normal"))
     if "phone_body_albedo" in T:
-        M["PhoneGreen"] = mk_textured("M_PhoneGreen", T["phone_body_albedo"], T.get("phone_body_rough"), tint=0.7)   # ひかるが調整した値（0.7）
+        M["PhoneGreen"] = mk_textured("M_PhoneGreen", T["phone_body_albedo"], T.get("phone_body_rough"), tint=0.7, normal_tex=T.get("phone_body_normal"))   # ひかるが調整した値（0.7）
     if "phone_keys_atlas" in T:
         M["PhoneKeys"] = mk_textured("M_PhoneKeys", T["phone_keys_atlas"], rough_const=0.3)
     if "caution_sticker" in T:

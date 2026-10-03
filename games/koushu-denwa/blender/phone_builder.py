@@ -64,7 +64,7 @@ class Builder:
         return m
 
     def _mats(self):
-        self.M_GREEN = self.mat('PhoneGreen', color_img=self.img('phone_body_albedo.png'), rough_img=self.img('phone_body_rough.png', False), coat=.6)
+        self.M_GREEN = self.mat('PhoneGreen', color_img=self.img('phone_body_albedo.png'), rough_img=self.img('phone_body_rough.png', False), normal_img=self.img('phone_body_normal.png', False), normal_s=1.2, coat=.6)
         self.M_PANEL = self.mat('PhonePanel', color_img=self.img('phone_panel_albedo.png'), normal_img=self.img('phone_panel_normal.png', False), rough=.5, normal_s=1.2)
         self.M_LCD = self.mat('LCD', color=(.2, .1, .02), rough=.15, emis_img=self.img('phone_lcd.png'), emis_s=.9)
         self.M_KEYS = self.mat('PhoneKeys', color_img=self.img('phone_keys_atlas.png'), rough=.3)
