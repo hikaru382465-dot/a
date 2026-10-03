@@ -28,10 +28,10 @@ import unreal
 REPO_ROOT = ""                      # 空なら、このファイルの場所から自動で求める
 GAME_DIR = "/Game/KoushuDenwa"
 TAG = "KD_Forest"
-TREE_COUNT = 70                     # 松＋枯れ木の数（重いときは 40 に）
-ROCK_COUNT = 30
+TREE_COUNT = 30                     # 松＋枯れ木の数（重いときは 40 に）
+ROCK_COUNT = 12
 STUMP_COUNT = 6
-FOREST_RADIUS = 4500.0              # 森の広がり（cm）。4500 = 半径45m
+FOREST_RADIUS = 2600.0              # 森の広がり（cm）。4500 = 半径45m
 CLEARING_RADIUS = 650.0             # 電話ボックスのまわりの空き地（cm）
 PATH_HALF_WIDTH = 300.0             # 道のまわりに木を置かない幅（cm）
 EXTERNAL_TREE_FOLDER = ""           # 例 "/Game/Fab" 。空なら、自作の木を使う
