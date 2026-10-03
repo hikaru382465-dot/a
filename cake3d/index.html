@@ -136,6 +136,30 @@ function textTexture(text,color,size=512){
   lines.forEach((l,i)=>g.fillText(l,size/2,size/2+(i-(lines.length-1)/2)*lh)); return toTex(c);
 }
 
+
+/* ---------- しぼり袋の形（フリル・ロゼット） ---------- */
+function gridGeo(nu,nv,f){ // f(u,v)->[x,y,z] ; u:0..1 周方向, v:0..1
+  const pos=[],idx=[];
+  for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++)pos.push(...f(i/nu,j/nv));
+  for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){ const a=j*(nu+1)+i,b=a+1,c=a+nu+1,d=c+1; idx.push(a,c,b,b,c,d); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+function frillGeo(y0,H,N,R=1.0,A=.085){ // ひだ付きの帯（下が広がる）
+  return gridGeo(N*14,10,(u,v)=>{
+    const a=u*PI2, k=N*a, w=Math.sin(k)+.12*Math.sin(2*k+1.2);
+    const rad=R+.03+v*.05+A*(.5+.8*v)*w;
+    const y=y0+v*H-(1-v)*.045*(.5+.5*Math.cos(k+.9))+.025*v*Math.sin(k+.5);
+    return [Math.sin(a)*rad,y,Math.cos(a)*rad];
+  });
+}
+function rosetteGeo(r,h,pts=11){ // 星口金のうず巻きしぼり
+  return gridGeo(pts*8,14,(u,v)=>{
+    const a=u*PI2, t=v, prof=r*Math.pow(Math.max(0,1-Math.pow(t,1.6)),.65)+.004;
+    const rr=prof*(1+.14*Math.cos(pts*a+t*7));
+    return [rr*Math.cos(a),t*h,rr*Math.sin(a)];
+  });
+}
+
 /* ---------- パーツ作り ---------- */
 const empty = () => new THREE.Group();
 const ringPoint = (a,r) => [Math.sin(a)*r, Math.cos(a)*r];
@@ -164,7 +188,8 @@ const B = {
   },
   body(p){
     const g=new THREE.Group(), h=HEIGHTS[p.variant]||1.2;
-    const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,h,96),creamMat(p.color)); m.position.y=BASE_Y+h/2; g.add(m); return g;
+    const bm=creamMat(p.color); bm.bumpMap=noiseTex.clone(); bm.bumpMap.repeat.set(40,2); bm.bumpMap.needsUpdate=true; bm.bumpScale=.9;
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,h,128),bm); m.position.y=BASE_Y+h/2; g.add(m); return g;
   },
   drip(p,ctx){
     const g=new THREE.Group(); if(p.variant==='none')return g;
@@ -188,12 +213,12 @@ const B = {
     if(p.variant==='pearls'){
       for(let i=0;i<46;i++) put(new THREE.Mesh(new THREE.SphereGeometry(.055,16,12),sh),i/46*PI2,1.0,y);
     }else if(p.variant==='dollops'){
-      for(let i=0;i<14;i++){ const m=put(new THREE.Mesh(new THREE.SphereGeometry(.17,20,14),cm),i/14*PI2,.97,y+.02); m.scale.y=.85; }
+      const dg=rosetteGeo(.2,.26,10);
+      for(let i=0;i<15;i++){ const m=put(new THREE.Mesh(dg,cm),i/15*PI2,.98,y-.04); m.rotation.y=i*.7; }
     }else if(p.variant==='ruffle'){
-      for(let k=0;k<2;k++) for(let i=0;i<52;i++){
-        const m=put(new THREE.Mesh(new THREE.CapsuleGeometry(.045,.13,4,8),cm),(i+k*.5)/52*PI2,1.02+k*.03,y+k*.1+(i%2?.02:-.02));
-        m.rotation.z=i%2?.6:-.6;
-      }
+      const fm=mat(p.color,{roughness:.6,bumpMap:noiseTex,bumpScale:.4,side:THREE.DoubleSide});
+      g.add(new THREE.Mesh(frillGeo(y-.17,.3,30,1.0,.05),fm));
+      const f2=new THREE.Mesh(frillGeo(y-.1,.28,30,.99,.045),fm); f2.rotation.y=Math.PI/30; g.add(f2);
     }else if(p.variant==='seaweed'){
       for(let i=0;i<18;i++) for(let k=0;k<3;k++){
         const h=.22+r()*.3, a=(i+k*.28)/18*PI2;
