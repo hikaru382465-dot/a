@@ -35,6 +35,8 @@ FOREST_RADIUS = 4500.0              # 森の広がり（cm）。4500 = 半径45m
 CLEARING_RADIUS = 650.0             # 電話ボックスのまわりの空き地（cm）
 PATH_HALF_WIDTH = 300.0             # 道のまわりに木を置かない幅（cm）
 EXTERNAL_TREE_FOLDER = ""           # 例 "/Game/Fab" 。空なら、自作の木を使う
+MESH_ROLL = 90.0          # 木・岩を立てる回転（立たないときは -90 にする）
+MESH_PITCH = 0.0
 GROUND_DARK = 0.35        # 地面の暗さ（小さいほど暗い。1.0でそのまま）
 MOON_INTENSITY = 0.2      # 月の光（setup_phonebooth.py では 0.5）
 SKY_INTENSITY = 0.12      # 空の光（同 0.3）
@@ -327,15 +329,19 @@ def s_import_trees():
             meshes[key].append(a)
     # Fab など外部の木を足す
     if EXTERNAL_TREE_FOLDER:
+        ext = {"pine": [], "rock": []}
         for p in unreal.EditorAssetLibrary.list_assets(EXTERNAL_TREE_FOLDER, recursive=True, include_folder=False):
             a = unreal.EditorAssetLibrary.load_asset(p)
             if isinstance(a, unreal.StaticMesh):
                 low = a.get_name().lower()
                 if "pine" in low or "tree" in low or "conifer" in low:
-                    meshes["pine"].append(a)
+                    ext["pine"].append(a)
                 elif "rock" in low or "boulder" in low:
-                    meshes["rock"].append(a)
-        log("外部の木を追加しました（%s）" % EXTERNAL_TREE_FOLDER)
+                    ext["rock"].append(a)
+        for k in ("pine", "rock"):
+            if ext[k]:
+                meshes[k] = ext[k]               # 自作のものと入れ替える（枯れ木・切り株は自作のまま）
+        log("外部の木と入れ替えました（%s）松=%d 岩=%d" % (EXTERNAL_TREE_FOLDER, len(ext["pine"]), len(ext["rock"])))
     STATE["meshes"] = meshes
     log("木・岩: " + ", ".join("%s=%d" % (k, len(v)) for k, v in meshes.items()))
     if not meshes["pine"]:
@@ -432,30 +438,23 @@ def s_ground():
 
 
 # ---------------- 7) 木・岩・切り株を散らす ----------------
-_ORIENT = {}
-
-
 def orient_for(mesh):
-    """取り込んだ形が横倒しのとき、立つ向き (roll, pitch) を試して決める。
-    試したうち、足もとが地面(z=0)にいちばん近いものを選ぶ（同点なら背の高いほう）。"""
+    """取り込んだ木・岩は横倒しなので、roll=90 で立てる（ひかるが手作業で確かめた値）"""
+    if EXTERNAL_TREE_FOLDER and mesh.get_path_name().startswith(EXTERNAL_TREE_FOLDER):
+        return (0.0, 0.0)
+    return (MESH_ROLL, MESH_PITCH)
+
+
+def unit_of(mesh):
+    """大きさが m 単位（小さい）なら 100 倍、すでに cm（大きい）なら 1 倍"""
     key = mesh.get_path_name()
-    if key in _ORIENT:
-        return _ORIENT[key]
-    best = None
-    tmp = spawn(unreal.StaticMeshActor, (0, 0, 0), (0, 0, 0))
-    comp = tmp.get_component_by_class(unreal.StaticMeshComponent)
-    comp.set_static_mesh(mesh)
-    for roll, pitch in ((0, 0), (90, 0), (-90, 0), (0, 90), (0, -90), (180, 0)):
-        tmp.set_actor_rotation(unreal.Rotator(roll, pitch, 0), False)
-        o, e = tmp.get_actor_bounds(False)
-        low = abs(o.z - e.z) / max(e.z, 1e-6)
-        score = (round(low, 2), -e.z)
-        if best is None or score < best[0]:
-            best = (score, roll, pitch)
-    eas().destroy_actor(tmp)
-    _ORIENT[key] = (best[1], best[2])
-    log("  向きの補正 %s → roll=%s pitch=%s" % (mesh.get_name(), best[1], best[2]))
-    return _ORIENT[key]
+    if key not in _UNITS:
+        e = mesh.get_bounds().box_extent
+        _UNITS[key] = 1.0 if max(e.x, e.y, e.z) * 2.0 > 300 else 100.0
+    return _UNITS[key]
+
+
+_UNITS = {}
 
 
 def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None):
@@ -484,7 +483,8 @@ def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None)
         comp = act.get_component_by_class(unreal.StaticMeshComponent)
         comp.set_static_mesh(m)
         setp(comp, "mobility", unreal.ComponentMobility.STATIC)
-        act.set_actor_scale3d(unreal.Vector(100.0 * s, 100.0 * s, 100.0 * s))   # Blenderは m、UEは cm。FBX変換で100倍になっていない場合に備える
+        k = unit_of(m) * s
+        act.set_actor_scale3d(unreal.Vector(k, k, k))   # Blenderは m、UEは cm。FBX変換で100倍になっていない場合に備える
         tag_actor(act, "%s_%03d" % (kind, n))
         placed.append((x, y))
         n += 1
@@ -494,15 +494,6 @@ def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None)
 def s_scatter():
     rng = random.Random(1998)
     placed = []
-    # 取り込み後の大きさの確認：松の高さが 700〜1500cm くらいなら、1倍でよい
-    m = STATE["meshes"]["pine"][0]
-    ext = m.get_bounds().box_extent
-    h = max(ext.x, ext.y, ext.z) * 2.0           # 横倒しでも測れるよう、いちばん長い辺を使う
-    unit = 1.0 if h > 300 else 100.0
-    STATE["unit"] = unit
-    log("松Aの高さ=%.1f → 倍率の補正=%s" % (h, unit))
-    global _UNIT
-    _UNIT = unit
     n_trees = scatter("pine", int(TREE_COUNT * 0.75), rng, placed, 260.0, (0.8, 1.35), tilt=1.5)
     n_dead = scatter("dead", TREE_COUNT - int(TREE_COUNT * 0.75), rng, placed, 260.0, (0.8, 1.3), tilt=2.0)
     n_rock = scatter("rock", ROCK_COUNT, rng, placed, 160.0, (0.7, 1.6), tilt=6.0)
@@ -510,23 +501,9 @@ def s_scatter():
     log("置いた数: 松=%d 枯れ木=%d 岩=%d 切り株=%d" % (n_trees, n_dead, n_rock, n_stump))
 
 
-_UNIT = 1.0
-
-
 def s_fix_scale():
-    """FBXの変換で、すでに cm になっている場合は、倍率 100 を 1 に直す"""
-    if _UNIT != 1.0:
-        return
-    k = 0
-    for a in eas().get_all_level_actors():
-        try:
-            if TAG in [str(t) for t in a.get_editor_property("tags")] and any(label_of(a).startswith(p) for p in ("pine_", "dead_", "rock_", "stump_")):
-                s = a.get_actor_scale3d()
-                a.set_actor_scale3d(unreal.Vector(s.x / 100.0, s.y / 100.0, s.z / 100.0))
-                k += 1
-        except Exception:  # noqa
-            pass
-    log("倍率を直した数: %d" % k)
+    """倍率はメッシュごとに scatter() で決めているので、ここでは何もしない"""
+    log("倍率はメッシュごとに設定済み")
 
 
 # ---------------- 8) 霧を濃く ----------------
