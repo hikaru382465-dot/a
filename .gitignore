@@ -1,2 +1,4 @@
 .check/
 private/
+__pycache__/
+*.pyc
