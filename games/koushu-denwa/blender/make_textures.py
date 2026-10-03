@@ -16,6 +16,8 @@ os.makedirs(OUT, exist_ok=True)
 FONT = next((p for p in ['/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf', '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf',
                          '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'] if os.path.exists(p)), None)
 rng = np.random.default_rng(1998)
+# 古びの強さ（0=新品 〜 1=ぼろぼろ）。環境変数 KD_AGE でも変えられる。おすすめは 0.5
+AGE = float(os.environ.get('KD_AGE', '0.5'))
 def F(size): return ImageFont.truetype(FONT, size)
 
 def fbm(h, w, octaves=6):
@@ -26,6 +28,15 @@ def fbm(h, w, octaves=6):
         im = Image.fromarray(small).resize((w, h), Image.BICUBIC)
         out += np.asarray(im) * amp; tot += amp; amp *= .5
     return out / tot
+
+def streaks(h, w, strength=1.0):
+    """上から下へ流れる汚れの筋（雨だれ）。0〜1"""
+    col = np.convolve(rng.random(w).astype(np.float32), np.ones(7, np.float32) / 7, mode='same')
+    col = np.clip((col - np.percentile(col, 55)) * 6.0, 0, 1)
+    zz = np.linspace(0, 1, h, dtype=np.float32)[:, None]
+    length = rng.random(w).astype(np.float32)[None, :] * .8 + .2           # 筋ごとに流れる長さが違う
+    prof = np.clip(1.0 - np.abs(zz - .15) / length, 0, 1) * (.4 + .6 * zz)
+    return col[None, :] * prof * strength
 
 def save(name, img):
     p = os.path.join(OUT, name); img.save(p, optimize=True); print('保存', name, img.size, os.path.getsize(p) // 1024, 'KB')
@@ -129,9 +140,12 @@ def make_panel():
 
     # 汚れ・ひっかき傷（少しだけ）
     arr = np.asarray(img).astype(np.float32) / 255
-    dirt = np.clip(fbm(h, w, 6) - .55, 0, 1) * .35
+    dirt = np.clip(fbm(h, w, 6) - .55, 0, 1) * (.15 + .55 * AGE)
     arr = arr * (1 - dirt[..., None]) + dirt[..., None] * np.array([.28, .27, .22])
-    for _ in range(30):
+    st = streaks(h, w) * AGE * .6                                   # 雨だれの筋
+    arr = arr * (1 - st[..., None] * .5) + st[..., None] * .5 * np.array([.20, .18, .12])
+    arr = arr * (1 - .10 * AGE) + np.array([.30, .27, .14]) * .10 * AGE   # 黄ばみ（うすいくもり）
+    for _ in range(int(30 + 110 * AGE)):
         y = rng.integers(0, h); x = rng.integers(0, w); ln = rng.integers(20, 90) * S; a = rng.random() * math.pi
         for t in range(ln):
             xx, yy = int(x + math.cos(a) * t), int(y + math.sin(a) * t)
@@ -168,9 +182,12 @@ def make_keys():
     labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '＊', '0', '＃']
     for i, s in enumerate(labels):
         cx, cy = (i % 3) * C + C // 2, (i // 3) * C + C // 2
-        d.ellipse([cx - 120, cy - 120, cx + 120, cy + 120], fill=(14, 15, 14), outline=(205, 160, 56), width=10)
+        wear = AGE * (.25 + .5 * rng.random())                     # ボタンごとにすり減りが違う
+        gold = tuple(int(c * (1 - wear * .5) + 70 * wear * .5) for c in (222, 178, 68))
+        ring = tuple(int(c * (1 - wear * .5) + 60 * wear * .5) for c in (205, 160, 56))
+        d.ellipse([cx - 120, cy - 120, cx + 120, cy + 120], fill=(14, 15, 14), outline=ring, width=10)
         d.ellipse([cx - 96, cy - 96, cx + 96, cy + 96], fill=(22, 23, 21))
-        d.text((cx, cy - 4), s, font=F(130), fill=(222, 178, 68), anchor='mm')
+        d.text((cx, cy - 4), s, font=F(130), fill=gold, anchor='mm')
     save('phone_keys_atlas.png', img)
 
 # ======================================================================
@@ -192,10 +209,57 @@ def make_body():
             if 0 <= xx < N and 0 <= yy < N: sc[yy, xx] = 1
     sc = np.asarray(Image.fromarray((sc * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.8))) / 255.
     a = a * (1 - .5 * sc[..., None]) + sc[..., None] * .18
+    # ---- 古び：色あせ・雨だれの筋・上面のほこり ----
+    fade = .30 * AGE
+    a = a * (1 - fade) + np.array([.16, .30, .10], np.float32)[None, None] * fade
+    st = streaks(N, N) * AGE * .9
+    a = a * (1 - st[..., None] * .55) + st[..., None] * .55 * np.array([.06, .05, .03])
+    dust = np.clip(fbm(N, N, 6) - .5, 0, 1) * 2 * AGE * (.4 + .6 * (1 - zz))
+    a = a * (1 - dust[..., None] * .4) + dust[..., None] * .4 * np.array([.30, .27, .20])
     srgb = np.clip(a, 0, 1) ** (1 / 2.2)
     save('phone_body_albedo.png', Image.fromarray((srgb * 255).astype(np.uint8)))
-    rough = np.clip(.26 + dirt * .5 + sc * .3 + (n - .5) * .1, 0, 1)
+    rough = np.clip(.26 + AGE * .20 + dirt * .5 + sc * .3 + dust * .3 + st * .2 + (n - .5) * .1, 0, 1)
     save('phone_body_rough.png', Image.fromarray((rough * 255).astype(np.uint8)))
+
+# ======================================================================
+# 4b) ガラスの汚れ（下ほど濃い・雨だれ・手形の拭き跡）
+# ======================================================================
+def make_glass():
+    N = 512
+    zz = np.linspace(0, 1, N, dtype=np.float32)[:, None]
+    base = np.clip(fbm(N, N, 6) - .40, 0, 1) * 1.8
+    m = base * (.25 + .9 * zz ** 1.5) + streaks(N, N) * .8
+    yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
+    for (cx, cy, rx, ry) in ((.62, .45, .05, .08), (.66, .40, .025, .04), (.30, .55, .05, .075), (.34, .50, .025, .04)):
+        e = ((xx / N - cx) / rx) ** 2 + ((yy / N - cy) / ry) ** 2
+        m = m * (1 - np.clip(1.2 - e, 0, 1) * .75)                   # 手の跡は汚れが拭き取られる
+    m = np.clip(m * AGE * 1.6, 0, 1)
+    save('glass_dirt.png', Image.fromarray((m * 255).astype(np.uint8)))
+    save('glass_rough.png', Image.fromarray((np.clip(.04 + m * .66, 0, 1) * 255).astype(np.uint8)))
+    rgb = np.stack([.80 - m * .45, .92 - m * .40, .88 - m * .55], -1)
+    alpha = np.clip(.12 + m * .55, 0, 1)[..., None]
+    rgba = np.concatenate([rgb, alpha], -1)
+    save('glass_color.png', Image.fromarray((np.clip(rgba, 0, 1) * 255).astype(np.uint8), 'RGBA'))
+
+# ======================================================================
+# 4c) ブロンズ色のアルミ枠（ブラシ目・白い腐食粉・さび）
+# ======================================================================
+def make_bronze():
+    N = 512
+    n3 = fbm(N, N, 8)
+    streak = rng.random((1, N)).astype(np.float32)
+    streak = (streak + np.roll(streak, 1, 1) + np.roll(streak, -1, 1)) / 3
+    zz = np.linspace(0, 1, N, dtype=np.float32)[:, None]
+    bronze = np.array([.115, .085, .065], np.float32)[None, None] * (.8 + .35 * streak[..., None] + .2 * (n3[..., None] - .5)) * (1 - .35 * (zz ** 2)[..., None])
+    powder = np.clip((fbm(N, N, 6) - .52) * 3, 0, 1) * AGE * .9 * (.4 + .6 * zz)      # 白い腐食の粉
+    rust = np.clip((fbm(N, N, 5) - .58) * 3, 0, 1) * AGE * .5 * zz ** 1.5               # さび
+    st = streaks(N, N) * AGE * .6
+    bronze = bronze * (1 - powder[..., None] * .7) + powder[..., None] * .7 * np.array([.42, .40, .36])
+    bronze = bronze * (1 - rust[..., None]) + rust[..., None] * np.array([.22, .085, .03])
+    bronze = bronze * (1 - st[..., None] * .4)
+    save('bronze_color.png', Image.fromarray((np.clip(bronze, 0, 1) * 255).astype(np.uint8)))
+    rough = np.clip(.32 + .25 * streak + .3 * zz ** 2 + powder * .5 + rust * .5, 0, 1)
+    save('bronze_rough.png', Image.fromarray((np.clip(rough, 0, 1) * 255).astype(np.uint8)))
 
 # ======================================================================
 # 5) 注意シール（「注意」＋3つの禁止マーク）
@@ -241,7 +305,7 @@ def make_info():
     save('info_panel.png', Image.fromarray((np.clip(arr, 0, 1) * 255).astype(np.uint8)))
 
 if __name__ == '__main__':
-    info = make_panel(); make_lcd(); make_keys(); make_body(); make_caution(); make_info()
+    info = make_panel(); make_lcd(); make_keys(); make_body(); make_glass(); make_bronze(); make_caution(); make_info()
     import json
     json.dump({k: (list(v) if isinstance(v, tuple) else v) for k, v in info.items()}, open(os.path.join(OUT, 'panel_layout.json'), 'w'))
     print('完了')

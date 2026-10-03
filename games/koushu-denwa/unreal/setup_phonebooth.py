@@ -207,6 +207,7 @@ def s_import_fbx():
 TEX_FILES = [
     "phone_panel_albedo.png", "phone_panel_normal.png", "phone_lcd.png", "phone_keys_atlas.png",
     "phone_body_albedo.png", "phone_body_rough.png", "caution_sticker.png", "info_panel.png",
+    "bronze_color.png", "bronze_rough.png", "glass_color.png", "glass_rough.png", "glass_dirt.png",   # 古び（汚れ）
 ]
 
 
@@ -235,7 +236,7 @@ def s_import_tex():
         if "normal" in name:
             setp(a, "compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
             setp(a, "srgb", False)
-        elif "rough" in name:
+        elif "rough" in name or name == "glass_dirt":
             setp(a, "compression_settings", unreal.TextureCompressionSettings.TC_MASKS)
             setp(a, "srgb", False)
         unreal.EditorAssetLibrary.save_loaded_asset(a)
@@ -304,9 +305,12 @@ def mk_solid(name, color, metallic, rough, spec=0.5):
     return m
 
 
-def mk_textured(name, albedo, rough_tex=None, rough_const=0.5, metallic=0.0):
+def mk_textured(name, albedo, rough_tex=None, rough_const=0.5, metallic=0.0, tint=1.0):
     m = new_material(name)
-    mel.connect_material_property(tex_node(m, albedo, -200), "", MP.MP_BASE_COLOR)
+    base = tex_node(m, albedo, -200)
+    if tint != 1.0:      # 色を暗く・明るく（1より小さいと暗い）
+        base = mul(m, base, c1(m, tint, -150), -200)
+    mel.connect_material_property(base, "", MP.MP_BASE_COLOR)
     if rough_tex is not None:
         mel.connect_material_property(tex_node(m, rough_tex, 100), "R", MP.MP_ROUGHNESS)
     else:
@@ -333,8 +337,10 @@ def s_materials():
     ]:
         M[name] = mk_solid("M_" + name, col, met, rg)
     # 画像つきの材質
+    if "bronze_color" in T:       # 枠：ブラシ目・白い腐食粉・さび
+        M["Bronze"] = mk_textured("M_Bronze", T["bronze_color"], T.get("bronze_rough"), metallic=0.85)
     if "phone_body_albedo" in T:
-        M["PhoneGreen"] = mk_textured("M_PhoneGreen", T["phone_body_albedo"], T.get("phone_body_rough"))
+        M["PhoneGreen"] = mk_textured("M_PhoneGreen", T["phone_body_albedo"], T.get("phone_body_rough"), tint=0.7)   # ひかるが調整した値（0.7）
     if "phone_keys_atlas" in T:
         M["PhoneKeys"] = mk_textured("M_PhoneKeys", T["phone_keys_atlas"], rough_const=0.3)
     if "caution_sticker" in T:
@@ -359,14 +365,20 @@ def s_materials():
         mel.connect_material_property(c1(m, 0.2, 300), "", MP.MP_ROUGHNESS)
         finish(m)
         M["LCD"] = m
-    # ガラス（半透明）
+    # ガラス（半透明。汚れの濃いところは不透明・ざらざらに）
     m = new_material("M_Glass")
     setp(m, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
     setp(m, "translucency_lighting_mode", unreal.TranslucencyLightingMode.TLM_SURFACE_PER_PIXEL_LIGHTING)
     setp(m, "two_sided", True)
-    mel.connect_material_property(c3(m, 0.02, 0.025, 0.022, -200), "", MP.MP_BASE_COLOR)
-    mel.connect_material_property(c1(m, 0.15, -100), "", MP.MP_OPACITY)
-    mel.connect_material_property(c1(m, 0.04, 0), "", MP.MP_ROUGHNESS)
+    if "glass_color" in T and "glass_rough" in T:
+        gc = tex_node(m, T["glass_color"], -200)
+        mel.connect_material_property(mul(m, gc, c1(m, 0.15, -250), -200), "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(gc, "A", MP.MP_OPACITY)                     # 画像のアルファ＝汚れの濃さ
+        mel.connect_material_property(tex_node(m, T["glass_rough"], 0), "R", MP.MP_ROUGHNESS)
+    else:
+        mel.connect_material_property(c3(m, 0.02, 0.025, 0.022, -200), "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(c1(m, 0.15, -100), "", MP.MP_OPACITY)
+        mel.connect_material_property(c1(m, 0.04, 0), "", MP.MP_ROUGHNESS)
     mel.connect_material_property(c1(m, 0.6, 100), "", MP.MP_SPECULAR)
     finish(m)
     M["Glass"] = m
@@ -376,7 +388,7 @@ def s_materials():
     flick = x_(m, unreal.MaterialExpressionScalarParameter, -800, 100)
     setp(flick, "parameter_name", "Flicker")
     setp(flick, "default_value", 1.0)
-    base = mul(m, c3(m, 0.92, 1.0, 0.90, -100), c1(m, 25.0, 0), -100)
+    base = mul(m, c3(m, 1.0, 0.90, 0.78, -100), c1(m, 25.0, 0), -100)   # 古い蛍光灯は黄ばむ
     mel.connect_material_property(mul(m, base, flick, 0), "", MP.MP_EMISSIVE_COLOR)
     finish(m)
     M["Tube"] = m
@@ -530,7 +542,7 @@ def s_lighting():
     setp_override(s, "reflection_method", unreal.ReflectionMethod.LUMEN)
     setp_override(s, "auto_exposure_method", unreal.AutoExposureMethod.AEM_MANUAL)
     setp_override(s, "auto_exposure_apply_physical_camera_exposure", False)
-    setp_override(s, "auto_exposure_bias", 1.0)
+    setp_override(s, "auto_exposure_bias", -7.8)   # ひかるが調整した値。この版は大きいほど明るい
     setp_override(s, "bloom_intensity", 0.8)
     setp_override(s, "vignette_intensity", 0.55)
     setp_override(s, "film_grain_intensity", 0.25)
@@ -561,7 +573,7 @@ def s_tubes():
         c = r.get_component_by_class(unreal.RectLightComponent)
         setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
         setp(c, "intensity_units", unreal.LightUnits.LUMENS)
-        setp(c, "intensity", 800.0)
+        setp(c, "intensity", 1500.0)   # ひかるが調整した値
         setp(c, "use_temperature", True)
         setp(c, "temperature", 5000.0)
         setp(c, "light_color", unreal.Color(235, 255, 230, 255))

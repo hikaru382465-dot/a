@@ -20,6 +20,7 @@ import numpy as np
 # ------------ 調整できる数字 ------------
 BW = 1.25         # ボックスの幅と奥行き（メートル。本物は約1m、ゲームで動けるよう少し広め）
 BH = 2.3          # 高さ
+AGE = float(os.environ.get('KD_AGE', '0.5'))   # 古びの強さ 0〜1（make_textures.py と同じ数字）
 RUST = 0.3        # さびの量 0〜1
 DIRT = 0.5        # ガラスの汚れの量 0〜1
 SEED = 19980714
@@ -77,13 +78,6 @@ paint = paint * (1 - .35 * np.clip(fbm(N, 4) - .55, 0, 1)[..., None]) + scratch[
 paint_rough = np.clip(.45 + rust_mask * .45 + (n3 - .5) * .2, 0, 1)
 img_paint = make_image('paint_color', np.clip(paint, 0, 1))
 img_paint_r = make_image('paint_rough', paint_rough, srgb=False)
-# ブロンズ色のアルミ（縦のブラシ目＋下ほど汚れ）
-streak = fbm(N, 3)[:1, :] * 0 + rng.random((1, N)).astype(np.float32)
-streak = (streak + np.roll(streak, 1, 1) + np.roll(streak, -1, 1)) / 3
-zz = np.linspace(0, 1, N, dtype=np.float32)[:, None]
-bronze = np.array([.115, .085, .065], np.float32)[None, None] * (.8 + .35 * streak[..., None] + .2 * (n3[..., None] - .5)) * (1 - .35 * (zz ** 2)[..., None])
-img_bronze = make_image('bronze_color', np.clip(bronze, 0, 1))
-img_bronze_r = make_image('bronze_rough', np.clip(.32 + .25 * streak + .3 * (zz ** 2), 0, 1), srgb=False)
 # 青い料金案内板（青地に白い表）
 info = np.zeros((160, 256, 3), np.float32); info[:] = (.05, .22, .55)
 info[:22] = (.02, .12, .4); info[22:26] = (.9, .75, .1)
@@ -93,18 +87,20 @@ for r in range(6):
     for c in range(1, 5): info[y:y + 14, 10 + c * 47:12 + c * 47] = (.05, .22, .55)
     info[y + 5:y + 8, 16:40] = (.1, .2, .5)
 img_info = make_image('info_panel', np.clip(info + rng.normal(0, .015, info.shape).astype(np.float32), 0, 1))
-dirt = np.clip((fbm(N, 7) - .35) * 1.8 * DIRT * 1.6, 0, 1)
-img_glass_r = make_image('glass_rough', np.clip(.04 + dirt * .8, 0, 1), srgb=False)
-img_glass_c = make_image('glass_color', np.clip(np.stack([.8 - dirt * .4, .92 - dirt * .35, .88 - dirt * .5], -1), 0, 1))
+def load_img(fname, srgb=True):
+    im = bpy.data.images.load(os.path.join(TEX_DIR, fname), check_existing=True)
+    im.colorspace_settings.name = 'sRGB' if srgb else 'Non-Color'; im.pack(); return im
+img_bronze = load_img('bronze_color.png'); img_bronze_r = load_img('bronze_rough.png', False)
+img_glass_c = load_img('glass_color.png'); img_glass_r = load_img('glass_rough.png', False)
 
 # ---------- 材質 ----------
-def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img=None, rough_img=None, emis=None, emis_s=0.):
+def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img=None, rough_img=None, emis=None, emis_s=0., alpha_img=False):
     m = bpy.data.materials.new(name); m.use_nodes = True
     b = m.node_tree.nodes['Principled BSDF']
     b.inputs['Base Color'].default_value = (*color, 1)
     b.inputs['Metallic'].default_value = metallic
     b.inputs['Roughness'].default_value = rough
-    if alpha < 1:
+    if alpha < 1 or alpha_img:
         b.inputs['Alpha'].default_value = alpha
         try: m.blend_method = 'BLEND'
         except Exception: pass
@@ -115,19 +111,19 @@ def new_mat(name, color=(.5, .5, .5), metallic=0., rough=.5, alpha=1., color_img
         t = nt.nodes.new('ShaderNodeTexImage'); t.image = img
         nt.links.new(t.outputs['Color'], b.inputs[target])
     if color_img: tex(color_img, 'Base Color')
+    if alpha_img and color_img:
+        ta = [n for n in nt.nodes if n.type == 'TEX_IMAGE' and n.image == color_img][0]
+        nt.links.new(ta.outputs['Alpha'], b.inputs['Alpha'])        # 汚れの濃いところは不透明に
     if rough_img: tex(rough_img, 'Roughness')
     return m
 
 M_BRONZE = new_mat('Bronze', metallic=.85, color_img=img_bronze, rough_img=img_bronze_r)
-M_GLASS = new_mat('Glass', (.8, .92, .88), rough=.03, alpha=.12, color_img=img_glass_c, rough_img=img_glass_r)
+M_GLASS = new_mat('Glass', (.8, .92, .88), rough=.03, alpha=.12, color_img=img_glass_c, rough_img=img_glass_r, alpha_img=True)
 M_GRAY = new_mat('GrayPaint', (.36, .37, .38), metallic=.4, rough=.55)
 M_STEEL = new_mat('Steel', (.7, .7, .7), metallic=1., rough=.3)
 M_BLACK = new_mat('BlackPlastic', (.015, .015, .015), rough=.35)
-M_TUBE = new_mat('Tube', (.9, .95, .9), rough=.3, emis=(.95, 1., .95), emis_s=3.)
+M_TUBE = new_mat('Tube', (.9, .9, .85), rough=.3, emis=(1., 1. - .2 * AGE, 1. - .45 * AGE), emis_s=3.)   # 古い蛍光灯は黄ばむ
 M_CEIL = new_mat('Ceiling', (.75, .75, .72), rough=.7)
-def load_img(fname, srgb=True):
-    im = bpy.data.images.load(os.path.join(TEX_DIR, fname), check_existing=True)
-    im.colorspace_settings.name = 'sRGB' if srgb else 'Non-Color'; im.pack(); return im
 M_INFO = new_mat('InfoPanel', color_img=load_img('info_panel.png'), rough=.4)
 M_CAUTION = new_mat('CautionSticker', color_img=load_img('caution_sticker.png'), rough=.5)
 M_BOOK = [new_mat('Book%d' % i, c, rough=.8) for i, c in enumerate([(.1, .2, .55), (.75, .65, .15), (.8, .8, .78), (.15, .35, .2)])]
@@ -310,5 +306,12 @@ if '--norender' not in sys.argv:
     cam2.rotation_euler = (Vector((0, .25, 1.2)) - cam2.location).to_track_quat('-Z', 'Y').to_euler()
     scene.camera = cam2; scene.render.resolution_x, scene.render.resolution_y = 800, 900
     scene.render.filepath = os.path.join(OUT_DIR, 'phone_preview.png')
+    bpy.ops.render.render(write_still=True)
+    # 正面（受話器の向きの確認用）
+    bpy.ops.object.camera_add(location=(-.12, -.5, 1.22))
+    cam3 = bpy.context.active_object
+    cam3.rotation_euler = (Vector((0, .3, 1.2)) - cam3.location).to_track_quat('-Z', 'Y').to_euler()
+    scene.camera = cam3
+    scene.render.filepath = os.path.join(OUT_DIR, 'phone_front.png')
     bpy.ops.render.render(write_still=True)
     print('確認画像:', scene.render.filepath)

@@ -215,36 +215,38 @@ class Builder:
 
     # ---------- 受話器（丸みのある緑・左側に掛かる） ----------
     def handset(self):
-        hx = -W / 2 - .036
-        hy = -D + .048
-        zc = .275
-        # 握りの部分：ゆるい弧の曲線に丸い断面をつけて、横につぶす
+        """受話器：実物の写真に合わせて、長めのC字（受話部と送話部が本体側を向く）。
+        左側面に縦に掛かり、握りの背（丸い面）が前・外側を向く。耳と口の黒い網目は本体（+X）側を向く。"""
+        hx = -W / 2 - .034        # 握りの中心（本体の左側面から少し離す）
+        hy = -D + .078            # 奥行き方向の位置（前面より少し奥）
+        zc = .262                 # 受話器の中心の高さ
+        half = .108               # 中心から端までの長さ
+        # 握り：外側（-X）にふくらむ細めの弧。断面は前後に長い楕円
         bpy.ops.curve.primitive_bezier_curve_add()
         cv = bpy.context.active_object
-        sp = cv.data.splines[0]; sp.bezier_points.add(2)
-        pts = [(0, 0, zc + .085), (0, .016, zc), (0, 0, zc - .085)]
+        sp = cv.data.splines[0]; sp.bezier_points.add(1)      # 最初から2点あるので、3点にするには1点だけ足す
+        pts = [(.016, 0, zc + half), (-.006, 0, zc), (.016, 0, zc - half)]       # 端は本体側(+X)に曲がる
         for bp, p in zip(sp.bezier_points, pts):
             bp.co = p; bp.handle_left_type = bp.handle_right_type = 'AUTO'
-        cv.data.bevel_depth = .0145; cv.data.bevel_resolution = 6; cv.data.resolution_u = 20
+        cv.data.bevel_depth = .0125; cv.data.bevel_resolution = 8; cv.data.resolution_u = 24
         cv.data.use_fill_caps = True
         bpy.ops.object.convert(target='MESH')
         g = bpy.context.active_object
-        g.scale = (1.5, 1.0, 1.0); bpy.ops.object.transform_apply(scale=True)
+        g.scale = (1.0, 1.7, 1.0); bpy.ops.object.transform_apply(scale=True)      # 前後に平たく
         bpy.ops.object.shade_smooth()
         g.location = (hx, hy, 0); self._finish_hand(g, 'h_grip')
-        # 耳とくちの丸み
-        for name, z in (('h_ear', zc + .105), ('h_mouth', zc - .105)):
-            bpy.ops.mesh.primitive_uv_sphere_add(radius=1, segments=32, ring_count=20, location=(hx, hy - .008, z))
-            s = bpy.context.active_object; s.scale = (.031, .026, .034); bpy.ops.object.transform_apply(scale=True)
-            bpy.ops.object.shade_smooth(); self._finish_hand(s, name)
-            # 黒い受話部の穴あきプレート（前を向く）
-            bpy.ops.mesh.primitive_cylinder_add(radius=.019, depth=.003, vertices=28, location=(hx, hy - .029, z), rotation=(math.pi / 2, 0, 0))
+        # 受話部と送話部：握りより太く、先端はやや平ら。網目の面は本体側(+X)へ
+        for name, z, sx in (('h_ear', zc + half + .004, .026), ('h_mouth', zc - half - .004, .024)):
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=1, segments=32, ring_count=20, location=(hx + .020, hy, z))
+            sph = bpy.context.active_object; sph.scale = (sx, .031, .030); bpy.ops.object.transform_apply(scale=True)
+            bpy.ops.object.shade_smooth(); self._finish_hand(sph, name)
+            bpy.ops.mesh.primitive_cylinder_add(radius=.016, depth=.003, vertices=28, location=(hx + .020 + sx - .001, hy, z), rotation=(0, math.pi / 2, 0))
             p = bpy.context.active_object; bpy.ops.object.shade_smooth(); p.data.materials.append(self.M_BLACK)
             p.location = p.location + self.loc; p.name = name + '_plate'; self.hand_parts.append(p)
         # 銀の留め具（本体の左側面とつなぐ）
-        for z in (zc + .07, zc - .07):
-            self.box_h('hook_clip', (.02, .022, .014), (-W / 2 - .008, hy + .012, z))
-            self.cyl_h('hook_pin', .004, .026, (-W / 2 - .026, hy + .012, z), (0, math.pi / 2, 0))
+        for z in (zc + .062, zc - .062):
+            self.box_h('hook_clip', (.022, .022, .014), (-W / 2 - .010, hy, z))
+            self.cyl_h('hook_pin', .004, .026, (-W / 2 - .026, hy, z), (0, math.pi / 2, 0))
 
     hand_parts = []
     def _finish_hand(self, o, name):
@@ -261,11 +263,11 @@ class Builder:
 
     # ---------- 金属のコード ----------
     def cord(self):
-        hx = -W / 2 - .036; hy = -D + .048
+        hx = -W / 2 - .034 + .016; hy = -D + .078
         bpy.ops.curve.primitive_bezier_curve_add()
         cv = bpy.context.active_object
         sp = cv.data.splines[0]
-        pts = [(hx, hy, .275 - .135), (hx - .022, hy - .02, .19), (hx - .012, hy - .03, .10), (hx + .03, hy - .026, .03), (-W / 2 + .05, -D + .06, -.02)]
+        pts = [(hx, hy, .262 - .125), (hx - .03, hy - .01, .17), (hx - .02, hy - .03, .09), (hx + .02, hy - .03, .03), (-W / 2 + .05, -D + .06, -.02)]
         sp.bezier_points.add(len(pts) - 2)
         for bp, p in zip(sp.bezier_points, pts):
             bp.co = p; bp.handle_left_type = bp.handle_right_type = 'AUTO'
