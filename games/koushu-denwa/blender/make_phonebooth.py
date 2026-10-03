@@ -20,7 +20,7 @@ import numpy as np
 # ------------ 調整できる数字 ------------
 BW = 1.25         # ボックスの幅と奥行き（メートル。本物は約1m、ゲームで動けるよう少し広め）
 BH = 2.3          # 高さ
-AGE = float(os.environ.get('KD_AGE', '0.5'))   # 古びの強さ 0〜1（make_textures.py と同じ数字）
+AGE = float(os.environ.get('KD_AGE', '0.8'))   # 古びの強さ 0〜1（make_textures.py と同じ数字）
 RUST = 0.3        # さびの量 0〜1
 DIRT = 0.5        # ガラスの汚れの量 0〜1
 SEED = 19980714

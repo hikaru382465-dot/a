@@ -66,7 +66,7 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 古びの表現と受話器（第9版）
 
-- 古びの強さ `AGE`（0=新品〜1=ぼろぼろ。おすすめ0.5）。`KD_AGE=0.7 python make_textures.py` のように環境変数で変えられる。Blenderスクリプト（make_phonebooth.py）も同じ `KD_AGE` を読む
+- 古びの強さ `AGE`（0=新品〜1=ぼろぼろ。初期値0.8）。`KD_AGE=0.7 python make_textures.py` のように環境変数で変えられる。Blenderスクリプト（make_phonebooth.py）も同じ `KD_AGE` を読む
 - 追加した汚れ：電話機の緑の色あせ・雨だれの筋・上面のほこり、パネルの黄ばみ・汚れ、テンキーの金のすり減り、ブロンズ枠の白い腐食粉・さび、ガラスのくもり・雨だれ・手形の拭き跡（汚れの濃い所は不透明）、蛍光灯の黄ばみ
 - 新しい画像：`assets/tex/` の `bronze_color/rough`、`glass_color/rough/dirt`（Unrealスクリプトも使う）
 - 受話器：握りがゆるく曲がるC字、受話部・送話部の網目が本体側を向く形に作り直し（曲線の点が1つ余っていたバグも修正）

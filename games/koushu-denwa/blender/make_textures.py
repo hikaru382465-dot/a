@@ -16,8 +16,8 @@ os.makedirs(OUT, exist_ok=True)
 FONT = next((p for p in ['/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf', '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf',
                          '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'] if os.path.exists(p)), None)
 rng = np.random.default_rng(1998)
-# 古びの強さ（0=新品 〜 1=ぼろぼろ）。環境変数 KD_AGE でも変えられる。おすすめは 0.5
-AGE = float(os.environ.get('KD_AGE', '0.5'))
+# 古びの強さ（0=新品 〜 1=ぼろぼろ）。環境変数 KD_AGE でも変えられる。おすすめは 0.8（暗い画面でも見える強さ）
+AGE = float(os.environ.get('KD_AGE', '0.8'))
 def F(size): return ImageFont.truetype(FONT, size)
 
 def fbm(h, w, octaves=6):
@@ -210,12 +210,12 @@ def make_body():
     sc = np.asarray(Image.fromarray((sc * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.8))) / 255.
     a = a * (1 - .5 * sc[..., None]) + sc[..., None] * .18
     # ---- 古び：色あせ・雨だれの筋・上面のほこり ----
-    fade = .30 * AGE
+    fade = .45 * AGE
     a = a * (1 - fade) + np.array([.16, .30, .10], np.float32)[None, None] * fade
     st = streaks(N, N) * AGE * .9
-    a = a * (1 - st[..., None] * .55) + st[..., None] * .55 * np.array([.06, .05, .03])
+    a = a * (1 - st[..., None] * .75) + st[..., None] * .75 * np.array([.07, .055, .03])
     dust = np.clip(fbm(N, N, 6) - .5, 0, 1) * 2 * AGE * (.4 + .6 * (1 - zz))
-    a = a * (1 - dust[..., None] * .4) + dust[..., None] * .4 * np.array([.30, .27, .20])
+    a = a * (1 - dust[..., None] * .6) + dust[..., None] * .6 * np.array([.34, .30, .22])
     srgb = np.clip(a, 0, 1) ** (1 / 2.2)
     save('phone_body_albedo.png', Image.fromarray((srgb * 255).astype(np.uint8)))
     rough = np.clip(.26 + AGE * .20 + dirt * .5 + sc * .3 + dust * .3 + st * .2 + (n - .5) * .1, 0, 1)

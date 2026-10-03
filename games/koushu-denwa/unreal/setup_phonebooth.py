@@ -372,7 +372,7 @@ def s_materials():
     setp(m, "two_sided", True)
     if "glass_color" in T and "glass_rough" in T:
         gc = tex_node(m, T["glass_color"], -200)
-        mel.connect_material_property(mul(m, gc, c1(m, 0.15, -250), -200), "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(mul(m, gc, c1(m, 0.45, -250), -200), "", MP.MP_BASE_COLOR)   # 汚れ（くもり）が暗い画面でも見えるよう明るめ
         mel.connect_material_property(gc, "A", MP.MP_OPACITY)                     # 画像のアルファ＝汚れの濃さ
         mel.connect_material_property(tex_node(m, T["glass_rough"], 0), "R", MP.MP_ROUGHNESS)
     else:
