@@ -208,6 +208,7 @@ TEX_FILES = [
     "phone_panel_albedo.png", "phone_panel_normal.png", "phone_lcd.png", "phone_keys_atlas.png",
     "phone_body_albedo.png", "phone_body_rough.png", "caution_sticker.png", "info_panel.png",
     "bronze_color.png", "bronze_rough.png", "glass_color.png", "glass_rough.png", "glass_dirt.png",   # 古び（汚れ）
+    "gray_paint_color.png", "gray_paint_rough.png", "ceiling_color.png", "floor_color.png", "floor_rough.png",   # 廃墟
 ]
 
 
@@ -332,13 +333,19 @@ def s_materials():
         ("CordSteel", (0.50, 0.50, 0.50), 1.0, 0.40),
         ("PhoneBlack", (0.02, 0.02, 0.02), 0.0, 0.50),
         ("PhoneDarkGrey", (0.06, 0.06, 0.06), 0.0, 0.55),
-        ("Book0", (0.03, 0.08, 0.25), 0.0, 0.8), ("Book1", (0.35, 0.30, 0.03), 0.0, 0.8),
-        ("Book2", (0.45, 0.45, 0.42), 0.0, 0.8), ("Book3", (0.04, 0.12, 0.06), 0.0, 0.8),
+        ("Book0", (0.015, 0.035, 0.11), 0.0, 0.9), ("Book1", (0.17, 0.14, 0.015), 0.0, 0.9),
+        ("Book2", (0.22, 0.22, 0.20), 0.0, 0.9), ("Book3", (0.02, 0.06, 0.03), 0.0, 0.9),
     ]:
         M[name] = mk_solid("M_" + name, col, met, rg)
     # 画像つきの材質
     if "bronze_color" in T:       # 枠：ブラシ目・白い腐食粉・さび
         M["Bronze"] = mk_textured("M_Bronze", T["bronze_color"], T.get("bronze_rough"), metallic=0.85)
+    if "gray_paint_color" in T:   # 柱・台・台座：塗装はがれ・さび
+        M["GrayPaint"] = mk_textured("M_GrayPaint", T["gray_paint_color"], T.get("gray_paint_rough"), metallic=0.25)
+    if "ceiling_color" in T:      # 天井：水のしみ・カビ
+        M["Ceiling"] = mk_textured("M_Ceiling", T["ceiling_color"], rough_const=0.7)
+    if "floor_color" in T:        # 床：泥・落ち葉・ひび
+        M["FloorConcrete"] = mk_textured("M_FloorConcrete", T["floor_color"], T.get("floor_rough"))
     if "phone_body_albedo" in T:
         M["PhoneGreen"] = mk_textured("M_PhoneGreen", T["phone_body_albedo"], T.get("phone_body_rough"), tint=0.7)   # ひかるが調整した値（0.7）
     if "phone_keys_atlas" in T:
@@ -566,6 +573,7 @@ def s_tubes():
     z = o.z + e.z - 25.0
     yaw = 0.0 if depth_ax == "y" else 90.0     # 光源の長い方を奥行きにそろえる
     for sgn in (-1, 1):
+        dead = (sgn > 0)      # 右側は切れかけ（暗い）。廃墟らしさ
         loc = [o.x, o.y, z]
         loc[0 if width_ax == "x" else 1] += sgn * 27.0
         r = spawn(unreal.RectLight, tuple(loc), (0, -90.0, yaw))
@@ -573,7 +581,7 @@ def s_tubes():
         c = r.get_component_by_class(unreal.RectLightComponent)
         setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
         setp(c, "intensity_units", unreal.LightUnits.LUMENS)
-        setp(c, "intensity", 1500.0)   # ひかるが調整した値
+        setp(c, "intensity", 350.0 if dead else 1500.0)   # 1500=ひかるが調整した値。右の蛍光灯は切れかけで暗い
         setp(c, "use_temperature", True)
         setp(c, "temperature", 5000.0)
         setp(c, "light_color", unreal.Color(235, 255, 230, 255))
