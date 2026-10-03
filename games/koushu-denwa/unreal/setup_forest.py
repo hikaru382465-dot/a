@@ -432,6 +432,32 @@ def s_ground():
 
 
 # ---------------- 7) 木・岩・切り株を散らす ----------------
+_ORIENT = {}
+
+
+def orient_for(mesh):
+    """取り込んだ形が横倒しのとき、立つ向き (roll, pitch) を試して決める。
+    試したうち、足もとが地面(z=0)にいちばん近いものを選ぶ（同点なら背の高いほう）。"""
+    key = mesh.get_path_name()
+    if key in _ORIENT:
+        return _ORIENT[key]
+    best = None
+    tmp = spawn(unreal.StaticMeshActor, (0, 0, 0), (0, 0, 0))
+    comp = tmp.get_component_by_class(unreal.StaticMeshComponent)
+    comp.set_static_mesh(mesh)
+    for roll, pitch in ((0, 0), (90, 0), (-90, 0), (0, 90), (0, -90), (180, 0)):
+        tmp.set_actor_rotation(unreal.Rotator(roll, pitch, 0), False)
+        o, e = tmp.get_actor_bounds(False)
+        low = abs(o.z - e.z) / max(e.z, 1e-6)
+        score = (round(low, 2), -e.z)
+        if best is None or score < best[0]:
+            best = (score, roll, pitch)
+    eas().destroy_actor(tmp)
+    _ORIENT[key] = (best[1], best[2])
+    log("  向きの補正 %s → roll=%s pitch=%s" % (mesh.get_name(), best[1], best[2]))
+    return _ORIENT[key]
+
+
 def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None):
     meshes = STATE["meshes"][kind]
     if not meshes:
@@ -453,7 +479,8 @@ def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None)
             continue
         s = rng.uniform(*scale_range)
         m = rng.choice(meshes)
-        act = spawn(unreal.StaticMeshActor, (x, y, 0), (rng.uniform(-tilt, tilt), rng.uniform(-tilt, tilt), rng.random() * 360.0))
+        base_roll, base_pitch = orient_for(m)
+        act = spawn(unreal.StaticMeshActor, (x, y, 0), (base_roll + rng.uniform(-tilt, tilt), base_pitch + rng.uniform(-tilt, tilt), rng.random() * 360.0))
         comp = act.get_component_by_class(unreal.StaticMeshComponent)
         comp.set_static_mesh(m)
         setp(comp, "mobility", unreal.ComponentMobility.STATIC)
@@ -469,7 +496,8 @@ def s_scatter():
     placed = []
     # 取り込み後の大きさの確認：松の高さが 700〜1500cm くらいなら、1倍でよい
     m = STATE["meshes"]["pine"][0]
-    h = m.get_bounds().box_extent.z * 2.0
+    ext = m.get_bounds().box_extent
+    h = max(ext.x, ext.y, ext.z) * 2.0           # 横倒しでも測れるよう、いちばん長い辺を使う
     unit = 1.0 if h > 300 else 100.0
     STATE["unit"] = unit
     log("松Aの高さ=%.1f → 倍率の補正=%s" % (h, unit))
