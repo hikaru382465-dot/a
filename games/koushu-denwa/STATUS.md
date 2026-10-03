@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **ゲームのしくみ**：計画は `unreal/GAME_PLAN.md`（段階1〜4）。次は段階1（歩く→ドアが閉まる→点滅）の `setup_game.py` を作る
+
 - **森と地面（第12版）**：`blender/make_trees.py`（松3・枯れ木2・切り株・岩2 → `assets/unreal/Trees.fbx`）、森の画像（土・道・樹皮・葉・岩）、`unreal/setup_forest.py`（地面・道・足もとのコンクリ・木と岩を散らす・霧）を追加。**Unrealでは未確認**（疑似環境で構文のみ）
 - **ひかる**：最新ZIPを再ダウンロード → L_Booth を開いた状態で `py "…/setup_forest.py"` → Output Logを「KD」で絞って送る＋景色のスクショ。重いときは `TREE_COUNT` を減らす
 
