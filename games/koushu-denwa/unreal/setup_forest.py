@@ -35,6 +35,8 @@ FOREST_RADIUS = 4500.0              # 森の広がり（cm）。4500 = 半径45m
 CLEARING_RADIUS = 650.0             # 電話ボックスのまわりの空き地（cm）
 PATH_HALF_WIDTH = 300.0             # 道のまわりに木を置かない幅（cm）
 EXTERNAL_TREE_FOLDER = ""           # 例 "/Game/Fab" 。空なら、自作の木を使う
+MESH_ROLL = 90.0          # 木・岩を立てる回転（立たないときは -90 にする）
+MESH_PITCH = 0.0
 GROUND_DARK = 0.35        # 地面の暗さ（小さいほど暗い。1.0でそのまま）
 MOON_INTENSITY = 0.2      # 月の光（setup_phonebooth.py では 0.5）
 SKY_INTENSITY = 0.12      # 空の光（同 0.3）
@@ -432,30 +434,9 @@ def s_ground():
 
 
 # ---------------- 7) 木・岩・切り株を散らす ----------------
-_ORIENT = {}
-
-
 def orient_for(mesh):
-    """取り込んだ形が横倒しのとき、立つ向き (roll, pitch) を試して決める。
-    試したうち、足もとが地面(z=0)にいちばん近いものを選ぶ（同点なら背の高いほう）。"""
-    key = mesh.get_path_name()
-    if key in _ORIENT:
-        return _ORIENT[key]
-    best = None
-    tmp = spawn(unreal.StaticMeshActor, (0, 0, 0), (0, 0, 0))
-    comp = tmp.get_component_by_class(unreal.StaticMeshComponent)
-    comp.set_static_mesh(mesh)
-    for roll, pitch in ((0, 0), (90, 0), (-90, 0), (0, 90), (0, -90), (180, 0)):
-        tmp.set_actor_rotation(unreal.Rotator(roll, pitch, 0), False)
-        o, e = tmp.get_actor_bounds(False)
-        low = abs(o.z - e.z) / max(e.z, 1e-6)
-        score = (round(low, 2), -e.z)
-        if best is None or score < best[0]:
-            best = (score, roll, pitch)
-    eas().destroy_actor(tmp)
-    _ORIENT[key] = (best[1], best[2])
-    log("  向きの補正 %s → roll=%s pitch=%s" % (mesh.get_name(), best[1], best[2]))
-    return _ORIENT[key]
+    """取り込んだ木・岩は横倒しなので、roll=90 で立てる（ひかるが手作業で確かめた値）"""
+    return (MESH_ROLL, MESH_PITCH)
 
 
 def scatter(kind, count, rng, placed, min_gap, scale_range, tilt=0.0, near=None):
