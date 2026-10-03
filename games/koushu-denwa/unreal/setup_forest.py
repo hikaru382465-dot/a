@@ -276,6 +276,7 @@ def s_import_trees():
     ui = unreal.FbxImportUI()
     setp(ui, "import_mesh", True)
     setp(ui, "import_as_skeletal", False)
+    setp(ui, "automated_import_should_detect_type", False)
     setp(ui, "import_materials", False)
     setp(ui, "import_textures", False)
     setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_STATIC_MESH)
@@ -283,7 +284,7 @@ def s_import_trees():
     setp(d, "combine_meshes", False)
     setp(d, "build_nanite", True)                 # 細かい形を軽く描ける
     setp(d, "auto_generate_collision", False)
-    setp(d, "transform_vertex_to_absolute", False)
+    setp(d, "transform_vertex_to_absolute", True)      # 向き（横倒し）を直す。電話ボックスと同じ設定
     t = unreal.AssetImportTask()
     t.set_editor_property("automated", True)
     t.set_editor_property("replace_existing", True)
