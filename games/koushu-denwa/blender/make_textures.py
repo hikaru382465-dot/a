@@ -38,6 +38,17 @@ def streaks(h, w, strength=1.0):
     prof = np.clip(1.0 - np.abs(zz - .15) / length, 0, 1) * (.4 + .6 * zz)
     return col[None, :] * prof * strength
 
+def tfbm(n, beta=1.7):
+    """つなぎ目のない（タイル状に並べられる）雲のようなむら。0〜1"""
+    fx = np.fft.fftfreq(n)
+    f2 = fx[:, None] ** 2 + fx[None, :] ** 2
+    f2[0, 0] = 1
+    spec = (rng.standard_normal((n, n)) + 1j * rng.standard_normal((n, n))) / (f2 ** (beta / 2))
+    spec[0, 0] = 0
+    spec[f2 < 1.5e-4] = 0                  # ごく大きなむらを消す（タイルで並べたときのしま模様を防ぐ）
+    a = np.real(np.fft.ifft2(spec)).astype(np.float32)
+    return (a - a.min()) / (a.max() - a.min() + 1e-6)
+
 def save(name, img):
     p = os.path.join(OUT, name); img.save(p, optimize=True); print('保存', name, img.size, os.path.getsize(p) // 1024, 'KB')
 
@@ -344,6 +355,77 @@ def make_floor():
     save('floor_rough.png', Image.fromarray((np.clip(.75 + dirt * .2, 0, 1) * 255).astype(np.uint8)))
 
 # ======================================================================
+# 4f) 森の素材（地面・道・樹皮・針葉・岩）。すべてタイル状につなげられる
+# ======================================================================
+def leaf_poly(d, x, y, w, h, ang, color, N):
+    pts = [(x + math.cos(ang) * w * math.cos(t) - math.sin(ang) * h * math.sin(t),
+            y + math.sin(ang) * w * math.cos(t) + math.cos(ang) * h * math.sin(t)) for t in np.linspace(0, math.tau, 12)]
+    for ox in (-N, 0, N):                  # 端でも切れないよう、ずらして3x3回描く
+        for oy in (-N, 0, N):
+            d.polygon([(px + ox, py + oy) for px, py in pts], fill=color)
+
+def make_forest():
+    # ---- 地面：湿った土・落ち葉・針葉・苔・石 ----
+    N = 1024
+    soil = np.array([.17, .13, .09], np.float32)[None, None] * (.55 + .9 * tfbm(N)[..., None])
+    moss = np.clip((tfbm(N, 2.0) - .56) * 4, 0, 1) * .6
+    soil = soil * (1 - moss[..., None]) + moss[..., None] * np.array([.08, .17, .05]) * (.7 + .6 * tfbm(N)[..., None])
+    im = Image.fromarray((np.clip(soil, 0, 1) * 255).astype(np.uint8)); d = ImageDraw.Draw(im)
+    for _ in range(420):                                                     # 落ち葉
+        c = [(70, 50, 28), (88, 64, 32), (52, 40, 24), (64, 54, 30), (40, 32, 20)][rng.integers(0, 5)]
+        c = tuple(int(v * (.6 + .5 * rng.random())) for v in c)
+        leaf_poly(d, rng.random() * N, rng.random() * N, 8 + rng.random() * 16, 4 + rng.random() * 7, rng.random() * math.tau, c, N)
+    for _ in range(700):                                                     # 松葉
+        x, y = rng.random() * N, rng.random() * N; a = rng.random() * math.tau; L = 14 + rng.random() * 22
+        for ox in (-N, 0, N):
+            for oy in (-N, 0, N):
+                d.line([(x + ox, y + oy), (x + ox + math.cos(a) * L, y + oy + math.sin(a) * L)], fill=(92, 62, 34), width=1)
+    for _ in range(50):                                                      # 小石
+        r = 4 + rng.random() * 9; g = int(40 + rng.random() * 28)
+        leaf_poly(d, rng.random() * N, rng.random() * N, r, r * .7, rng.random() * 3, (g, g, g - 6), N)
+    im = im.filter(ImageFilter.GaussianBlur(.8))
+    save('forest_ground_color.png', im)
+    lum = np.asarray(im.convert('L')).astype(np.float32) / 255
+    hg = lum * .45 + (tfbm(N, 2.0) - .5) * .5
+    save('forest_ground_normal.png', normal_from_height(hg, 9.0))
+    save('forest_ground_rough.png', Image.fromarray((np.clip(.88 - moss * .1 + (tfbm(N, 2.4) - .5) * .1, 0, 1) * 255).astype(np.uint8)))
+
+    # ---- 道：踏み固められた土・砂利 ----
+    N = 512
+    path = np.array([.30, .24, .17], np.float32)[None, None] * (.65 + .7 * tfbm(N)[..., None])
+    im = Image.fromarray((np.clip(path, 0, 1) * 255).astype(np.uint8)); d = ImageDraw.Draw(im)
+    for _ in range(260):
+        r = 2 + rng.random() * 5; g = int(90 + rng.random() * 70)
+        leaf_poly(d, rng.random() * N, rng.random() * N, r, r * .8, rng.random() * 3, (g, g - 6, g - 16), N)
+    for _ in range(60):
+        leaf_poly(d, rng.random() * N, rng.random() * N, 7 + rng.random() * 9, 3 + rng.random() * 4, rng.random() * math.tau, (80, 54, 26), N)
+    save('forest_path_color.png', im)
+    lum = np.asarray(im.convert('L')).astype(np.float32) / 255
+    save('forest_path_normal.png', normal_from_height(lum * .4 + (tfbm(N, 1.8) - .5) * .5, 8.0))
+
+    # ---- 樹皮：縦のひび割れ ----
+    X = np.arange(N, dtype=np.float32)[None, :]
+    nz = tfbm(N, 2.4)
+    ridge = .5 + .5 * np.sin(2 * math.pi * 14 * X / N + 7 * nz)
+    bark = np.array([.20, .14, .10], np.float32)[None, None] * (.45 + .8 * ridge[..., None]) * (.7 + .5 * tfbm(N)[..., None])
+    mm = np.clip((tfbm(N, 2.8) - .58) * 4, 0, 1) * .6
+    bark = bark * (1 - mm[..., None]) + mm[..., None] * np.array([.07, .14, .05])
+    save('bark_color.png', Image.fromarray((np.clip(bark, 0, 1) * 255).astype(np.uint8)))
+    save('bark_normal.png', normal_from_height(ridge * .8 + nz * .3, 10.0))
+
+    # ---- 針葉（暗い緑）----
+    lf = np.array([.06, .11, .05], np.float32)[None, None] * (.5 + 1.0 * tfbm(N, 1.6)[..., None])
+    save('leaves_color.png', Image.fromarray((np.clip(lf, 0, 1) * 255).astype(np.uint8)))
+    save('leaves_normal.png', normal_from_height(tfbm(N, 1.5), 8.0))
+
+    # ---- 岩：灰色・苔 ----
+    rk = np.array([.36, .36, .34], np.float32)[None, None] * (.5 + 1.0 * tfbm(N, 2.0)[..., None])
+    mm = np.clip((tfbm(N, 2.6) - .5) * 4, 0, 1) * .7
+    rk = rk * (1 - mm[..., None]) + mm[..., None] * np.array([.08, .17, .05])
+    save('rock_color.png', Image.fromarray((np.clip(rk, 0, 1) * 255).astype(np.uint8)))
+    save('rock_normal.png', normal_from_height(tfbm(N, 2.0) * .8 + tfbm(N, 1.4) * .3, 12.0))
+
+# ======================================================================
 # 5) 注意シール（「注意」＋3つの禁止マーク）
 # ======================================================================
 def make_caution():
@@ -391,7 +473,7 @@ def make_info():
     save('info_panel.png', Image.fromarray((np.clip(arr, 0, 1) * 255).astype(np.uint8)))
 
 if __name__ == '__main__':
-    info = make_panel(); make_lcd(); make_keys(); make_body(); make_glass(); make_bronze(); make_gray(); make_ceiling(); make_floor(); make_caution(); make_info()
+    info = make_panel(); make_lcd(); make_keys(); make_body(); make_glass(); make_bronze(); make_gray(); make_ceiling(); make_floor(); make_forest(); make_caution(); make_info()
     import json
     json.dump({k: (list(v) if isinstance(v, tuple) else v) for k, v in info.items()}, open(os.path.join(OUT, 'panel_layout.json'), 'w'))
     print('完了')
