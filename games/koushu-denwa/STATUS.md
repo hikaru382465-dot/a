@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-09-30（第6版：電話機を実物の写真に合わせて高精細に作り直し／Unreal Engine 用の書き出しと手順書）
+最終更新：2026-10-03（第7版：Unreal一括セットアップスクリプトを追加。VC++警告の対処をREADMEに追記）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -57,6 +57,9 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 → Unreal Engine 5 は動く（ハードウェアの光線追跡は使わず、ソフトウェア方式のLumenなら1080p〜1440pで遊べる目安）。Blenderも快適。
 
 ## 進行中・次にやること
+
+- **ひかる**：UE起動時に「Visual C++ redistributable 14.42 is outdated」の警告が出た → `unreal/README.md` の「0. 最初に」の手順で `vc_redist.x64.exe` を入れて再起動。その後「1. 自動セットアップ」を実行し、Output Logの `[KD]` の行を送る
+- Claude：`unreal/setup_phonebooth.py`（Opus 5.5が設計、Sonnet 5.5が実装）は疑似環境での試運転と構文チェックのみ。実機のログが来たらAPI名を直す
 
 0. **ひかる**：Unreal Engine 5 で `unreal/README.md` の手順1〜2（プロジェクトを作って `PhoneBooth.fbx` を入れる）を試して、画面が違ったところを教えてもらう
 0. **ひかる**：Blender（blender.org・無料）を入れて、`make_phonebooth.py` を開いて▶を押してみる（できたら形の感想を教える）
