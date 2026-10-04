@@ -32,3 +32,16 @@
 
 ## 使わないルール（ひかるの指示で取り消し）
 孤立点を消す・3階調に限る・黒1マスの輪郭線、は使わない。
+
+## 変換の道具 `pixelize.py`（絵 → ドット絵）
+画像生成AIなどで作った大きい絵を、ドット絵に変換する。
+```
+python3 pixelize.py 入力.png -o out/名前 --height 64 --colors 16 [--canvas 128] [--outline auto|none|#RRGGBB]
+python3 pixelize.py 入力.png -o out/名前 --height 64 --palette reference/mage_128x128_color_array.json   # 見本の色だけ使う
+python3 pixelize.py すでにドット絵.png -o out/名前 --cell 4.3 --no-clean                               # 1マス4.3pxの絵を元の大きさに戻す
+```
+- 流れ：背景を消す → 余白を切る → 色を減らす → 各マスで多数決 → 孤立点を消す → 輪郭を足す
+- 出力：`名前.png`（透明）、`名前_x8.png`（確認用）、`名前.json`（見本と同じ形式）
+- 細い暗い線（輪郭）は、色を減らすと消えやすいので、いちばん暗い色を1色足して残すようにしてある。
+- ざらつきを残したい（ダーク風）ときは `--no-clean`。
+- 背景がべたぬりでない絵は、先に背景を消すか `--bg-tol` を調整する。
