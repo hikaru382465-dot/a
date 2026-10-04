@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>魔法使いの少年（ダーク）</title>
+<style>
+  body{margin:0;min-height:100vh;background:#0c0710;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#a79490;font:13px sans-serif;padding:12px;box-sizing:border-box}
+  #view{width:min(88vmin,768px);aspect-ratio:1;image-rendering:pixelated;background:#0c0710}
+  button{background:#3d2531;color:#e6e0df;border:1px solid #71363c;padding:6px 14px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="view" width="128" height="128"></canvas>
+<div id="info"></div>
+<button id="dl">JSONで書き出す</button>
+<script>
+const W = 128, SQ = Math.SQRT2;
+// パレット（明るい → 暗い）。色相ずらし：生成り → 紫茶 → 紫
+const PAL = ['#FFE2A8','#E6E0DF','#D0BDB0','#F0A050','#C8B6A8','#D0A88A','#A79490','#A27A6B','#8A7678','#B8582E','#955E4F','#715B62','#604548','#71363C','#57363B','#483740','#422D37','#3D2531','#311926','#1F1622','#180E1A','#130915','#09040E','#000000'];
+const R = {
+  cloth:[1,2,4,6,8,11,12,15,16], skin:[5,5,7,7,10,12,14], hair:[2,4,6,8,11,12],
+  red:[10,13,13,14,16,17], dark:[11,12,15,16,17,18,19,20], leather:[10,12,14,16,17,18],
+  wood:[7,10,12,14,16,17], orb:[0,0,3,3,9,10,13,16]
+};
+
+// 種を固定した乱数（毎回同じ絵になる）
+let seed = 20261004;
+const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+
+const grid = new Int16Array(W * W).fill(-1);
+const get = (x, y) => (x >= 0 && y >= 0 && x < W && y < W) ? grid[y * W + x] : -1;
+const put = (x, y, c) => { if (x >= 0 && y >= 0 && x < W && y < W) grid[y * W + x] = c; };
+
+// ぎざぎざ・ガタつきの表（先に作っておく）
+const rowJ = Array.from({ length: W }, () => (rnd() < 0.5 ? 0 : rnd() < 0.5 ? -1 : 1));
+const rowJ2 = Array.from({ length: W }, () => (rnd() < 0.5 ? 0 : rnd() < 0.5 ? -1 : 1));
+const jag = Array.from({ length: 48 }, () => rnd() < 0.35 ? ri(2, 7) : rnd() < 0.5 ? ri(0, 2) : 0);   // 3マス幅ごとのやぶれ深さ
+const jagS = Array.from({ length: 48 }, () => rnd() < 0.5 ? ri(1, 4) : 0);
+const jagF = Array.from({ length: 48 }, () => rnd() < 0.7 ? ri(0, 4) : 0);
+
+const bOf = (nx, ny) => (-nx - ny) / SQ;   // 光は左上
+const ell = (cx, cy, rx, ry) => ({
+  inside: (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1,
+  b: (x, y) => bOf((x - cx) / rx, (y - cy) / ry)
+});
+const cap = (ax, ay, bx, by, r) => {
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+  const q = (x, y) => { const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)); return [ax + dx * t, ay + dy * t]; };
+  return {
+    inside: (x, y) => { const [qx, qy] = q(x, y); return Math.hypot(x - qx, y - qy) <= r; },
+    b: (x, y) => { const [qx, qy] = q(x, y); return bOf((x - qx) / r, (y - qy) / r); }
+  };
+};
+
+// 面をぬる：段はなめらかに、ノイズ＋市松ディザ＋たまのはずれ値でざらつかせる
+function paint(shape, ramp, o = {}) {
+  const n = ramp.length, bias = o.bias ?? 0, dith = o.dith ?? 0.22, noise = o.noise ?? 0.8, seam = o.seam ?? 0.65;
+  const m = new Uint8Array(W * W);
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (shape.inside(x + .5, y + .5)) m[y * W + x] = 1;
+  // 部品のさかい目は暗くして、とぎれとぎれの線にする
+  if (seam) for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    if (m[y * W + x] || grid[y * W + x] < 0) continue;
+    if ((x > 0 && m[y * W + x - 1]) || (x < W - 1 && m[y * W + x + 1]) || (y > 0 && m[(y - 1) * W + x]) || (y < W - 1 && m[(y + 1) * W + x]))
+      if (rnd() < seam) grid[y * W + x] = Math.min(22, grid[y * W + x] + 3);
+  }
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (m[y * W + x]) {
+    const px = x + .5, py = y + .5;
+    let v = shape.v ? shape.v(px, py) : 0.5 - 0.5 * shape.b(px, py);
+    let k = (v + bias) * (n - 1) + ((x + y) & 1 ? dith : -dith) + (rnd() - 0.5) * noise;
+    if (rnd() < (o.speck ?? 0.07)) k += rnd() < 0.5 ? -2 : 2;
+    grid[y * W + x] = ramp[Math.max(0, Math.min(n - 1, Math.round(k)))];
+  }
+}
+const sub = (base, fn) => ({ inside: (x, y) => base.inside(x, y) && fn(x, y), b: base.b, v: base.v });
+
+// ---------- 背景：宝珠のうすい光のにじみ ----------
+const OX = 100, OY = 22;
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+  const d = Math.hypot(x - OX, y - OY);
+  if (d < 10 || d > 26) continue;
+  const p = (1 - (d - 10) / 16) ** 2 * 0.55;
+  if (rnd() < p) grid[y * W + x] = d < 15 ? 14 : d < 20 ? 17 : 19;
+}
+// 地面のかげ
+paint(ell(60, 124, 33, 2.6), [19, 20, 21], { seam: 0, noise: 1.2, bias: 0.3 });
+
+// ---------- ブーツ・杖 ----------
+paint(ell(50, 121, 7.5, 3.8), R.leather, { bias: 0.25 });
+paint(ell(70, 121, 7.5, 3.8), R.leather, { bias: 0.25 });
+paint(cap(100, 36, 100, 123, 2.4), R.wood, { bias: 0.1, speck: 0.12 });
+// 宝珠のかざり（ねじれた枝）
+paint(ell(OX, OY, 10.5, 10), R.wood, { bias: 0.15, speck: 0.15 });
+paint({ inside: (x, y) => Math.hypot(x - OX, y - OY) <= 7.5, v: (x, y) => Math.hypot(x - OX + 0.8, y - OY + 0.8) / 8.5 * 0.9, b: () => 0 }, R.orb, { seam: 0.9, noise: 0.5, dith: 0.15, speck: 0.03 });
+
+// ---------- ローブ（左右非対称・すそはやぶれ） ----------
+const robeHW = y => 17 + 13 * (((y - 76) / 45) ** 1.1);
+const hemB = x => 121 - jag[Math.floor(x / 3)] + (x < 60 ? 1 : 0);
+const robe = {
+  inside: (x, y) => {
+    const dx = x - 60, s = (y - 76) / 45, hw = robeHW(y) + (dx < 0 ? 5 * s : 0) + rowJ2[Math.floor(y)] * 0.9;
+    return y >= 76 && y <= Math.min(123, hemB(x)) && Math.abs(dx) <= hw;
+  },
+  b: (x, y) => -((x - 60) / robeHW(y)) * 0.85 - ((y - 76) / 45 - 0.3) * 0.2 + 0.18 * Math.sin((x - 60) * 0.55 + (y - 76) * 0.05)
+};
+paint(robe, R.cloth, { bias: 0.1, noise: 1.0, dith: 0.3 });
+// 前あきから見える中の服（暗い）
+const strip = {
+  inside: (x, y) => y >= 82 && y <= hemB(x) - 2 && Math.abs(x - 60) <= 4 + (y - 82) * 0.13 + rowJ[Math.floor(y)] * 0.7,
+  b: (x, y) => -((x - 60) / 8) * 0.5 - 0.1
+};
+paint(strip, R.dark, { bias: 0.05, noise: 1.0 });
+
+// ベルトとバックル・ななめがけのひも
+paint(sub(robe, (x, y) => y >= 92 && y <= 95), R.leather, { seam: 0.4, bias: 0.1 });
+paint(sub(cap(46, 77, 68, 93, 1.7), (x, y) => robe.inside(x, y)), R.leather, { seam: 0.2, bias: 0.15 });
+for (let y = 91; y <= 96; y++) for (let x = 56; x <= 63; x++) put(x, y, y === 91 || x === 56 ? 1 : (y === 96 || x === 63) ? 11 : 6);
+put(59, 93, 18); put(60, 93, 18); put(59, 94, 18); put(60, 94, 18);
+
+// マフラーの垂れ（右）
+const tail = {
+  inside: (x, y) => y >= 76 && y <= 97 - jagS[Math.floor(x / 3)] && Math.abs(x - (68 + (y - 76) * 0.12)) <= 4.6 + rowJ[Math.floor(y)] * 0.6,
+  b: (x, y) => -((x - 68) / 5) * 0.8 - 0.05
+};
+paint(tail, R.red, { bias: 0.05, noise: 1.0 });
+
+// ---------- うで・手 ----------
+paint(cap(44, 80, 41, 104, 6), R.cloth, { bias: 0.15, noise: 1.0 });
+paint(cap(76, 80, 93, 91, 5.6), R.cloth, { bias: 0.2, noise: 1.0 });
+paint(ell(40.5, 108.5, 3.6, 3.6), R.skin, { noise: 0.5, bias: 0.05 });
+paint(ell(98.8, 93.5, 4, 4), R.skin, { noise: 0.5, bias: 0.05 });
+
+// ---------- 頭 ----------
+paint(ell(60, 63, 16.5, 14), R.hair, { bias: 0.1, noise: 1.0 });                    // うしろ髪
+paint(ell(60, 62, 12.5, 10.5), R.skin, { noise: 0.35, dith: 0.1, speck: 0.01, bias: 0.0, seam: 0.25 });  // 顔
+const fr = ell(60, 53, 14.5, 7.5);
+paint(sub(fr, (x, y) => y <= 55 + jagF[Math.floor(x / 3)]), R.hair, { noise: 0.7, seam: 0.3 });   // 前髪
+// 目・鼻
+[[53, 62], [66, 62]].forEach(([x, y]) => {
+  put(x - 1, y - 1, 19); put(x, y - 1, 19); put(x + 1, y - 1, 18);
+  put(x, y, 0); put(x + 1, y, 3); put(x, y + 1, 9); put(x + 1, y + 1, 10);
+});
+put(60, 65, 10); put(61, 65, 10);
+// マフラー（顔の下半分をかくす）
+paint(ell(60, 73, 17.5, 6.8), R.red, { bias: 0.0, noise: 1.0, seam: 0.85 });
+
+// ---------- 帽子 ----------
+const brim = ell(60, 48, 29, 6.5);
+paint(sub(brim, (x, y) => !(y > 48 + 2.5 && jagS[Math.floor(x / 3)] > 2) && !(y < 48 - 3 && jagF[Math.floor(x / 3) % 48] > 3 && x < 40)), R.cloth, { bias: 0.1, noise: 1.0, seam: 0.7 });
+const cT = y => (48 - y) / 44;
+const cC = y => 60 + 18 * Math.max(0, cT(y)) ** 2;
+const cHW = y => (1 - cT(y)) ** 0.85 * 19 + 1;
+const cone = {
+  inside: (x, y) => y >= 4 && y <= 48 && Math.abs(x - cC(y)) <= cHW(y) + rowJ[Math.floor(y)] * 0.9 && !(y < 14 && rnd() < 0.18),
+  b: (x, y) => -((x - cC(y)) / cHW(y)) * 0.9 - 0.05 + 0.12 * Math.sin((x * 0.6) + y * 0.15)
+};
+paint(cone, R.cloth, { bias: 0.02, noise: 1.0, dith: 0.3 });
+paint(sub(cone, (x, y) => y >= 41 && y <= 45), R.red, { seam: 0.3, noise: 0.8 });
+
+// ---------- 継ぎ当て（茶色の十字）・しみ・すそのよごれ ----------
+const cross = (x, y) => { [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([i, j], k) => { if (get(x + i, y + j) >= 0) put(x + i, y + j, k ? 10 : 12); }); };
+cross(58, 27); cross(69, 36); cross(48, 102); cross(73, 99);
+const clothSet = new Set(R.cloth);
+for (let t = 0; t < 140; t++) {
+  const x = ri(25, 100), y = ri(8, 122), c = get(x, y), i = R.cloth.indexOf(c);
+  if (i < 0) continue;
+  const to = R.cloth[Math.min(R.cloth.length - 1, i + ri(2, 3))];
+  put(x, y, to);
+  if (rnd() < 0.5 && clothSet.has(get(x + 1, y))) put(x + 1, y, to);
+  if (rnd() < 0.35 && clothSet.has(get(x, y + 1))) put(x, y + 1, to);
+}
+for (let k = 0; k < 9; k++) {                       // すそのよごれ（たれる線）
+  const x = ri(30, 92), top = ri(104, 112), len = ri(3, 7);
+  for (let j = 0; j < len; j++) if (get(x, top + j) >= 0 && clothSet.has(get(x, top + j))) put(x, top + j, j < 2 ? 10 : 12);
+}
+
+// ---------- ふちどり：左上は明るい光、ほかは暗い紫をとぎれとぎれに ----------
+const snap = Int16Array.from(grid);
+const filled = (x, y) => x >= 0 && y >= 0 && x < W && y < W && snap[y * W + x] >= 0;
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+  if (snap[y * W + x] < 0) continue;
+  const topLeft = !filled(x - 1, y) || !filled(x, y - 1);
+  const other = !filled(x + 1, y) || !filled(x, y + 1);
+  const c = snap[y * W + x];
+  if (topLeft && c <= 8 && rnd() < 0.5) grid[y * W + x] = 1;
+  else if ((topLeft || other) && rnd() < 0.62) grid[y * W + x] = [18, 19, 19, 20, 21][ri(0, 4)];
+}
+
+// ---------- 描画・数え上げ ----------
+const ctx = document.getElementById('view').getContext('2d');
+let opaque = 0, dark = 0; const used = new Set();
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+  const c = grid[y * W + x]; if (c < 0) continue;
+  opaque++; used.add(c); if (c >= 15) dark++;
+  ctx.fillStyle = PAL[c]; ctx.fillRect(x, y, 1, 1);
+}
+let single = 0;
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+  const c = get(x, y); if (c < 0) continue;
+  if (get(x + 1, y) !== c && get(x - 1, y) !== c && get(x, y + 1) !== c && get(x, y - 1) !== c) single++;
+}
+document.getElementById('info').textContent =
+  `128×128 ／ ${used.size}色 ／ 1マス点 ${Math.round(single / opaque * 100)}% ／ 暗い色 ${Math.round(dark / opaque * 100)}%`;
+document.getElementById('dl').onclick = () => {
+  const j = { width: W, height: W, transparent: 255, palette: Object.fromEntries(PAL.map((c, i) => [i, c])), pixels: Array.from(grid, v => v < 0 ? 255 : v) };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(j)], { type: 'application/json' }));
+  a.download = 'wizard_boy_dark_128x128.json'; a.click();
+};
+</script>
+</body>
+</html>
