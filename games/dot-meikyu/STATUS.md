@@ -33,3 +33,8 @@
 - スマホのストア（App Store / Google Play）で売る。本気で稼ぐ目標
 - そのため、ブラウザ版は「しくみの試し作り」。製品版はゲームエンジン（Unity か Godot）で作り直す。データの表（敵・武器・カード）は持っていける
 - まだ作らない。方向がまとまってから
+
+## キャラの絵（Blenderの試作）
+- `blender/make_hero.py`：頭の大きい戦士（真横・右向き）を作り、透明な背景のPNGで書き出す。`assets/hero_side.png`
+- 実行：`blender -b -P make_hero.py`、またはBlenderの Scripting タブで [Alt]+[P]。クラウド側は `pip install bpy` で動く（Claudeが絵を見て直せる）
+- 絵の見た目は「まるい立体」。手描き風ではない。次は歩く動き（手足を動かして数枚書き出す）と、横向き以外の確認
