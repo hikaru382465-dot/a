@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>フードの旅人（横向き）</title>
+<style>
+  :root { --bg:#0e0b10; --panel:#1f1a24; --text:#e8e4d8; --sub:#a39cae; }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--text); min-height:100vh;
+    background:radial-gradient(ellipse at 30% 45%, #2a1e26 0%, #120e14 45%, var(--bg) 75%);
+    font-family:system-ui,"Hiragino Sans","Noto Sans JP",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 48px;
+    display:flex; flex-wrap:wrap; gap:24px; justify-content:center; }
+  .stage { position:relative; line-height:0; padding:10px; border-radius:8px; }
+  .stage::before { content:""; position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 55%, #3a2a2a55 0%, transparent 65%); pointer-events:none; }
+  #big { position:relative; image-rendering:pixelated; image-rendering:crisp-edges; display:block; }
+  .side { flex:1 1 220px; max-width:320px; font-size:14px; line-height:1.6; }
+  h1 { font-size:18px; margin:0 0 8px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+  button { background:var(--panel); color:var(--text); border:1px solid #3e3548;
+    border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
+  button.on { background:#8c3141; }
+  .pal { display:grid; grid-template-columns:repeat(8,1fr); gap:4px; margin:8px 0; }
+  .pal div { aspect-ratio:1; border-radius:4px; border:1px solid #0008; }
+  .stat { color:var(--sub); }
+  .stat b { color:var(--text); }
+  #small { image-rendering:pixelated; background:#1f1a24; padding:4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="stage"><canvas id="big"></canvas></div>
+  <div class="side">
+    <h1>フードの旅人（横向き）</h1>
+    <div class="row" id="zoom"></div>
+    <div class="row">
+      <button id="flip">左右反転</button>
+      <button id="grid">ドットの目を表示</button>
+      <button id="save">PNGで保存</button>
+    </div>
+    <div class="stat" id="stats"></div>
+    <div class="pal" id="pal"></div>
+    <div class="stat">実際の大きさ（60×130ドット）</div>
+    <canvas id="small"></canvas>
+  </div>
+</main>
+<script>
+// ===== パレット（透明をのぞいて16色）=====
+const PAL = [
+  '#15111a', // 0 輪郭
+  '#eee8d8', // 1 布 明（髪の明もかねる）
+  '#c2b9a8', // 2 布 基本
+  '#857c74', // 3 布 影
+  '#b2b8d0', // 4 髪 基本
+  '#676c8a', // 5 髪 影／ズボン 明
+  '#4a4254', // 6 ズボン 基本
+  '#2b2230', // 7 ズボン・革 影
+  '#c0565c', // 8 マフラー 明
+  '#8c3141', // 9 マフラー 基本
+  '#561d2b', // 10 マフラー 影
+  '#9e6c46', // 11 革 明（肌の影もかねる）
+  '#6a4630', // 12 革 基本
+  '#dcad8c', // 13 肌
+  '#e49a3c', // 14 火・金 基本
+  '#fde8a6', // 15 火 明
+];
+const MAT = {
+  cloth:[1,2,3], hair:[1,4,5], pants:[5,6,7], leather:[11,12,7],
+  scarf:[8,9,10], skin:[13,13,11], gold:[15,14,12], cuff:[4,5,6], void:[6,7,7],
+};
+const W = 60, H = 130, N = W * H;
+const OUT = 0, EMPTY = -1;
+
+// ===== 部品（後から描いたものが手前）=====
+const parts = [];
+const owner = new Int16Array(N).fill(-1);
+function part(mat, opt = {}) {
+  parts.push({ mat: MAT[mat], mask: new Uint8Array(N), line: opt.line ?? 'dark', R: opt.R ?? 4 });
+  return parts.length - 1;
+}
+function plot(id, x, y) {
+  if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) return;
+  const i = y * W + x; parts[id].mask[i] = 1; owner[i] = id;
+}
+function ellipse(id, cx, cy, rx, ry) {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
+    if (dx * dx + dy * dy <= 1) plot(id, x, y);
+  }
+}
+function inPoly(px, py, pts) {
+  let c = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function poly(id, pts) {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (inPoly(x + .5, y + .5, pts)) plot(id, x, y);
+}
+function rect(id, x0, y0, x1, y1) {
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) plot(id, x, y);
+}
+
+// ===== 形（右向き・奥 → 手前）=====
+const scarfTail = part('scarf', { R: 3 });
+poly(scarfTail, [[30,52],[23,56],[17,62],[13,70],[10,79],[13,78],[15,74],[17,77],[19,69],[24,63],[31,58]]);
+
+const cloakBack = part('cloth', { R: 6 });
+poly(cloakBack, [[25,55],[34,57],[37,64],[36,76],[34,88],[35,98],[32,105],[30,98],[27,108],[24,99],[20,106],[19,98],[14,103],[15,92],[13,86],[17,76],[19,64]]);
+
+const legB = part('pants', { R: 3 });
+poly(legB, [[27,86],[34,86],[33,100],[31,112],[25,112],[26,100]]);
+const cuffB = part('cuff', { R: 1 });
+rect(cuffB, 24, 109, 31, 111);
+const bootB = part('leather', { R: 3 });
+poly(bootB, [[24,112],[31,112],[32,118],[36,121],[37,125],[22,125],[23,118]]);
+
+const torso = part('pants', { R: 4 });
+poly(torso, [[30,57],[39,57],[43,64],[44,78],[43,90],[29,90],[29,72]]);
+
+const legF = part('pants', { R: 3 });
+poly(legF, [[34,86],[42,86],[44,98],[44,110],[37,110],[36,99]]);
+const cuffF = part('cuff', { R: 1 });
+rect(cuffF, 36, 107, 45, 109);
+const bootF = part('leather', { R: 3 });
+poly(bootF, [[37,110],[45,110],[45,116],[50,119],[52,122],[52,125],[36,125],[36,117]]);
+
+const skirt = part('cloth', { R: 4 });
+poly(skirt, [[29,80],[44,80],[46,90],[45,97],[43,93],[41,101],[38,94],[35,103],[33,95],[30,99],[28,90]]);
+
+const capeF = part('cloth', { R: 5 });
+poly(capeF, [[27,56],[38,56],[44,62],[46,70],[44,76],[41,73],[39,78],[36,72],[33,77],[30,72],[27,66]]);
+
+const strap = part('leather', { R: 1 });
+poly(strap, [[38,57],[41,57],[44,70],[42,71]]);
+const belt = part('leather', { R: 2 });
+poly(belt, [[28,76],[45,75],[46,80],[28,81]]);
+const pouch = part('leather', { R: 3 });
+ellipse(pouch, 29.5, 85, 3.5, 4);
+
+const sleeve = part('cloth', { R: 3, line: 'force' });
+poly(sleeve, [[33,59],[39,59],[42,68],[47,78],[46,83],[42,82],[38,74],[34,67]]);
+const glove = part('leather', { R: 2 });
+ellipse(glove, 46, 83.5, 3, 3);
+
+const lanHandle = part('leather', { R: 1 });
+rect(lanHandle, 45, 86, 47, 88);
+const lanTop = part('leather', { R: 2 });
+poly(lanTop, [[42,89],[50,89],[49,92],[43,92]]);
+const lanGlass = part('gold', { R: 3, line: 'none' });
+rect(lanGlass, 43, 92, 49, 101);
+const lanBot = part('leather', { R: 2 });
+poly(lanBot, [[42,101],[50,101],[49,104],[43,104]]);
+
+const hood = part('cloth', { R: 6 });
+poly(hood, [[20,24],[26,18],[34,16],[41,18],[46,24],[49,31],[49,36],[45,33],[38,33],[36,42],[38,54],[30,56],[24,53],[20,47],[17,43],[13,45],[9,51],[5,55],[6,48],[10,40],[14,33],[17,28]]);
+
+const opening = part('void', { R: 3, line: 'none' });
+poly(opening, [[38,33],[46,33],[49,37],[48,52],[38,53],[36,44]]);
+
+const face = part('skin', { R: 2, line: 'none' });
+poly(face, [[40,36],[47,36],[49,40],[51,43],[49,45],[49,50],[42,51],[40,44]]);
+
+const hairF = part('hair', { R: 3 });
+poly(hairF, [[36,33],[49,33],[51,37],[48,35],[49,40],[46,36],[45,41],[43,36],[41,44],[40,37],[38,42],[37,36]]);
+const hairS = part('hair', { R: 2 });
+poly(hairS, [[36,38],[39,38],[41,46],[40,55],[38,50],[37,56],[36,46]]);
+
+const scarf = part('scarf', { R: 4 });
+poly(scarf, [[29,49],[38,51],[45,49],[51,49],[52,53],[49,58],[41,61],[32,61],[27,57],[27,52]]);
+
+// ===== 陰影：左上からの光 =====
+const L = (() => { const v = [-1, -1.25, 1.5], m = Math.hypot(...v); return v.map(a => a / m); })();
+const tone = new Int8Array(N).fill(1);  // 0明 1基本 2影
+parts.forEach((p, id) => {
+  const d = new Float32Array(N);
+  for (let i = 0; i < N; i++) d[i] = p.mask[i] ? 999 : 0;
+  const pass = (fwd) => {
+    const s = fwd ? -1 : 1;
+    for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) {
+      const y = fwd ? yy : H - 1 - yy, x = fwd ? xx : W - 1 - xx;
+      const i = y * W + x; if (!d[i]) continue;
+      const g = (a, b, w) => (a < 0 || b < 0 || a >= W || b >= H) ? w : d[b * W + a] + w;
+      d[i] = Math.min(d[i], g(x + s, y, 1), g(x, y + s, 1), g(x + s, y + s, 1.41), g(x - s, y + s, 1.41));
+    }
+  };
+  pass(true); pass(false);
+  const h = new Float32Array(N);
+  for (let i = 0; i < N; i++) if (p.mask[i]) { const t = Math.min(d[i], p.R) / p.R; h[i] = Math.sqrt(t) * p.R; }
+  const hb = new Float32Array(N);
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    let s = 0;
+    for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) s += h[(y + j) * W + x + k];
+    hb[y * W + x] = s / 9;
+  }
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x; if (owner[i] !== id) continue;
+    const gx = (hb[i + 1] - hb[i - 1]) / 2, gy = (hb[i + W] - hb[i - W]) / 2;
+    const n = [-gx, -gy, 0.9], m = Math.hypot(...n);
+    let lam = (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / m;
+    lam -= (x - 30) / W * 0.25 + (y - 60) / H * 0.14;
+    tone[i] = lam > 0.86 ? 0 : lam < 0.56 ? 2 : 1;
+  }
+});
+
+function setTone(targets, test, t) {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; if (targets.includes(owner[i]) && test(x, y)) tone[i] = t;
+  }
+}
+// 落ち影
+setTone([face], (x, y) => y <= 38, 2);
+setTone([hairF], (x, y) => y <= 34, 2);
+setTone([hairF, hairS], (x, y) => y >= 37 && x % 3 === 0, 2);                       // 髪の毛すじ
+setTone([hairF], (x, y) => y >= 34 && y <= 35 && x >= 39 && x <= 46, 0);           // 髪のつや                                      // フードのふちの影
+setTone([face], (x, y) => x <= 41, 2);                                             // ほほの奥
+setTone([torso, capeF, strap, hairS], (x, y) => y <= 62, 2);                       // マフラーの下
+setTone([skirt, torso], (x, y) => y <= 83, 2);                                     // ベルトの下
+setTone([capeF, torso, strap], (x, y) => x >= 35 && y >= 60 && y <= 80, 2); // 腕の下
+setTone([cloakBack], (x, y) => x >= 30, 2);                                        // 体の奥
+setTone([legB, cuffB], (x, y) => x >= 29, 2);                                      // 奥の足は少し暗く
+setTone([bootB], (x, y) => y <= 114 || x >= 30, 2);
+setTone([legF], (x, y) => y <= 92, 2);                                             // すそ布の下
+setTone([hood], (x, y) => x >= 36 && x <= 37 && y >= 34 && y <= 52, 2);            // フードの内側のふち
+// 布のひだ
+setTone([cloakBack], (x, y) => (x === 21 || x === 22) && y >= 80 && y <= 100, 2);
+setTone([cloakBack], (x, y) => (x === 19 || x === 20) && y >= 78 && y <= 96, 0);
+setTone([cloakBack], (x, y) => (x === 27 || x === 28) && y >= 84 && y <= 102, 2);
+setTone([capeF], (x, y) => (x === 32 || x === 33) && y >= 63 && y <= 72, 2);
+setTone([capeF], (x, y) => (x === 30 || x === 31) && y >= 60 && y <= 70, 0);
+setTone([skirt], (x, y) => (x === 37 || x === 38) && y >= 85 && y <= 95, 2);
+setTone([skirt], (x, y) => (x === 32 || x === 33) && y >= 84 && y <= 94, 0);
+setTone([hood], (x, y) => (x === 25 || x === 26) && y >= 30 && y <= 48, 2);
+setTone([hood], (x, y) => (x === 22 || x === 23) && y >= 26 && y <= 44, 0);
+setTone([scarf], (x, y) => y === 55 || y === 56, 2);                               // マフラーの巻き目
+setTone([scarf], (x, y) => y === 52 && x < 48, 0);
+// ランタンの光（近くの影をひと段明るく）
+const LX = 46, LY = 97;
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const i = y * W + x, o = owner[i];
+  if (o < 0 || [lanGlass, lanTop, lanBot, lanHandle].includes(o)) continue;
+  const r = Math.hypot(x - LX, y - LY);
+  if (r < 9 && tone[i] === 2) tone[i] = 1;
+  else if (r < 6 && tone[i] === 1) tone[i] = 0;
+}
+setTone([lanGlass], (x, y) => x >= 45 && x <= 47 && y >= 94 && y <= 100, 0);
+setTone([lanGlass], (x, y) => (x === 43 || x === 49 || y === 92), 2);
+
+// ===== 色を決める =====
+const px = new Int8Array(N).fill(EMPTY);
+for (let i = 0; i < N; i++) if (owner[i] >= 0) px[i] = parts[owner[i]].mat[tone[i]];
+
+// 部品の境目の線
+const ext = new Int8Array(px);
+for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+  const i = y * W + x, a = owner[i]; if (a < 0) continue;
+  for (const j of [i - 1, i + 1, i - W, i + W]) {
+    const b = owner[j];
+    if (b <= a || parts[b].line === 'none') continue;
+    ext[i] = parts[b].mat === parts[a].mat && parts[b].line !== 'force' ? parts[a].mat[2] : OUT; break;
+  }
+}
+px.set(ext);
+
+// 孤立点の掃除
+function cleanup(passes) {
+  for (let p = 0; p < passes; p++) {
+    const src = new Int8Array(px);
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x, c = src[i]; if (c === EMPTY) continue;
+      const nb = [src[i - 1], src[i + 1], src[i - W], src[i + W]];
+      if (nb.includes(c)) continue;
+      const cnt = {};
+      for (const v of nb) if (v !== EMPTY) cnt[v] = (cnt[v] || 0) + 1;
+      const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+      if (best) px[i] = +best[0];
+    }
+  }
+}
+cleanup(3);
+
+// ===== 描きこみ =====
+function stamp(x0, y0, rows, map) {
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch in map) px[(y0 + y) * W + x0 + x] = map[ch]; }));
+}
+const K = { o: 0, l: 15, f: 14, g: 12, c: 3, s: 7, h: 1, r: 10 };
+stamp(45, 40, ['ll', 'ff', 'ff'], K);                   // 目（光る橙）
+stamp(44, 39, ['ooo'], K);                              // まぶたの線
+stamp(30, 76, ['fff', 'f.f', 'fff'], K);                // バックル
+stamp(31, 77, ['o'], K);
+stamp(45, 94, ['.l.', 'lll', 'lll', 'fff'], K);         // 炎
+stamp(44, 101, ['.......'], K);
+stamp(22, 22, ['gg', 'gg'], { g: 12 });                 // フードのつぎあて
+stamp(28, 38, ['gg', 'gg'], { g: 12 });
+stamp(18, 90, ['ss', 'ss'], { s: 3 });                  // 布の汚れ
+stamp(33, 120, ['gg', 'gg'], { g: 11 });                // 靴の光
+stamp(47, 119, ['gg'], { g: 11 });
+stamp(48, 120, ['gg'], { g: 11 });
+
+// 外側の輪郭（1ドット）
+{
+  const src = new Int8Array(px);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; if (src[i] !== EMPTY) continue;
+    const nb = [x > 0 ? src[i - 1] : EMPTY, x < W - 1 ? src[i + 1] : EMPTY,
+                y > 0 ? src[i - W] : EMPTY, y < H - 1 ? src[i + W] : EMPTY];
+    if (nb.some(v => v !== EMPTY && v !== OUT)) px[i] = OUT;
+  }
+}
+
+// 最後の仕上げ：まわり8マスに同じ色がない点を、いちばん多い色にする
+{
+  const src = new Int8Array(px);
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x, c = src[i]; if (c === EMPTY) continue;
+    const cnt = {}; let same = false;
+    for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) {
+      if (!j && !k) continue; const v = src[i + j * W + k];
+      if (v === c) same = true; else if (v !== EMPTY) cnt[v] = (cnt[v] || 0) + 1;
+    }
+    if (same) continue;
+    const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+    if (best) px[i] = +best[0];
+  }
+}
+
+// ===== 確認：色数と孤立点 =====
+let used = new Set(), iso8 = 0;
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const i = y * W + x, c = px[i]; if (c === EMPTY) continue; used.add(c);
+  let alone = true;
+  for (let j = -1; j <= 1 && alone; j++) for (let k = -1; k <= 1; k++) {
+    if (!j && !k) continue; const xx = x + k, yy = y + j;
+    if (xx >= 0 && yy >= 0 && xx < W && yy < H && px[yy * W + xx] === c) { alone = false; break; }
+  }
+  if (alone) iso8++;
+}
+
+// ===== 描画 =====
+const small = document.getElementById('small');
+small.width = W; small.height = H;
+const sctx = small.getContext('2d');
+const img = sctx.createImageData(W, H);
+for (let i = 0; i < N; i++) {
+  if (px[i] === EMPTY) continue;
+  const c = PAL[px[i]];
+  img.data.set([parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16), 255], i * 4);
+}
+sctx.putImageData(img, 0, 0);
+
+const big = document.getElementById('big');
+let scale = 5, grid = false, flip = false;
+function render() {
+  big.width = W * scale; big.height = H * scale;
+  const ctx = big.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.save();
+  if (flip) { ctx.translate(W * scale, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(small, 0, 0, W * scale, H * scale);
+  ctx.restore();
+  if (grid && scale >= 4) {
+    ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x++) { ctx.beginPath(); ctx.moveTo(x * scale + .5, 0); ctx.lineTo(x * scale + .5, H * scale); ctx.stroke(); }
+    for (let y = 0; y <= H; y++) { ctx.beginPath(); ctx.moveTo(0, y * scale + .5); ctx.lineTo(W * scale, y * scale + .5); ctx.stroke(); }
+  }
+  document.querySelectorAll('#zoom button').forEach(b => b.classList.toggle('on', +b.dataset.s === scale));
+}
+const zoom = document.getElementById('zoom');
+[3, 5, 8].forEach(s => {
+  const b = document.createElement('button');
+  b.dataset.s = s; b.textContent = `${s}倍（${W * s}×${H * s}）`;
+  b.onclick = () => { scale = s; render(); };
+  zoom.appendChild(b);
+});
+document.getElementById('flip').onclick = e => { flip = !flip; e.target.classList.toggle('on', flip); render(); };
+document.getElementById('grid').onclick = e => { grid = !grid; e.target.classList.toggle('on', grid); render(); };
+document.getElementById('save').onclick = () => {
+  const keep = grid; grid = false; render();
+  const a = document.createElement('a');
+  a.download = `wanderer_side_${flip ? 'left' : 'right'}_${W * scale}x${H * scale}.png`;
+  a.href = big.toDataURL('image/png'); a.click();
+  grid = keep; render();
+};
+document.getElementById('pal').innerHTML = PAL.map((c, i) => `<div title="${i}: ${c}" style="background:${c};opacity:${used.has(i) ? 1 : .25}"></div>`).join('');
+document.getElementById('stats').innerHTML =
+  `大きさ：<b>${W * 5}×${H * 5}</b>（${W}×${H}ドットを5倍）<br>使った色：<b>${used.size}</b> / 16色（透明のぞく）<br>孤立点：<b>${iso8}</b>`;
+render();
+</script>
+</body>
+</html>
