@@ -35,6 +35,7 @@ IDLE_LATER = (13.0, 13.0, 9.0, 9.0)   # 段階1〜4が終わったあとの静�
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
 GLASS_DIRT = 0.35            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
+FLICKER_BLACK = 0.6          # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
 DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
 # ----------------------------------------------------
 
@@ -181,6 +182,15 @@ class Game:
         for nm, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if nm != "SpotLight" else mult))
 
+    def blackout(self, amount):
+        """画面の黒さ（0〜1）を、すぐ変える。点滅の「消えた」瞬間を、光の遅れに関係なく暗くする"""
+        try:
+            self.pc.player_camera_manager.set_manual_camera_fade(amount, unreal.LinearColor(0, 0, 0, 1), False)
+        except Exception as e:  # noqa
+            if not getattr(self, "_blk_warned", False):
+                self._blk_warned = True
+                log("  (画面を黒くできません) %s" % e)
+
     def fade(self, to_black, dur):
         try:
             cm = self.pc.player_camera_manager
@@ -253,9 +263,11 @@ class Game:
                 self.flicker_lit = not self.flicker_lit
                 self.flicker_next = self.sub_t + random.uniform(0.03, 0.22)
                 self.set_lights(0.9 if self.flicker_lit else 0.0)
+                self.blackout(0.0 if self.flicker_lit else FLICKER_BLACK)
             if self.sub_t >= self.sub_len:
                 self.sub, self.sub_t, self.sub_len = "DARK", 0.0, DARK_TIME
                 self.set_lights(0.0)
+                self.blackout(0.0)
                 self.stage += 1
                 screen(self.world, "段階 %d / %d" % (self.stage, LAST_STAGE), (255, 220, 120), 3.0)
                 log("段階 %d" % self.stage)
