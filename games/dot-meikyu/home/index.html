@@ -154,12 +154,12 @@ for(const y of[.35,.62]){put(new THREE.BoxGeometry(GX1-GX0,.06,.06),M({map:wood}
 // ===== 草花・作物（立て板） =====
 function plant(kind,seed){return ctex(32,48,(x,w,h)=>{const R=rng(seed);const gs=['#2f7a3a','#3f9a48','#25622f','#58b050'];
  // トマトも花も同じ描き方：茎＋葉のかたまり＋実（トマトは赤、花はオレンジ）
- const fl=kind==='flower';
+ const fl=kind==='flower'||kind==='blue';
  for(let i=0;i<9;i++){const bx=16+(R()*8-4)|0,tx=bx+((R()*16-8)|0),top=(fl?8:14)+((R()*14)|0);x.strokeStyle=pick(R,gs);x.lineWidth=1.5;x.beginPath();x.moveTo(bx,h);x.lineTo(tx,top);x.stroke();
   for(let k=0;k<3;k++){x.fillStyle=pick(R,gs);const ly=top+k*6;x.fillRect(tx-4+((R()*6)|0),ly,6,4)}}
  if(!fl){x.fillStyle='#6a4025';x.fillRect(15,10,2,h-10)}
- const cols=fl?['#e8832a','#f0a040','#d86a1c']:['#d83a2a','#e8502e','#b82a22'];
- for(let i=0;i<(fl?7:6);i++){x.fillStyle=pick(R,cols);const a=8+((R()*16)|0),b=(fl?6:18)+((R()*(fl?26:20))|0);x.fillRect(a,b,4,4);if(fl){x.fillStyle='#ffd34d';x.fillRect(a+1,b+1,1,1)}}})}
+ const blue=kind==='blue',cols=blue?['#5a8cf0','#7aa8ff','#3f68c8']:fl?['#e8832a','#f0a040','#d86a1c']:['#d83a2a','#e8502e','#b82a22'];
+ for(let i=0;i<(fl?7:6);i++){x.fillStyle=pick(R,cols);const a=8+((R()*16)|0),b=(fl?6:18)+((R()*(fl?26:20))|0);x.fillRect(a,b,4,4);if(fl){x.fillStyle=blue?'#e8f0ff':'#ffd34d';x.fillRect(a+1,b+1,1,1)}}})}
 const sprites=[];
 function spr(tex,x,z,sx,sy,o={}){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:o.color||'#d8e0d0',fog:true}));m.center.set(.5,0);m.scale.set(sx,sy,1);m.position.set(x,0,z);scene.add(m);sprites.push(m);return m}
 const tomato=[plant('tomato',1),plant('tomato',2),plant('tomato',3)];
@@ -192,6 +192,54 @@ function pixTree(x,z,s,i){const sp=spr(treeTexs[i%3],x,z,4.6*s,6.3*s,{color:'#d0
  const b=new THREE.Mesh(new THREE.CircleGeometry(1.1*s,18),new THREE.MeshBasicMaterial({color:'#000',transparent:true,opacity:.35,depthWrite:false}));b.rotation.x=-Math.PI/2;b.scale.set(1,.6,1);b.position.set(x+.5*s,.03,z+.2);scene.add(b)}
 [[-19,-8,1.2],[-17,-12,1.3],[-8,-14,1.25],[-1,-15,1.4],[6,-14,1.2],[15,-13,1.35],[19,-8,1.2],[20,-1,1.1],[18,6,1.15],[-19,3,1.2],[-18,9,1.1],[-12,11,1.0],[16,10,1.0],[-6,-12.5,1.1],[3,-13,1.15],[21,-9,1.3],[-21,-3,1.3]].forEach(([x,z,s],i)=>pixTree(x,z,s,i));
 for(const[x,z,s]of[[-5.4,8.6,.5],[6,8.8,.4],[10.5,1.5,.35],[-16.8,-1,.5]]){const r=new THREE.Mesh(new THREE.IcosahedronGeometry(s,0),M({color:'#5a6068',flatShading:true}));r.position.set(x,s*.5,z);r.scale.y=.7;r.castShadow=r.receiveShadow=true;scene.add(r)}
+
+
+// ===== 手前（下のほう）のにぎやかし =====
+const anim=[];
+const rock=(x,z,sc,col='#5a6068')=>{const r=new THREE.Mesh(new THREE.IcosahedronGeometry(sc,0),M({color:col,flatShading:true}));r.position.set(x,sc*.45,z);r.scale.y=.7;r.rotation.y=x*3;r.castShadow=r.receiveShadow=true;scene.add(r)};
+// たき火（丸太のいすつき）
+{const FX=.5,FZ=7.4;
+ for(let i=0;i<8;i++){const a=i/8*6.283;rock(FX+Math.cos(a)*.62,FZ+Math.sin(a)*.62,.17,'#6a6a72')}
+ put(new THREE.CylinderGeometry(.09,.09,.9,8),M({map:wood}),FX,.12,FZ,{rot:[0,.5,Math.PI/2]});put(new THREE.CylinderGeometry(.09,.09,.9,8),M({map:wood}),FX,.2,FZ,{rot:[0,-.7,Math.PI/2]});
+ for(const[x,z,r]of[[-1.7,0,.3],[1.9,.2,-.3],[0,1.7,Math.PI/2+.1]]){const l=put(new THREE.CylinderGeometry(.22,.22,1.4,10),M({map:wood}),FX+x,.22,FZ+z,{rot:[0,r,Math.PI/2]})}
+ const ft=[0,1,2].map(f=>ctex(16,20,(x)=>{const R=rng(f+5);const rows=[[4,6,'#c8341c'],[3,8,'#e8502e'],[3,9,'#ff9a30'],[2,7,'#ffd050']];
+  rows.forEach(([hw,hh,c],k)=>{x.fillStyle=c;for(let j=0;j<hh;j++){const w=Math.max(1,Math.round(hw*(1-j/hh)*2*(1-k*.2))),jx=((R()*3)|0)-1;x.fillRect(8-(w>>1)+jx,19-j-k*1.2-1,w,1)}})}));
+ const fire=new THREE.Sprite(new THREE.SpriteMaterial({map:ft[0],fog:false,transparent:true,color:'#fff'}));fire.center.set(.5,0);fire.position.set(FX,.15,FZ);fire.scale.set(.8,1,1);scene.add(fire);
+ const fl=new THREE.PointLight('#ff8a30',9,12,1.5);fl.position.set(FX,.9,FZ);scene.add(fl);lights.push({p:fl,i:9,fl:2.4});
+ anim.push(t=>{fire.material.map=ft[Math.floor(t*9)%3];const k=1+Math.sin(t*17)*.08;fire.scale.set(.8*k,1*(1.05-(k-1)),1)})}
+// 立て札（行き先）
+{const bd=(txt,w)=>ctex(64,16,(x,W,H)=>{x.fillStyle='#8a5a34';x.fillRect(0,0,W,H);x.fillStyle='#5a3320';x.fillRect(0,0,W,2);x.fillRect(0,H-2,W,2);x.fillStyle='#2a140a';x.font='bold 11px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(txt,W/2,H/2+1)});
+ put(new THREE.BoxGeometry(.14,2.2,.14),M({map:wood}),-3.6,1.1,4.6);
+ [['← 商店',2.0,-.1],['鍛冶屋 →',1.55,.12],['↑ 畑・家',1.1,-.06]].forEach(([t,y,r])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(1.5,.36,.07),[M({map:wood}),M({map:wood}),M({map:wood}),M({map:wood}),M({map:bd(t)}),M({map:wood})]);m.position.set(-3.6,y,4.68);m.rotation.z=r;m.castShadow=true;scene.add(m)})}
+// 荷車とわら
+{const cx=7.2,cz=8.4;put(new THREE.BoxGeometry(1.9,.3,1.1),M({map:wood}),cx,.62,cz,{rot:[0,.25,0]});
+ for(const s of[-1,1]){const w=put(new THREE.CylinderGeometry(.42,.42,.08,16),M({map:wood}),cx+Math.cos(.25)*0+s*0,.42,cz+s*.65,{rot:[Math.PI/2,0,0]})}
+ put(new THREE.BoxGeometry(1.4,.08,.08),M({map:wood}),cx+1.5,.5,cz-.35,{rot:[0,.25,.2]});put(new THREE.BoxGeometry(1.4,.08,.08),M({map:wood}),cx+1.5,.5,cz+.35,{rot:[0,.25,.2]});
+ const hay=new THREE.Mesh(new THREE.IcosahedronGeometry(.7,1),M({color:'#d8b04a',flatShading:true}));hay.position.set(cx-.1,1,cz);hay.scale.set(1.25,.65,.85);hay.castShadow=true;hay.receiveShadow=true;scene.add(hay);
+ for(const[x,z,r]of[[cx-3,cz+.5,.4],[cx-3.8,cz-.2,0]]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.6,12),M({color:'#d0aa48',flatShading:true}));b.position.set(x,.3,z);b.rotation.set(0,r,Math.PI/2);b.castShadow=true;scene.add(b)}}
+// 池（あしと葉）
+{const px=-4.6,pz=8.6;const wat=new THREE.Mesh(new THREE.CircleGeometry(1.9,28),new THREE.MeshStandardMaterial({color:'#2d6a8f',roughness:.1,metalness:.3}));wat.rotation.x=-Math.PI/2;wat.scale.set(1,.7,1);wat.position.set(px,.05,pz);wat.receiveShadow=true;scene.add(wat);
+ for(let i=0;i<14;i++){const a=i/14*6.283,rx=Math.cos(a)*2.0,rz=Math.sin(a)*1.45;rock(px+rx,pz+rz,.2+((i*7)%3)*.05,i%2?'#5a6068':'#6a7078')}
+ for(const[x,z]of[[.4,.1],[-.6,.35],[.9,-.3]]){const lp=new THREE.Mesh(new THREE.CircleGeometry(.28,10),new THREE.MeshBasicMaterial({color:'#3a9a48'}));lp.rotation.x=-Math.PI/2;lp.position.set(px+x,.07,pz+z);scene.add(lp)}
+ const reed=[plant('flower',31),plant('flower',32)];for(let i=0;i<6;i++)spr(reed[i%2],px-2.2+i*.35,pz-1.2-(i%2)*.2,.8,1.3)}
+// ちょうちん灯（道ぞい）
+for(const[x,z]of[[-2.2,3.6],[2.6,3.3]]){put(new THREE.BoxGeometry(.1,1.6,.1),M({map:wood}),x,.8,z);const g=new THREE.Mesh(new THREE.BoxGeometry(.3,.38,.3),new THREE.MeshBasicMaterial({color:'#ffc060'}));g.position.set(x,1.7,z);scene.add(g);
+ put(new THREE.BoxGeometry(.4,.06,.4),M({map:wood}),x,1.95,z);const pl=new THREE.PointLight('#ff9a48',3.5,7,1.6);pl.position.set(x,1.7,z);scene.add(pl);lights.push({p:pl,i:3.5,fl:1.2})}
+// 低木・きのこ・飛び石・花
+const bushTex=ctex(48,32,(x,w,h)=>{const R=rng(61),pal=['#14301c','#1d4a26','#2a6a34','#3f8a42','#63ad55'];const C=[[24,18,14],[11,22,10],[37,22,10],[24,9,9]];
+ const ins=(a,b)=>C.some(([cx,cy,r])=>(a-cx)**2+((b-cy)*1.1)**2<r*r);
+ for(let b=0;b<h;b++)for(let a=0;a<w;a++){if(!ins(a,b))continue;let v=.6-(b-14)/40+(R()-.5)*.5;x.fillStyle=pal[Math.max(0,Math.min(4,Math.floor(v*5)))];x.fillRect(a,b,1,1)}
+ const d=x.getImageData(0,0,w,h).data,sd=(a,b)=>a>=0&&b>=0&&a<w&&b<h&&d[(b*w+a)*4+3]>0;x.fillStyle='#0a150e';
+ for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(!sd(a,b)&&(sd(a-1,b)||sd(a+1,b)||sd(a,b-1)||sd(a,b+1)))x.fillRect(a,b,1,1);
+ x.fillStyle='#e8502e';for(const[a,b]of[[16,16],[28,19],[22,10]])x.fillRect(a,b,2,2)});
+for(const[x,z,k]of[[-12,6.2,1.7],[-14.2,3.5,1.5],[12.8,6.4,1.6],[14,9,1.4],[-1.5,9.8,1.6],[3.8,9.6,1.4],[-7.8,3,1.2],[11.2,-.5,1.3]])spr(bushTex,x,z,k*1.5,k,{color:'#d0dccb'});
+const mush=ctex(12,12,(x)=>{x.fillStyle='#e8e0d0';x.fillRect(5,6,2,5);x.fillStyle='#d8362e';x.fillRect(2,3,8,3);x.fillRect(3,2,6,1);x.fillStyle='#fff';x.fillRect(4,3,1,1);x.fillRect(7,4,1,1)});
+for(const[x,z]of[[-14,7],[-13.4,7.4],[13.5,2.5],[8.5,9.6],[-9,10]])spr(mush,x,z,.45,.45);
+for(let i=0;i<7;i++){const a=i/6;const st=new THREE.Mesh(new THREE.CylinderGeometry(.28,.3,.08,9),M({color:'#6a6a72',flatShading:true}));st.position.set(.5+a*3.2+Math.sin(i*2)*.15,.04,6.1-a*2.6);st.receiveShadow=true;scene.add(st)}
+const bl=[plant('blue',41),plant('blue',42)],fl2=[plant('flower',43),plant('flower',44)];
+for(let i=0;i<8;i++)spr(bl[i%2],-14+i*.5,9.3-(i%2)*.4,.85,1.35);
+for(let i=0;i<7;i++)spr(fl2[i%2],9.6+i*.5,9.8-(i%3)*.3,.85,1.4);
+for(let i=0;i<6;i++)spr(bl[i%2],-1.5+i*.45,5.4+(i%2)*.3,.8,1.3);
 
 // ===== 光のすじ・ちり =====
 const shaft=ctex(16,64,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(255,230,180,0)');g.addColorStop(.25,'rgba(255,230,180,.9)');g.addColorStop(1,'rgba(255,230,180,0)');x.fillStyle=g;x.fillRect(0,0,w,h)});
@@ -291,7 +339,7 @@ function frame(){const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime;
  for(let i=hearts.length-1;i>=0;i--){const h=hearts[i];h.userData.t+=dt;h.position.set(PET.x,1+h.userData.t*.8,PET.z);h.material.opacity=Math.max(0,1-h.userData.t/1.2);if(h.userData.t>1.2){scene.remove(h);hearts.splice(i,1)}}
  camT.lerp(new THREE.Vector3(P.x,.4,P.z-.8),1-Math.exp(-dt*14));
  const asp=innerWidth/innerHeight,dist=37+11*Math.max(0,Math.min(1,(1.3-asp)/.8)),pitch=Math.PI/4;camera.position.set(camT.x+Math.sin(yaw)*Math.cos(pitch)*dist,camT.y+Math.sin(pitch)*dist,camT.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(camT);
- for(const o of lights)o.p.intensity=o.i+Math.sin(t*13*o.fl)*.5*o.fl+Math.sin(t*5.3)*.4;
+ for(const f of anim)f(t);for(const o of lights)o.p.intensity=o.i+Math.sin(t*13*o.fl)*.5*o.fl+Math.sin(t*5.3)*.4;
  const pos=dust.geometry.attributes.position;for(let i=0;i<pos.count;i++){pos.setY(i,pos.getY(i)+Math.sin(t+i)*.002);pos.setX(i,pos.getX(i)+Math.cos(t*.6+i)*.0025)}pos.needsUpdate=true;
  camera.updateMatrixWorld();for(const lb of labels){v3.copy(lb.p).project(camera);const vis=v3.z<1&&Math.abs(v3.x)<1.1&&Math.abs(v3.y)<1.1;lb.e.style.display=vis&&!cur?'block':'none';lb.e.style.left=((v3.x+1)/2*innerWidth)+'px';lb.e.style.top=((1-v3.y)/2*innerHeight)+'px'}
  if(PLAIN)renderer.render(scene,camera);else composer.render();
