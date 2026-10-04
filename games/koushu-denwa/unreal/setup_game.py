@@ -186,6 +186,32 @@ def s_collision():
     log("当たり判定をつけた数: %d" % n)
 
 
+def s_glass():
+    """ガラスの「くもり」を、あとから強さを変えられる（Dirt）ようにする。外が見えない問題の対策"""
+    mel = unreal.MaterialEditingLibrary
+    mp = unreal.MaterialProperty.MP_OPACITY
+    m = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Materials/M_Glass")
+    if m is None:
+        raise RuntimeError("M_Glass がありません")
+    node = mel.get_material_property_input_node(m, mp)
+    out = mel.get_material_property_input_node_output_name(m, mp)
+    if node is None:
+        raise RuntimeError("M_Glass の Opacity につながっている部品が見つかりません")
+    if isinstance(node, unreal.MaterialExpressionMultiply):
+        log("  M_Glass はすでに Dirt つきです")
+        return
+    par = mel.create_material_expression(m, unreal.MaterialExpressionScalarParameter, -400, 300)
+    setp(par, "parameter_name", "Dirt")
+    setp(par, "default_value", 0.35)
+    mul = mel.create_material_expression(m, unreal.MaterialExpressionMultiply, -200, 200)
+    mel.connect_material_expressions(node, out, mul, "A")
+    mel.connect_material_expressions(par, "", mul, "B")
+    mel.connect_material_property(mul, "", mp)
+    mel.recompile_material(m)
+    unreal.EditorAssetLibrary.save_loaded_asset(m)
+    log("M_Glass に Dirt（くもりの強さ）を足しました")
+
+
 def s_save():
     try:
         unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).save_current_level()
@@ -201,6 +227,7 @@ def main():
     step("プレイヤーの開始位置", s_player_start, ["前回の生成物を消す"])
     step("懐中電灯", s_flashlight, ["前回の生成物を消す"])
     step("当たり判定", s_collision, ["環境確認"])
+    step("ガラスの透け具合", s_glass, ["環境確認"])
     step("保存", s_save, ["環境確認"])
     log("SUMMARY: " + ", ".join("%s=%s" % (k, v) for k, v in RESULTS.items()))
     if any(v == "FAIL" for v in RESULTS.values()):

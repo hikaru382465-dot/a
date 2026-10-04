@@ -34,6 +34,8 @@ DARK_TIME = 1.4              # 暗転の長さ
 IDLE_LATER = (13.0, 13.0, 9.0, 9.0)   # 段階1〜4が終わったあとの静かな時間（最後の段階はそのまま）
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
+GLASS_DIRT = 0.35            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
+DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
 # ----------------------------------------------------
 
 LOG_PREFIX = "[KD] "
@@ -109,6 +111,34 @@ class Game:
             c = a.get_component_by_class(unreal.RectLightComponent)
             base = c.get_editor_property("intensity")
             self.tubes.append((c, base))
+        # 電話機にあててある SpotLight、月、空も、いっしょに暗くする
+        self.extra = []
+        for nm, cls in (("SpotLight", unreal.SpotLightComponent), ("Moon", unreal.DirectionalLightComponent), ("SkyLight", unreal.SkyLightComponent)):
+            a = found.get(nm)
+            if a is None:
+                continue
+            c = a.get_component_by_class(cls)
+            if c is not None:
+                self.extra.append((nm, c, c.get_editor_property("intensity")))
+        # 蛍光灯の光る部分（材質 M_Tube の Flicker）とガラス（M_Glass の Dirt）を、動かせる材質にする
+        self.tube_mats = []
+        for nm, a in found.items():
+            if not nm.startswith("Booth_"):
+                continue
+            comp = a.get_component_by_class(unreal.StaticMeshComponent)
+            if comp is None:
+                continue
+            for i in range(comp.get_num_materials()):
+                mat = comp.get_material(i)
+                mn = mat.get_name() if mat is not None else ""
+                try:
+                    if "Tube" in mn:
+                        self.tube_mats.append(comp.create_dynamic_material_instance(i, mat))
+                    elif "Glass" in mn:
+                        mid = comp.create_dynamic_material_instance(i, mat)
+                        mid.set_scalar_parameter_value("Dirt", GLASS_DIRT)
+                except Exception as e:  # noqa
+                    log("  (材質を動かせません) %s[%d]: %s" % (nm, i, e))
         self.pc = unreal.GameplayStatics.get_player_controller(self.world, 0)
         self.pawn = unreal.GameplayStatics.get_player_pawn(self.world, 0)
         self.cx, self.cy = 0.0, 0.0
@@ -129,8 +159,8 @@ class Game:
             self.set_flash(False)
         self.key = unreal.Key()
         self.key.set_editor_property("key_name", FLASH_KEY)
-        log("Play 開始: ドアの軸=%s 懐中電灯=%s 蛍光灯=%d本 プレイヤー=%s ボックス中心=(%.0f,%.0f)" % (
-            self.hinge is not None, self.flash is not None, len(self.tubes), self.pawn is not None, self.cx, self.cy))
+        log("Play 開始: ドアの軸=%s 懐中電灯=%s 蛍光灯の光=%d 光る材質=%d 他の光=%s プレイヤー=%s ボックス中心=(%.0f,%.0f)" % (
+            self.hinge is not None, self.flash is not None, len(self.tubes), len(self.tube_mats), [e[0] for e in self.extra], self.pawn is not None, self.cx, self.cy))
         screen(self.world, "WASD：歩く / マウス：見る / F：懐中電灯", (200, 255, 200), 6.0)
 
     # ---- 部品 ----
@@ -145,6 +175,11 @@ class Game:
         self.mult = mult
         for c, base in self.tubes:
             c.set_editor_property("intensity", base * mult)
+        for mid in self.tube_mats:
+            mid.set_scalar_parameter_value("Flicker", mult)          # 蛍光灯の見た目も、光といっしょにちらつく
+        part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
+        for nm, c, base in self.extra:
+            c.set_editor_property("intensity", base * (part if nm != "SpotLight" else mult))
 
     def fade(self, to_black, dur):
         try:
