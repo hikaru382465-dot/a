@@ -181,11 +181,14 @@ function cookie(shapes, icingColor, decalTex, depth=.07){
 }
 
 
-function loopGeo(L,Hh,W,s){ // リボンの輪：帯が立ち上がって輪になる
-  return gridGeo(64,8,(u,v)=>{
-    const phi=u*PI2, e=(1-Math.cos(phi))/2, sh=Math.pow(e,.4);
-    const w=W*(.28+.72*Math.sin(phi/2)), y=(v-.15)*w;
-    return [s*L*e, y+.05*Math.sin(phi*2)*v, Hh*Math.sin(phi)*sh*(1+.15*v)];
+function loopGeo(L,Hh,W,s,t=0){ // リボンの輪：ふくらみ・しわ・波うつふちのある帯（t=厚みぶんの内側ずらし）
+  return gridGeo(96,14,(u,v)=>{
+    const phi=u*PI2, e=(1-Math.cos(phi))/2, sh=Math.pow(e,.4), near=1-Math.min(1,e*2.2);
+    const w=W*(.3+.7*Math.sin(phi/2));
+    const cup=Math.sin(Math.PI*v), rip=Math.sin(phi*5+v*2)*.03*(.4+near*1.4)*(.6+.4*cup);
+    const y=(v-.2)*w+.05*Math.sin(phi*3+1)*v*v+(1-cup)*.0;
+    const z=(Hh-t)*Math.sin(phi)*sh*(1+.18*v)+rip-.05*cup*Math.sin(phi/2)*Math.sign(Math.sin(phi)||1);
+    return [s*L*e+ (1-v)*.02*Math.sin(phi*4), y, z];
   });
 }
 function dilate(src,r){ const [c,g]=mkCanvas(src.width); for(let k=0;k<16;k++){ const a=k/16*PI2; g.drawImage(src,Math.cos(a)*r,Math.sin(a)*r); } g.drawImage(src,0,0); return c; }
@@ -273,10 +276,13 @@ const B = {
     const g=new THREE.Group(); if(p.variant==='none')return g;
     const m=mat(p.color,{roughness:.5,side:THREE.DoubleSide,bumpMap:noiseTex,bumpScale:.25}), dm=mat(p.color2,{roughness:.5});
     const ty=ctx.topY, bowG=new THREE.Group(); bowG.position.set(0,ty+.03,-.08); g.add(bowG);
+    const sat=mat(p.color,{roughness:.42,side:THREE.DoubleSide,bumpMap:noiseTex,bumpScale:.15});
     for(const s of [-1,1]){
-      const loop=new THREE.Mesh(loopGeo(.8,.2,.8,s),m); loop.rotation.z=s*.28; loop.rotation.y=s*.12; bowG.add(loop);
+      const lp=new THREE.Group(); lp.add(new THREE.Mesh(loopGeo(.82,.2,.8,s),sat),new THREE.Mesh(loopGeo(.8,.2,.78,s,.045),sat));
+      lp.rotation.z=s*.3; lp.rotation.y=s*.14; lp.rotation.x=.05; bowG.add(lp);
+      const tl=new THREE.Mesh(new THREE.CapsuleGeometry(.07,.32,6,12),sat); tl.position.set(s*.08,.0,.2); tl.rotation.z=s*.9; tl.rotation.x=1.1; tl.scale.z=.5; bowG.add(tl);
     }
-    const knot=new THREE.Mesh(new THREE.BoxGeometry(.2,.32,.36),m); knot.position.y=.12; bowG.add(knot);
+    const knot=new THREE.Mesh(new THREE.CapsuleGeometry(.1,.14,8,16),sat); knot.scale.set(1.5,1,1.9); knot.position.y=.13; bowG.add(knot);
     const H=ty-BASE_Y-.25, th=p.variant==='polka'?1.05:.6, w=.46;
     for(const s of [-1,1]){
       const t=s*th, dir=[Math.sin(t),Math.cos(t)];
