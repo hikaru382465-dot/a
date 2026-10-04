@@ -9,6 +9,9 @@
 
 そのあと：Cmd に  py "…/unreal/kd_game.py"  と打って、▶（Play）を押す。
 """
+import os
+import math
+import random
 import traceback
 
 import unreal
@@ -21,8 +24,13 @@ START_YAW = -90.0                    # -Y 方向（＝電話ボックスの方�
 FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ）。暗すぎ・明るすぎなら変える
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0                # 光が届く距離（cm）
+POSTER_GLOW = 0.15                   # 張り紙が暗闇で少し見えるように、うすく光らせる強さ
+WALL = 66.0                          # ボックスの中心から、張り紙を貼る壁（ガラスの内側）までの距離（cm）
 # --------------------------------------------------
 
+mel = unreal.MaterialEditingLibrary
+MP = unreal.MaterialProperty
+STATE = {}
 LOG_LINES = []
 RESULTS = {}
 
@@ -212,6 +220,208 @@ def s_glass():
     log("M_Glass に Dirt（くもりの強さ）を足しました")
 
 
+# ---------------- 段階2：張り紙・幽霊（仮） ----------------
+def repo_root():
+    here = os.path.dirname(os.path.abspath(__file__))
+    return os.path.normpath(os.path.join(here, "..", "..", ".."))
+
+
+def tex_game_dir():
+    return os.path.join(repo_root(), "games", "koushu-denwa", "assets", "tex", "game")
+
+
+def import_tasks(tasks):
+    unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
+
+
+def mk_task(filename, dest, scale=None, fbx_ui=None):
+    t = unreal.AssetImportTask()
+    t.set_editor_property("automated", True)
+    t.set_editor_property("replace_existing", True)
+    t.set_editor_property("replace_existing_settings", True)
+    t.set_editor_property("save", True)
+    t.set_editor_property("filename", filename)
+    t.set_editor_property("destination_path", dest)
+    if fbx_ui is not None:
+        t.set_editor_property("options", fbx_ui)
+    return t
+
+
+def s_poster_textures():
+    d = tex_game_dir()
+    names = sorted(f for f in os.listdir(d) if f.startswith("poster_") and f.lower().endswith((".png", ".jpg")))
+    if not names:
+        raise RuntimeError("張り紙の画像がありません: %s" % d)
+    import_tasks([mk_task(os.path.join(d, f), GAME_DIR + "/Textures/Game") for f in names])
+    STATE["poster_files"] = names
+    log("張り紙の画像を取り込みました: %d 枚" % len(names))
+
+
+def s_poster_mesh():
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "Poster.fbx")
+    if not os.path.exists(fbx):
+        raise RuntimeError("Poster.fbx がありません: %s" % fbx)
+    ui = unreal.FbxImportUI()
+    setp(ui, "import_mesh", True)
+    setp(ui, "import_as_skeletal", False)
+    setp(ui, "import_materials", False)
+    setp(ui, "import_textures", False)
+    setp(ui, "automated_import_should_detect_type", False)
+    setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_STATIC_MESH)
+    d = ui.get_editor_property("static_mesh_import_data")
+    setp(d, "combine_meshes", True)
+    setp(d, "auto_generate_collision", False)
+    setp(d, "transform_vertex_to_absolute", True)
+    setp(d, "import_uniform_scale", 100.0)          # 電話ボックスと同じ：メートル → cm
+    import_tasks([mk_task(fbx, GAME_DIR + "/Game", fbx_ui=ui)])
+    mesh = None
+    for p in unreal.EditorAssetLibrary.list_assets(GAME_DIR + "/Game", recursive=True, include_folder=False):
+        a = unreal.EditorAssetLibrary.load_asset(p)
+        if isinstance(a, unreal.StaticMesh) and "oster" in a.get_name():
+            mesh = a
+    if mesh is None:
+        raise RuntimeError("Poster のメッシュが見つかりません")
+    e = mesh.get_bounds().box_extent
+    log("ポスター板の大きさ（cm の半分）: %.1f × %.1f × %.1f（25×35 前後が正常）" % (e.x, e.y, e.z))
+    STATE["poster_mesh"] = mesh
+
+
+def new_material(name):
+    path = GAME_DIR + "/Materials"
+    full = "%s/%s" % (path, name)
+    if unreal.EditorAssetLibrary.does_asset_exist(full):
+        unreal.EditorAssetLibrary.delete_asset(full)
+    m = unreal.AssetToolsHelpers.get_asset_tools().create_asset(name, path, unreal.Material, unreal.MaterialFactoryNew())
+    if m is None:
+        raise RuntimeError("材質を作れません: " + name)
+    return m
+
+
+def xx(m, cls, x, y):
+    return mel.create_material_expression(m, cls, x, y)
+
+
+def cst(m, v, y=0):
+    e = xx(m, unreal.MaterialExpressionConstant, -600, y)
+    e.set_editor_property("r", float(v))
+    return e
+
+
+def mulx(m, a, b, y=0):
+    e = xx(m, unreal.MaterialExpressionMultiply, -400, y)
+    mel.connect_material_expressions(a, "", e, "A")
+    mel.connect_material_expressions(b, "", e, "B")
+    return e
+
+
+def s_poster_materials():
+    mats = {}
+    for f in STATE["poster_files"]:
+        base = os.path.splitext(f)[0]                      # poster_01
+        tex = unreal.EditorAssetLibrary.load_asset("%s/Textures/Game/%s" % (GAME_DIR, base))
+        m = new_material("M_" + "".join(w.capitalize() for w in base.split("_")))      # M_Poster01
+        setp(m, "two_sided", True)
+        t = xx(m, unreal.MaterialExpressionTextureSample, -800, 0)
+        t.set_editor_property("texture", tex)
+        mel.connect_material_property(mulx(m, t, cst(m, 0.8, -100), 0), "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(mulx(m, t, cst(m, POSTER_GLOW, 100), 150), "", MP.MP_EMISSIVE_COLOR)
+        mel.connect_material_property(cst(m, 0.9, 300), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(m)
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+        mats[base] = m
+    STATE["poster_mats"] = mats
+    log("張り紙の材質を作りました: %d" % len(mats))
+
+
+# 壁ごとの貼る位置：(壁, 壁にそった位置, 高さ, 大きさ)。R=右(+X) L=左(-X) B=奥(-Y・電話機の壁) F=手前(+Y・ドアの壁)
+SLOTS = [("R", -40, 125, 1.0), ("R", 5, 160, 1.0), ("R", 45, 115, 1.0), ("R", -5, 195, 1.0),
+         ("L", -45, 150, 1.0), ("L", 42, 160, 1.0), ("L", -5, 195, 1.0),
+         ("F", -45, 130, 1.0), ("F", 40, 155, 1.0), ("F", 0, 195, 1.0),
+         ("B", -46, 120, 1.0), ("B", 46, 150, 1.0)]
+HINT_SLOT = ("B", 0, 185, 1.0)        # 電話機の真上
+EYE_SLOT = ("L", 0, 140, 1.5)         # 左の壁の真ん中に、大きく
+
+
+def wall_pose(wall, u, z, cx, cy):
+    if wall == "R":
+        return (cx + WALL, cy + u, z), 90.0          # 面は -X（ボックスの内側）を向く
+    if wall == "L":
+        return (cx - WALL, cy + u, z), -90.0
+    if wall == "B":
+        return (cx + u, cy - WALL, z), 0.0
+    return (cx + u, cy + WALL, z), 180.0
+
+
+def s_posters():
+    mesh = STATE["poster_mesh"]
+    mats = STATE["poster_mats"]
+    o, _e = find_actor("Booth_Frame").get_actor_bounds(False)
+    cx, cy = o.x, o.y
+    rng = random.Random(714)
+    normal = ["poster_%02d" % i for i in range(1, 13)]
+    rng.shuffle(normal)                                     # どれから出るかをランダムに
+    plan = [("Poster_%02d" % (i + 1), normal[i], SLOTS[i]) for i in range(len(SLOTS))]
+    plan.append(("Poster_Hint", "poster_hint", HINT_SLOT))
+    if "poster_eye" in mats:
+        plan.append(("Poster_Eye", "poster_eye", EYE_SLOT))
+    n = 0
+    for label, key, (wall, u, z, sc) in plan:
+        if key not in mats:
+            log("  (画像なし) %s" % key)
+            continue
+        loc, yaw = wall_pose(wall, u, z, cx, cy)
+        a = spawn(unreal.StaticMeshActor, loc, (0, 0, yaw + rng.uniform(-4, 4)))
+        c = a.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(mesh)
+        c.set_material(0, mats[key])
+        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+        a.set_actor_scale3d(unreal.Vector(sc, sc, sc))
+        tag_actor(a, label)
+        a.set_actor_hidden_in_game(True)                     # 最初は見えない（kd_game.py が順に出す）
+        n += 1
+    log("張り紙を貼りました: %d 枚（最初は見えません）" % n)
+
+
+def s_ghost():
+    """幽霊（仮の姿）：黒い体＋白い頭。あとで Blender / Mixamo のモデルに替える"""
+    cyl = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
+    sph = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Sphere")
+    body_m = new_material("M_GhostBody")
+    setp(body_m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    mel.connect_material_property(mulx(body_m, cst(body_m, 1.0, 0), cst(body_m, 0.02, 100), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.recompile_material(body_m)
+    head_m = new_material("M_GhostHead")
+    setp(head_m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    col = xx(head_m, unreal.MaterialExpressionConstant3Vector, -600, 0)
+    col.set_editor_property("constant", unreal.LinearColor(0.75, 0.82, 0.9, 1.0))
+    mel.connect_material_property(mulx(head_m, col, cst(head_m, 2.5, 100), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.recompile_material(head_m)
+    for m in (body_m, head_m):
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+    body = spawn(unreal.StaticMeshActor, (0, 3000, 0))
+    bc = body.get_component_by_class(unreal.StaticMeshComponent)
+    bc.set_static_mesh(cyl)
+    bc.set_material(0, body_m)
+    setp(bc, "mobility", unreal.ComponentMobility.MOVABLE)
+    body.set_actor_scale3d(unreal.Vector(0.5, 0.5, 1.6))     # 太さ50cm・高さ160cm
+    tag_actor(body, "Ghost")
+    head = spawn(unreal.StaticMeshActor, (0, 3000, 175))
+    hc = head.get_component_by_class(unreal.StaticMeshComponent)
+    hc.set_static_mesh(sph)
+    hc.set_material(0, head_m)
+    setp(hc, "mobility", unreal.ComponentMobility.MOVABLE)
+    head.set_actor_scale3d(unreal.Vector(0.26, 0.2, 0.3))
+    tag_actor(head, "Ghost_Head")
+    head.attach_to_actor(body, "", unreal.AttachmentRule.KEEP_WORLD, unreal.AttachmentRule.KEEP_WORLD, unreal.AttachmentRule.KEEP_WORLD, False)
+    for a in (body, head):
+        a.set_actor_hidden_in_game(True)
+        try:
+            a.get_component_by_class(unreal.StaticMeshComponent).set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+        except Exception:  # noqa
+            pass
+    log("幽霊（仮）を置きました。最初は見えません")
+
+
 def s_save():
     try:
         unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).save_current_level()
@@ -228,6 +438,11 @@ def main():
     step("懐中電灯", s_flashlight, ["前回の生成物を消す"])
     step("当たり判定", s_collision, ["環境確認"])
     step("ガラスの透け具合", s_glass, ["環境確認"])
+    step("張り紙の画像", s_poster_textures, ["環境確認"])
+    step("張り紙の板", s_poster_mesh, ["環境確認"])
+    step("張り紙の材質", s_poster_materials, ["張り紙の画像"])
+    step("張り紙を貼る", s_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
+    step("幽霊（仮）", s_ghost, ["前回の生成物を消す"])
     step("保存", s_save, ["環境確認"])
     log("SUMMARY: " + ", ".join("%s=%s" % (k, v) for k, v in RESULTS.items()))
     if any(v == "FAIL" for v in RESULTS.values()):

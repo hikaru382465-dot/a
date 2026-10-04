@@ -16,6 +16,7 @@
       あとで Blueprint に作り替える。決まりごとはここの Game クラスにまとめてあるので、そのまま移せる。
       毎フレーム検索はしない（参照は Play の最初に1回だけ集める）。
 """
+import math
 import random
 import traceback
 
@@ -34,6 +35,12 @@ DARK_TIME = 1.4              # 暗転の長さ
 IDLE_LATER = (13.0, 13.0, 9.0, 9.0)   # 段階1〜4が終わったあとの静かな時間（最後の段階はそのまま）
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
+# 幽霊が出る場所（ボックス中心からの位置 cm。正面＝+Y）。段階1〜4で、だんだん近づく
+GHOST_SPOTS = [(0.0, 1300.0), (-240.0, 750.0), (270.0, 360.0), (115.0, 25.0)]
+GHOST_SUBS = ["（外に、誰か立っている……）", "（さっきより、近い）", "（ガラスに、何か貼られている）", "（すぐそこにいる）"]
+POSTER_FRAC = [0.35, 0.7, 1.0, 1.0]       # 段階1〜4で、張り紙が何割見えるか
+DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
+RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 GLASS_DIRT = 0.35            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
 FLICKER_BLACK = 0.6          # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
 DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
@@ -140,6 +147,19 @@ class Game:
                         mid.set_scalar_parameter_value("Dirt", GLASS_DIRT)
                 except Exception as e:  # noqa
                     log("  (材質を動かせません) %s[%d]: %s" % (nm, i, e))
+        self.posters = sorted([(k, v) for k, v in found.items() if k.startswith("Poster_") and k not in ("Poster_Hint", "Poster_Eye")], key=lambda kv: kv[0])
+        self.hint = found.get("Poster_Hint")
+        self.eye = found.get("Poster_Eye")
+        for _k, a in self.posters + [("h", self.hint), ("e", self.eye)]:
+            if a is not None:
+                a.set_actor_hidden_in_game(True)
+        self.ghost = found.get("Ghost")
+        if self.ghost is not None:
+            self.ghost.set_actor_hidden_in_game(True)
+            self.ghost_head = found.get("Ghost_Head")
+            if self.ghost_head is not None:
+                self.ghost_head.set_actor_hidden_in_game(True)
+        self.dead_t = -1.0
         self.pc = unreal.GameplayStatics.get_player_controller(self.world, 0)
         self.pawn = unreal.GameplayStatics.get_player_pawn(self.world, 0)
         self.cx, self.cy = 0.0, 0.0
@@ -181,6 +201,50 @@ class Game:
         part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
         for nm, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if nm != "SpotLight" else mult))
+
+    def reveal(self, stage):
+        frac = POSTER_FRAC[min(stage, len(POSTER_FRAC)) - 1]
+        n = int(math.ceil(len(self.posters) * frac))
+        for _k, a in self.posters[:n]:
+            a.set_actor_hidden_in_game(False)
+        if self.hint is not None and stage >= 1:
+            self.hint.set_actor_hidden_in_game(False)
+        if self.eye is not None and stage >= 3:
+            self.eye.set_actor_hidden_in_game(False)
+
+    def ghost_show(self, x, y, face_x=None, face_y=None):
+        if self.ghost is None:
+            return
+        fx = self.cx if face_x is None else face_x
+        fy = self.cy if face_y is None else face_y
+        yaw = math.degrees(math.atan2(fy - y, fx - x))
+        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, 0.0), unreal.Rotator(0, 0, yaw), False, False)
+        self.ghost.set_actor_hidden_in_game(False)
+        if self.ghost_head is not None:
+            self.ghost_head.set_actor_hidden_in_game(False)
+
+    def ghost_hide(self):
+        if self.ghost is not None:
+            self.ghost.set_actor_hidden_in_game(True)
+            if self.ghost_head is not None:
+                self.ghost_head.set_actor_hidden_in_game(True)
+
+    def begin_dead(self):
+        """失敗：幽霊が目の前に出る → 赤く暗転 → しばらくして最初に戻る"""
+        self.state, self.state_t = "DEAD", 0.0
+        self.set_lights(0.6)
+        self.blackout(0.0)
+        rot = self.pc.get_control_rotation()
+        fwd = unreal.MathLibrary.get_forward_vector(rot)
+        loc = self.pawn.get_actor_location()
+        x, y = loc.x + fwd.x * DEAD_DIST, loc.y + fwd.y * DEAD_DIST
+        self.ghost_show(x, y, loc.x, loc.y)
+        screen(self.world, "……みつけた", (255, 40, 40), RESTART_AFTER)
+        try:
+            self.pc.player_camera_manager.start_camera_fade(0.0, 1.0, 2.5, unreal.LinearColor(0.5, 0, 0, 1), False, True)
+        except Exception as e:  # noqa
+            log("  (赤い暗転ができません) %s" % e)
+        log("失敗エンド（段階%d）" % self.stage)
 
     def blackout(self, amount):
         """画面の黒さ（0〜1）を、すぐ変える。点滅の「消えた」瞬間を、光の遅れに関係なく暗くする"""
@@ -229,6 +293,11 @@ class Game:
                 self.fade(False, 0.8)
         elif self.state == "TRAPPED":
             self.tick_trapped(dt)
+        elif self.state == "DEAD":
+            if self.state_t > RESTART_AFTER:
+                self.state = "RESTART"
+                log("最初に戻ります（RestartLevel）")
+                unreal.SystemLibrary.execute_console_command(self.world, "RestartLevel")
 
     def begin_close(self):
         self.state, self.state_t = "CLOSING", 0.0
@@ -269,12 +338,18 @@ class Game:
                 self.set_lights(0.0)
                 self.blackout(0.0)
                 self.stage += 1
-                screen(self.world, "段階 %d / %d" % (self.stage, LAST_STAGE), (255, 220, 120), 3.0)
+                self.ghost_hide()
+                if self.stage <= len(POSTER_FRAC):
+                    self.reveal(self.stage)
                 log("段階 %d" % self.stage)
         elif self.sub == "DARK":
             if self.sub_t >= self.sub_len:
                 if self.stage >= LAST_STAGE:
-                    screen(self.world, "（段階5：ここで失敗エンド。段階2で作ります）", (255, 80, 80), 6.0)
+                    self.begin_dead()
+                    return
+                gx, gy = GHOST_SPOTS[min(self.stage, len(GHOST_SPOTS)) - 1]
+                self.ghost_show(self.cx + gx, self.cy + gy)
+                screen(self.world, GHOST_SUBS[min(self.stage, len(GHOST_SUBS)) - 1], (200, 220, 255), 4.0)
                 idx = min(self.stage - 1, len(IDLE_LATER) - 1)
                 self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_LATER[idx]
                 self.set_lights(1.0)
