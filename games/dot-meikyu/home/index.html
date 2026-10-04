@@ -152,12 +152,15 @@ for(const y of[.35,.62]){put(new THREE.BoxGeometry(GX1-GX0,.06,.06),M({map:wood}
  put(new THREE.BoxGeometry(.06,.06,GZ1-GZ0),M({map:wood}),GX1,y,(GZ0+GZ1)/2);put(new THREE.BoxGeometry(.06,.06,GZ1-GZ0),M({map:wood}),GX0,y,(GZ0+GZ1)/2)}
 
 // ===== 草花・作物（立て板） =====
-function plant(kind,seed){return ctex(32,48,(x,w,h)=>{const R=rng(seed);const gs=['#2f7a3a','#3f9a48','#25622f','#58b050'];
+function plant(kind,seed){return ctex(32,48,(x,w,h)=>{const R=rng(seed);const gs=['#2f7a3a','#3f9a48','#25622f','#58b050'],ol='#10261a';
+ const px=(a,b,c,d=1,e=1)=>{x.fillStyle=c;x.fillRect(a|0,b|0,d,e)};
+ const line=(x0,y0,x1,y1,c,t)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))||1;for(let i=0;i<=n;i++){const a=x0+(x1-x0)*i/n,b=y0+(y1-y0)*i/n;px(a-1,b,ol,t+2,t);px(a,b,c,t,t)}};
  const n=kind==='flower'?5:9;
- for(let i=0;i<n;i++){const bx=16+(R()*8-4)|0,tx=bx+((R()*16-8)|0),top=kind==='flower'?4+((R()*14)|0):14+((R()*14)|0);x.strokeStyle=pick(R,gs);x.lineWidth=kind==='flower'?2:1.5;x.beginPath();x.moveTo(bx,h);x.lineTo(tx,top);x.stroke();
-  if(kind==='flower'){x.fillStyle=pick(R,['#e8832a','#f0a040']);x.fillRect(tx-1,top-3,3,5)}
-  else{for(let k=0;k<3;k++){x.fillStyle=pick(R,gs);const ly=top+k*6;x.fillRect(tx-4+((R()*6)|0),ly,6,4)}}}
- if(kind==='tomato'){x.fillStyle='#6a4025';x.fillRect(15,10,2,h-10);for(let i=0;i<6;i++){x.fillStyle=pick(R,['#d83a2a','#e8502e','#b82a22']);x.fillRect(8+((R()*16)|0),18+((R()*20)|0),4,4)}}})}
+ for(let i=0;i<n;i++){const bx=16+(R()*8-4)|0,tx=bx+((R()*16-8)|0),top=kind==='flower'?10+((R()*12)|0):14+((R()*14)|0);
+  line(bx,h-1,tx,top,pick(R,gs),kind==='flower'?2:1);
+  if(kind==='flower'){const a=tx-2,b=top-5;px(a-1,b+1,ol,5,5);px(a,b,ol,3,1);px(a,b+1,'#e8832a',3,3);px(a,b+1,'#f6b04a',1,1);px(a+1,b+2,'#b85a18',2,1);px(a+1,b+4,'#2f7a3a',1,2);px(tx-3,top+4,'#3f9a48',3,1);px(tx+1,top+8,'#25622f',3,1)}
+  else{for(let k=0;k<3;k++){const ly=top+k*6,lx=tx-4+((R()*6)|0);px(lx-1,ly-1,ol,8,6);px(lx,ly,pick(R,gs),6,4);px(lx,ly,'#7fd070',2,1)}}}
+ if(kind==='tomato'){px(15,10,'#4a2a1a',2,h-10);for(let i=0;i<6;i++){const a=8+((R()*16)|0),b=18+((R()*20)|0);px(a-1,b-1,ol,6,6);px(a,b,pick(R,['#d83a2a','#e8502e','#b82a22']),4,4);px(a,b,'#ff9a80',1,1)}}})}
 const sprites=[];
 function spr(tex,x,z,sx,sy,o={}){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:o.color||'#d8e0d0',fog:true}));m.center.set(.5,0);m.scale.set(sx,sy,1);m.position.set(x,0,z);scene.add(m);sprites.push(m);return m}
 const tomato=[plant('tomato',1),plant('tomato',2),plant('tomato',3)];
@@ -277,7 +280,7 @@ function frame(){const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime;
  if(touch.move&&!cur){const dx=touch.move.x-touch.move.x0,dy=touch.move.y-touch.move.y0,d=Math.hypot(dx,dy);if(d>8){ix=dx/d;iz=dy/d}}
  const l=Math.hypot(ix,iz);let moving=false;
  if(l>0){ix/=l;iz/=l;moving=true;const s=2.8*dt,c=Math.cos(yaw),sn=Math.sin(yaw);
-  const wx=ix*c+iz*sn,wz=-ix*sn+iz*c;P.x=Math.max(-17,Math.min(17,P.x+wx*s));P.z=Math.max(-1.2,Math.min(9,P.z+wz*s));
+  const wx=ix*c+iz*sn,wz=-ix*sn+iz*c;P.x=Math.max(-19,Math.min(19,P.x+wx*s));P.z=Math.max(-1.2,Math.min(12,P.z+wz*s));
   if(ix>.2)P.face='right';else if(ix<-.2)P.face='left'}
  hero.material.map=heroTex[P.face];
  const bob=moving?Math.abs(Math.sin(t*9))*.07:Math.sin(t*2)*.012;
@@ -287,8 +290,8 @@ function frame(){const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime;
  const dx=P.x-PET.x,dz=P.z-PET.z,dd=Math.hypot(dx,dz);if(dd>1.3){PET.x+=dx/dd*(dd-1.3)*dt*3;PET.z+=dz/dd*(dd-1.3)*dt*3}
  const hop=Math.abs(Math.sin(t*(dd>1.4?8:2.5)));pet.position.set(PET.x,hop*(dd>1.4?.25:.06),PET.z);pet.scale.set(sz*(1+(1-hop)*.08),sz*(.92+hop*.16),1);petBlob.position.set(PET.x,.02,PET.z);petBlob.scale.set(sz*.8,sz*.55,1);
  for(let i=hearts.length-1;i>=0;i--){const h=hearts[i];h.userData.t+=dt;h.position.set(PET.x,1+h.userData.t*.8,PET.z);h.material.opacity=Math.max(0,1-h.userData.t/1.2);if(h.userData.t>1.2){scene.remove(h);hearts.splice(i,1)}}
- camT.lerp(new THREE.Vector3(P.x*.45-.3,.4,P.z*.35-2.2),Math.min(1,dt*2.5));
- const dist=37,pitch=Math.PI/4;camera.position.set(camT.x+Math.sin(yaw)*Math.cos(pitch)*dist,camT.y+Math.sin(pitch)*dist,camT.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(camT);
+ camT.lerp(new THREE.Vector3(P.x,.4,P.z-.8),Math.min(1,dt*4));
+ const asp=innerWidth/innerHeight,dist=37+11*Math.max(0,Math.min(1,(1.3-asp)/.8)),pitch=Math.PI/4;camera.position.set(camT.x+Math.sin(yaw)*Math.cos(pitch)*dist,camT.y+Math.sin(pitch)*dist,camT.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(camT);
  for(const o of lights)o.p.intensity=o.i+Math.sin(t*13*o.fl)*.5*o.fl+Math.sin(t*5.3)*.4;
  const pos=dust.geometry.attributes.position;for(let i=0;i<pos.count;i++){pos.setY(i,pos.getY(i)+Math.sin(t+i)*.002);pos.setX(i,pos.getX(i)+Math.cos(t*.6+i)*.0025)}pos.needsUpdate=true;
  camera.updateMatrixWorld();for(const lb of labels){v3.copy(lb.p).project(camera);const vis=v3.z<1&&Math.abs(v3.x)<1.1&&Math.abs(v3.y)<1.1;lb.e.style.display=vis&&!cur?'block':'none';lb.e.style.left=((v3.x+1)/2*innerWidth)+'px';lb.e.style.top=((1-v3.y)/2*innerHeight)+'px'}
