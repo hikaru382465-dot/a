@@ -28,13 +28,14 @@ import unreal
 REPO_ROOT = ""                      # 空なら、このファイルの場所から自動で求める
 GAME_DIR = "/Game/KoushuDenwa"
 TAG = "KD_Forest"
-TREE_COUNT = 70                     # 松＋枯れ木の数（重いときは 40 に）
-ROCK_COUNT = 30
+TREE_COUNT = 30                     # 松＋枯れ木の数（重いときは 40 に）
+ROCK_COUNT = 12
 STUMP_COUNT = 6
-FOREST_RADIUS = 4500.0              # 森の広がり（cm）。4500 = 半径45m
+FOREST_RADIUS = 2600.0              # 森の広がり（cm）。4500 = 半径45m
 CLEARING_RADIUS = 650.0             # 電話ボックスのまわりの空き地（cm）
 PATH_HALF_WIDTH = 300.0             # 道のまわりに木を置かない幅（cm）
 EXTERNAL_TREE_FOLDER = ""           # 例 "/Game/Fab" 。空なら、自作の木を使う
+AUTO_FIND_FAB = True       # True: EXTERNAL_TREE_FOLDER が空でも、Fab で入れた松・トウヒを自動で探して使う
 MESH_ROLL = 90.0          # 木・岩を立てる回転（立たないときは -90 にする）
 MESH_PITCH = 0.0
 GROUND_DARK = 0.35        # 地面の暗さ（小さいほど暗い。1.0でそのまま）
@@ -328,13 +329,18 @@ def s_import_trees():
         if key:
             meshes[key].append(a)
     # Fab など外部の木を足す
-    if EXTERNAL_TREE_FOLDER:
-        ext = {"pine": [], "rock": []}
-        for p in unreal.EditorAssetLibrary.list_assets(EXTERNAL_TREE_FOLDER, recursive=True, include_folder=False):
+    search_root = EXTERNAL_TREE_FOLDER or "/Game"      # 空なら、プロジェクト全体から Fab の木を探す
+    ext = {"pine": [], "rock": []}
+    if EXTERNAL_TREE_FOLDER or AUTO_FIND_FAB:
+        for p in unreal.EditorAssetLibrary.list_assets(search_root, recursive=True, include_folder=False):
+            if not EXTERNAL_TREE_FOLDER and (p.startswith(GAME_DIR) or "StarterContent" in p or "Mannequin" in p):
+                continue                                # 自作・初期サンプルは除く
             a = unreal.EditorAssetLibrary.load_asset(p)
             if isinstance(a, unreal.StaticMesh):
                 low = a.get_name().lower()
-                if "pine" in low or "tree" in low or "conifer" in low:
+                if any(w in low for w in ("dead", "stump", "log", "branch")):
+                    continue
+                if any(w in low for w in ("pine", "tree", "conifer", "spruce", "fir")):
                     ext["pine"].append(a)
                 elif "rock" in low or "boulder" in low:
                     ext["rock"].append(a)
@@ -440,7 +446,7 @@ def s_ground():
 # ---------------- 7) 木・岩・切り株を散らす ----------------
 def orient_for(mesh):
     """取り込んだ木・岩は横倒しなので、roll=90 で立てる（ひかるが手作業で確かめた値）"""
-    if EXTERNAL_TREE_FOLDER and mesh.get_path_name().startswith(EXTERNAL_TREE_FOLDER):
+    if not mesh.get_path_name().startswith(GAME_DIR):      # 自作以外（Fab）は最初から立っている
         return (0.0, 0.0)
     return (MESH_ROLL, MESH_PITCH)
 
