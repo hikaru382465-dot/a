@@ -152,15 +152,14 @@ for(const y of[.35,.62]){put(new THREE.BoxGeometry(GX1-GX0,.06,.06),M({map:wood}
  put(new THREE.BoxGeometry(.06,.06,GZ1-GZ0),M({map:wood}),GX1,y,(GZ0+GZ1)/2);put(new THREE.BoxGeometry(.06,.06,GZ1-GZ0),M({map:wood}),GX0,y,(GZ0+GZ1)/2)}
 
 // ===== 草花・作物（立て板） =====
-function plant(kind,seed){return ctex(32,48,(x,w,h)=>{const R=rng(seed);const gs=['#2f7a3a','#3f9a48','#25622f','#58b050'],ol='#10261a';
- const px=(a,b,c,d=1,e=1)=>{x.fillStyle=c;x.fillRect(a|0,b|0,d,e)};
- const line=(x0,y0,x1,y1,c,t)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))||1;for(let i=0;i<=n;i++){const a=x0+(x1-x0)*i/n,b=y0+(y1-y0)*i/n;px(a-1,b,ol,t+2,t);px(a,b,c,t,t)}};
- const n=kind==='flower'?5:9;
- for(let i=0;i<n;i++){const bx=16+(R()*8-4)|0,tx=bx+((R()*16-8)|0),top=kind==='flower'?10+((R()*12)|0):14+((R()*14)|0);
-  line(bx,h-1,tx,top,pick(R,gs),kind==='flower'?2:1);
-  if(kind==='flower'){const a=tx-2,b=top-5;px(a-1,b+1,ol,5,5);px(a,b,ol,3,1);px(a,b+1,'#e8832a',3,3);px(a,b+1,'#f6b04a',1,1);px(a+1,b+2,'#b85a18',2,1);px(a+1,b+4,'#2f7a3a',1,2);px(tx-3,top+4,'#3f9a48',3,1);px(tx+1,top+8,'#25622f',3,1)}
-  else{for(let k=0;k<3;k++){const ly=top+k*6,lx=tx-4+((R()*6)|0);px(lx-1,ly-1,ol,8,6);px(lx,ly,pick(R,gs),6,4);px(lx,ly,'#7fd070',2,1)}}}
- if(kind==='tomato'){px(15,10,'#4a2a1a',2,h-10);for(let i=0;i<6;i++){const a=8+((R()*16)|0),b=18+((R()*20)|0);px(a-1,b-1,ol,6,6);px(a,b,pick(R,['#d83a2a','#e8502e','#b82a22']),4,4);px(a,b,'#ff9a80',1,1)}}})}
+function plant(kind,seed){return ctex(32,48,(x,w,h)=>{const R=rng(seed);const gs=['#2f7a3a','#3f9a48','#25622f','#58b050'];
+ // トマトも花も同じ描き方：茎＋葉のかたまり＋実（トマトは赤、花はオレンジ）
+ const fl=kind==='flower';
+ for(let i=0;i<9;i++){const bx=16+(R()*8-4)|0,tx=bx+((R()*16-8)|0),top=(fl?8:14)+((R()*14)|0);x.strokeStyle=pick(R,gs);x.lineWidth=1.5;x.beginPath();x.moveTo(bx,h);x.lineTo(tx,top);x.stroke();
+  for(let k=0;k<3;k++){x.fillStyle=pick(R,gs);const ly=top+k*6;x.fillRect(tx-4+((R()*6)|0),ly,6,4)}}
+ if(!fl){x.fillStyle='#6a4025';x.fillRect(15,10,2,h-10)}
+ const cols=fl?['#e8832a','#f0a040','#d86a1c']:['#d83a2a','#e8502e','#b82a22'];
+ for(let i=0;i<(fl?7:6);i++){x.fillStyle=pick(R,cols);const a=8+((R()*16)|0),b=(fl?6:18)+((R()*(fl?26:20))|0);x.fillRect(a,b,4,4);if(fl){x.fillStyle='#ffd34d';x.fillRect(a+1,b+1,1,1)}}})}
 const sprites=[];
 function spr(tex,x,z,sx,sy,o={}){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:o.color||'#d8e0d0',fog:true}));m.center.set(.5,0);m.scale.set(sx,sy,1);m.position.set(x,0,z);scene.add(m);sprites.push(m);return m}
 const tomato=[plant('tomato',1),plant('tomato',2),plant('tomato',3)];
