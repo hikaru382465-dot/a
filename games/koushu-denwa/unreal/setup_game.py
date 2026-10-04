@@ -139,7 +139,11 @@ def s_flashlight():
     tag_actor(sp, "Flashlight")
     c = sp.get_component_by_class(unreal.SpotLightComponent)
     setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
-    setp(c, "intensity_units", unreal.LightUnits.CANDELA)
+    units = getattr(unreal.LightUnits, "CANDELAS", None) or getattr(unreal.LightUnits, "CANDELA", None)
+    if units is not None:
+        setp(c, "intensity_units", units)
+    else:
+        log("  (光の単位 カンデラ が見つかりません。既定の単位のまま)")
     setp(c, "intensity", FLASH_INTENSITY)
     setp(c, "inner_cone_angle", FLASH_INNER)
     setp(c, "outer_cone_angle", FLASH_OUTER)
@@ -164,6 +168,7 @@ def s_collision():
         comp = a.get_component_by_class(unreal.StaticMeshComponent)
         mesh = comp.get_editor_property("static_mesh") if comp else None
         if mesh is None:
+            log("  %s: メッシュなし（スキップ）" % lab)
             continue
         try:
             bs = mesh.get_editor_property("body_setup")
@@ -171,9 +176,13 @@ def s_collision():
             mesh.set_editor_property("body_setup", bs)
             unreal.EditorAssetLibrary.save_loaded_asset(mesh)
             n += 1
+            log("  %s: 当たり判定 OK" % lab)
         except Exception as e:  # noqa
-            log("  (当たり判定を設定できず) %s : %s" % (lab, e))
-        setp(comp, "collision_enabled", unreal.CollisionEnabled.QUERY_AND_PHYSICS)
+            log("  %s: 当たり判定を設定できず : %s" % (lab, str(e).splitlines()[0] if str(e) else e))
+        try:
+            comp.set_collision_enabled(unreal.CollisionEnabled.QUERY_AND_PHYSICS)
+        except Exception as e:  # noqa
+            log("  %s: collision_enabled を設定できず : %s" % (lab, str(e).splitlines()[0] if str(e) else e))
     log("当たり判定をつけた数: %d" % n)
 
 
