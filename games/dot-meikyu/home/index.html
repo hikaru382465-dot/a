@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ドット迷宮 ホーム（見た目の試作）</title>
+<style>
+html,body{margin:0;height:100%;background:#0b1013;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+#hint{position:fixed;left:10px;bottom:8px;color:#cfd8c8;font:12px/1.5 "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;text-shadow:0 1px 2px #000;pointer-events:none}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font:14px sans-serif;padding:20px;text-align:center}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<div id="hint">WASD／画面の左をなぞる：歩く　Q・E／画面の右をなぞる：まわす　?plain：効果なし</div>
+<div id="err">3Dの部品をネットから読み込めませんでした。ネットにつないで開きなおしてください。</div>
+<script src="sprites.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+// ===== 小道具 =====
+const PLAIN=location.search.includes('plain');
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function ctex(w,h,draw,o={}){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.anisotropy=4;
+ if(o.rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(o.rep[0],o.rep[1])}return t}
+const pick=(R,a)=>a[(R()*a.length)|0];
+
+// ===== 画面・光 =====
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#16222a');scene.fog=new THREE.FogExp2('#1e3034',.02);
+const camera=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,.5,80);
+scene.add(new THREE.HemisphereLight('#9fbce0','#3a5030',1.5));
+const sun=new THREE.DirectionalLight('#ffcf8f',3.4);sun.position.set(-9,9,7);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15,near:1,far:40});sun.shadow.bias=-.0004;sun.shadow.radius=3;
+scene.add(sun);scene.add(sun.target);
+
+// ===== 地面（ドット絵ふうの草と土） =====
+const GROUND=30;
+const gt=ctex(768,768,(x,w,h)=>{const R=rng(7);x.fillStyle='#2c4528';x.fillRect(0,0,w,h);
+ const g=['#34502e','#274023','#3d5c35','#2a3f2b','#41633a','#223a25'];
+ for(let i=0;i<9000;i++){x.fillStyle=pick(R,g);const s=2+((R()*4)|0);x.fillRect((R()*w)|0,(R()*h)|0,s*2,s)}
+ const wx=v=>(v+GROUND/2)/GROUND*w,wz=v=>(v+GROUND/2)/GROUND*h;
+ const dirt=(cx,cz,rx,rz,n)=>{for(let i=0;i<n;i++){const a=R()*6.283,r=Math.sqrt(R());x.fillStyle=pick(R,['#4d4036','#5b4b3d','#463a31','#6a5848','#3d3a30']);x.fillRect((wx(cx)+Math.cos(a)*rx*r*w/GROUND)|0,(wz(cz)+Math.sin(a)*rz*r*h/GROUND)|0,4+((R()*7)|0),3+((R()*2)|0))}};
+ dirt(-4.2,-.2,1.6,1.1,1500);dirt(-3,1.6,1.4,1.2,1500);dirt(-1.4,3.1,1.6,1.1,1400);dirt(-7.6,2.4,1.9,1.5,1700);dirt(.6,.9,1.3,1,900);
+ for(let i=0;i<1400;i++){const px=(R()*w)|0,py=(R()*h)|0;x.fillStyle=pick(R,['#5d8a45','#6f9a4a','#4a7a3c','#3a6a36']);x.fillRect(px,py,1,3);x.fillRect(px+2,py+1,1,2);x.fillRect(px-2,py+1,1,2)}
+ for(let i=0;i<120;i++){const px=(R()*w)|0,py=(R()*h)|0;x.fillStyle=pick(R,['#7fa8d8','#e8a03c','#d8d8c0']);x.fillRect(px,py,2,2)}
+});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(GROUND,GROUND),new THREE.MeshStandardMaterial({map:gt,roughness:1}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+// ===== 材質の絵 =====
+const thatch=ctex(128,128,(x,w,h)=>{const R=rng(3);x.fillStyle='#b8641d';x.fillRect(0,0,w,h);
+ for(let i=0;i<900;i++){x.fillStyle=pick(R,['#c9782a','#a85a1a','#d28a34','#9c501a']);x.fillRect((R()*w)|0,(R()*h)|0,3+((R()*5)|0),2)}
+ x.strokeStyle='#6e3612';x.lineWidth=3;for(let r=0;r<4;r++){x.beginPath();for(let i=0;i<=8;i++){const px=i*16,py=r*32+(i%2?10:22);i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke()}},{rep:[3,1.4]});
+function timber(rep){return ctex(128,64,(x,w,h)=>{const R=rng(5);x.fillStyle='#e6c283';x.fillRect(0,0,w,h);
+ for(let i=0;i<500;i++){x.fillStyle=pick(R,['#d8b274','#efd193','#cfa966']);x.fillRect((R()*w)|0,(R()*h)|0,3,2)}
+ x.fillStyle='#4e2c1b';x.fillRect(0,0,6,h);x.fillRect(w-6,0,6,h);x.fillRect(0,0,w,6);x.fillRect(0,h-6,w,6);x.fillRect(0,h/2-3,w,6);x.fillRect(w/2-3,0,6,h);
+ x.strokeStyle='#4e2c1b';x.lineWidth=5;x.beginPath();x.moveTo(6,h-6);x.lineTo(w/2-3,h/2+3);x.moveTo(w-6,h-6);x.lineTo(w/2+3,h/2+3);x.stroke()},{rep})}
+const wood=ctex(64,64,(x,w,h)=>{const R=rng(9);x.fillStyle='#6a4025';x.fillRect(0,0,w,h);for(let i=0;i<20;i++){x.fillStyle=pick(R,['#5a3320','#7a4b2c','#4a2a1a']);x.fillRect(0,(R()*h)|0,w,2)}},{rep:[1,1]});
+const stone=ctex(64,64,(x,w,h)=>{const R=rng(11);x.fillStyle='#4a5560';x.fillRect(0,0,w,h);for(let i=0;i<120;i++){x.fillStyle=pick(R,['#5a6672','#3a444f','#66727e']);x.fillRect((R()*w)|0,(R()*h)|0,6,4)}x.fillStyle='#2d353e';for(let y=0;y<h;y+=16)x.fillRect(0,y,w,2)},{rep:[3,1]});
+const M=(o)=>new THREE.MeshStandardMaterial(Object.assign({roughness:.9},o));
+function put(geo,mat,x,y,z,o={}){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=o.cast!==false;m.receiveShadow=true;if(o.rot)m.rotation.set(...o.rot);scene.add(m);return m}
+
+// ===== 家 =====
+const L=5.6,D=4,Hh=1.9,RH=1.5,OV=.5,HX=-2.6,HZ=-3.2;
+const house=new THREE.Group();house.position.set(HX,0,HZ);scene.add(house);
+const frontMat=M({map:timber([L/2,1])}),sideMat=M({map:timber([D/2,1])});
+const walls=new THREE.Mesh(new THREE.BoxGeometry(L,Hh,D),[sideMat,sideMat,M({color:'#3a2a20'}),M({color:'#3a2a20'}),frontMat,frontMat]);
+walls.position.y=Hh/2;walls.castShadow=walls.receiveShadow=true;house.add(walls);
+const base=new THREE.Mesh(new THREE.BoxGeometry(L+.1,.35,D+.1),M({map:stone}));base.position.y=.17;base.receiveShadow=true;house.add(base);
+const dz=D/2+OV,dy=RH+.15,slope=Math.hypot(dz,dy),th=Math.atan2(dy,dz);
+for(const s of[1,-1]){const r=new THREE.Mesh(new THREE.PlaneGeometry(L+OV*2,slope),M({map:thatch,side:THREE.DoubleSide}));
+ r.position.set(0,Hh-.15+dy/2,s*dz/2);r.rotation.set(s>0?th-Math.PI/2:Math.PI/2-th,s>0?0:Math.PI,0);r.castShadow=r.receiveShadow=true;house.add(r)}
+const ridge=new THREE.Mesh(new THREE.BoxGeometry(L+OV*2+.1,.16,.3),M({color:'#4e2c1b'}));ridge.position.set(0,Hh+RH+.02,0);ridge.castShadow=true;house.add(ridge);
+for(const s of[1,-1]){const e=new THREE.Mesh(new THREE.BoxGeometry(L+OV*2,.14,.14),M({map:wood}));e.position.set(0,Hh-.15,s*dz);e.castShadow=true;house.add(e);
+ const gable=new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-D/2,Hh),new THREE.Vector2(D/2,Hh),new THREE.Vector2(0,Hh+RH)])),M({color:'#d9b97b',side:THREE.DoubleSide}));
+ gable.position.x=s*(L/2+.01);gable.rotation.y=s*Math.PI/2;house.add(gable)}
+// 戸口・窓・あかり
+const doorX=-1.7;
+const hole=new THREE.Mesh(new THREE.PlaneGeometry(1,1.55),new THREE.MeshBasicMaterial({color:'#050403'}));hole.position.set(doorX,.78+.17,D/2+.02);house.add(hole);
+for(const[x,y,w,h]of[[doorX-.55,1,.1,1.7],[doorX+.55,1,.1,1.7],[doorX,1.82,1.2,.12]]){const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,.14),M({map:wood}));f.position.set(x,y,D/2+.06);f.castShadow=true;house.add(f)}
+const hinge=new THREE.Group();hinge.position.set(doorX-.5,.97,D/2+.1);hinge.rotation.y=-1.25;house.add(hinge);
+const leaf=new THREE.Mesh(new THREE.BoxGeometry(.95,1.55,.08),M({map:wood}));leaf.position.x=.48;leaf.castShadow=true;hinge.add(leaf);
+for(const wx of[-.1,1.5]){const win=new THREE.Mesh(new THREE.PlaneGeometry(.5,.45),new THREE.MeshBasicMaterial({color:'#ffb868'}));win.position.set(wx,1.15,D/2+.03);house.add(win);
+ const fr=new THREE.Mesh(new THREE.BoxGeometry(.62,.57,.05),M({map:wood}));fr.position.set(wx,1.15,D/2+.01);house.add(fr);
+ const cross=new THREE.Mesh(new THREE.BoxGeometry(.05,.5,.06),M({map:wood}));cross.position.set(wx,1.15,D/2+.06);house.add(cross)}
+const lamp=new THREE.PointLight('#ff9a48',7,7,1.6);lamp.position.set(HX-.3,1.2,HZ+D/2+.9);scene.add(lamp);
+const lamp2=new THREE.PointLight('#ff9a48',3,4,1.6);lamp2.position.set(HX+.7,1.2,HZ+D/2+.5);scene.add(lamp2);
+
+// ===== 小物 =====
+// 井戸
+const WX=-7.4,WZ=2.4;
+put(new THREE.CylinderGeometry(.75,.8,.7,18),M({map:stone}),WX,.35,WZ);
+const water=new THREE.Mesh(new THREE.CircleGeometry(.6,18),new THREE.MeshStandardMaterial({color:'#2f5f8a',roughness:.15,metalness:.2}));water.rotation.x=-Math.PI/2;water.position.set(WX,.6,WZ);scene.add(water);
+for(const s of[-1,1])put(new THREE.BoxGeometry(.14,1.9,.14),M({map:wood}),WX+s*.95,.95,WZ);
+put(new THREE.BoxGeometry(2.3,.14,.14),M({map:wood}),WX,1.85,WZ);
+put(new THREE.CylinderGeometry(.18,.15,.28,10),M({map:wood}),WX,1.3,WZ+.05);
+// まき・切り株
+for(const[x,y,z]of[[0,.2,0],[.36,.2,0],[.18,.54,0],[0,.2,.38],[.36,.2,.38],[.18,.54,.38]]){const lg=put(new THREE.CylinderGeometry(.18,.18,1.7,12),M({map:wood}),7.4+x,y,-2.9+z,{rot:[0,0,Math.PI/2]});lg.rotation.y=.2}
+put(new THREE.CylinderGeometry(.35,.4,.4,12),M({map:wood}),6.2,.2,-1.5);
+// たる・はこ
+for(const[x,z]of[[.9,1.2],[1.55,.95]]){put(new THREE.CylinderGeometry(.32,.28,.62,14),M({map:wood}),x,.31,z);put(new THREE.TorusGeometry(.3,.025,6,16),M({color:'#2a2a30',metalness:.6,roughness:.4}),x,.4,z,{rot:[Math.PI/2,0,0]})}
+for(const[x,z,r]of[[-.1,1.4,.2],[.4,1.9,-.3]])put(new THREE.BoxGeometry(.55,.4,.45),M({map:wood}),x,.2,z,{rot:[0,r,0]});
+// 畑のさく・土
+const GX0=2.6,GX1=7.4,GZ0=-1.2,GZ1=3.2;
+put(new THREE.BoxGeometry(GX1-GX0,.1,GZ1-GZ0),M({color:'#3a2a22'}),(GX0+GX1)/2,.05,(GZ0+GZ1)/2,{cast:false});
+const post=(x,z)=>put(new THREE.BoxGeometry(.12,.8,.12),M({map:wood}),x,.4,z);
+for(let x=GX0;x<=GX1+.01;x+=.8){post(x,GZ1);post(x,GZ0)}for(let z=GZ0;z<=GZ1+.01;z+=.8){post(GX1,z);post(GX0,z)}
+for(const y of[.35,.62]){put(new THREE.BoxGeometry(GX1-GX0,.06,.06),M({map:wood}),(GX0+GX1)/2,y,GZ1);put(new THREE.BoxGeometry(GX1-GX0,.06,.06),M({map:wood}),(GX0+GX1)/2,y,GZ0);
+ put(new THREE.BoxGeometry(.06,.06,GZ1-GZ0),M({map:wood}),GX1,y,(GZ0+GZ1)/2);put(new THREE.BoxGeometry(.06,.06,GZ1-GZ0),M({map:wood}),GX0,y,(GZ0+GZ1)/2)}
+
+// ===== 草花・作物（立て板） =====
+function plant(kind,seed){return ctex(32,48,(x,w,h)=>{const R=rng(seed);const gs=['#2f7a3a','#3f9a48','#25622f','#58b050'];
+ const n=kind==='flower'?5:9;
+ for(let i=0;i<n;i++){const bx=16+(R()*8-4)|0,tx=bx+((R()*16-8)|0),top=kind==='flower'?4+((R()*14)|0):14+((R()*14)|0);x.strokeStyle=pick(R,gs);x.lineWidth=kind==='flower'?2:1.5;x.beginPath();x.moveTo(bx,h);x.lineTo(tx,top);x.stroke();
+  if(kind==='flower'){x.fillStyle=pick(R,['#e8832a','#f0a040']);x.fillRect(tx-1,top-3,3,5)}
+  else{for(let k=0;k<3;k++){x.fillStyle=pick(R,gs);const ly=top+k*6;x.fillRect(tx-4+((R()*6)|0),ly,6,4)}}}
+ if(kind==='tomato'){x.fillStyle='#6a4025';x.fillRect(15,10,2,h-10);for(let i=0;i<6;i++){x.fillStyle=pick(R,['#d83a2a','#e8502e','#b82a22']);x.fillRect(8+((R()*16)|0),18+((R()*20)|0),4,4)}}})}
+const sprites=[];
+function spr(tex,x,z,sx,sy,o={}){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:o.color||'#d8e0d0',fog:true}));m.center.set(.5,0);m.scale.set(sx,sy,1);m.position.set(x,0,z);scene.add(m);sprites.push(m);return m}
+const tomato=[plant('tomato',1),plant('tomato',2),plant('tomato',3)];
+for(let r=0;r<3;r++)for(let i=0;i<6;i++)spr(tomato[(r+i)%3],GX0+.6+i*.75+(r%2)*.2,GZ0+.55+r*1.3,1.1,1.65);
+const flo=[plant('flower',4),plant('flower',5)];
+for(let i=0;i<9;i++)spr(flo[i%2],-.2+i*.55+(i%3)*.1,-1.0-(i%2)*.4,.9,1.5);
+for(let i=0;i<5;i++)spr(plant('flower',20+i),-6.2+i*.6,-2.0,.9,1.4);
+// 草のかたまり（点）
+const tuft=ctex(16,16,(x)=>{x.strokeStyle='#4f8a40';x.lineWidth=2;for(const[a,b]of[[3,6],[8,2],[13,7]]){x.beginPath();x.moveTo(8,16);x.lineTo(a,b);x.stroke()}});
+const R2=rng(21),pp=[];for(let i=0;i<500;i++)pp.push((R2()-.5)*26,.18,(R2()-.5)*22);
+const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.Float32BufferAttribute(pp,3));
+scene.add(new THREE.Points(tg,new THREE.PointsMaterial({map:tuft,size:.5,transparent:true,alphaTest:.4,depthWrite:true,color:'#9ab890'})));
+
+// ===== 木・岩 =====
+const gm=['#1f4a2a','#2a5a30','#336a36','#24502e'].map(c=>M({color:c,flatShading:true}));
+function tree(x,z,s,R){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(s);
+ const tr=new THREE.Mesh(new THREE.CylinderGeometry(.18,.3,2,7),M({color:'#4a2f1d',flatShading:true}));tr.position.y=1;tr.castShadow=true;g.add(tr);
+ for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.IcosahedronGeometry(1.1-i*.12,1),gm[(R()*4)|0]);c.position.set((R()-.5)*.8,2+i*.62,(R()-.5)*.8);c.castShadow=true;c.receiveShadow=true;g.add(c)}scene.add(g)}
+const R3=rng(33);
+for(const[x,z,s]of[[-11,-6,1.6],[-9,-9,1.9],[-5,-10,1.7],[0,-10.5,2],[5,-9.5,1.7],[9,-8,1.9],[12,-4,1.6],[11.5,3,1.5],[-12,1,1.7],[-11,6,1.5],[10,7,1.4],[-3,-12,2.1],[3,-12.5,1.9],[14,-9,2]])tree(x,z,s,R3);
+for(const[x,z,s]of[[-5.4,5.6,.5],[6,5.8,.4],[8.5,1.5,.35],[-9.8,-2,.5]]){const r=new THREE.Mesh(new THREE.IcosahedronGeometry(s,0),M({color:'#5a6068',flatShading:true}));r.position.set(x,s*.5,z);r.scale.y=.7;r.castShadow=r.receiveShadow=true;scene.add(r)}
+
+// ===== 光のすじ・ちり =====
+const shaft=ctex(16,64,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(255,230,180,0)');g.addColorStop(.25,'rgba(255,230,180,.9)');g.addColorStop(1,'rgba(255,230,180,0)');x.fillStyle=g;x.fillRect(0,0,w,h)});
+shaft.magFilter=THREE.LinearFilter;
+for(const[x,z,w,rz]of[[-7,-4,2.6,.5],[-3.6,-6,1.6,.55],[1,-5.4,2.2,.45]]){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,12),new THREE.MeshBasicMaterial({map:shaft,transparent:true,opacity:.1,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+ m.position.set(x,5,z);m.rotation.set(0,.6,rz);scene.add(m)}
+const dust=new THREE.Points((()=>{const g=new THREE.BufferGeometry(),p=[],R=rng(44);for(let i=0;i<160;i++)p.push((R()-.5)*18,R()*5+.3,(R()-.5)*14);g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));return g})(),
+ new THREE.PointsMaterial({size:.07,color:'#ffe6b0',transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(dust);
+
+// ===== 主人公とペット =====
+const loader=new THREE.TextureLoader();
+const heroTex={};for(const k of['left','right']){const t=loader.load(window.SPRITES[k]);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.LinearMipmapLinearFilter;heroTex[k]=t}
+const HH=1.85;
+const hero=new THREE.Sprite(new THREE.SpriteMaterial({map:heroTex.right,color:'#f0f0f0',fog:true}));hero.center.set(.5,.02);hero.scale.set(HH*160/328,HH,1);scene.add(hero);
+const blob=new THREE.Mesh(new THREE.CircleGeometry(.4,16),new THREE.MeshBasicMaterial({color:'#000',transparent:true,opacity:.4,depthWrite:false}));blob.rotation.x=-Math.PI/2;blob.scale.set(1,.7,1);scene.add(blob);
+const slimeTex=ctex(16,14,(x)=>{const rows=["....gggggg......","..ggGGGGGGgg....",".gGGGGGGGGGGg...","gGGGkGGGGkGGGg..","gGGGGGGGGGGGGg..","gGGGGGrrGGGGGg..","gGGGGGGGGGGGGg..",".gggggggggggg..."];
+ const C={g:'#2f8f4a',G:'#6edb86',k:'#14101c',r:'#ff8a8a'};rows.forEach((r,j)=>[...r].forEach((c,i)=>{if(c!=='.'){x.fillStyle=C[c];x.fillRect(i,j+4,1,1)}}))});
+const pet=new THREE.Sprite(new THREE.SpriteMaterial({map:slimeTex,color:'#f0f0f0',fog:true}));pet.center.set(.5,0);pet.scale.set(.75,.75*14/16,1);scene.add(pet);
+const petBlob=blob.clone();petBlob.scale.set(.6,.4,1);scene.add(petBlob);
+const P={x:-1,z:3.6,face:'right'},PET={x:-2.1,z:3.9},keys={};let yaw=.45;
+
+// ===== 後処理（ぼかし・光のにじみ・色の調整） =====
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.42,.7,.78));
+const Grade={uniforms:{tDiffuse:{value:null},focus:{value:.56},blur:{value:2.2},res:{value:new THREE.Vector2(innerWidth,innerHeight)}},
+ vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+ fragmentShader:`uniform sampler2D tDiffuse;uniform float focus,blur;uniform vec2 res;varying vec2 vUv;
+ void main(){float d=abs(vUv.y-focus);float amt=smoothstep(.1,.55,d)*blur;vec2 px=amt/res;vec3 c=vec3(0.);float tot=0.;
+  for(int i=-4;i<=4;i++){for(int j=-2;j<=2;j++){float w=exp(-float(i*i+j*j)*.12);c+=texture2D(tDiffuse,vUv+vec2(float(i)*px.x*1.5,float(j)*px.y*2.2)).rgb*w;tot+=w;}}
+  c/=tot;float ca=.0016*length(vUv-.5);c.r=mix(c.r,texture2D(tDiffuse,vUv+vec2(ca,0.)).r,.6);c.b=mix(c.b,texture2D(tDiffuse,vUv-vec2(ca,0.)).b,.6);
+  float l=dot(c,vec3(.299,.587,.114));c=mix(c*vec3(.82,.96,1.04),c*vec3(1.1,1.0,.86),smoothstep(.12,.7,l));c=mix(vec3(l),c,1.15);
+  float v=smoothstep(1.0,.3,length((vUv-.5)*vec2(1.15,1.0)));c*=mix(.5,1.,v);gl_FragColor=vec4(c,1.);}`};
+const grade=new ShaderPass(Grade);composer.addPass(grade);composer.addPass(new OutputPass());
+
+// ===== 操作 =====
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+const touch={move:null,rot:null};
+addEventListener('pointerdown',e=>{const left=e.clientX<innerWidth/2;const o={id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY};
+ if(e.pointerType==='touch'){if(left&&!touch.move)touch.move=o;else if(!left&&!touch.rot)touch.rot=o}else touch.rot=o});
+addEventListener('pointermove',e=>{for(const k of['move','rot'])if(touch[k]&&touch[k].id===e.pointerId){if(k==='rot'){yaw-=(e.clientX-touch.rot.x)*.006;yaw=Math.max(-1.3,Math.min(1.3,yaw))}touch[k].x=e.clientX;touch[k].y=e.clientY}});
+const up=e=>{for(const k of['move','rot'])if(touch[k]&&touch[k].id===e.pointerId)touch[k]=null};addEventListener('pointerup',up);addEventListener('pointercancel',up);
+function resize(){renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();Grade.uniforms.res.value.set(innerWidth*renderer.getPixelRatio(),innerHeight*renderer.getPixelRatio())}
+addEventListener('resize',resize);resize();
+
+// ===== ループ =====
+const clock=new THREE.Clock();let camT=new THREE.Vector3(P.x,.8,P.z);
+function frame(){const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime;
+ if(keys.q)yaw+=dt*1.2;if(keys.e)yaw-=dt*1.2;yaw=Math.max(-1.3,Math.min(1.3,yaw));
+ let ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),iz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+ if(touch.move){const dx=touch.move.x-touch.move.x0,dy=touch.move.y-touch.move.y0,d=Math.hypot(dx,dy);if(d>8){ix=dx/d;iz=dy/d}}
+ const l=Math.hypot(ix,iz);let moving=false;
+ if(l>0){ix/=l;iz/=l;moving=true;const s=2.6*dt,c=Math.cos(yaw),sn=Math.sin(yaw);
+  const wx=ix*c+iz*sn,wz=-ix*sn+iz*c;P.x=Math.max(-10,Math.min(10,P.x+wx*s));P.z=Math.max(-8,Math.min(7,P.z+wz*s));
+  if(ix>.2)P.face='right';else if(ix<-.2)P.face='left'}
+ hero.material.map=heroTex[P.face];
+ const bob=moving?Math.abs(Math.sin(t*9))*.07:Math.sin(t*2)*.012;
+ hero.position.set(P.x,bob,P.z);blob.position.set(P.x,.02,P.z);
+ // ペットはあとを追いかけてはねる
+ const dx=P.x-PET.x,dz=P.z-PET.z,dd=Math.hypot(dx,dz);if(dd>1.3){PET.x+=dx/dd*(dd-1.3)*dt*3;PET.z+=dz/dd*(dd-1.3)*dt*3}
+ const hop=Math.abs(Math.sin(t*(dd>1.4?8:2.5)));pet.position.set(PET.x,hop*(dd>1.4?.25:.06),PET.z);pet.scale.set(.75*(1+(1-hop)*.08),.66*(.92+hop*.16),1);petBlob.position.set(PET.x,.02,PET.z);
+ // カメラ：斜め45度から見下ろす
+ camT.lerp(new THREE.Vector3(P.x*.5-.6,.6,P.z*.5-1.3),Math.min(1,dt*2.5));
+ const dist=25,pitch=Math.PI/4;camera.position.set(camT.x+Math.sin(yaw)*Math.cos(pitch)*dist,camT.y+Math.sin(pitch)*dist,camT.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(camT);
+ lamp.intensity=7+Math.sin(t*13)*.5+Math.sin(t*5.3)*.4;lamp2.intensity=3+Math.sin(t*11)*.3;
+ const pos=dust.geometry.attributes.position;for(let i=0;i<pos.count;i++){pos.setY(i,pos.getY(i)+Math.sin(t+i)*.002);pos.setX(i,pos.getX(i)+Math.cos(t*.6+i)*.0025)}pos.needsUpdate=true;
+ if(PLAIN)renderer.render(scene,camera);else composer.render();
+ requestAnimationFrame(frame)}
+frame();window.__ready=true;
+</script></body></html>
