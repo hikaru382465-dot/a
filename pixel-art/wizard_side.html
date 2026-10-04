@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>魔法使い 横向きドット絵</title>
+<style>
+  body{margin:0;min-height:100vh;background:#222222;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#cfcbd8;font:13px sans-serif}
+  #view{width:512px;height:512px;image-rendering:pixelated;background:#222222}
+</style>
+</head>
+<body>
+<canvas id="view" width="64" height="64"></canvas>
+<div id="info"></div>
+<script>
+const W = 64, SQ = Math.SQRT2;
+const C = {
+  line:'#12121e', shadow:'#1a1a26',
+  skin:['#f0d0ae','#d8a582','#a9735e'],
+  hair:['#a8643a','#774127','#4d2720'],
+  robe:['#5a70ad','#34447f','#202a56'],
+  hat:['#8068ab','#5c4983','#3e3162'],
+  gold:['#f0d27a','#cfa549','#97702f'],
+  wood:['#936e4d','#684832','#442d23'],
+  gem:['#c4ecff','#4aa8f0','#2a66c0'],
+  white:'#f8f4ea', iris:'#4a82c8', mouth:'#8c4f4f'
+};
+const grid = new Array(W * W).fill(null);
+const put = (x, y, c) => { if (x >= 0 && y >= 0 && x < W && y < W) grid[y * W + x] = c; };
+const get = (x, y) => (x >= 0 && y >= 0 && x < W && y < W) ? grid[y * W + x] : null;
+
+const bOf = (nx, ny) => (-nx - ny) / SQ;   // 光は左上・後ろから
+const ell = (cx, cy, rx, ry) => ({
+  inside: (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1,
+  b: (x, y) => bOf((x - cx) / rx, (y - cy) / ry)
+});
+const cap = (ax, ay, bx, by, r) => {
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+  const q = (x, y) => { const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)); return [ax + dx * t, ay + dy * t]; };
+  return {
+    inside: (x, y) => { const [qx, qy] = q(x, y); return Math.hypot(x - qx, y - qy) <= r; },
+    b: (x, y) => { const [qx, qy] = q(x, y); return bOf((x - qx) / r, (y - qy) / r); }
+  };
+};
+const union = (a, b, bFrom = a) => ({ inside: (x, y) => a.inside(x, y) || b.inside(x, y), b: bFrom.b });
+
+// outline: true=全周, 'bg'=背景(空白)に接する所だけ
+function paint(shape, ramp, o = {}) {
+  const hiT = o.hiT ?? 0.4, shT = o.shT ?? -0.2, outline = o.outline ?? true;
+  const m = new Uint8Array(W * W);
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (shape.inside(x + .5, y + .5)) m[y * W + x] = 1;
+  if (outline) for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    if (m[y * W + x]) continue;
+    if (outline === 'bg' && grid[y * W + x]) continue;
+    if ((x > 0 && m[y * W + x - 1]) || (x < W - 1 && m[y * W + x + 1]) ||
+        (y > 0 && m[(y - 1) * W + x]) || (y < W - 1 && m[(y + 1) * W + x])) grid[y * W + x] = C.line;
+  }
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (m[y * W + x]) {
+    const b = shape.b(x + .5, y + .5);
+    grid[y * W + x] = b > hiT ? ramp[0] : b < shT ? ramp[2] : ramp[1];
+  }
+}
+
+// ---------- パーツ（うしろ → まえ） ----------
+paint(ell(28, 62, 17, 1.8), [C.shadow, C.shadow, C.shadow], { outline: false });
+
+// ブーツ（つま先は右）
+paint(ell(26, 59.5, 4, 2.1), C.wood);
+paint(ell(35, 59, 4.8, 2.3), C.wood);
+
+// ローブ：前（右）はまっすぐ、うしろ（左）は風でなびく
+const front = y => 37 + (y - 28) * 0.12;
+const back  = y => 24 - ((y - 28) / 28) ** 1.5 * 13;
+const bottom = x => 57 - (((Math.floor(x) + 3) % 6) < 3 ? 0 : 2);
+const robe = {
+  inside: (x, y) => y >= 28 && y <= 57 && x >= back(y) && x <= front(y) && y <= bottom(x) + 1,
+  b: (x, y) => { const c = (front(y) + back(y)) / 2, hw = (front(y) - back(y)) / 2; return -((x - c) / hw) * 0.9 - ((y - 28) / 30 - 0.3) * 0.15; }
+};
+paint(robe, C.robe, { hiT: 0.35, shT: -0.15 });
+const rband = (y0, y1) => ({ inside: (x, y) => robe.inside(x, y) && y >= y0 && y <= y1, b: robe.b });
+paint(rband(40, 42), C.gold, { outline: false });          // 帯
+paint(rband(55, 58), C.gold, { outline: false, hiT: 0.35, shT: -0.15 }); // すそ飾り
+
+// 杖（手前に斜めに構える）
+paint(cap(33, 50, 50.5, 21, 1.3), C.wood, { hiT: 0.3, shT: -0.1 });
+paint(ell(50.5, 21, 2.3, 1.5), C.gold);
+const gem = {
+  inside: (x, y) => Math.abs(x - 52) / 3.7 + Math.abs(y - 15.5) / 5.2 <= 1,
+  b: (x, y) => bOf((x - 52) / 3.7, (y - 15.5) / 5.2)
+};
+paint(gem, C.gem, { hiT: 0.2, shT: -0.25 });
+
+// 頭（右向き）：顔 + 尖った鼻
+paint(union(ell(32, 23, 5.6, 6.2), ell(38.3, 24.4, 1.7, 1.3), ell(32, 23, 5.6, 6.2)), C.skin, { hiT: 0.4, shT: -0.35 });
+// 髪（うしろ半分）
+paint(ell(28, 22.5, 5.4, 7), C.hair, { outline: 'bg' });
+
+// まえに出した腕と手
+paint(cap(33, 32.5, 39.5, 35.5, 2.5), C.robe);
+paint(ell(41.5, 36, 2.2, 2.3), C.skin);
+
+// 帽子：つば（前がのび、うしろは三角に流れる） → とんがり
+const brimY = x => 19.5 - (x - 14) * 0.065;
+const brimH = x => x < 26 ? 2.2 * (x - 13) / 13 : x < 40 ? 2.2 : 2.2 - 1.9 * (x - 40) / 8;
+const brim = {
+  inside: (x, y) => x >= 13 && x <= 48 && Math.abs(y - brimY(x)) <= brimH(x),
+  b: (x, y) => -((y - brimY(x)) / Math.max(brimH(x), 1)) * 0.9 - (x - 30) / 45 * 0.4
+};
+paint(brim, C.hat, { hiT: 0.3, shT: -0.2 });
+const cT = y => (18 - y) / 17;
+const cC = y => 32 - 12 * Math.max(0, cT(y)) ** 1.8;
+const cHW = y => (1 - cT(y)) ** 0.85 * 8.5 + 0.9;
+const cone = {
+  inside: (x, y) => y >= 1 && y <= 18 && Math.abs(x - cC(y)) <= cHW(y),
+  b: (x, y) => -((x - cC(y)) / cHW(y)) * 0.9
+};
+paint(cone, C.hat, { hiT: 0.35, shT: -0.15 });
+paint({ inside: (x, y) => cone.inside(x, y) && y >= 14 && y <= 16, b: cone.b }, C.gold, { outline: false });
+
+// ---------- 孤立点の整理 ----------
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+  const c = get(x, y);
+  if (!c || c === C.line) continue;
+  let same = 0;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && get(x + i, y + j) === c) same++;
+  if (same) continue;
+  const cnt = {};
+  [[1,0],[-1,0],[0,1],[0,-1]].forEach(([i, j]) => { const n = get(x + i, y + j); if (n) cnt[n] = (cnt[n] || 0) + 1; });
+  const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  if (best) put(x, y, best[0]);
+}
+
+// ---------- ディテール ----------
+// 片目（右向き）
+put(35, 21, C.line); put(36, 21, C.line);
+put(35, 22, C.white); put(36, 22, C.iris);
+put(35, 23, C.iris); put(36, 23, C.iris);
+// 口
+put(36, 26, C.mouth); put(37, 26, C.mouth);
+// 帯のバックル
+[[36,40],[36,41],[36,42]].forEach(([x, y]) => put(x, y, C.gold[0]));
+// ローブのしわ（風になびく線）
+for (let k = 0; k < 11; k++) {
+  const y = 44 + k, x = Math.round(29 - k * 0.9);
+  if (get(x, y) === C.robe[1]) put(x, y, C.robe[2]);
+}
+// 宝珠のハイライトときらめき
+put(50, 12, C.white); put(51, 12, C.white); put(50, 13, C.white);
+[[58,9],[57,9],[59,9],[58,8],[58,10],[45,6],[44,6],[46,6],[45,5],[45,7]].forEach(([x, y]) => put(x, y, C.gem[0]));
+
+// ---------- 描画 ----------
+const ctx = document.getElementById('view').getContext('2d');
+const used = new Set();
+for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+  const c = grid[y * W + x];
+  if (!c) continue;
+  used.add(c); ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1);
+}
+document.getElementById('info').textContent = `64×64 ／ ${used.size}色`;
+</script>
+</body>
+</html>
