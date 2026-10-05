@@ -45,6 +45,33 @@ def mat(name, col, rough=0.9, metal=0.0, emit=None, bump=None):
         m.node_tree.links.new(bn.outputs["Normal"], b.inputs["Normal"])
     return m
 
+TEX = os.path.join(HERE, "assets", "tex")
+def photo(m, name, scale=1.0):
+    """assets/tex/<name>_diff.jpg / _rough.jpg / _nor_gl.jpg があれば貼る（Poly Haven の 1k〜2k JPG）。
+    なければ何もしない（今までの色のまま）。壁の向きに関係なく貼れるよう、箱の投影(BOX)を使う。"""
+    f = lambda k: next((p for p in (os.path.join(TEX, f"{name}_{k}.{e}") for e in ("jpg", "png")) if os.path.exists(p)), None)
+    d, r, n = f("diff"), f("rough"), f("nor_gl")
+    if not d: return m
+    nt = m.node_tree; N = nt.nodes; L = nt.links; b = N["Principled BSDF"]
+    co = N.new("ShaderNodeTexCoord"); mp = N.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (scale, scale, scale)
+    L.new(co.outputs["Object"], mp.inputs["Vector"])
+    def img(path, cs):
+        t = N.new("ShaderNodeTexImage"); t.image = bpy.data.images.load(path); t.image.colorspace_settings.name = cs
+        t.projection = 'BOX'; t.projection_blend = .2; L.new(mp.outputs["Vector"], t.inputs["Vector"]); return t
+    td = img(d, "sRGB")
+    mix = N.new("ShaderNodeMix"); mix.data_type = 'RGBA'; mix.blend_type = 'MULTIPLY'
+    mix.inputs["Factor"].default_value = 1; mix.inputs["B"].default_value = (*b.inputs["Base Color"].default_value[:3], 1)
+    L.new(td.outputs["Color"], mix.inputs["A"])
+    # 元の色は暗いので、写真の色を主役にして少しだけ色をのせる
+    mix.inputs["B"].default_value = tuple(min(1, c * 2.2 + .35) for c in b.inputs["Base Color"].default_value[:3]) + (1,)
+    L.new(mix.outputs["Result"], b.inputs["Base Color"])
+    if r: L.new(img(r, "Non-Color").outputs["Color"], b.inputs["Roughness"])
+    if n:
+        nm = N.new("ShaderNodeNormalMap"); nm.inputs["Strength"].default_value = 1.0
+        L.new(img(n, "Non-Color").outputs["Color"], nm.inputs["Color"]); L.new(nm.outputs["Normal"], b.inputs["Normal"])
+    return m
+
 M = dict(
     plaster=mat("Plaster", (.72, .64, .48), .9, bump=(12, .15)),
     beam=mat("Beam", (.10, .055, .03), .75, bump=(20, .25)),
@@ -68,6 +95,9 @@ M = dict(
     endgrain=mat("EndGrain", (.35, .22, .10), .9),
     soil=mat("Soil", (.09, .05, .03), 1.0),
 )
+
+photo(M["plaster"], "plaster", .35); photo(M["beam"], "wood", .5); photo(M["door"], "wood", .5)
+photo(M["stone"], "stone", .4); photo(M["thatch"], "thatch", .3)
 
 # ---------------------------------------------------------------- 部品の道具
 def reg(o, grp, m):
