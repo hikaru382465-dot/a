@@ -81,6 +81,7 @@ static class Check
         for (int i = 0; i < 3000; i++) foreach (var c in p4.Pick3(low)) if (c.Id == "U14") sawPotion = true;
         Ok(sawPotion, "HPが低いと薬びんが出る");
 
+        bad += PlayerChecks.Run();
         Console.WriteLine(bad == 0 ? "すべてOK" : ("失敗 " + bad + " 件"));
         return bad == 0 ? 0 : 1;
     }
