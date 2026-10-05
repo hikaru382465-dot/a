@@ -238,6 +238,11 @@ M["dirt"] = dirt_mat()
 TH = atan2(7.2 - 2.9, 3.1)
 M["thatch_f"] = thatch_mat("ThatchF", -TH); M["thatch_b"] = thatch_mat("ThatchB", TH)
 M["thatchd_f"] = thatch_mat("ThatchDF", -TH, True); M["thatchd_b"] = thatch_mat("ThatchDB", TH, True)
+# .glb には模様のノードが入らないので、代わりになる平均の色を入れておく（Three.js などで使う色）
+for k, c in dict(plaster=(.68, .58, .42), beam=(.09, .05, .027), door=(.25, .14, .065), stone=(.30, .29, .27),
+                 ground=(.06, .16, .10), dirt=(.18, .11, .065), thatch_f=(.62, .32, .09), thatch_b=(.62, .32, .09),
+                 thatchd_f=(.26, .13, .04), thatchd_b=(.26, .13, .04)).items():
+    M[k].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*c, 1)
 M["sack"] = mat("Sack", (.42, .30, .15), .95, bump=(40, .5))
 M["cap"] = mat("Cap", (.5, .1, .05), .6)
 M["white"] = mat("White", (.8, .8, .75), .7)
@@ -544,6 +549,8 @@ for g in list(G): join(g)
 bpy.ops.object.select_all(action='DESELECT')
 glb = os.path.join(OUT, "farmhouse.glb")
 bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', export_apply=True, export_yup=True)
+import base64
+open(os.path.join(OUT, "farmhouse.glb.js"), "w").write('window.FARMHOUSE_GLB_B64="' + base64.b64encode(open(glb, "rb").read()).decode() + '";')
 print("GLB:", glb, os.path.getsize(glb) // 1024, "KB")
 if NORENDER: sys.exit(0)
 

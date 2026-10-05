@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>農家の家</title>
+<style>
+html,body{margin:0;height:100%;background:#0a1018;overflow:hidden;font-family:sans-serif}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+#ui{position:fixed;left:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap}
+button{background:#1b2636cc;color:#f3dcb8;border:1px solid #f3dcb855;padding:8px 12px;border-radius:6px;font-size:14px}
+button.on{background:#b5651dcc}
+#msg{position:fixed;top:12px;left:12px;color:#f3dcb8;font-size:13px;opacity:.8}
+</style></head><body>
+<div id="msg">読み込み中…</div>
+<div id="ui">
+  <button id="bIso">斜め上から（ドット絵の角度）</button>
+  <button id="bPix">ドット絵風</button>
+  <button id="bRot">まわす</button>
+  <button id="bDay">夕方 / 夜</button>
+</div>
+<script src="assets/farmhouse.glb.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const fogCol=new THREE.Color(0x141c2b);scene.background=fogCol;scene.fog=new THREE.Fog(fogCol,54,80);
+
+// 正投影カメラ（ドット絵と同じ見た目）。Blender は Z が上・正面が -Y、glTF は Y が上・正面が +Z
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,200);
+const target=new THREE.Vector3(2.2,2.4,1.2);
+function isoView(){const el=THREE.MathUtils.degToRad(35),az=THREE.MathUtils.degToRad(45),d=60;
+  cam.position.set(target.x+d*Math.cos(el)*Math.sin(az),target.y+d*Math.sin(el),target.z+d*Math.cos(el)*Math.cos(az));
+  cam.zoom=1;controls.target.copy(target);cam.lookAt(target);controls.update();}
+const controls=new OrbitControls(cam,renderer.domElement);
+controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.49;controls.autoRotateSpeed=1.2;
+
+// 光：暖かい主光 / 青い補助 / 窓のあかり
+const key=new THREE.DirectionalLight(0xffa066,3.0);key.position.set(-10,16,14);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:60});
+key.shadow.bias=-.0004;scene.add(key);
+const fill=new THREE.HemisphereLight(0x6f8cff,0x1a2a1a,1.1);scene.add(fill);
+const rim=new THREE.DirectionalLight(0x99bbff,.7);rim.position.set(8,10,-14);scene.add(rim);
+const lamps=[[-.5,2,2.3],[3.2,2,2.3],[-2.6,1.2,2.5]].map(([x,y,z])=>{const l=new THREE.PointLight(0xff8c40,6,7,2);l.position.set(x,y,z);scene.add(l);return l;});
+
+// ノードで作った質感は .glb に入らないので、代わりの平均の色をここで指定（Blender の色と同じ・リニア値）
+const BASE={Ground:[.06,.16,.10],Dirt:[.18,.11,.065],Stone:[.30,.29,.27],Plaster:[.68,.58,.42],Beam:[.09,.05,.027],
+  DoorWood:[.25,.14,.065],ThatchF:[.62,.32,.09],ThatchB:[.62,.32,.09],ThatchDF:[.26,.13,.04],ThatchDB:[.26,.13,.04]};
+// モデル（Blender: farmhouse.glb を文字にしたもの）
+const b64=window.FARMHOUSE_GLB_B64;const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+new GLTFLoader().parse(bin.buffer,'',gltf=>{
+  gltf.scene.traverse(o=>{if(o.isMesh){o.castShadow=o.name!=='Ground';o.receiveShadow=true;
+    const m=o.material;(Array.isArray(m)?m:[m]).forEach(mm=>{mm.flatShading=true;const c=BASE[mm.name.replace(/\.\d+$/,'')];if(c){mm.color.setRGB(c[0],c[1],c[2],THREE.LinearSRGBColorSpace);mm.roughness=.92;}mm.needsUpdate=true;
+      if(mm.name==='Glass'){mm.emissiveIntensity=2.2;}});}});
+  scene.add(gltf.scene);document.getElementById('msg').textContent='ドラッグ：まわす／ホイール：ズーム／右ドラッグ：ずらす';
+},e=>{document.getElementById('msg').textContent='読み込めませんでした：'+e.message;});
+
+// ドット絵風：小さい画面に描いて、ドットのまま拡大する
+let pix=true,PS=4;
+function resize(){const w=innerWidth,h=innerHeight,k=pix?1/PS:1;renderer.setPixelRatio(pix?1:Math.min(devicePixelRatio,2));
+  renderer.setSize(Math.ceil(w*k),Math.ceil(h*k),false);
+  const asp=w/h,s=11;cam.left=-s*asp;cam.right=s*asp;cam.top=s;cam.bottom=-s;cam.updateProjectionMatrix();}
+addEventListener('resize',resize);
+const $=id=>document.getElementById(id);
+$('bIso').onclick=isoView;
+$('bPix').onclick=()=>{pix=!pix;$('bPix').classList.toggle('on',pix);resize();};
+$('bRot').onclick=()=>{controls.autoRotate=!controls.autoRotate;$('bRot').classList.toggle('on',controls.autoRotate);};
+let night=false;
+$('bDay').onclick=()=>{night=!night;key.intensity=night?.6:3.0;key.color.set(night?0x6688cc:0xffa066);
+  fill.intensity=night?.35:1.1;lamps.forEach(l=>l.intensity=night?14:6);
+  fogCol.set(night?0x070b14:0x141c2b);scene.background=fogCol;};
+$('bPix').classList.add('on');
+resize();isoView();
+renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,cam);});
+</script></body></html>
