@@ -18,10 +18,14 @@ namespace UnityEngine
         public static Vector3 operator *(Vector3 a, float k) { return new Vector3(a.x * k, a.y * k, a.z * k); }
     }
     public struct Rect { public Rect(float a, float b, float c, float d) { } }
-    public class Transform { public Vector3 position; }
+    public class Transform { public Vector3 position, localScale; public Quaternion rotation; }
     public class SpriteRenderer { public bool flipX; }
     public struct Quaternion { public static Quaternion identity { get { return new Quaternion(); } } }
-    public class GameObject { public Transform transform = new Transform(); }
+    public class GameObject { public Transform transform = new Transform(); public void SetActive(bool b) { } public T GetComponent<T>() where T : class, new() { return new T(); } }
+    public struct Color { public float r, g, b, a; public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; } }
+    public class TextMesh { public string text; public Color color; }
+    public class Camera { public static Camera main = new Camera(); public Transform transform = new Transform(); }
+    public static class Random { public static float Range(float a, float b) { return a; } }
     public class MonoBehaviour
     {
         public Transform transform = new Transform();

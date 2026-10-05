@@ -85,3 +85,7 @@ Unity 6.6 では、まだ動かしていません（私は Unity が動かせな
 - `GemBag.cs`：宝石の袋・合成（Lv1×2→Lv2、コイン20/50/100/200）・武器にはめる/はずす。`SaveText`：倉庫・宝石・コインを文字で保存/読みこみ（こわれた行はとばす）。
 - `Sim.DropGem`：敵・ボスが宝石を落とし、すぐ袋に入る（死んでも残る）。`SaveStore`（Unity）：`SimRunner.SaveNow()` で保存、起動時に読みこみ。
 - まだ：ホーム画面の宝石UI（鍛冶屋で合成・はめる）、挑戦終了時に `SaveNow` を呼ぶ場所。
+
+## 追加（ダメージ数字）
+- `DamageNumbers`（Unity）：`SimRunner` を指定して、TextMesh入りのPrefabを渡すと、当てた数字（会心は黄色・大きめ）と、受けた数字（赤）が出る。40個を使い回す。
+- シーンに空のオブジェクトを作って付ける。Prefabの作り方：空オブジェクト＋TextMesh（Anchor=Middle Center、Font Size=64、Character Size=0.05）。
