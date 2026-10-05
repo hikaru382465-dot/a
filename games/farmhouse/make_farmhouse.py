@@ -619,6 +619,26 @@ co.location = ct.location + Vector((d * cos(el) * sin(az), -d * cos(el) * cos(az
 tc = co.constraints.new('TRACK_TO'); tc.target = ct; tc.track_axis = 'TRACK_NEGATIVE_Z'; tc.up_axis = 'UP_Y'
 scene.camera = co
 
+
+# ---------------------------------------------------------------- 農夫（ドット絵の板を、カメラに向けて立てる）
+FARMER = os.path.join(OUT, "character", "farmer_front.png")
+if os.path.exists(FARMER):
+    img = bpy.data.images.load(FARMER)
+    fm = bpy.data.materials.new("Farmer"); fm.use_nodes = True
+    fn = fm.node_tree.nodes; fb = fn["Principled BSDF"]
+    ft = fn.new("ShaderNodeTexImage"); ft.image = img; ft.interpolation = 'Closest'
+    fm.node_tree.links.new(ft.outputs["Color"], fb.inputs["Base Color"])
+    fm.node_tree.links.new(ft.outputs["Color"], fb.inputs["Emission Color"]); fb.inputs["Emission Strength"].default_value = .25
+    fm.node_tree.links.new(ft.outputs["Alpha"], fb.inputs["Alpha"]); fb.inputs["Roughness"].default_value = 1
+    FARMER_POS = (1.0, -4.3); FARMER_OBJS = []
+    for (fx, fy) in [FARMER_POS]:
+        hgt = 2.3; wid = hgt * 32 / 40
+        bpy.ops.mesh.primitive_plane_add(size=1)
+        fo = bpy.context.object; fo.name = "Farmer"
+        fo.matrix_world = xf((fx, fy, hgt / 2 * .86 + .02), (radians(90), 0, radians(45)), (wid, hgt, 1))
+        fo.data.materials.append(fm); FARMER_OBJS.append(fo)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=.4, depth=.02)
+        sh = bpy.context.object; sh.matrix_world = xf((fx + .12, fy + .1, .05), (0, 0, 0), (1, .8, 1)); sh.data.materials.append(M["inside"]); FARMER_OBJS.append(sh)
 scene.render.engine = 'CYCLES'; scene.cycles.device = 'CPU'; scene.cycles.samples = SAMPLES
 scene.cycles.use_denoising = True
 scene.render.resolution_x, scene.render.resolution_y = RES
@@ -666,8 +686,22 @@ if "--pixel-only" not in sys.argv:
 # ドット絵：小さく描いて（270行）、色を32色にしぼり、輪郭線をつけ、4倍に拡大
 PX = (480, 270)
 rawpx = os.path.join(OUT, "farmhouse_raw_px.png")
+for o_ in globals().get("FARMER_OBJS", []): o_.hide_render = True      # ドット絵版は、あとで原寸のまま貼る
+scene.render.resolution_x, scene.render.resolution_y = PX
+from bpy_extras.object_utils import world_to_camera_view
 render_to(rawpx, PX, 24 if os.environ.get("FH_QUICK") else 96, filt=.01)
 pix = grade(rawpx, outline=True).quantize(32, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB")
+if os.path.exists(FARMER):
+    sp = Image.open(FARMER).convert("RGBA")
+    cx, cy, _ = world_to_camera_view(scene, co, Vector((*FARMER_POS, 0)))
+    fx_, fy_ = int(cx * PX[0]), int((1 - cy) * PX[1])
+    pix = pix.convert("RGBA")
+    shade = Image.new("RGBA", pix.size, (0, 0, 0, 0))
+    from PIL import ImageDraw
+    ImageDraw.Draw(shade).ellipse((fx_ - 8, fy_ - 4, fx_ + 8, fy_ + 2), fill=(10, 14, 20, 120))
+    pix = Image.alpha_composite(pix, shade)
+    pix.alpha_composite(sp, (fx_ - 16, fy_ - 39))
+    pix = pix.convert("RGB")
 pix.save(os.path.join(OUT, "farmhouse_pixel_1x.png"))
 pix.resize((PX[0] * 4, PX[1] * 4), Image.NEAREST).save(os.path.join(OUT, "farmhouse_pixel.png"))
 os.remove(rawpx)

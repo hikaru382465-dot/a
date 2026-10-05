@@ -29,3 +29,9 @@
 - `python make_farmhouse.py --bake` で、ノードの模様（色と凹凸）を画像に焼いて `assets/farmhouse_baked.glb`（と `.glb.js`）を作る。2分ほど。
 - 焼いた画像は .glb の中に入っている（色と凹凸、JPEG）。Unreal / Unity / Godot にそのまま入れて模様が出る。
 - `index.html` と スマホ用ページは焼いた版を使う。
+
+## 農夫のキャラクター（ドット絵）
+- `python make_character.py`：32×40のドット絵の農夫を、Blenderの画像機能で描いて保存する（正面・横・うしろ × 歩き4コマ）
+- 出力：`assets/character/farmer_sheet.png`（スプライトシート）、`farmer_front.png`、`farmer_walk.gif`（歩きの確認）、`farmer_preview.png`
+- `make_farmhouse.py` は `farmer_front.png` があれば家の前に立たせる（ドット絵版には原寸のまま貼る）
+- ゲームで使うとき：シートは1コマ 32×40。Unity / Godot / Unreal(Paper2D) の「スプライトシート」としてそのまま読める
