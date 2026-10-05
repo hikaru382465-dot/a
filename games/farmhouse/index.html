@@ -17,7 +17,7 @@ button.on{background:#b5651dcc}
   <button id="bRot">まわす</button>
   <button id="bDay">夕方 / 夜</button>
 </div>
-<script src="assets/farmhouse.glb.js"></script>
+<script src="assets/farmhouse_baked.glb.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -56,7 +56,7 @@ const BASE={Ground:[.06,.16,.10],Dirt:[.18,.11,.065],Stone:[.30,.29,.27],Plaster
 const b64=window.FARMHOUSE_GLB_B64;const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
 new GLTFLoader().parse(bin.buffer,'',gltf=>{
   gltf.scene.traverse(o=>{if(o.isMesh){o.castShadow=o.name!=='Ground';o.receiveShadow=true;
-    const m=o.material;(Array.isArray(m)?m:[m]).forEach(mm=>{mm.flatShading=true;const c=BASE[mm.name.replace(/\.\d+$/,'')];if(c){mm.color.setRGB(c[0],c[1],c[2],THREE.LinearSRGBColorSpace);mm.roughness=.92;}mm.needsUpdate=true;
+    const m=o.material;(Array.isArray(m)?m:[m]).forEach(mm=>{mm.flatShading=!mm.map;if(mm.normalMap)mm.normalScale.set(.35,.35);const c=mm.map?null:BASE[mm.name.replace(/\.\d+$/,'')];if(c){mm.color.setRGB(c[0],c[1],c[2],THREE.LinearSRGBColorSpace);mm.roughness=.92;}mm.needsUpdate=true;
       if(mm.name==='Glass'){mm.emissiveIntensity=2.2;}});}});
   scene.add(gltf.scene);document.getElementById('msg').textContent='ドラッグ：まわす／ホイール：ズーム／右ドラッグ：ずらす';
 },e=>{document.getElementById('msg').textContent='読み込めませんでした：'+e.message;});

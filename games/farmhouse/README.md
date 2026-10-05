@@ -24,3 +24,8 @@
 - ドラッグ：まわす／ホイール：ズーム／右ドラッグ：ずらす。ボタン：斜め上から・ドット絵風・まわす・夕方/夜
 - モデルは `assets/farmhouse.glb.js`（`farmhouse.glb` を文字にしたもの）。`make_farmhouse.py` を実行すると自動で作り直される
 - ノードの質感は `.glb` に入らないので、`index.html` の中で平均の色を指定している（`BASE`）
+
+## 質感のベイク
+- `python make_farmhouse.py --bake` で、ノードの模様（色と凹凸）を画像に焼いて `assets/farmhouse_baked.glb`（と `.glb.js`）を作る。2分ほど。
+- 焼いた画像は .glb の中に入っている（色と凹凸、JPEG）。Unreal / Unity / Godot にそのまま入れて模様が出る。
+- `index.html` と スマホ用ページは焼いた版を使う。

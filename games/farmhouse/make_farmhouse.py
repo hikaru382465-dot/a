@@ -552,6 +552,45 @@ bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', export_apply=True, 
 import base64
 open(os.path.join(OUT, "farmhouse.glb.js"), "w").write('window.FARMHOUSE_GLB_B64="' + base64.b64encode(open(glb, "rb").read()).decode() + '";')
 print("GLB:", glb, os.path.getsize(glb) // 1024, "KB")
+
+# ---------------------------------------------------------------- 質感のベイク（ノードの模様を画像に焼いて .glb に入れる）
+def bake_all():
+    scene.render.engine = 'CYCLES'; scene.cycles.device = 'CPU'
+    scene.cycles.samples = 1; scene.cycles.use_denoising = False
+    sizes = dict(House=2048, Roof=2048, Ground=2048, BarnDoor=1024, Well=1024, Garden=1024, Props=1024)
+    for name, size in sizes.items():
+        o = bpy.data.objects[name]
+        bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
+        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.smart_project(angle_limit=radians(66), island_margin=0.004)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        ic = bpy.data.images.new(name + "_color", size, size)
+        inr = bpy.data.images.new(name + "_normal", size, size); inr.colorspace_settings.name = 'Non-Color'
+        mats = [sl.material for sl in o.material_slots]
+        nodes = {}
+        for m in mats:
+            nodes[m] = []
+            for im in (ic, inr):
+                t = m.node_tree.nodes.new("ShaderNodeTexImage"); t.image = im; nodes[m].append(t)
+        for i, kw in enumerate((dict(type='DIFFUSE', pass_filter={'COLOR'}), dict(type='NORMAL', normal_space='TANGENT'))):
+            for m in mats:
+                m.node_tree.nodes.active = nodes[m][i]
+            bpy.ops.object.bake(margin=6, margin_type='EXTEND', use_clear=True, **kw)
+            print("baked", name, kw["type"], size)
+        for m in mats:  # 焼いた画像につなぎかえる
+            nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+            nt.links.new(nodes[m][0].outputs["Color"], b.inputs["Base Color"])
+            nm = nt.nodes.new("ShaderNodeNormalMap")
+            nt.links.new(nodes[m][1].outputs["Color"], nm.inputs["Color"]); nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
+    out = os.path.join(OUT, "farmhouse_baked.glb")
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, export_yup=True,
+                              export_image_format='JPEG', export_jpeg_quality=85)
+    open(os.path.join(OUT, "farmhouse_baked.glb.js"), "w").write(
+        'window.FARMHOUSE_GLB_B64="' + base64.b64encode(open(out, "rb").read()).decode() + '";')
+    print("BAKED GLB:", os.path.getsize(out) // 1024, "KB")
+if "--bake" in sys.argv:
+    bake_all(); sys.exit(0)
 if NORENDER: sys.exit(0)
 
 # ---------------------------------------------------------------- 光とカメラ
