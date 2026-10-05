@@ -44,6 +44,7 @@ namespace DotMeikyu.Core
                 e.Soul = Loose.First(t.Get(r, "魂ドロップ"));
                 e.WeaponDrop = Loose.Percent(t.Get(r, "武器ドロップ率")); e.GemDrop = Loose.Percent(t.Get(r, "宝石ドロップ率"));
                 e.Memo = t.Get(r, "メモ（特殊行動）");
+                int xi = e.Memo.IndexOf("経験値"); if (xi >= 0) e.Xp = Loose.FirstInt(e.Memo.Substring(xi + 3));
                 d.Enemies.Add(e);
             }
         }

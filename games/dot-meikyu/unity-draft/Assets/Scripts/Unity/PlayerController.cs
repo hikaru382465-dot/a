@@ -30,18 +30,31 @@ namespace DotMeikyu
         public event Action<float> ChargeChanged;                // ゲージ（0〜1）が変わった
         public Vector2 Facing { get; private set; }              // 最後に動いた向き
         public bool IsInvulnerable { get { return dash.IsInvulnerable; } }
+        public bool IsCharging { get { return charge != null && charge.Charge01 > 0f; } }
+
+        // カードの効果を受け取る（SimRunner が、カードを取るたびに呼ぶ）
+        public void ApplyModifiers(Modifiers m)
+        {
+            moveBonus = m.MoveBonus;
+            chargeSettings.ChargeTime = chargeTime * m.ChargeTimeMul;
+            dashSettings.Cooldown = dashCooldown * m.DashCooldownMul;
+        }
 
         readonly FloatingStick stick = new FloatingStick();
         ChargeController charge;
         DashController dash;
+        ChargeSettings chargeSettings; DashSettings dashSettings;
+        float moveBonus;
         Transform tr;
         bool prevPressed; float maxDragDist; Vector2 pressPos; float lastCharge = -1f;
 
         void Awake()
         {
             tr = transform;                                      // 毎フレーム探さないよう、ここで取っておく
-            charge = new ChargeController(new ChargeSettings { ChargeTime = chargeTime, Recoil = recoil, Cooldown = chargeCooldown });
-            dash = new DashController(new DashSettings { Distance = dashDistance, Cooldown = dashCooldown });
+            chargeSettings = new ChargeSettings { ChargeTime = chargeTime, Recoil = recoil, Cooldown = chargeCooldown };
+            dashSettings = new DashSettings { Distance = dashDistance, Cooldown = dashCooldown };
+            charge = new ChargeController(chargeSettings);
+            dash = new DashController(dashSettings);
             float dpi = Screen.dpi > 1f ? Screen.dpi : 160f;     // 取れないときは、ふつうのスマホの値
             stick.MaxRadius = stickRadiusInches * dpi; stick.DeadZone = deadZoneInches * dpi;
             Facing = new Vector2(1f, 0f);
@@ -63,7 +76,7 @@ namespace DotMeikyu
             // 動く：ダッシュ中は、ダッシュの分だけ。うった直後は、動けない
             Vec2 dashMove = dash.Tick(dt);
             Vector3 delta = new Vector3(dashMove.X, 0f, dashMove.Y);
-            if (!dash.IsDashing && charge.CanMove) delta += new Vector3(dir.x, 0f, dir.y) * (moveSpeed * strength * dt);
+            if (!dash.IsDashing && charge.CanMove) delta += new Vector3(dir.x, 0f, dir.y) * (moveSpeed * (1f + moveBonus) * strength * dt);
             tr.position += delta;
             if (sprite != null && Mathf.Abs(Facing.x) > 0.2f) sprite.flipX = Facing.x < 0f;   // 右向きの絵を、左なら反転
         }

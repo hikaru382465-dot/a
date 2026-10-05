@@ -9,32 +9,32 @@ namespace DotMeikyu.Core
         // 自動攻撃。ねらう敵がいて攻撃したら true
         bool AutoAttack()
         {
-            var w = Weapon; float dmg = w.Damage; Vec2 p = Player.Pos;
+            var w = Weapon; float dmg = w.Damage; Vec2 p = Player.Pos; float am = 1f + Mods.AreaBonus;
             switch (w.Kind)
             {
                 case WeaponKind.Sword:
                     {   // 自分のまわり（半径1.6）の敵を、ぜんぶ切る。はね返し0.8マス
                         bool any = false;
-                        foreach (var m in Mobs) if (m.Alive && m.SpawnDelay <= 0f && (m.Pos - p).Length < 1.6f + m.Radius) { DamageMob(m, dmg, p, true, 0.8f); any = true; }
+                        foreach (var m in Mobs) if (m.Alive && m.SpawnDelay <= 0f && (m.Pos - p).Length < 1.6f * am * (Mods.SplitBlade ? 1.2f : 1f) + m.Radius) { DamageMob(m, dmg, p, true, 0.8f, true); any = true; }
                         if (any) Events.Add(new SimEvent(EventKind.Slash, p, p, 1.6f));
                         return any;
                     }
                 case WeaponKind.Bow:
                     {   // 一番近い敵（7マス以内）へ。まっすぐ3体までつらぬく
-                        Mob t = Nearest(p, 7f); if (t == null) return false;
-                        Vec2 dir = (t.Pos - p).Normalized; ShootLine(p, dir, 7f, dmg, 3, false);
+                        Mob t = Nearest(p, 7f * am); if (t == null) return false;
+                        Vec2 dir = (t.Pos - p).Normalized; ShootLine(p, dir, 7f * am, dmg, 3 + (Mods.SplitBlade ? 1 : 0), false);
                         return true;
                     }
                 default:
                     {   // 杖：稲妻の連鎖。一番近い敵（5マス以内）→ 2.5マス以内の次の敵へ、3回飛びうつる（1回ごとに-15%）
-                        Mob t = Nearest(p, 5f); if (t == null) return false;
-                        Chain(p, t, dmg, 3, 0.85f, 0f); return true;
+                        Mob t = Nearest(p, 5f * am); if (t == null) return false;
+                        Chain(p, t, dmg, 3 + Mods.ChainJumpsAdd + (Mods.SplitBlade ? 1 : 0), 0.85f, 0f); return true;
                     }
             }
         }
 
         // まっすぐの線上の敵（距離順に maxHits 体まで。pierceAll なら全部）にダメージ
-        void ShootLine(Vec2 from, Vec2 dir, float range, float dmg, int maxHits, bool pierceAll)
+        void ShootLine(Vec2 from, Vec2 dir, float range, float dmg, int maxHits, bool pierceAll, bool fromAttack = true)
         {
             var hits = new List<Mob>();
             foreach (var m in Mobs)
@@ -45,33 +45,33 @@ namespace DotMeikyu.Core
             }
             hits.Sort((a, b) => (a.Pos - from).Length.CompareTo((b.Pos - from).Length));
             int n = 0; Vec2 end = from + dir * range;
-            foreach (var m in hits) { if (!pierceAll && n >= maxHits) break; DamageMob(m, dmg, from, true, 0.3f); end = m.Pos; n++; }
+            foreach (var m in hits) { if (!pierceAll && n >= maxHits) break; DamageMob(m, dmg, from, true, 0.3f, fromAttack); end = m.Pos; n++; }
             Events.Add(new SimEvent(EventKind.Arrow, from, pierceAll || n == 0 ? from + dir * range : end, n));
         }
 
         // 稲妻：first にあたり、近くの別の敵へ jumps 回飛びうつる。stun>0 なら、あたった敵は、その秒数しびれる
-        void Chain(Vec2 from, Mob first, float dmg, int jumps, float falloff, float stun)
+        void Chain(Vec2 from, Mob first, float dmg, int jumps, float falloff, float stun, bool fromAttack = true)
         {
             var hit = new HashSet<Mob>(); Mob cur = first; Vec2 last = from; float d = dmg;
             for (int i = 0; i <= jumps && cur != null; i++)
             {
                 hit.Add(cur); Events.Add(new SimEvent(EventKind.Chain, last, cur.Pos, d));
                 Vec2 pos = cur.Pos; if (stun > 0f) cur.Stun = Math.Max(cur.Stun, stun);
-                DamageMob(cur, d, last, true, 0f);
+                DamageMob(cur, d, last, true, 0f, fromAttack);
                 last = pos; d *= falloff;
-                cur = Nearest(last, 2.5f, hit);
+                cur = Nearest(last, 2.5f * (1f + Mods.AreaBonus), hit);
             }
         }
 
         // ため攻撃（満タンで指を離したとき）。PlayerController の ChargedAttackFired から呼ぶ
         public void FireCharged()
         {
-            var w = Weapon; float dmg = w.Damage; Vec2 p = Player.Pos;
+            var w = Weapon; float dmg = w.Damage * Mods.ChargedDamageMul; Vec2 p = Player.Pos; float am = 1f + Mods.AreaBonus;
             switch (w.Kind)
             {
                 case WeaponKind.Sword:
                     {   // 大回転斬り：半径3.2を2回転・強くはね返す（合計 ×5）
-                        foreach (var m in Mobs) if (m.Alive && (m.Pos - p).Length < 3.2f + m.Radius) DamageMob(m, dmg * 5f, p, true, 2.0f);
+                        foreach (var m in Mobs) if (m.Alive && (m.Pos - p).Length < 3.2f * am + m.Radius) DamageMob(m, dmg * 5f, p, true, 2.0f, true);
                         Events.Add(new SimEvent(EventKind.Slash, p, p, 3.2f, "charged")); break;
                     }
                 case WeaponKind.Bow:
@@ -80,15 +80,16 @@ namespace DotMeikyu.Core
                         for (int i = -2; i <= 2; i++)
                         {
                             double a = Math.Atan2(baseDir.Y, baseDir.X) + i * (20.0 / 2.0) * Math.PI / 180.0;
-                            ShootLine(p, new Vec2((float)Math.Cos(a), (float)Math.Sin(a)), 7f, dmg * 4f, 99, true);
+                            ShootLine(p, new Vec2((float)Math.Cos(a), (float)Math.Sin(a)), 7f * am, dmg * 4f, 99, true);
                         }
                         break;
                     }
                 default:
                     {   // 雷の嵐：12回連鎖＋1秒しびれ（×3.5）
-                        Mob t = Nearest(p, 8f); if (t != null) Chain(p, t, dmg * 3.5f, 12, 1f, 1f); break;
+                        Mob t = Nearest(p, 8f * am); if (t != null) Chain(p, t, dmg * 3.5f, 12, 1f, 1f); break;
                     }
             }
+            if (Mods.ChargeShockwave) AreaHit(p, 3f * am, Weapon.Damage * 2f, 1f);                  // ため5：ため攻撃のあとに衝撃波
         }
     }
 }

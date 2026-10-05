@@ -11,9 +11,10 @@ namespace DotMeikyu.Core
         void StepMob(Mob m, float dt)
         {
             if (m.SpawnDelay > 0f) { m.SpawnDelay -= dt; return; }
+            float full = dt; if (m.SlowLeft > 0f) dt *= 1f - m.SlowPct;   // 遅くなっている間は、動きも時間もゆっくり
             m.T += dt;
-            m.Pos = m.Pos + m.Knock * dt; m.Knock = m.Knock * (float)Math.Pow(0.02, dt);
-            if (m.Stun > 0f) { m.Stun -= dt; return; }
+            m.Pos = m.Pos + m.Knock * full; m.Knock = m.Knock * (float)Math.Pow(0.02, full);
+            if (m.Stun > 0f) { m.Stun -= full; return; }
             Vec2 to = Player.Pos - m.Pos; float dist = to.Length; Vec2 dir = to.Normalized; float spd = m.Def.Speed;
             switch (m.Def.Id)
             {

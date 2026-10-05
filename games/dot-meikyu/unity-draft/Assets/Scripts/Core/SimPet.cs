@@ -11,7 +11,7 @@ namespace DotMeikyu.Core
         {
             if (Pet.Stun > 0f) return;
             Pet.Hp -= dmg; Events.Add(new SimEvent(EventKind.PetHurt, Pet.Pos, Pet.Pos, dmg));
-            if (Pet.Hp <= 0f) { Pet.Hp = 0f; Pet.Stun = 8f; Events.Add(new SimEvent(EventKind.PetStunned, Pet.Pos, Pet.Pos, 8f)); }   // やられても、8秒気絶するだけ
+            if (Pet.Hp <= 0f) { Pet.Hp = 0f; Pet.Stun = 8f * Mods.PetStunMul; Events.Add(new SimEvent(EventKind.PetStunned, Pet.Pos, Pet.Pos, Pet.Stun)); }   // やられても、8秒気絶するだけ
         }
 
         void StepPet(float dt)
@@ -23,7 +23,7 @@ namespace DotMeikyu.Core
             foreach (var d in Drops) { if (d.Taken) continue; float k = (d.Pos - pt.Pos).Length; if (k < bd) { bd = k; target = d; } }
             if (target != null)
             {
-                pt.Pos = pt.Pos + (target.Pos - pt.Pos).Normalized * (2.5f * dt);
+                pt.Pos = pt.Pos + (target.Pos - pt.Pos).Normalized * (2.5f * (1f + Mods.PetEatSpeedBonus) * dt);
                 if ((target.Pos - pt.Pos).Length < 0.5f && TryTake(target, "pet")) PetTake(target);
             }
             else
@@ -36,8 +36,19 @@ namespace DotMeikyu.Core
             if (pt.AttackCd <= 0f)
             {
                 Mob t = Nearest(pt.Pos, 0.8f);
-                if (t != null) { DamageMob(t, pt.Damage, pt.Pos, false, 0.3f); pt.AttackCd = 1.2f; } else pt.AttackCd = 0.1f;
+                if (t != null)
+                {
+                    t.LastHitByPet = true; float atk = pt.Damage * (1f + Mods.PetAtkBonus + Mods.JobPetAtkBonus);
+                    DamageMob(t, atk, pt.Pos, false, 0.3f);
+                    if (t.Alive && Mods.PetFreeze > 0f) t.Stun = Math.Max(t.Stun, Mods.PetFreeze);   // ひっつき
+                    pt.AttackCd = 1.2f;
+                }
+                else pt.AttackCd = 0.1f;
             }
+            // ぷるぷるジャンプ：4秒ごとに、着地で範囲ダメージ（半径1.5・ダメ12）
+            if (Mods.PetJump > 0) { pt.JumpCd -= dt; if (pt.JumpCd <= 0f) { pt.JumpCd = 4f * Mods.PetJumpIntervalMul; if (Nearest(pt.Pos, 2.5f) != null) AreaHit(pt.Pos, 1.5f, 12f * (1f + 0.3f * (Mods.PetJump - 1)), 0.5f); } }
+            // 消化液：1.5秒ごとに、酸の弾（ダメ5・遅くする）
+            if (Mods.PetAcid > 0) { pt.AcidCd -= dt; if (pt.AcidCd <= 0f) { pt.AcidCd = 1.5f; Mob t = Nearest(pt.Pos, 6f); if (t != null) { DamageMob(t, 5f * (1f + 0.3f * (Mods.PetAcid - 1)), pt.Pos, false); if (t.Alive) { t.SlowPct = 0.3f; t.SlowLeft = 1.5f; } Events.Add(new SimEvent(EventKind.Arrow, pt.Pos, t.Pos, 1f, "acid")); } } }
         }
 
         // ペットが武器を取った：いまの武器より弱ければ食べて消える（成長点）。強ければ倉庫へ送る（残る）

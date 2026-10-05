@@ -22,10 +22,16 @@ namespace DotMeikyu
         [SerializeField] int startStage = 0;
         [SerializeField] WeaponKind startWeapon = WeaponKind.Staff;
         [SerializeField] Rarity startRarity = Rarity.Common;
+        [SerializeField] string startJob = "連射";                 // 連射／範囲／召喚
+        [SerializeField] int rerollsPerRun = 1;
 
         public Sim Sim { get; private set; }
         public StageDirector Director { get; private set; }
         public event Action<SimEvent> SimEventRaised;
+        public event Action<IList<CardDef>> LevelUpOffered;      // カード選びの画面を出す合図（3枚）
+        public event Action CardChosen;                           // 選び終わった合図
+        public bool IsChoosingCard { get { return offer != null; } }
+        public int RerollsLeft { get; private set; }
 
         readonly Dictionary<string, GameObject> prefabById = new Dictionary<string, GameObject>();
         readonly Dictionary<Mob, GameObject> mobViews = new Dictionary<Mob, GameObject>();
@@ -33,16 +39,38 @@ namespace DotMeikyu
         readonly List<Mob> staleMobs = new List<Mob>();
         readonly List<DroppedWeapon> staleDrops = new List<DroppedWeapon>();
         Transform playerTr;
+        CardPicker picker;
+        List<CardDef> offer;
 
         // GameData の Awake が終わったあとに始めるため、Start を使う
         void Start()
         {
             if (enemyPrefabs != null) foreach (var e in enemyPrefabs) if (e != null && e.prefab != null) prefabById[e.id] = e.prefab;
             Sim = new Sim(data.Tables, WeaponItem.Create(startWeapon, startRarity, new System.Random()), Environment.TickCount);
+            Sim.StartRun(startJob); RerollsLeft = rerollsPerRun;
+            picker = new CardPicker(data.Tables.Cards, new System.Random());
             Director = new StageDirector(Sim); Director.Begin(startStage);
             playerTr = player.transform;
             player.ChargedAttackFired += OnCharged;
+            player.ApplyModifiers(Sim.Mods);
         }
+
+        // カード選び：1〜3 番目のカードを選ぶ（UIのボタンから呼ぶ）
+        public void ChooseCard(int index)
+        {
+            if (offer == null || index < 0 || index >= offer.Count) return;
+            Sim.ApplyCard(offer[index]); player.ApplyModifiers(Sim.Mods);
+            offer = null; if (CardChosen != null) CardChosen();
+        }
+
+        // 引きなおし（1回の挑戦で、決まった回数だけ）
+        public void Reroll()
+        {
+            if (offer == null || RerollsLeft <= 0) return;
+            RerollsLeft--; Offer();
+        }
+
+        void Offer() { offer = picker.Pick3(Sim.Cards); if (LevelUpOffered != null) LevelUpOffered(offer); }
 
         void OnDestroy() { if (player != null) player.ChargedAttackFired -= OnCharged; }
 
@@ -50,7 +78,9 @@ namespace DotMeikyu
 
         void Update()
         {
-            if (Sim == null) return;
+            if (Sim == null || offer != null) return;               // カードを選んでいる間は、世界が止まる
+            if (Sim.TakeLevelUp()) { Offer(); return; }
+            Sim.Charging = player.IsCharging;
             Vector3 p = playerTr.position;
             Sim.Player.Pos = new Vec2(p.x, p.z); Sim.Player.DashInvulnerable = player.IsInvulnerable;
             Sim.Tick(Time.deltaTime); Director.Tick(Time.deltaTime);

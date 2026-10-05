@@ -18,6 +18,7 @@ namespace DotMeikyu.Core
     {
         public string Id, Name, Region, Role, Memo, RangedRaw;
         public float Hp, Speed, Contact, RangedMax, Soul, WeaponDrop, GemDrop;
+        public int Xp;                                   // 倒したときの経験値（メモの「経験値N」）
         public bool IsBoss { get { return Role == "ボス"; } }
         public bool IsThief { get { return Role == "ひろい屋"; } }
         public bool HasNumbers { get { return Hp > 0f; } }   // 洞窟・沼はまだ数値なし

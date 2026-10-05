@@ -2,6 +2,8 @@ using System;
 
 namespace DotMeikyu.Core
 {
+    public sealed class GemSlot { public string Id; public int Level = 1; public GemSlot(string id, int level) { Id = id; Level = level; } }   // 例：new GemSlot("G_FIRE", 3)
+
     public enum WeaponKind { Sword, Bow, Staff }
     public enum Rarity { Common, Rare, Epic, Legend }
 
@@ -13,7 +15,7 @@ namespace DotMeikyu.Core
         public float Damage;          // レア度とゆらぎをかけたあとの基本ダメージ
         public float Interval;        // 攻撃の間隔（秒）
         public int AffixCount;        // おまけ効果の数（レア度で0〜3）
-        public int[] Gems = new int[2];   // 穴2つ（0＝あいている。宝石のidは、あとで）
+        public GemSlot[] Gems = new GemSlot[2];   // 穴2つ（null＝あいている）
 
         public static readonly float[] RarityMul = { 1.00f, 1.25f, 1.60f, 2.20f };
         public static readonly float[] RarityChance = { 0.70f, 0.22f, 0.07f, 0.01f };
