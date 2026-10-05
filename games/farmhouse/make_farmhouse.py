@@ -57,6 +57,7 @@ M = dict(
     moss=mat("Moss", (.04, .12, .09), .95, bump=(25, .3)),
     teal=mat("Teal", (.03, .10, .10), .95, bump=(25, .3)),
     dirt=mat("Dirt", (.16, .10, .06), 1.0),
+    vine=mat("Vine", (.03, .13, .05), .8),
     leaf=mat("Leaf", (.05, .18, .04), .8),
     blade=mat("Blade", (.03, .10, .12), .8),
     tomato=mat("Tomato", (.6, .04, .02), .35),
@@ -274,6 +275,28 @@ for (lx, ly, lz) in [(0, 0, .15), (.32, 0, .15), (.64, 0, .15), (.16, 0, .43), (
     cyl((9.0 + lx - .3, -4.6 + ly, lz), .15, 1.6, "door", "Props", rot=(radians(90), 0, radians(25)), v=8)
 cyl((8.0, -4.6, .22), .32, .45, "door", "Props", v=9)
 cyl((8.0, -4.6, .45), .30, .02, "endgrain", "Props", v=9)
+
+# ---------------------------------------------------------------- つる（壁をはう）
+def vine(start, axis, top, wobble=.12):
+    """axis='x': 正面の壁をのぼる（start=(x,y)）、axis='y': 右の妻壁をのぼる"""
+    z, u = .3, 0.0
+    while z < top:
+        u += rng.uniform(-.05, .05); u = max(-wobble, min(wobble, u))
+        p = (start[0] + u, start[1], z) if axis == 'x' else (start[0], start[1] + u, z)
+        ball(p, .04, "vine", "Vines")
+        if rng.random() < .75:
+            a = rng.uniform(-.2, .2) if True else 0
+            q = (p[0] + rng.uniform(-.1, .1), p[1], z + rng.uniform(0, .08)) if axis == 'x' else \
+                (p[0], p[1] + rng.uniform(-.1, .1), z + rng.uniform(0, .08))
+            ball(q, .11, "vine" if rng.random() < .6 else "leaf", "Vines",
+                 s=(1.5, .35, 1.1) if axis == 'x' else (.35, 1.5, 1.1))
+        if rng.random() < .08 and axis == 'x':
+            ball((p[0] + .05, p[1] - .02, z), .035, "tomato", "Vines")  # 小さな赤い実
+        z += rng.uniform(.05, .08)
+for x, t in [(-3.85, 2.8), (-1.4, 2.2), (-1.7, 1.2), (.6, 2.6), (2.6, 1.8), (3.9, 2.9), (-.3, 1.0)]:
+    vine((x, -1.69), 'x', t)
+for y, t in [(-1.4, 3.6), (3.2, 3.0), (.2, 1.4)]:
+    vine((4.24, y), 'y', t)
 
 # ---------------------------------------------------------------- 草むら
 bm = bmesh.new()
