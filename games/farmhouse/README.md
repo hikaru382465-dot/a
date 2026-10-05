@@ -5,7 +5,10 @@
 - 作り方：`pip install bpy pillow numpy` のあと `python make_farmhouse.py`（`--norender` で形だけ）
 - Blenderの画面で見るなら、Scripting タブでこのファイルを開いて ▶（その場合は最後の「色づけ」部分は不要）
 - 出力：`assets/farmhouse.glb`（Unreal / Unity / Godot に入れられる）、`farmhouse.png`、`farmhouse_pixel.png`（ドット絵風）
-- まだ違うところ：見本より窓・草が少ない／霧は未設定（つるは壁にはわせ済み）
+- 質感は全部ノードで作った（漆喰のひび・汚れ、木目、わらの筋、石の目地と苔、土の小石、草のつぶ）。画像は不要。
+- ドット絵版：480×270で描き→32色にしぼり→輪郭線→4倍に拡大（`farmhouse_pixel.png`、1倍は `farmhouse_pixel_1x.png`）。`--pixel-only` で絵だけ作り直せる。
+- 細かい作り込み：軒先のわらのふさ、屋根の苔、妻壁の窓、飛び石、小石、小さな花、キノコ、麻袋、柵の頭
+- まだ違うところ：見本より草・花が少ない／霧は絵の色づけでかすませているだけ
 - 道具のアドバイス：今すぐ → Poly Haven の木・漆喰の質感を貼ると一気に本物っぽくなる。あとで → 草・つるは Blender の Geometry Nodes で散らすと楽。
 
 ## Poly Haven の質感を貼る

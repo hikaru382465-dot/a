@@ -61,11 +61,11 @@ def photo(m, name, scale=1.0):
         t.projection = 'BOX'; t.projection_blend = .2; L.new(mp.outputs["Vector"], t.inputs["Vector"]); return t
     td = img(d, "sRGB")
     mix = N.new("ShaderNodeMix"); mix.data_type = 'RGBA'; mix.blend_type = 'MULTIPLY'
-    mix.inputs["Factor"].default_value = 1; mix.inputs["B"].default_value = (*b.inputs["Base Color"].default_value[:3], 1)
-    L.new(td.outputs["Color"], mix.inputs["A"])
+    mix.inputs[0].default_value = 1
+    L.new(td.outputs["Color"], mix.inputs[6])
     # 元の色は暗いので、写真の色を主役にして少しだけ色をのせる
-    mix.inputs["B"].default_value = tuple(min(1, c * 2.2 + .35) for c in b.inputs["Base Color"].default_value[:3]) + (1,)
-    L.new(mix.outputs["Result"], b.inputs["Base Color"])
+    mix.inputs[7].default_value = tuple(min(1, c * 2.2 + .35) for c in b.inputs["Base Color"].default_value[:3]) + (1,)
+    L.new(mix.outputs[2], b.inputs["Base Color"])
     if r: L.new(img(r, "Non-Color").outputs["Color"], b.inputs["Roughness"])
     if n:
         nm = N.new("ShaderNodeNormalMap"); nm.inputs["Strength"].default_value = 1.0
@@ -95,6 +95,154 @@ M = dict(
     endgrain=mat("EndGrain", (.35, .22, .10), .9),
     soil=mat("Soil", (.09, .05, .03), 1.0),
 )
+
+
+# ---------------------------------------------------------------- ノードで作る質感（画像なしで細部を出す）
+class NB:
+    """ノードをつなぐ小さな道具。Object 座標（=ワールド座標）で模様を決める。"""
+    def __init__(self, name):
+        self.m = bpy.data.materials.new(name); self.m.use_nodes = True
+        self.N = self.m.node_tree.nodes; self.L = self.m.node_tree.links
+        self.b = self.N["Principled BSDF"]
+    def link(self, out, inp): self.L.new(out, inp)
+    def coord(self, scale=(1, 1, 1), rot=None):
+        out = self.N.new("ShaderNodeTexCoord").outputs["Object"]
+        if rot is not None:
+            r = self.N.new("ShaderNodeMapping"); r.inputs["Rotation"].default_value = rot
+            self.link(out, r.inputs["Vector"]); out = r.outputs["Vector"]
+        mp = self.N.new("ShaderNodeMapping"); mp.inputs["Scale"].default_value = scale
+        self.link(out, mp.inputs["Vector"]); return mp.outputs["Vector"]
+    def tex(self, kind, vec, out="Fac", **kw):
+        t = self.N.new(f"ShaderNodeTex{kind}")
+        for k, v in kw.items():
+            if k in t.inputs: t.inputs[k].default_value = v
+            else: setattr(t, k, v)
+        self.link(vec, t.inputs["Vector"]); return t.outputs[out]
+    def ramp(self, fac, stops):
+        r = self.N.new("ShaderNodeValToRGB"); cr = r.color_ramp
+        while len(cr.elements) < len(stops): cr.elements.new(1.0)
+        for e, (p, c) in zip(cr.elements, stops): e.position = p; e.color = (*c, 1)
+        self.link(fac, r.inputs["Fac"]); return r.outputs["Color"]
+    def math(self, op, a, b=0.5, c=None, clamp=False):
+        n = self.N.new("ShaderNodeMath"); n.operation = op; n.use_clamp = clamp
+        for i, x in enumerate((a, b, c)):
+            if x is None: continue
+            if isinstance(x, bpy.types.NodeSocket): self.link(x, n.inputs[i])
+            else: n.inputs[i].default_value = x
+        return n.outputs[0]
+    def mix(self, fac, a, b, blend='MIX'):
+        n = self.N.new("ShaderNodeMix"); n.data_type = 'RGBA'; n.blend_type = blend
+        for i, x in ((0, fac), (6, a), (7, b)):
+            if isinstance(x, bpy.types.NodeSocket): self.link(x, n.inputs[i])
+            elif isinstance(x, tuple): n.inputs[i].default_value = (*x, 1)
+            else: n.inputs[i].default_value = x
+        return n.outputs[2]
+    def z(self):
+        s = self.N.new("ShaderNodeSeparateXYZ")
+        self.link(self.N.new("ShaderNodeTexCoord").outputs["Object"], s.inputs[0]); return s.outputs["Z"]
+    def finish(self, color, rough=.9, bump=None, bump_str=.4, metal=0.0):
+        self.link(color, self.b.inputs["Base Color"]); self.b.inputs["Roughness"].default_value = rough
+        self.b.inputs["Metallic"].default_value = metal
+        if bump is not None:
+            bn = self.N.new("ShaderNodeBump"); bn.inputs["Strength"].default_value = bump_str
+            bn.inputs["Distance"].default_value = .05
+            self.link(bump, bn.inputs["Height"]); self.link(bn.outputs["Normal"], self.b.inputs["Normal"])
+        return self.m
+
+def grime(nb, col, height=1.5, amount=1.0):
+    """足もとほど汚れる（泥はね・苔）。"""
+    z = nb.z()
+    g = nb.math('MULTIPLY_ADD', z, -1.0 / height, 1.0)
+    n2 = nb.tex("Noise", nb.coord((5, 5, 5)), Detail=5.0)
+    g = nb.math('ADD', g, nb.math('SUBTRACT', n2, .5), clamp=True)
+    return nb.math('MULTIPLY', g, amount, clamp=True)
+
+def plaster_mat():
+    nb = NB("Plaster")
+    v = nb.coord((3, 3, 3))
+    base = nb.ramp(nb.tex("Noise", v, Detail=7.0, Roughness=.6),
+                   [(0, (.55, .45, .32)), (.5, (.72, .62, .45)), (1, (.84, .74, .55))])
+    edge = nb.tex("Voronoi", nb.coord((1.6, 1.6, 1.6)), out="Distance", feature='DISTANCE_TO_EDGE')
+    crack = nb.ramp(edge, [(0, (.35, .28, .2)), (.035, (1, 1, 1)), (1, (1, 1, 1))])
+    c = nb.mix(.8, base, crack, 'MULTIPLY')
+    specks = nb.tex("Voronoi", nb.coord((40, 40, 40)), out="Distance")
+    c = nb.mix(nb.math('LESS_THAN', specks, .06, clamp=True), c, (.45, .36, .25), 'MIX')
+    c = nb.mix(grime(nb, 0, 1.3, .9), c, (.07, .09, .05), 'MIX')
+    h = nb.math('ADD', nb.tex("Noise", nb.coord((60, 60, 60)), Detail=2.0), edge)
+    return nb.finish(c, .92, h, .5)
+
+def wood_mat(name, dark, light, seams=False):
+    nb = NB(name)
+    g = nb.tex("Noise", nb.coord((5, 5, 22)), Detail=8.0, Roughness=.65)
+    base = nb.ramp(g, [(0, dark), (.5, tuple((a + b) / 2 for a, b in zip(dark, light))), (1, light)])
+    fine = nb.tex("Noise", nb.coord((40, 40, 160)), Detail=2.0)
+    c = nb.mix(.35, base, nb.ramp(fine, [(0, (.55, .55, .55)), (1, (1.2, 1.2, 1.2))]), 'MULTIPLY')
+    if seams:
+        w = nb.tex("Wave", nb.coord((3.4, 3.4, 1)), wave_type='BANDS', bands_direction='X')
+        c = nb.mix(.8, c, nb.ramp(w, [(0, (1, 1, 1)), (.9, (1, 1, 1)), (.97, (.25, .22, .2)), (1, (.25, .22, .2))]), 'MULTIPLY')
+    c = nb.mix(grime(nb, 0, .8, .5), c, (.05, .08, .04), 'MIX')
+    return nb.finish(c, .8, g, .6)
+
+def thatch_mat(name, rotx, dark=False):
+    nb = NB(name)
+    v = nb.coord((9, 1.4, 9), rot=(rotx, 0, 0))
+    n = nb.tex("Noise", v, Detail=6.0, Roughness=.7)
+    st = [(0, (.30, .12, .03)), (.45, (.56, .26, .07)), (.75, (.74, .40, .11)), (1, (.88, .55, .18))]
+    if dark: st = [(a, tuple(x * .42 for x in c)) for a, c in st]
+    base = nb.ramp(n, st)
+    strand = nb.tex("Noise", nb.coord((55, 3, 55), rot=(rotx, 0, 0)), Detail=2.0)
+    c = nb.mix(.5, base, nb.ramp(strand, [(0, (.6, .6, .6)), (1, (1.25, 1.2, 1.1))]), 'MULTIPLY')
+    return nb.finish(c, .96, nb.math('ADD', n, strand), .9)
+
+def stone_mat():
+    nb = NB("Stone")
+    v = nb.coord((4.5, 4.5, 4.5))
+    cell = nb.tex("Voronoi", v, out="Color")
+    bw = nb.N.new("ShaderNodeRGBToBW"); nb.link(cell, bw.inputs[0])
+    base = nb.ramp(bw.outputs[0], [(0, (.17, .17, .16)), (.5, (.30, .29, .27)), (1, (.44, .41, .36))])
+    edge = nb.tex("Voronoi", v, out="Distance", feature='DISTANCE_TO_EDGE')
+    c = nb.mix(nb.math('LESS_THAN', edge, .06, clamp=True), base, (.08, .08, .07), 'MIX')
+    mo = nb.math('MULTIPLY', nb.tex("Noise", nb.coord((9, 9, 9)), Detail=4.0), 1.0)
+    c = nb.mix(nb.math('MULTIPLY', grime(nb, 0, 1.0, 1.0), nb.math('GREATER_THAN', mo, .45), clamp=True), c, (.05, .15, .06), 'MIX')
+    h = nb.math('ADD', nb.math('MULTIPLY', edge, 2.0), nb.tex("Noise", nb.coord((30, 30, 30)), Detail=3.0))
+    return nb.finish(c, .92, h, .8)
+
+def ground_mat():
+    nb = NB("Ground")
+    big = nb.tex("Noise", nb.coord((.45, .45, .45)), Detail=3.0)
+    mid = nb.tex("Noise", nb.coord((3, 3, 3)), Detail=4.0)
+    base = nb.ramp(big, [(0, (.05, .13, .13)), (.45, (.07, .18, .11)), (.7, (.09, .22, .11)), (1, (.05, .16, .09))])
+    base = nb.mix(.5, base, nb.ramp(mid, [(0, (.7, .75, .8)), (1, (1.15, 1.2, 1.1))]), 'MULTIPLY')
+    sp = nb.tex("Voronoi", nb.coord((26, 26, 26)), out="Distance")
+    m1 = nb.math('MULTIPLY', nb.math('LESS_THAN', sp, .09), nb.math('GREATER_THAN', mid, .42), clamp=True)
+    c = nb.mix(m1, base, (.13, .30, .10), 'MIX')
+    sp2 = nb.tex("Voronoi", nb.coord((15, 15, 15)), out="Distance")
+    m2 = nb.math('MULTIPLY', nb.math('LESS_THAN', sp2, .06), nb.math('LESS_THAN', mid, .35), clamp=True)
+    c = nb.mix(m2, c, (.02, .05, .05), 'MIX')
+    return nb.finish(c, .97, nb.tex("Noise", nb.coord((50, 50, 50)), Detail=3.0), .25)
+
+def dirt_mat():
+    nb = NB("Dirt")
+    n = nb.tex("Noise", nb.coord((2.5, 2.5, 2.5)), Detail=5.0)
+    base = nb.ramp(n, [(0, (.11, .065, .04)), (.5, (.19, .115, .07)), (1, (.27, .17, .10))])
+    pe = nb.tex("Voronoi", nb.coord((22, 22, 22)), out="Distance")
+    c = nb.mix(nb.math('LESS_THAN', pe, .08, clamp=True), base, (.26, .23, .20), 'MIX')
+    return nb.finish(c, 1.0, nb.tex("Noise", nb.coord((45, 45, 45)), Detail=3.0), .5)
+
+M["plaster"] = plaster_mat()
+M["beam"] = wood_mat("Beam", (.045, .022, .012), (.15, .08, .04))
+M["door"] = wood_mat("DoorWood", (.12, .06, .028), (.38, .21, .10), seams=True)
+M["stone"] = stone_mat()
+M["ground"] = ground_mat()
+M["dirt"] = dirt_mat()
+TH = atan2(7.2 - 2.9, 3.1)
+M["thatch_f"] = thatch_mat("ThatchF", -TH); M["thatch_b"] = thatch_mat("ThatchB", TH)
+M["thatchd_f"] = thatch_mat("ThatchDF", -TH, True); M["thatchd_b"] = thatch_mat("ThatchDB", TH, True)
+M["sack"] = mat("Sack", (.42, .30, .15), .95, bump=(40, .5))
+M["cap"] = mat("Cap", (.5, .1, .05), .6)
+M["white"] = mat("White", (.8, .8, .75), .7)
+M["blue"] = mat("BlueFlower", (.25, .35, .8), .7)
+M["pebble"] = mat("Pebble", (.2, .2, .2), .9, bump=(30, .4))
 
 photo(M["plaster"], "plaster", .35); photo(M["beam"], "wood", .5); photo(M["door"], "wood", .5)
 photo(M["stone"], "stone", .4); photo(M["thatch"], "thatch", .3)
@@ -151,8 +299,7 @@ ground = bpy.context.object
 bm = bmesh.new(); bm.from_mesh(ground.data)
 for v in bm.verts: v.co.z += rng.uniform(-.06, .06)
 bm.to_mesh(ground.data); bm.free()
-ground.data.materials.append(M["moss"]); ground.data.materials.append(M["teal"])
-for p in ground.data.polygons: p.material_index = int(rng.random() < .35)
+ground.data.materials.append(M["ground"])
 G["Ground"] = [ground]
 for pi, (x, y, r, sx) in enumerate([(-2, -3.6, 1.8, 1.6), (1.2, -3.6, 1.4, 1.8), (-4.2, -1.2, 1.2, 1.3),
                       (-6.5, -4.2, 1.5, 1.6), (6.5, -5, 1.6, 1.7), (-1, 5.5, 1.5, 1.6)]):
@@ -227,7 +374,7 @@ mid = Vector((0, RY - OVER / 2, (EAVE_Z + RIDGE_Z) / 2))
 for side in (1, -1):
     Mm = Matrix.Translation(Vector((0, RY, 0)) + Vector((0, (mid.y - RY) * side, mid.z))) @ \
          (Matrix.Rotation(math.pi, 4, 'Z') if side == -1 else Matrix.Identity(4)) @ Matrix.Rotation(th, 4, 'X')
-    box_m(Mm, (0, 0, -.175), (9.2, L + .3, .35), "thatch", "Roof")
+    box_m(Mm, (0, 0, -.175), (9.2, L + .3, .35), "thatch_f" if side == 1 else "thatch_b", "Roof")
     nc = 7; h = L / nc
     for k in range(1, nc, 2):
         v0 = -L / 2 + k * h; v1 = v0 + h * .8
@@ -235,7 +382,7 @@ for side in (1, -1):
         bot = [(x, v0 + (.2 if i % 2 else 0.0), .02) for i, x in enumerate(xs)]
         top = [(xs[-1], v1, .02), (xs[0], v1, .02)]
         vs = bot + top
-        poly("Zig", vs, [tuple(range(len(vs)))], "thatchd", "Roof", Mm)
+        poly("Zig", vs, [tuple(range(len(vs)))], "thatchd_f" if side == 1 else "thatchd_b", "Roof", Mm)
     # 棟の黒い梁
     box_m(Mm, (0, L / 2 - .1, .1), (9.8, .3, .3), "ridge", "Roof")
     box_m(Mm, (0, -L / 2 + .05, -.05), (9.6, .22, .22), "ridge", "Roof")  # 軒の梁
@@ -306,6 +453,46 @@ for (lx, ly, lz) in [(0, 0, .15), (.32, 0, .15), (.64, 0, .15), (.16, 0, .43), (
 cyl((8.0, -4.6, .22), .32, .45, "door", "Props", v=9)
 cyl((8.0, -4.6, .45), .30, .02, "endgrain", "Props", v=9)
 
+# ---------------------------------------------------------------- 細かい作り込み
+# 屋根：軒先のわらのふさ、屋根の苔
+for side in (1, -1):
+    Mm = Matrix.Translation(Vector((0, RY, 0)) + Vector((0, (mid.y - RY) * side, mid.z))) @ \
+         (Matrix.Rotation(math.pi, 4, 'Z') if side == -1 else Matrix.Identity(4)) @ Matrix.Rotation(th, 4, 'X')
+    tm = "thatch_f" if side == 1 else "thatch_b"
+    for x in np.arange(-4.6, 4.61, .1):
+        hl = rng.uniform(.08, .26)
+        box_m(Mm, (x, -L / 2 - hl / 2 + .03, -.2), (.09, hl, .22), tm, "Roof")
+    for _ in range(9):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1)
+        o = bpy.context.object; r_ = rng.uniform(.12, .26)
+        o.matrix_world = Mm @ Matrix.Translation((rng.uniform(-4.4, 4.4), rng.uniform(-L / 2 + .3, L / 2 - .5), .03)) \
+            @ Matrix.Diagonal((r_ * 1.4, r_, .06, 1))
+        reg(o, "Roof", "vine")
+# 妻壁の窓（屋根裏と、下の窓）
+box((4.22, 1, 4.6), (.1, .95, .85), "beam", "House")
+box((4.26, 1, 4.6), (.05, .78, .68), "glass", "House")
+box((4.3, 1, 4.6), (.04, .05, .68), "beam", "House"); box((4.3, 1, 4.6), (.04, .78, .05), "beam", "House")
+box((4.22, 1.2, 1.9), (.1, .95, .85), "beam", "House")
+box((4.26, 1.2, 1.9), (.05, .78, .68), "glass", "House")
+for sy in (-1, 1):
+    box((4.35, 1.2 + sy * .62, 1.9), (.05, .42, .75), "door", "House", rot=(0, 0, radians(sy * -20)))
+# 足もとの苔、飛び石、小石、花、キノコ、麻袋
+for _ in range(26):
+    x = rng.uniform(-4, 4); box((x, -1.72, .32 + rng.uniform(0, .05)), (rng.uniform(.2, .6), .12, .1), "vine", "House")
+for i, x in enumerate(np.arange(.3, 2.3, .55)):
+    cyl((x, -2.5 + .15 * (i % 2), .05), .27, .1, "stone", "Props", v=7, rot=(0, 0, rng.uniform(0, 3)))
+for _ in range(34):
+    ball((rng.uniform(-11, 11), rng.uniform(-9, 8), .03), rng.uniform(.04, .1), "pebble", "Props", s=(1, 1, .6))
+for _ in range(70):
+    ball((rng.uniform(-11, 11), rng.uniform(-9, 8), .05), .035, "white" if rng.random() < .6 else "blue", "Props")
+for (mx, my) in [(-4.3, -2.4), (-4.1, -2.55), (-6.4, -2.6)]:
+    cyl((mx, my, .07), .02, .14, "white", "Props", v=5); cone((mx, my, .17), .07, 0, .1, "cap", "Props", v=7)
+for (sx_, sy_, sz_) in [(2.5, -3.05, .2), (2.15, -3.4, .17)]:
+    ball((sx_, sy_, sz_), .3, "sack", "Props", s=(1, .75, 1.0))
+    cone((sx_, sy_, sz_ + .27), .1, .05, .12, "sack", "Props", v=6)
+for (x, y) in fp:
+    cone((x, y, .94), .075, .03, .08, "door", "Garden", v=6)
+
 # ---------------------------------------------------------------- つる（壁をはう）
 def vine(start, axis, top, wobble=.12):
     """axis='x': 正面の壁をのぼる（start=(x,y)）、axis='y': 右の妻壁をのぼる"""
@@ -369,7 +556,7 @@ def sun(name, e, col, rot):
     o = bpy.data.objects.new(name, l); o.rotation_euler = [radians(r) for r in rot]
     bpy.context.collection.objects.link(o)
 sun("Key", 3.0, (1, .62, .35), (62, 0, 30))
-sun("Fill", .5, (.45, .6, 1), (60, 0, 160))
+sun("Fill", 1.1, (.45, .6, 1), (60, 0, 160))
 rim = bpy.data.lights.new("Rim", 'AREA'); rim.energy = 800; rim.size = 6; rim.color = (.6, .75, 1)
 ro = bpy.data.objects.new("Rim", rim); ro.location = (-6, 10, 9); bpy.context.collection.objects.link(ro)
 tr = ro.constraints.new('TRACK_TO'); tgt = bpy.data.objects.new("T", None); tgt.location = (0, 1, 4)
@@ -389,25 +576,53 @@ scene.camera = co
 scene.render.engine = 'CYCLES'; scene.cycles.device = 'CPU'; scene.cycles.samples = SAMPLES
 scene.cycles.use_denoising = True
 scene.render.resolution_x, scene.render.resolution_y = RES
-scene.view_settings.view_transform = 'AgX'; scene.view_settings.exposure = -.3
+scene.view_settings.view_transform = 'AgX'; scene.view_settings.exposure = .35
 try: scene.view_settings.look = 'AgX - Medium High Contrast'
 except Exception: pass
-raw = os.path.join(OUT, "farmhouse_raw.png")
-scene.render.filepath = raw; scene.render.image_settings.file_format = 'PNG'
-bpy.ops.render.render(write_still=True)
+from PIL import Image, ImageFilter
 
-# ---------------------------------------------------------------- 色づけ（持ち上げ・暖色・四隅を暗く）
-from PIL import Image
-im = np.asarray(Image.open(raw).convert("RGB")).astype(np.float32) / 255
-lift = np.array([.02, .025, .05]); gain = np.array([1.08, 1.0, .92])
-im = im * (1 - lift) + lift
-im = im * gain
-hh, ww = im.shape[:2]
-yy, xx = np.mgrid[0:hh, 0:ww]
-r = np.sqrt(((xx - ww / 2) / (ww / 2)) ** 2 + ((yy - hh / 2) / (hh / 2)) ** 2)
-im *= (1 - .25 * np.clip(r - .5, 0, 1) ** 1.5)[..., None]
-im = np.clip(im, 0, 1)
-fin = Image.fromarray((im * 255).astype(np.uint8)); fin.save(os.path.join(OUT, "farmhouse.png"))
-px = fin.resize((RES[0] // 4, RES[1] // 4), Image.BOX).quantize(40, dither=Image.Dither.NONE).convert("RGB")
-px.resize(RES, Image.NEAREST).save(os.path.join(OUT, "farmhouse_pixel.png"))
+def render_to(path, res, samples, filt=None):
+    scene.render.resolution_x, scene.render.resolution_y = res
+    scene.cycles.samples = samples
+    if filt is not None: scene.cycles.filter_width = filt
+    scene.render.filepath = path; scene.render.image_settings.file_format = 'PNG'
+    bpy.ops.render.render(write_still=True)
+
+def grade(path, outline=False):
+    """持ち上げ・暖色・遠くのもや・四隅を暗く（・輪郭線）。"""
+    im = np.asarray(Image.open(path).convert("RGB")).astype(np.float32) / 255
+    lift = np.array([.02, .025, .05]); gain = np.array([1.08, 1.0, .92])
+    im = (im * (1 - lift) + lift) * gain
+    hh, ww = im.shape[:2]
+    yy, xx = np.mgrid[0:hh, 0:ww]
+    haze = ((1 - yy / hh) ** 2.2 * .28)[..., None]                       # 奥（画面の上）ほど青くかすむ
+    im = im * (1 - haze) + np.array([.10, .15, .24]) * haze
+    r = np.sqrt(((xx - ww / 2) / (ww / 2)) ** 2 + ((yy - hh / 2) / (hh / 2)) ** 2)
+    im *= (1 - .25 * np.clip(r - .5, 0, 1) ** 1.5)[..., None]
+    im = np.clip(im, 0, 1)
+    g_ = im @ np.array([.3, .59, .11]); im = np.clip(g_[..., None] + (im - g_[..., None]) * (1.3 if outline else 1.1), 0, 1)  # 彩度
+    if outline:                                                           # 暗いほうのふちを濃くする
+        lum = im @ np.array([.3, .59, .11]); k = np.ones_like(lum)
+        for ax in (0, 1):
+            d = lum - np.roll(lum, -1, ax)
+            dark = (d < -.14) & (lum > .07)                                # 自分が暗い
+            k = np.where(dark, k * .62, k)
+            d2 = np.roll(d, 1, ax)
+            k = np.where((d2 > .14) & (lum > .07), k * .62, k)
+        im = im * k[..., None]
+    return Image.fromarray((im * 255).astype(np.uint8))
+
+raw = os.path.join(OUT, "farmhouse_raw.png")
+if "--pixel-only" not in sys.argv:
+    render_to(raw, RES, SAMPLES)
+    grade(raw).save(os.path.join(OUT, "farmhouse.png"))
+
+# ドット絵：小さく描いて（270行）、色を32色にしぼり、輪郭線をつけ、4倍に拡大
+PX = (480, 270)
+rawpx = os.path.join(OUT, "farmhouse_raw_px.png")
+render_to(rawpx, PX, 24 if os.environ.get("FH_QUICK") else 96, filt=.01)
+pix = grade(rawpx, outline=True).quantize(32, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB")
+pix.save(os.path.join(OUT, "farmhouse_pixel_1x.png"))
+pix.resize((PX[0] * 4, PX[1] * 4), Image.NEAREST).save(os.path.join(OUT, "farmhouse_pixel.png"))
+os.remove(rawpx)
 print("done")
