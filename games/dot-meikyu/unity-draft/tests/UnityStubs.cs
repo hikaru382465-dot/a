@@ -20,7 +20,14 @@ namespace UnityEngine
     public struct Rect { public Rect(float a, float b, float c, float d) { } }
     public class Transform { public Vector3 position; }
     public class SpriteRenderer { public bool flipX; }
-    public class MonoBehaviour { public Transform transform = new Transform(); }
+    public struct Quaternion { public static Quaternion identity { get { return new Quaternion(); } } }
+    public class GameObject { public Transform transform = new Transform(); }
+    public class MonoBehaviour
+    {
+        public Transform transform = new Transform();
+        public static GameObject Instantiate(GameObject o, Vector3 p, Quaternion q) { return new GameObject(); }
+        public static void Destroy(GameObject o) { }
+    }
     public class TextAsset { public string text; }
     public class SerializeFieldAttribute : Attribute { }
     public class HeaderAttribute : Attribute { public HeaderAttribute(string s) { } }

@@ -82,6 +82,7 @@ static class Check
         Ok(sawPotion, "HPが低いと薬びんが出る");
 
         bad += PlayerChecks.Run();
+        bad += SimChecks.Run(dir);
         Console.WriteLine(bad == 0 ? "すべてOK" : ("失敗 " + bad + " 件"));
         return bad == 0 ? 0 : 1;
     }

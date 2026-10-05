@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using DotMeikyu.Core;
+
+namespace DotMeikyu
+{
+    [Serializable] public sealed class EnemyPrefab { public string id; public GameObject prefab; }
+
+    // 戦闘の世界（Sim）を動かし、敵やペットや落ちた武器の絵（オブジェクト）を、その位置に合わせる部品
+    // ・中身（強さ・動き・ダメージ）は、すべて Core の Sim が決める。ここは、時間を進めて、見た目を合わせるだけ
+    // ・光・音・ダメージの数字は、SimEventRaised を受け取る別の部品に任せる（EventTrigger型）
+    public sealed class SimRunner : MonoBehaviour
+    {
+        [SerializeField] GameData data;
+        [SerializeField] PlayerController player;
+        [SerializeField] Transform petView;
+        [SerializeField] GameObject defaultEnemyPrefab;
+        [SerializeField] EnemyPrefab[] enemyPrefabs;
+        [SerializeField] GameObject weaponDropPrefab;
+        [Header("はじめの設定（あとでホーム画面から渡す）")]
+        [SerializeField] int startStage = 0;
+        [SerializeField] WeaponKind startWeapon = WeaponKind.Staff;
+        [SerializeField] Rarity startRarity = Rarity.Common;
+
+        public Sim Sim { get; private set; }
+        public StageDirector Director { get; private set; }
+        public event Action<SimEvent> SimEventRaised;
+
+        readonly Dictionary<string, GameObject> prefabById = new Dictionary<string, GameObject>();
+        readonly Dictionary<Mob, GameObject> mobViews = new Dictionary<Mob, GameObject>();
+        readonly Dictionary<DroppedWeapon, GameObject> dropViews = new Dictionary<DroppedWeapon, GameObject>();
+        readonly List<Mob> staleMobs = new List<Mob>();
+        readonly List<DroppedWeapon> staleDrops = new List<DroppedWeapon>();
+        Transform playerTr;
+
+        // GameData の Awake が終わったあとに始めるため、Start を使う
+        void Start()
+        {
+            if (enemyPrefabs != null) foreach (var e in enemyPrefabs) if (e != null && e.prefab != null) prefabById[e.id] = e.prefab;
+            Sim = new Sim(data.Tables, WeaponItem.Create(startWeapon, startRarity, new System.Random()), Environment.TickCount);
+            Director = new StageDirector(Sim); Director.Begin(startStage);
+            playerTr = player.transform;
+            player.ChargedAttackFired += OnCharged;
+        }
+
+        void OnDestroy() { if (player != null) player.ChargedAttackFired -= OnCharged; }
+
+        void OnCharged() { if (Sim != null) Sim.FireCharged(); }
+
+        void Update()
+        {
+            if (Sim == null) return;
+            Vector3 p = playerTr.position;
+            Sim.Player.Pos = new Vec2(p.x, p.z); Sim.Player.DashInvulnerable = player.IsInvulnerable;
+            Sim.Tick(Time.deltaTime); Director.Tick(Time.deltaTime);
+            if (SimEventRaised != null) foreach (var e in Sim.Events) SimEventRaised(e);
+            SyncViews();
+        }
+
+        void SyncViews()
+        {
+            foreach (var m in Sim.Mobs)
+            {
+                GameObject go;
+                if (!mobViews.TryGetValue(m, out go))
+                {
+                    GameObject prefab; if (!prefabById.TryGetValue(m.Def.Id, out prefab)) prefab = defaultEnemyPrefab;
+                    if (prefab == null) continue;
+                    go = Instantiate(prefab, new Vector3(m.Pos.X, 0f, m.Pos.Y), Quaternion.identity); mobViews[m] = go;   // 数が増えたら、使い回し（プール）にする
+                }
+                go.transform.position = new Vector3(m.Pos.X, 0f, m.Pos.Y);
+            }
+            staleMobs.Clear(); foreach (var kv in mobViews) if (!kv.Key.Alive) staleMobs.Add(kv.Key);
+            foreach (var m in staleMobs) { Destroy(mobViews[m]); mobViews.Remove(m); }
+
+            foreach (var d in Sim.Drops)
+            {
+                GameObject go;
+                if (!dropViews.TryGetValue(d, out go)) { if (weaponDropPrefab == null) continue; go = Instantiate(weaponDropPrefab, new Vector3(d.Pos.X, 0f, d.Pos.Y), Quaternion.identity); dropViews[d] = go; }
+            }
+            staleDrops.Clear(); foreach (var kv in dropViews) if (kv.Key.Taken || !Sim.Drops.Contains(kv.Key)) staleDrops.Add(kv.Key);
+            foreach (var d in staleDrops) { Destroy(dropViews[d]); dropViews.Remove(d); }
+
+            if (petView != null) petView.position = new Vector3(Sim.Pet.Pos.X, 0f, Sim.Pet.Pos.Y);
+        }
+    }
+}
