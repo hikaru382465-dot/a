@@ -55,3 +55,4 @@ namespace UnityEngine.InputSystem
     }
     public class Pointer { public static Pointer current; public ButtonControl press = new ButtonControl(); public Vector2Control position = new Vector2Control(); }
 }
+namespace UnityEngine { public static class Application { public static string persistentDataPath { get { return "/tmp"; } } } }

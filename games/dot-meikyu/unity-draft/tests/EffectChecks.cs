@@ -119,6 +119,19 @@ static class EffectChecks
         Ok(xs.Level == 2 && xs.PendingLevelUps == 1 && xs.Xp == 12f, "スライム12体で、Lv2（Lv3は累計13から）→ Lv" + xs.Level);
         xs.KillMob(Put(xs, "F01", 20f, 20f, true, 1f));
         Ok(xs.Level == 3 && xs.PendingLevelUps == 2, "もう1体で、Lv3 → Lv" + xs.Level);
+        // --- 宝石の持ち物・合成・保存 ---
+        var gs = NewSim(WeaponKind.Sword); gs.DropGem(Vec2.Zero); Ok(gs.GemsFoundThisRun.Count == 1 && gs.Gems.Count(gs.GemsFoundThisRun[0], 1) == 1 && Count(gs, EventKind.GemDrop) == 1, "宝石が落ちる → 持ち物に入る");
+        var bag = new GemBag(); bag.Add("G_FIRE", 1, 3); float coins = 100f;
+        Ok(bag.Fuse("G_FIRE", 1, ref coins) && bag.Count("G_FIRE", 1) == 1 && bag.Count("G_FIRE", 2) == 1 && Near(coins, 80f), "Lv1を2個 → Lv2（コイン20）");
+        Ok(!bag.Fuse("G_FIRE", 1, ref coins), "1個しかないと、合成できない");
+        bag.Add("G_FIRE", 2, 1); float poor = 10f; Ok(!bag.Fuse("G_FIRE", 2, ref poor) && bag.Count("G_FIRE", 2) == 2, "コインが足りないと、合成できない");
+        var wp = WeaponItem.Create(WeaponKind.Staff, Rarity.Rare, new Random(3));
+        Ok(bag.Equip(wp, 0, "G_FIRE", 2) && wp.Gems[0].Id == "G_FIRE" && bag.Count("G_FIRE", 2) == 1, "武器にはめる → 袋から減る");
+        Ok(bag.Equip(wp, 0, "G_FIRE", 1) && bag.Count("G_FIRE", 2) == 2 && wp.Gems[0].Level == 1, "はめかえると、前の宝石は袋にもどる");
+        var store = new List<WeaponItem> { wp }; string txt = SaveText.Write(store, bag, 55f);
+        var store2 = new List<WeaponItem>(); var bag2 = new GemBag(); float cs2; SaveText.Read(txt + "ごみの行\nweapon,Nothing,1\n", store2, bag2, out cs2);
+        Ok(store2.Count == 1 && store2[0].Kind == WeaponKind.Staff && store2[0].Rarity == Rarity.Rare && Near(store2[0].Damage, wp.Damage) && store2[0].Gems[0].Id == "G_FIRE" && store2[0].Gems[1] == null, "保存→読みこみで、武器が同じ");
+        Ok(bag2.Count("G_FIRE", 2) == 2 && Near(cs2, 55f), "保存→読みこみで、宝石とコインが同じ（こわれた行はとばす）");
         return bad;
     }
 }

@@ -32,6 +32,10 @@ namespace DotMeikyu
         public event Action CardChosen;                           // 選び終わった合図
         public bool IsChoosingCard { get { return offer != null; } }
         public int RerollsLeft { get; private set; }
+        public float Coins { get; private set; }
+
+        // 挑戦が終わったとき（死んだときも）に呼ぶ。拾った武器・宝石は残る
+        public void SaveNow() { SaveStore.Save(Sim, Coins); }
 
         readonly Dictionary<string, GameObject> prefabById = new Dictionary<string, GameObject>();
         readonly Dictionary<Mob, GameObject> mobViews = new Dictionary<Mob, GameObject>();
@@ -47,6 +51,7 @@ namespace DotMeikyu
         {
             if (enemyPrefabs != null) foreach (var e in enemyPrefabs) if (e != null && e.prefab != null) prefabById[e.id] = e.prefab;
             Sim = new Sim(data.Tables, WeaponItem.Create(startWeapon, startRarity, new System.Random()), Environment.TickCount);
+            Coins = SaveStore.Load(Sim);                // 前回までの倉庫・宝石を戻す
             Sim.StartRun(startJob); RerollsLeft = rerollsPerRun;
             picker = new CardPicker(data.Tables.Cards, new System.Random());
             Director = new StageDirector(Sim); Director.Begin(startStage);

@@ -50,6 +50,16 @@ namespace DotMeikyu.Core
             while (Level < 20) { float need = XpNeeded(Level), acc = 0f; for (int l = 1; l < Level; l++) acc += XpNeeded(l); if (Xp - acc < need) break; Level++; PendingLevelUps++; Events.Add(new SimEvent(EventKind.LevelUp, Player.Pos, Player.Pos, Level)); }
         }
         public float Coins20;
+        public readonly GemBag Gems = new GemBag();                          // 宝石の持ち物（死んでも残る）
+        public readonly List<string> GemsFoundThisRun = new List<string>();
+
+        // 宝石を1つ落とす（最初の版の8種類から、ランダム）。すぐ持ち物に入る
+        public void DropGem(Vec2 pos)
+        {
+            var pool = data.Gems.FindAll(x => x.FirstRelease); if (pool.Count == 0) return;
+            var gd = pool[Rng.Next(pool.Count)]; Gems.Add(gd.Id); GemsFoundThisRun.Add(gd.Id);
+            Events.Add(new SimEvent(EventKind.GemDrop, pos, pos, 1f, gd.Id));
+        }
 
         public bool HasDef(string id) { return defs.ContainsKey(id); }
 
@@ -196,14 +206,14 @@ namespace DotMeikyu.Core
             else if (m.Def.IsThief) { if (Rng.NextDouble() < 0.30) DropWeapon(m.Pos, WeaponItem.Random(Rng)); }
             else if (Rng.NextDouble() < m.Def.WeaponDrop * Luck) DropWeapon(m.Pos, WeaponItem.Random(Rng));
             float gem = m.IsElite ? 0.05f : m.Def.GemDrop;
-            if (Rng.NextDouble() < gem * Luck) Events.Add(new SimEvent(EventKind.GemDrop, m.Pos, m.Pos, 1f));
+            if (Rng.NextDouble() < gem * Luck) DropGem(m.Pos);
             if (m.Def.Id == "F04") Clouds.Add(new Cloud { Pos = m.Pos, Radius = 0.9f, Life = 2f, Damage = 3f * StageAtkMul * DangerAtkMul, Tick = 0.5f });
             if (Mods.BurnDeathExplosion && m.BurnLeft > 0f) AreaHit(m.Pos, 1f, 10f, 0.5f);                   // 炎5：燃えている敵が倒れると爆発
             if (Mods.PoisonDeathPuddle && m.PoisonLeft > 0f) AddFriendlyCloud(m.Pos, 1f, 3f, 4f);           // 毒5：毒だまり
             if (m.Def.Id == "FB")
             {
                 BossAlive = false; Events.Add(new SimEvent(EventKind.BossDied, m.Pos, m.Pos, 0f));
-                DropWeapon(m.Pos, WeaponItem.Random(Rng, 1)); Events.Add(new SimEvent(EventKind.GemDrop, m.Pos, m.Pos, 1f));
+                DropWeapon(m.Pos, WeaponItem.Random(Rng, 1)); DropGem(m.Pos);
                 foreach (var o in Mobs) if (o.Alive && o != m && (o.Def.Id == "FB_MINI")) KillMob(o);
             }
         }
