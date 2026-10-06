@@ -332,12 +332,11 @@ def props():
     for (cx, cy, cz) in ((-1.0, -2.4, 0), (-.35, -2.55, 0), (-.7, -2.45, .5)): stamp(crate, np.array([cx + .28, cy - .28, cz]), k)
     stamp(logs, np.array([9.0, -3.9, 0.]), k)
     for (x, y) in ((2.5, -3.05), (2.15, -3.4)): blob(np.array([x, y, 0.]), 4, 3, 'C', 4)   # 麻袋
-    # トマト
-    for i in range(7):
-        px_ = 5.7 + (i % 4) * 1.0 + rng.uniform(-.1, .1); py_ = -2.4 + (i // 4) * 1.5 + rng.uniform(-.2, .2)
-        for j in range(3): blob(np.array([px_ + rng.uniform(-.1, .1), py_ + rng.uniform(-.1, .1), .35 + j * .3]), 4, 3, 'E', 3 + (j % 2))
-        for j in range(5):
-            a_ = rng.uniform(0, 6.28); dots(np.array([px_ + .22 * math.cos(a_), py_ + .22 * math.sin(a_), .5 + rng.uniform(0, .6)]), 'G', 4, [(0, 0), (1, 0)])
+    # トマト（株ごとの小物の絵を置く）
+    plants = [load_sprite(f"tomato{i}") for i in (1, 2, 3)]
+    for i in range(8):
+        px_ = 5.6 + (i % 4) * 1.0 + rng.uniform(-.1, .1); py_ = -2.5 + (i // 4) * 1.5 + rng.uniform(-.15, .15)
+        stamp(plants[i % 3], np.array([px_, py_, 0.]), k)
     # 背の高いだいだいの花
     for (fx, fy) in ((4.7, -2.2), (5.0, -1.0), (4.65, .3), (4.9, 1.1), (5.6, .7), (4.4, -.4)):
         hgt = rng.uniform(1.3, 1.7)

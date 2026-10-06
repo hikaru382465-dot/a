@@ -156,9 +156,66 @@ def logs():
                 code[py, px] = tok
     return write("logs", code.tolist(), "# 丸太の山（6本）\n@size %d %d\n@outline sel" % (Wd, Ht))
 
+
+# ---------------------------------------------------------------- トマトの株（見本：葉は暗い緑・青緑・黄緑、実は赤）
+def tomato(seed, Wd=46, Ht=54):
+    r = np.random.default_rng(seed)
+    code = np.full((Ht, Wd), "..", dtype="<U2"); zb_ = np.full((Ht, Wd), -9.0)
+    cx0, base = Wd // 2, Ht - 6
+    def put(x, y, t, d):
+        if 0 <= x < Wd and 0 <= y < Ht and d >= zb_[y, x]: code[y, x] = t; zb_[y, x] = d
+    # 支柱と茎
+    for y in range(8, base + 1):
+        put(cx0, y, "D3", -1); put(cx0 + 1, y, "D4", -1)
+    items = []
+    for _ in range(58):                                           # 葉
+        z = r.uniform(.12, 1.0); a = r.uniform(0, 2 * math.pi)
+        rad = r.uniform(.25, 1.0) * (6 + 12 * math.sin(math.pi * min(1, z * .9 + .1)))
+        x = cx0 + rad * math.cos(a); y = base - 4 - z * 32 + math.sin(a) * rad * .32
+        d = math.sin(a) + z * .5
+        ang = math.atan2(y - (base - 4 - z * 32), x - cx0) + r.normal(0, .5) - .25
+        items.append(("leaf", d, x, y, ang, r.uniform(3.4, 5.6), r.uniform(1.7, 2.7), z))
+    for _ in range(15):                                           # 実
+        z = r.uniform(.1, .62); a = r.uniform(0, 2 * math.pi); rad = r.uniform(.4, 1.0) * (8 + 7 * z)
+        x = cx0 + rad * math.cos(a); y = base - 4 - z * 30 + math.sin(a) * rad * .32 + 3
+        items.append(("fruit", math.sin(a) + z * .5 + .35, x, y, r.choice(["ripe"] * 12 + ["orange"]), r.uniform(2.1, 2.9), 0, z))
+    items.sort(key=lambda t: t[1])
+    for it in items:
+        kind, d, x, y = it[:4]
+        if kind == "leaf":
+            ang, a_, b_, z = it[4:8]; ca, sa = math.cos(ang), math.sin(ang)
+            for py in range(int(y - a_ - 2), int(y + a_ + 3)):
+                for px in range(int(x - a_ - 2), int(x + a_ + 3)):
+                    dx, dy = px + .5 - x, py + .5 - y
+                    u, v = dx * ca + dy * sa, -dx * sa + dy * ca
+                    if abs(u) >= a_: continue
+                    w = b_ * math.sqrt(max(0, 1 - (u / a_) ** 2)) * (1 - .3 * (u / a_))
+                    if abs(v) > w: continue
+                    lit = (-dx * .7 - dy * .7) / (a_ + 1)                # 左上が明るい
+                    if z > .72 and lit > -.05: fam_, s = "O", 3 + (lit > .2) + (h(px, py, 41) > .8) - (h(int(x), int(y), 44) > .6)
+                    elif z > .3: fam_, s = "P", 3 + (lit > 0) + (h(px, py, 42) > .85)
+                    else: fam_, s = "E", 2 + (lit > .1) + (h(px, py, 43) > .85)
+                    if abs(v) < .55 and u > -a_ * .6: s += 1                  # 葉脈
+                    if abs(v) > w * .8 and lit < 0: s -= 1
+                    put(px, py, f"{fam_}{max(0, min(7, s))}", d)
+        else:
+            kindc, rr = it[4], it[5]
+            for py in range(int(y - rr - 1), int(y + rr + 2)):
+                for px in range(int(x - rr - 1), int(x + rr + 2)):
+                    dx, dy = px + .5 - x, py + .5 - y; q = (dx * dx + dy * dy) / (rr * rr)
+                    if q > 1: continue
+                    lit = (-dx - dy) / rr
+                    f_ = "G" if kindc == "ripe" else "H"; s = 4 + (lit > .5) + (lit > .9) - (lit < -.5) - (q > .75)
+                    if lit > .85 and kindc == "ripe": f_, s = "G", 6
+                    put(px, py, f"{f_}{max(0, min(7, s))}", d + .01)
+            put(int(x), int(y - rr), "E4", d + .02); put(int(x) - 1, int(y - rr + 1), "E3", d + .02)   # へた
+    ys, xs = np.nonzero(code != ".."); y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
+    code = code[y0 - 1: y1 + 2, x0 - 1: x1 + 2]
+    return write(f"tomato{seed}", code.tolist(), "# トマトの株（葉は暗緑・青緑・黄緑、実は赤とだいだい）\n@size %d %d\n@outline sel" % (code.shape[1], code.shape[0]))
+
 if __name__ == "__main__":
-    for fn in (barrel, bucket, crate, logs):
+    for fn in (barrel, bucket, crate, logs, lambda: tomato(1), lambda: tomato(2), lambda: tomato(3)):
         p = fn(); code, img, pal = pxl.build(p)
         from PIL import Image
         base = os.path.splitext(p)[0]; Image.fromarray(img).save(base + ".png"); pxl.zoom(img, code, pal, 12).save(base + "_zoom.png")
-        print(fn.__name__, img.shape[1], "x", img.shape[0])
+        print(os.path.basename(p), img.shape[1], "x", img.shape[0])
