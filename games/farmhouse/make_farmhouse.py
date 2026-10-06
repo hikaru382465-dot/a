@@ -687,11 +687,44 @@ if "--pixel-only" not in sys.argv:
 # ドット絵：小さく描いて（270行）、色を32色にしぼり、輪郭線をつけ、4倍に拡大
 PX = (480, 270)
 rawpx = os.path.join(OUT, "farmhouse_raw_px.png")
+bpy.data.objects["Grass"].hide_render = True
 for o_ in globals().get("FARMER_OBJS", []): o_.hide_render = True      # ドット絵版は、あとで原寸のまま貼る
 scene.render.resolution_x, scene.render.resolution_y = PX
 from bpy_extras.object_utils import world_to_camera_view
 render_to(rawpx, PX, 24 if os.environ.get("FH_QUICK") else 96, filt=.01)
-pix = grade(rawpx, outline=True).quantize(32, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB")
+def despeckle(a, thr=.09):
+    """ぽつんと浮いた1ドット（草や小石のノイズ）を、まわりの色にならす。細い線は残る。"""
+    lum = a @ np.array([.3, .59, .11])
+    pad = np.pad(a, ((1, 1), (1, 1), (0, 0)), mode="edge"); pl = np.pad(lum, 1, mode="edge")
+    H_, W_ = lum.shape
+    sh = [(dy, dx) for dy in (0, 1, 2) for dx in (0, 1, 2) if (dy, dx) != (1, 1)]
+    nb = np.stack([pad[dy:dy + H_, dx:dx + W_] for dy, dx in sh], 2)
+    nl = np.stack([pl[dy:dy + H_, dx:dx + W_] for dy, dx in sh], 2)
+    med = np.median(nb, 2); mlum = np.median(nl, 2)
+    odd = (np.abs(lum - mlum) > thr) & (nl.std(2) < .05)
+    out = a.copy(); out[odd] = med[odd]
+    return out
+
+def snap_to_palette(a, keep=44):
+    """色を、ドット絵の共通パレット（農夫と同じ）の色にそろえる。よく使う色だけ残す。"""
+    sys.path.insert(0, os.path.join(HERE, "pixel")); import pxl
+    pal, _ = pxl.load_palette()
+    cols = np.array([c for f in pal.values() for c in f], np.float32) / 255
+    w = np.array([.9, 1.0, .8])                                            # 緑は少し敏感に
+    flat = a.reshape(-1, 3)
+    idx = np.empty(len(flat), np.int32)
+    for i in range(0, len(flat), 20000):
+        d = (((flat[i:i + 20000, None, :] - cols[None]) * w) ** 2).sum(2); idx[i:i + 20000] = d.argmin(1)
+    used = np.bincount(idx, minlength=len(cols)); top = np.argsort(-used)[:keep]
+    d = (((cols[top][None] - cols[:, None]) * w) ** 2).sum(2)             # 全色 → 残す色
+    remap = top[d.argmin(1)]
+    return cols[remap[idx]].reshape(a.shape)
+
+px_img = grade(rawpx, outline=True)
+arr = np.asarray(px_img).astype(np.float32) / 255
+arr = despeckle(despeckle(arr))
+arr = snap_to_palette(arr)
+pix = Image.fromarray((arr * 255).astype(np.uint8)).convert("RGB")
 if os.path.exists(FARMER):
     sp = Image.open(FARMER).convert("RGBA")
     cx, cy, _ = world_to_camera_view(scene, co, Vector((*FARMER_POS, 0)))
