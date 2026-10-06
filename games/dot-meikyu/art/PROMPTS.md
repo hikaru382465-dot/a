@@ -19,6 +19,10 @@ Match the art style, outline thickness, and color mood of the attached reference
 - ペット（スライム）：`A cute round green slime pet, big eyes, small and friendly, 3 poses in one row: idle, hopping, happy. Side view.`
 - ペットの進化：`The same slime, evolved: version with small horns / version with tiny wings / version with glowing eyes.`
 
+### 召喚スキルの絵
+- 幻影の狼：`A ghostly wolf made of translucent blue magic energy, glowing eyes, sleek and fast. 4 frames of a running cycle in one row, side view facing right, transparent background, same pixel art style as the reference.`
+- 幻影の狼（かみつき）：`The same ghost wolf, 3 frames: leaping, biting with open jaws, landing. Side view facing right.`
+
 ### 敵（森）※ それぞれ右向き。向きを変えるときはコードで左右を反転する
 - スライム、コウモリ、ゴブリンの弓兵、毒キノコ、コボルトのひろい屋（背中に袋）、ボス：スライム王（大きい、王冠）
 
