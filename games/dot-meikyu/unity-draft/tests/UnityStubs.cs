@@ -21,11 +21,15 @@ namespace UnityEngine
     public class Transform { public Vector3 position, localScale, localPosition; public Quaternion rotation; }
     public class TooltipAttribute : Attribute { public TooltipAttribute(string s) { } }
     public class Sprite { }
-    public class SpriteRenderer { public bool flipX; public Sprite sprite; }
+    public class SpriteRenderer : Renderer { public bool flipX; public Sprite sprite; }
     public struct Quaternion { public static Quaternion identity { get { return new Quaternion(); } } }
-    public class GameObject { public Transform transform = new Transform(); public void SetActive(bool b) { } public T GetComponent<T>() where T : class, new() { return new T(); } }
+    public class GameObject { public Transform transform = new Transform(); public void SetActive(bool b) { } public T GetComponent<T>() where T : class, new() { return new T(); } public T GetComponentInChildren<T>() where T : class, new() { return new T(); } }
     public struct Color { public float r, g, b, a; public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; } }
     public class TextMesh { public string text; public Color color; }
+    public class Material { }
+    public class Component { }
+    public class Renderer { public Material sharedMaterial; }
+    public class ParticleSystem { public struct EmitParams { public Vector3 position; public Color startColor; } public void Emit(EmitParams p, int n) { } }
     public class Camera { public static Camera main = new Camera(); public Transform transform = new Transform(); }
     public static class Random { public static float Range(float a, float b) { return a; } }
     public class MonoBehaviour

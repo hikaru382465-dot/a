@@ -34,6 +34,9 @@ namespace DotMeikyu
         public int RerollsLeft { get; private set; }
         public float Coins { get; private set; }
 
+        // 敵の絵（見た目）を返す。なければ null（しろ光りなどの部品が使う）
+        public GameObject ViewOf(Mob m) { GameObject go; return mobViews.TryGetValue(m, out go) ? go : null; }
+
         // 挑戦が終わったとき（死んだときも）に呼ぶ。拾った武器・宝石は残る
         public void SaveNow() { SaveStore.Save(Sim, Coins); }
 

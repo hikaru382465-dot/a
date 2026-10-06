@@ -168,7 +168,7 @@ namespace DotMeikyu.Core
                 if (Mods.FullHpAttackBonus > 0f && Player.Hp >= Player.MaxHp - 0.01f) dmg *= 1f + Mods.FullHpAttackBonus;       // 吸血5
                 if (Mods.VsSlowedMul > 1f && (m.SlowLeft > 0f || m.Stun > 0f)) dmg *= Mods.VsSlowedMul;                          // 氷5
             }
-            m.Hp -= dmg; Events.Add(new SimEvent(EventKind.Hit, m.Pos, from, dmg, crit ? "crit" : null));
+            m.Hp -= dmg; Events.Add(new SimEvent(EventKind.Hit, m.Pos, from, dmg, crit ? "crit" : null) { Target = m });
             if (knock > 0f && !m.IsBossLike && !m.Anchored) { Vec2 d = (m.Pos - from).Normalized; m.Knock = m.Knock + d * (knock * 6f); }
             if (!dot && (fromAttack || crit)) Leech(dmg, crit);
             if (m.Hp <= 0f) { KillMob(m); return; }

@@ -95,3 +95,9 @@ Unity 6.6 では、まだ動かしていません（私は Unity が動かせな
 - `HitFeedback`：会心・ダメージ・ボス撃破で、ヒットストップ（時間をほぼ止める）と画面の揺れ。`SimRunner` と カメラ を指定する。数字は小さめから。
 - 見本：`assets/fx/smooth_demo.mp4`（左：全コマ同じ長さ／右：強弱つき）。目安の時間割は `art/make_smooth_demo.py`。
 - 絵の中間コマが足せるときは「振り」の途中の2〜3枚が、いちばん効く。
+
+## 追加（しろ光りと火花）
+- `HitFlash`：当たった敵の絵を、一瞬（0.07秒）白ぬりにする。`Assets/Shaders/SpriteFlash.shader` でマテリアルを作り（Create > Material、Shader=DotMeikyu/SpriteFlash）、`flashMaterial` に入れる。
+- `HitSparks`：当たった所に火花を散らす。ParticleSystem を1つ用意して（設定はスクリプトの上のコメント）、`sparks` に入れる。会心は黄色で多め。
+- どちらも `SimRunner` を指定するだけ。`SimEvent.Target`（当たった敵）を、Core に足した。
+- Unityでの見た目は、金曜に確認する（シェーダーは、URP用に書いたが、動かして確かめていない）。

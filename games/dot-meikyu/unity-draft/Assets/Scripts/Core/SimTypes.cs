@@ -8,8 +8,8 @@ namespace DotMeikyu.Core
     // 見た目（光・音・ダメージの数字）のための知らせ。Unity側が受け取って、エフェクトを出す
     public struct SimEvent
     {
-        public EventKind Kind; public Vec2 Pos, Pos2; public float Value; public string Tag;
-        public SimEvent(EventKind k, Vec2 p, Vec2 p2, float v, string tag = null) { Kind = k; Pos = p; Pos2 = p2; Value = v; Tag = tag; }
+        public EventKind Kind; public Vec2 Pos, Pos2; public float Value; public string Tag; public Mob Target;   // Target：当たった敵（Hit のとき）
+        public SimEvent(EventKind k, Vec2 p, Vec2 p2, float v, string tag = null) { Kind = k; Pos = p; Pos2 = p2; Value = v; Tag = tag; Target = null; }
     }
 
     public sealed class DroppedWeapon { public Vec2 Pos; public WeaponItem Item; public bool Taken; public float Age; }
