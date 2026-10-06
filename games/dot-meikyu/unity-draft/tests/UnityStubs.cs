@@ -21,8 +21,8 @@ namespace UnityEngine
     public class Transform { public Vector3 position, localScale, localPosition; public Quaternion rotation; }
     public class TooltipAttribute : Attribute { public TooltipAttribute(string s) { } }
     public class Sprite { }
-    public class SpriteRenderer : Renderer { public bool flipX; public Sprite sprite; }
-    public struct Quaternion { public static Quaternion identity { get { return new Quaternion(); } } }
+    public class SpriteRenderer : Renderer { public bool flipX; public Sprite sprite; public Color color; }
+    public struct Quaternion { public static Quaternion identity { get { return new Quaternion(); } } public static Quaternion Euler(float x, float y, float z) { return new Quaternion(); } }
     public class GameObject { public Transform transform = new Transform(); public void SetActive(bool b) { } public T GetComponent<T>() where T : class, new() { return new T(); } public T GetComponentInChildren<T>() where T : class, new() { return new T(); } }
     public struct Color { public float r, g, b, a; public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; } }
     public class TextMesh { public string text; public Color color; }
@@ -49,6 +49,7 @@ namespace UnityEngine
         public static bool Approximately(float a, float b) { return Math.Abs(a - b) < 1e-6f; }
         public static float Max(float a, float b) { return Math.Max(a, b); }
         public static float Abs(float a) { return Math.Abs(a); }
+        public static float Atan2(float y, float x) { return (float)Math.Atan2(y, x); }
         public static int RoundToInt(float f) { return (int)Math.Round(f); }
     }
     public static class GUI { public static void Label(Rect r, string s) { } }

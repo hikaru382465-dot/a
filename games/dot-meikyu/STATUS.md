@@ -211,3 +211,5 @@
 - 洞窟の敵（C01〜C05・CB）の数字と動きを実装（テスト全部OK）。StageDirector に Region（森/洞窟）。まだ：洞窟の絵・blastの見た目・洞窟の試走（ボットでの釣り合い確認）。数値は仮。
 
 - ホームに、召喚の魔法使い（歩きアニメ）と召喚たち（狼・騎士・射手・守護像）が、ついてくるようにした（home/chars.js）。動画 assets/home_walk_demo.mp4。
+
+- 敵の範囲攻撃の見た目（TelegraphView）を追加。見本動画 telegraph_demo。Unityで確認が必要。

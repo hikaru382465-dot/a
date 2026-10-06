@@ -106,3 +106,7 @@ Unity 6.6 では、まだ動かしていません（私は Unity が動かせな
 - 数値は `design/enemies.csv`（C01〜C05・CB）。動きは `SimEnemies.cs`：スケルトンの盾（正面70%減）、岩ゴーレム（はね返し無効・倒れると衝撃）、光る虫の自爆、コウモリの大群、ゴブリン盗賊（コボルトと同じ）、岩の巨人（地ならし・突進・落石・ゴーレム召喚・全周の衝撃波）。
 - `StageDirector.Region = "洞窟"` で洞窟の出方になる。`SimRunner` の `startRegion` で選ぶ。
 - 敵の範囲攻撃の予告は、`Telegraph`＋タグ `blast`（Value＝秒、Pos2.X−Pos.X＝半径）。炸裂は `Cloud`＋タグ `blast`。見た目の部品は、まだ。
+
+## 追加（敵の範囲攻撃の見た目）
+- `TelegraphView`：Telegraph（blast・ring・meteor＝赤い円、line・dash＝赤い帯）と、Cloud の blast（炸裂）を見せる。円は炸裂に近づくほど濃くなり、炸裂で白く光って火花。数は最初に作って使い回す。
+- 用意：まるい白い絵と白い四角の絵のPrefab、火花のParticleSystem。見本動画：`assets/fx/telegraph_demo.mp4`（岩の巨人の地ならし・落石・全周の衝撃波）。
