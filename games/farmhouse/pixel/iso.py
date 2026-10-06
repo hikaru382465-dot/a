@@ -324,6 +324,13 @@ def dots(p, f, s, pts):
 
 def load_sprite(name): return pxl.build(os.path.join(HERE, "sprites", name + ".pxl"))[0]
 
+def shade_ellipse(p, rx, ry, d=2):
+    sx, sy = proj(p); X0, Y0 = int(sx), int(sy)
+    for yy in range(Y0 - ry, Y0 + ry + 1):
+        for xx in range(X0 - rx, X0 + rx + 1):
+            if 0 <= xx < W and 0 <= yy < H and ((xx - X0) / rx) ** 2 + ((yy - Y0) / ry) ** 2 <= 1 and oid[yy, xx] in (0, 1):
+                shd[yy, xx] = max(0, shd[yy, xx] - d)
+
 def props():
     k = max(1, S // 2)
     barrel, bucket, crate, logs = (load_sprite(n) for n in ("barrel", "bucket", "crate", "logs"))
@@ -336,14 +343,11 @@ def props():
     plants = [load_sprite(f"tomato{i}") for i in (1, 2, 3)]
     for i in range(8):
         px_ = 5.6 + (i % 4) * 1.0 + rng.uniform(-.1, .1); py_ = -2.5 + (i // 4) * 1.5 + rng.uniform(-.15, .15)
-        stamp(plants[i % 3], np.array([px_, py_, 0.]), k)
-    # 背の高いだいだいの花
-    for (fx, fy) in ((4.7, -2.2), (5.0, -1.0), (4.65, .3), (4.9, 1.1), (5.6, .7), (4.4, -.4)):
-        hgt = rng.uniform(1.3, 1.7)
-        for z in np.arange(0, hgt, .06): dots(np.array([fx, fy, z]), 'E', 3, [(0, 0)])
-        for j in range(4): dots(np.array([fx, fy, hgt * (.55 + j * .12)]), 'H', 5, [(-1, 0), (1, 1), (0, -1)][: 2 + j % 2])
-        for j in range(3):
-            a_ = j * 2.1; blob(np.array([fx + .2 * math.cos(a_), fy + .2 * math.sin(a_), .4]), 2, 3, 'E', 2)
+        shade_ellipse(np.array([px_ + .1, py_, 0.]), int(.55 * A), int(.28 * A)); stamp(plants[i % 3], np.array([px_, py_, 0.]), k)
+    # 背の高い花（小物の絵）
+    fl = [load_sprite("flower1"), load_sprite("flower2")]
+    for i, (fx, fy) in enumerate(((4.7, -2.2), (5.0, -1.0), (4.65, .3), (4.9, 1.1), (5.6, .7), (4.4, -.4), (9.1, -2.6), (9.2, .6))):
+        stamp(fl[i % 2], np.array([fx, fy, 0.]), k)
     # つる（家の壁）
     for (x, top) in ((-3.85, 2.8), (-1.4, 2.2), (-1.7, 1.2), (.6, 2.6), (2.6, 1.8), (3.9, 2.9)):
         u = 0.; z = .3

@@ -158,27 +158,27 @@ def logs():
 
 
 # ---------------------------------------------------------------- トマトの株（見本：葉は暗い緑・青緑・黄緑、実は赤）
-def tomato(seed, Wd=46, Ht=54):
+def tomato(seed, Wd=70, Ht=82):
     r = np.random.default_rng(seed)
     code = np.full((Ht, Wd), "..", dtype="<U2"); zb_ = np.full((Ht, Wd), -9.0)
     cx0, base = Wd // 2, Ht - 6
     def put(x, y, t, d):
         if 0 <= x < Wd and 0 <= y < Ht and d >= zb_[y, x]: code[y, x] = t; zb_[y, x] = d
     # 支柱と茎
-    for y in range(8, base + 1):
+    for y in range(6, base + 1):
         put(cx0, y, "D3", -1); put(cx0 + 1, y, "D4", -1)
     items = []
-    for _ in range(58):                                           # 葉
+    for _ in range(130):                                          # 葉
         z = r.uniform(.12, 1.0); a = r.uniform(0, 2 * math.pi)
-        rad = r.uniform(.25, 1.0) * (6 + 12 * math.sin(math.pi * min(1, z * .9 + .1)))
-        x = cx0 + rad * math.cos(a); y = base - 4 - z * 32 + math.sin(a) * rad * .32
+        rad = r.uniform(.25, 1.0) * (9 + 17 * math.sin(math.pi * min(1, z * .9 + .1)))
+        x = cx0 + rad * math.cos(a); y = base - 4 - z * 48 + math.sin(a) * rad * .32
         d = math.sin(a) + z * .5
-        ang = math.atan2(y - (base - 4 - z * 32), x - cx0) + r.normal(0, .5) - .25
-        items.append(("leaf", d, x, y, ang, r.uniform(3.4, 5.6), r.uniform(1.7, 2.7), z))
-    for _ in range(15):                                           # 実
-        z = r.uniform(.1, .62); a = r.uniform(0, 2 * math.pi); rad = r.uniform(.4, 1.0) * (8 + 7 * z)
-        x = cx0 + rad * math.cos(a); y = base - 4 - z * 30 + math.sin(a) * rad * .32 + 3
-        items.append(("fruit", math.sin(a) + z * .5 + .35, x, y, r.choice(["ripe"] * 12 + ["orange"]), r.uniform(2.1, 2.9), 0, z))
+        ang = math.atan2(y - (base - 4 - z * 48), x - cx0) + r.normal(0, .5) - .25
+        items.append(("leaf", d, x, y, ang, r.uniform(4.6, 7.4), r.uniform(2.3, 3.6), z))
+    for _ in range(26):                                           # 実（茎からたれ下がる）
+        z = r.uniform(.12, .75); a = r.uniform(0, 2 * math.pi); rad = r.uniform(.35, 1.0) * (12 + 12 * z)
+        x = cx0 + rad * math.cos(a); y = base - 4 - z * 46 + math.sin(a) * rad * .32 + 5
+        items.append(("fruit", math.sin(a) + z * .5 + .35, x, y, r.choice(["ripe"] * 12 + ["orange"]), r.uniform(2.8, 3.8), 0, z))
     items.sort(key=lambda t: t[1])
     for it in items:
         kind, d, x, y = it[:4]
@@ -213,8 +213,46 @@ def tomato(seed, Wd=46, Ht=54):
     code = code[y0 - 1: y1 + 2, x0 - 1: x1 + 2]
     return write(f"tomato{seed}", code.tolist(), "# トマトの株（葉は暗緑・青緑・黄緑、実は赤とだいだい）\n@size %d %d\n@outline sel" % (code.shape[1], code.shape[0]))
 
+
+# ---------------------------------------------------------------- 背の高い花（青い葉と、だいだいの花の穂）
+def flower(seed, Wd=44, Ht=76):
+    r = np.random.default_rng(seed)
+    code = np.full((Ht, Wd), "..", dtype="<U2"); cx0, base = Wd // 2, Ht - 6
+    def put(x, y, t):
+        x, y = int(round(x)), int(round(y))
+        if 0 <= x < Wd and 0 <= y < Ht: code[y, x] = t
+    # 青い葉（細長く、のび上がって先がとがる）
+    for i in range(12):
+        side = -1 if i % 2 == 0 else 1; hgt = r.uniform(20, 44); lean = side * r.uniform(4, 17) * (.6 + .4 * (i % 3) / 2)
+        sh = r.integers(0, 2)
+        for t in np.linspace(0, 1, 110):
+            x = cx0 + lean * t ** 1.5 + side * 2 * (1 - t) * r.uniform(.9, 1.1) * 0 + side * 1.5 * (1 - t); y = base - hgt * t
+            wd = 2.6 * (1 - t) ** .8 + .3
+            for dx in np.arange(-wd, wd + .01, .5):
+                lit = (dx / wd) if wd > 0 else 0
+                f_, s_ = ("F", 2 + sh) if lit > -.3 else ("F", 1)
+                if lit < -.5: f_, s_ = "P", 3 if t < .5 else 4                  # 左ふちの青緑のつや
+                if abs(dx) < .35: s_ += 1                                       # 中ほどの筋
+                put(x + dx, y, f"{f_}{min(7, s_)}")
+    # 茎
+    top = 14
+    for y in range(top, base + 1): put(cx0, y, "E3"); put(cx0 + 1, y, "E2")
+    # だいだいの花（茎のまわりに、くだ状の花がななめに出る）
+    for j in range(11):
+        y = top + 1 + j * 2.9; side = -1 if j % 2 == 0 else 1; x = cx0 + .5
+        L = 3 + (j % 3)
+        for q in range(L):
+            put(x + side * (1 + q), y - q * .55, "H4" if q == 0 else "H5" if q < L - 1 else "H6")
+            put(x + side * (1 + q), y - q * .55 + 1, "H3")
+        put(x + side * L, y - L * .55 - 1, "B6")
+        put(x + side, y + 1, "E4")
+    for q, t in enumerate(("H6", "H5", "H5", "H4")): put(cx0, top - 1 - q, t); put(cx0 + 1, top - 1 - q, "H3")
+    ys, xs = np.nonzero(code != ".."); y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
+    code = code[y0 - 1: y1 + 2, x0 - 1: x1 + 2]
+    return write(f"flower{seed}", code.tolist(), "# 背の高い花（青い葉、だいだいの花）\n@size %d %d\n@outline sel" % (code.shape[1], code.shape[0]))
+
 if __name__ == "__main__":
-    for fn in (barrel, bucket, crate, logs, lambda: tomato(1), lambda: tomato(2), lambda: tomato(3)):
+    for fn in (barrel, bucket, crate, logs, lambda: tomato(1), lambda: tomato(2), lambda: tomato(3), lambda: flower(1), lambda: flower(2)):
         p = fn(); code, img, pal = pxl.build(p)
         from PIL import Image
         base = os.path.splitext(p)[0]; Image.fromarray(img).save(base + ".png"); pxl.zoom(img, code, pal, 12).save(base + "_zoom.png")
