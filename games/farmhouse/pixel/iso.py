@@ -245,6 +245,23 @@ def ground(x, y, z, u, v, px, py):
     s = np.where(ao & ~sh, s - 1, s)
     return f, np.clip(s, 0, 7).astype(np.int8)
 
+# ---------------------------------------------------------------- 単色モード（python iso.py --flat）：見本のようにベタ塗り＋影と形だけ
+FLAT = "--flat" in sys.argv
+def flat(f, sh):
+    fi = FI[f]
+    return lambda x, y, z, u, v, px, py: (np.full(x.shape, fi, np.int8), np.full(x.shape, sh, np.int8))
+if FLAT:
+    plaster = flat('D', 6)                               # 見本の壁 #bb885a に近い
+    beam = flat('R', 2)                                  # 見本の梁 #3d1f28 に近いえんじ
+    def thatch(dark=False):
+        def t(x, y, z, u, v, px, py):
+            h = .62; k = np.floor(v / h); fr = v - k * h
+            tooth = (np.abs(((u / .55) % 1) - .5) * 2 * .30 + (vnoise(u * 3.2, k, 31) - .5) * .22)
+            band = (k % 2 == 1) & (fr > tooth + .02) & (fr < tooth + .30 + (vnoise(u * 2.1, k + 9, 32) - .5) * .12)
+            s = np.where(band, 3, 4) - (2 if dark else 0)
+            return np.full(x.shape, FI['D'], np.int8), s.astype(np.int8)
+        return t
+
 # ---------------------------------------------------------------- 物を置く
 def build():
     cast([(x, y, z) for x in (-4.2, 4.2) for y in (-1.6, 3.6) for z in (0, 3)] + [(-4.8, 1, 7.2), (4.8, 1, 7.2), (-4.2, -2.1, 2.9), (4.2, -2.1, 2.9)])
@@ -426,5 +443,5 @@ def finish(path):
 
 if __name__ == "__main__":
     build(); props(); outline()
-    finish(os.path.join(HERE, "..", "assets", "farmhouse_iso.png"))
+    finish(os.path.join(HERE, "..", "assets", "farmhouse_iso_flat.png" if FLAT else "farmhouse_iso.png"))
     print("done")
