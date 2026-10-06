@@ -195,3 +195,5 @@
 - 新スキル「幻影の狼」（SK_M7・召喚専用）を追加。8秒ごとに狼2匹を6秒だけ呼ぶ。敵へ猛ダッシュして噛む。Lv3・Lv5で+1匹。数値は仮。
 
 - 幻影の狼の絵（ChatGPT：走り8コマ・かみつき5コマ）を切り出して assets/chars/wolf_run_*, wolf_bite_* に保存（art/cut_wolf.py）。見本動画あり。
+
+- 召喚の絵：幻影の騎士（歩き8・切る5）と幻影の射手（歩き8・射る5）を切り出し（art/cut_units.py → assets/chars/knight_*, archer_*）。見本動画 summon_demo。残り：火の精霊・雷の精霊鳥・氷霊の守護像。
