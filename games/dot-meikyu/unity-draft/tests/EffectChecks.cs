@@ -123,6 +123,9 @@ static class EffectChecks
         var sb = NewSim(WeaponKind.Staff, "獣"); sb.StartRun("獣"); Ok(sb.Cards.Level("SK_M7") == 1 && Near(sb.Mods.PetAtkBonus, 0.30f) && Near(sb.Mods.SummonLifeAdd, 2f), "獣の流派：狼から始まる・ペット攻撃+30%・狼の持続+2秒");
         var sk = NewSim(WeaponKind.Staff, "騎士団"); sk.StartRun("騎士団"); Ok(sk.Cards.Level("SK_M1") == 1 && Near(sk.Mods.AllyHpBonus, 0.60f) && Near(sk.Mods.AllyAtkBonus, 0.25f), "騎士団の流派：騎士から始まる・味方HP+60%・攻撃+25%");
         var ss = NewSim(WeaponKind.Staff, "精霊"); ss.StartRun("精霊"); Ok(ss.Cards.Level("SK_M3") == 1 && Near(ss.Mods.SkillIntervalMul, 0.92f), "精霊の流派：火の精霊から始まる・スキルの間隔-8%");
+        // --- 幻影の鷹 ---
+        var hk = NewSim(WeaponKind.Staff, "獣"); hk.attackCdForTest(); Give(hk, "SK_M8"); var hw1 = Put(hk, "F01", 4f, 0f); var hw2 = Put(hk, "F01", 5.6f, 0.2f); var hw3 = Put(hk, "F01", 4.5f, 3f);
+        Run(hk, 1.0f); Ok(Lost(hw1) >= 14f && Lost(hw2) >= 14f && Lost(hw3) == 0f, "幻影の鷹：通り道の2体をつらぬく（横にはずれた敵には当たらない） → " + Lost(hw1).ToString("0") + "/" + Lost(hw2).ToString("0") + "/" + Lost(hw3).ToString("0"));
         // --- 幻影の狼 ---
         var wf = NewSim(WeaponKind.Staff, "召喚"); wf.attackCdForTest(); Give(wf, "SK_M7"); var wm = Put(wf, "F01", 4f, 0f);
         Run(wf, 1.2f); int wolves = wf.Allies.FindAll(x => x.Type == AllyType.Wolf).Count; Ok(wolves == 2 && Lost(wm) >= 14f, "幻影の狼：2匹が走って噛む → " + wolves + "匹・ダメ" + Lost(wm).ToString("0"));

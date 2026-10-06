@@ -36,6 +36,8 @@ Match the art style, outline thickness, and color mood of the attached reference
 - 氷霊の守護像・光る（4コマ）：`Same statue as the attached image. 4 frames in one horizontal row, same size: the cracks glow brighter and a ring of frost spreads outward, then fades.`
 - 雷の精霊鳥・飛ぶ：`A small thunder spirit bird, a round bird made of yellow-white lightning energy, small wings, bright eyes, crackling sparks around it. A flying cycle with flapping wings, 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size in every frame.`
 - 雷の精霊鳥・雷を放つ：`Same thunder bird as the attached image. 5 frames in one horizontal row, same size: 1 gathering sparks, 2 body glowing white, 3 releasing a bolt of lightning downward, 4 sparks scatter, 5 back to flying pose.`
+- 幻影の鷹・飛ぶ（8コマ・4×2の格子）：`A ghostly hawk made of translucent blue magic energy, glowing white eyes, sharp beak and talons, misty feather trails. A smooth flying cycle with flapping wings, 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size and identical design in every frame, side view facing right.`
+- 幻影の鷹・急降下（5コマ）：`Same ghost hawk as the attached image. 5 frames in one horizontal row, same size: 1 soaring high with wings spread, 2 folding wings and tilting down, 3 diving steeply with talons forward, 4 striking with a bright flash, 5 pulling up. Side view facing right, transparent PNG background (not a checkerboard).`
 - スライム分身は、ペットのスライムの絵を使う（新しい絵は不要）。
 - 頼む順番のおすすめ：騎士 → 火の精霊 → 射手 → 精霊鳥 → 守護像（生成の制限があるため）。
 

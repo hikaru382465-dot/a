@@ -15,6 +15,11 @@ namespace DotMeikyu.Core
         sealed class Pending { public float T; public Action Do; }
         readonly List<Pending> pending = new List<Pending>();
 
+        static float DistToSegment(Vec2 pt, Vec2 a, Vec2 b)
+        {
+            Vec2 ab = b - a; float len2 = ab.X * ab.X + ab.Y * ab.Y; if (len2 < 1e-6f) return (pt - a).Length;
+            float t = Math.Max(0f, Math.Min(1f, ((pt.X - a.X) * ab.X + (pt.Y - a.Y) * ab.Y) / len2)); return (pt - (a + ab * t)).Length;
+        }
         static float Sc(int lv, float per) { return 1f + per * (lv - 1); }
 
         void SyncSkills()
@@ -153,6 +158,16 @@ namespace DotMeikyu.Core
                     { int n = 2 + (lv >= 3 ? 1 : 0) + (lv >= 5 ? 1 : 0); int have = 0; foreach (var a in Allies) if (a.Type == AllyType.Wolf) have++;
                       for (int k = 0; k < n; k++) Allies.Add(new Ally { Type = AllyType.Wolf, Pos = Player.Pos + FromAngle(k * 2.4 + Time) * 0.8f, Slot = have + k, Life = 6f + Mods.SummonLifeAdd });
                       Events.Add(new SimEvent(EventKind.Slash, Player.Pos, Player.Pos, 1.5f, "wolf_summon")); return 8f; }
+                case "SK_M8":   // 幻影の鷹：5秒ごとに空から急降下。通り道の敵をつらぬく（幅1・ダメ14）。Lv3とLv5で羽数+1
+                    { Mob d = Densest(2.5f, 10f); if (d == null) return 1f;
+                      int n = 1 + (lv >= 3 ? 1 : 0) + (lv >= 5 ? 1 : 0); Vec2 dir = (d.Pos - p).Normalized; Vec2 side = new Vec2(-dir.Y, dir.X);
+                      for (int k = 0; k < n; k++)
+                      {
+                          Vec2 off = side * ((k - (n - 1) * 0.5f) * 1.2f); Vec2 a0 = d.Pos - dir * 3f + off, a1 = d.Pos + dir * 4f + off;
+                          Events.Add(new SimEvent(EventKind.Slash, a0, a1, 1.2f, "hawk"));
+                          foreach (var m in Mobs.ToArray()) if (m.Alive && DistToSegment(m.Pos, a0, a1) < 0.5f + m.Radius) DamageMob(m, 14f * Sc(lv, 0.20f) * (1f + Mods.AllyAtkBonus), a0, true, 0.2f);
+                      }
+                      return 5f; }
                 case "SK_M3":   // 火の精霊：4秒ごとに精霊が敵へ飛んで爆発（半径1.2・ダメ20）。レベルごとに数+1
                     { foreach (var m in NearestN(p, lv, 9f * am)) AreaHit(m.Pos, 1.2f * am, 20f * (1f + Mods.AllyAtkBonus), 0f, true); return 4f; }
                 case "SK_M5":   // 雷の精霊鳥：飛びまわって2秒ごとに雷（連鎖3・ダメ8）。レベルごとに連鎖+1・ダメ+15%
