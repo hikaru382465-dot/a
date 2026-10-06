@@ -20,8 +20,9 @@ Match the art style, outline thickness, and color mood of the attached reference
 - ペットの進化：`The same slime, evolved: version with small horns / version with tiny wings / version with glowing eyes.`
 
 ### 召喚スキルの絵
-- 幻影の狼：`A ghostly wolf made of translucent blue magic energy, glowing eyes, sleek and fast. 4 frames of a running cycle in one row, side view facing right, transparent background, same pixel art style as the reference.`
-- 幻影の狼（かみつき）：`The same ghost wolf, 3 frames: leaping, biting with open jaws, landing. Side view facing right.`
+- 幻影の狼・走り（8コマ・4×2の格子。ずれたら4コマ×2回に分け、2回目に1回目を添付）：`A ghostly wolf made of translucent blue magic energy, glowing white eyes, sleek and fast body, misty tail that fades out. A smooth running cycle of 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size and identical wolf design in every frame, side view facing right, legs clearly separated, the last frame loops back to the first.`
+- 幻影の狼・かみつき（5コマ）：`Same style and exactly the same ghost wolf as the attached image. 5 frames in one horizontal row, evenly spaced, same size: 1 crouching to jump, 2 leaping forward, 3 biting with open jaws and sharp teeth, 4 landing, 5 returning to a standing pose. Side view facing right, transparent background.`
+- コマ数の目安：走り8・かみつき5。ゲーム側で、上下のゆれ・伸び縮み・残像を足して、なめらかに見せる。
 
 ### 敵（森）※ それぞれ右向き。向きを変えるときはコードで左右を反転する
 - スライム、コウモリ、ゴブリンの弓兵、毒キノコ、コボルトのひろい屋（背中に袋）、ボス：スライム王（大きい、王冠）
