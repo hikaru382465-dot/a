@@ -19,6 +19,7 @@ namespace DotMeikyu
         [SerializeField] EnemyPrefab[] enemyPrefabs;
         [SerializeField] GameObject weaponDropPrefab;
         [Header("はじめの設定（あとでホーム画面から渡す）")]
+        [SerializeField] string startRegion = "森";                 // 森／洞窟
         [SerializeField] int startStage = 0;
         [SerializeField] WeaponKind startWeapon = WeaponKind.Staff;
         [SerializeField] Rarity startRarity = Rarity.Common;
@@ -57,7 +58,7 @@ namespace DotMeikyu
             Coins = SaveStore.Load(Sim);                // 前回までの倉庫・宝石を戻す
             Sim.StartRun(startJob); RerollsLeft = rerollsPerRun;
             picker = new CardPicker(data.Tables.Cards, new System.Random());
-            Director = new StageDirector(Sim); Director.Begin(startStage);
+            Director = new StageDirector(Sim) { Region = startRegion }; Director.Begin(startStage);
             playerTr = player.transform;
             player.ChargedAttackFired += OnCharged;
             player.ApplyModifiers(Sim.Mods);

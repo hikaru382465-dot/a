@@ -21,6 +21,12 @@ namespace DotMeikyu.Core
             new StageInfo(100f, 70, 80, 0.45f, 2.30f, 2, 2),
         };
 
+        public string Region = "森";                       // 森／洞窟（沼は、あとで）
+        bool Cave { get { return Region == "洞窟"; } }
+        string ThiefId { get { return Cave ? "C05" : "F05"; } }
+        string BossId { get { return Cave ? "CB" : "FB"; } }
+        string EliteId { get { return Cave ? (sim.Rng.Next(2) == 0 ? "C01" : "C02") : "F01"; } }
+
         public int Index { get; private set; }
         public bool IsBoss { get { return Index >= Stages.Length; } }
         public bool ExitsOpen { get; private set; }
@@ -36,7 +42,7 @@ namespace DotMeikyu.Core
             Index = index; ExitsOpen = false; StageTime = 0f; acc = 0f; ramp = 0f; intervalMul = 1f; hpRamp = 1f; ringAt = 45f; killsAtStart = sim.Kills;
             sim.StageAtkMul = 1f + 0.10f * index;                                   // 場所が1つ進むごとに、敵の攻撃+10%
             sim.Mobs.Clear(); sim.Shots.Clear(); sim.Clouds.Clear();
-            if (IsBoss) { sim.Spawn("FB", sim.Player.Pos + new Vec2(0f, 7f)); return; }
+            if (IsBoss) { sim.Spawn(BossId, sim.Player.Pos + new Vec2(0f, 7f)); return; }
             var st = Stages[index]; elitesLeft = st.Elites; nextElite = 20f;
             for (int i = 0; i < 6; i++) SpawnOne(st);
         }
@@ -54,14 +60,14 @@ namespace DotMeikyu.Core
             ramp += dt; if (ramp >= 30f) { ramp = 0f; intervalMul *= 0.9f; hpRamp *= 1.05f; }   // 30秒ごとに、出る間隔-10%・強さ+5%
             acc += dt;
             while (acc >= st.SpawnInterval * intervalMul) { acc -= st.SpawnInterval * intervalMul; if (sim.AliveCount() < st.MaxAlive) SpawnOne(st); }
-            if (Index == 0 && ringAt > 0f && StageTime >= ringAt)
+            if (!Cave && Index == 0 && ringAt > 0f && StageTime >= ringAt)
             {   // 場所1の45秒め：スライム15匹が、輪になって囲む
                 ringAt = -1f; for (int i = 0; i < 15; i++) sim.Spawn("F01", sim.Player.Pos + FromAngle(i * Math.PI * 2.0 / 15.0) * 7f, st.HpMul * hpRamp);
             }
-            if (elitesLeft > 0 && StageTime >= nextElite) { elitesLeft--; nextElite += 25f; sim.Spawn("F01", RingPos(), st.HpMul * hpRamp, true); }
+            if (elitesLeft > 0 && StageTime >= nextElite) { elitesLeft--; nextElite += 25f; sim.Spawn(EliteId, RingPos(), st.HpMul * hpRamp, true); }
             // ひろい屋：場所2から。落ちた武器が3秒ほうっておかれたら、画面のはしから出る（同時に1体まで）
-            if (Index >= 1 && sim.AliveCount("F05") == 0)
-                foreach (var d in sim.Drops) if (!d.Taken && d.Age >= 3f) { sim.Spawn("F05", sim.Player.Pos + (d.Pos - sim.Player.Pos).Normalized * 10f, st.HpMul * hpRamp); break; }
+            if (Index >= 1 && sim.AliveCount(ThiefId) == 0)
+                foreach (var d in sim.Drops) if (!d.Taken && d.Age >= 3f) { sim.Spawn(ThiefId, sim.Player.Pos + (d.Pos - sim.Player.Pos).Normalized * 10f, st.HpMul * hpRamp); break; }
         }
 
         static Vec2 FromAngle(double a) { return new Vec2((float)Math.Cos(a), (float)Math.Sin(a)); }
@@ -70,10 +76,26 @@ namespace DotMeikyu.Core
         void SpawnOne(StageInfo st)
         {
             double r = sim.Rng.NextDouble(); string id;
+            if (Cave) { SpawnCave(st, r); return; }
             if (Index == 0) id = r < 0.8 ? "F01" : "F02";
             else if (Index == 1) id = r < 0.5 ? "F01" : r < 0.75 ? "F02" : "F03";
             else id = r < 0.35 ? "F01" : r < 0.55 ? "F02" : r < 0.8 ? "F03" : "F04";
             sim.Spawn(id, RingPos(), st.HpMul * hpRamp);
+        }
+
+        // 洞窟の出方：場所1＝スケルトン6・光る虫3・大群1／場所2＝ゴーレムが出はじめる／場所3以降＝大群とゴーレムが増える
+        void SpawnCave(StageInfo st, double r)
+        {
+            string id;
+            if (Index == 0) id = r < 0.6 ? "C01" : r < 0.9 ? "C03" : "C04";
+            else if (Index == 1) id = r < 0.4 ? "C01" : r < 0.65 ? "C03" : r < 0.85 ? "C02" : "C04";
+            else id = r < 0.3 ? "C01" : r < 0.5 ? "C03" : r < 0.75 ? "C02" : "C04";
+            if (id == "C04")
+            {   // 大群：12匹が、ひとかたまりで画面のはしから出る
+                Vec2 c = RingPos();
+                for (int i = 0; i < 12; i++) sim.Spawn("C04", c + new Vec2((float)(sim.Rng.NextDouble() - 0.5) * 1.6f, (float)(sim.Rng.NextDouble() - 0.5) * 1.6f), st.HpMul * hpRamp);
+            }
+            else sim.Spawn(id, RingPos(), st.HpMul * hpRamp);
         }
     }
 }

@@ -34,8 +34,8 @@ namespace DotMeikyu.Core
         public float BurnDps, BurnLeft, PoisonDps, PoisonLeft, SlowLeft, SlowPct, StatusTick;   // 燃える・毒・遅くなる
         public bool LastHitByPet;
         public bool Anchored;                                       // true＝はね返しで動かない（テストの的・動かない敵用）
-        public bool IsBossLike { get { return Def.Id == "FB" || Def.Id == "FB_MINI"; } }
-        public float ContactDamage() { return Def.Id == "FB" && State == 2 ? 20f : Def.Contact; }   // 王の突進は、ダメージ20
+        public bool IsBossLike { get { return Def.Id == "FB" || Def.Id == "FB_MINI" || Def.Id == "CB"; } }
+        public float ContactDamage() { return Def.Id == "FB" && State == 2 ? 20f : Def.Id == "CB" && State == 2 ? 30f : Def.Contact; }   // 王の突進は、ダメージ20
     }
 }
 

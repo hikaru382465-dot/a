@@ -23,7 +23,10 @@ namespace DotMeikyu.Core
                     m.Pos = m.Pos + FromAngle(Math.Atan2(dir.Y, dir.X) + m.Aux2 * 40.0 * Math.PI / 180.0) * (spd * dt); break;
                 case "F03": StepArcher(m, dt, dist, dir); break;
                 case "F04": StepMushroom(m, dt, dir); break;
-                case "F05": StepThief(m, dt, dist, dir); break;
+                case "F05": case "C05": StepThief(m, dt, dist, dir); break;
+                case "C03": StepBug(m, dt, dist, dir); break;
+                case "C04": StepBatSwarm(m, dt, dir); break;
+                case "CB": StepGiant(m, dt, dist, dir); break;
                 case "FB": StepKing(m, dt, dist, dir); break;
                 default:      // スライムなど：まっすぐ寄ってくる
                     if (dist > 0.05f) m.Pos = m.Pos + dir * (spd * dt); break;
@@ -105,6 +108,62 @@ namespace DotMeikyu.Core
                     m.Aux -= dt;
                     if (m.Aux <= 0f) { for (int i = 0; i < 12; i++) AddShot(m.Pos, FromAngle(i * Math.PI * 2.0 / 12.0), 4f, 8f); m.State = 0; m.Aux = 0f; }
                     break;
+            }
+        }
+
+        // 敵の範囲攻撃：予告（Telegraph "blast"：Value＝秒、Pos2.X＝Pos.X＋半径）を出して、delay秒後に、範囲の中のプレイヤー（とペット）にダメージ
+        void EnemyBlast(Vec2 at, float radius, float dmg, float delay, bool telegraph = true)
+        {
+            if (telegraph) Events.Add(new SimEvent(EventKind.Telegraph, at, at + new Vec2(radius, 0f), delay, "blast"));
+            pending.Add(new Pending { T = delay, Do = () =>
+            {
+                float d = dmg * StageAtkMul * DangerAtkMul; Events.Add(new SimEvent(EventKind.Cloud, at, at, radius, "blast"));
+                if ((Player.Pos - at).Length < radius + Player.Radius) HurtPlayer(d, at);
+                if (Pet.Stun <= 0f && (Pet.Pos - at).Length < radius + Pet.Radius) HurtPet(d * 0.5f);
+            } });
+        }
+
+        // 光る虫：近づく→0.6秒光る→自爆（半径1.5・ダメ18）。自爆では経験値も魂も出ない（遠くで倒すと安全で、経験値も入る）
+        void StepBug(Mob m, float dt, float dist, Vec2 dir)
+        {
+            if (m.State == 0)
+            {
+                if (dist > 1.2f) { m.Pos = m.Pos + dir * (m.Def.Speed * dt); return; }
+                m.State = 1; m.Aux = 0.6f; Events.Add(new SimEvent(EventKind.Telegraph, m.Pos, m.Pos, 0.6f, "ring")); return;
+            }
+            m.Aux -= dt;
+            if (m.Aux <= 0f) { m.Alive = false; EnemyBlast(m.Pos, 1.5f, 18f, 0f, false); }
+        }
+
+        // コウモリの大群：生まれたときの向きに、一直線に突っこむ。プレイヤーを6マス通りすぎたら、ねらいなおす
+        void StepBatSwarm(Mob m, float dt, Vec2 dir)
+        {
+            if (m.State == 0) { m.Heading = (float)Math.Atan2(dir.Y, dir.X); m.State = 1; }
+            Vec2 h = FromAngle(m.Heading); m.Pos = m.Pos + h * (m.Def.Speed * dt);
+            Vec2 rel = m.Pos - Player.Pos; if (rel.X * h.X + rel.Y * h.Y > 6f) m.Heading = (float)(Math.Atan2(dir.Y, dir.X) + (Rng.NextDouble() - 0.5) * 1.0);
+        }
+
+        // 岩の巨人：地ならし／突進（100〜70%）→ 落石＋岩ゴーレム2体（70〜40%）→ 速さ×1.5＋5秒ごとの全周の衝撃波（40%以下）
+        void StepGiant(Mob m, float dt, float dist, Vec2 dir)
+        {
+            float ratio = m.Hp / m.MaxHp, sp = ratio < 0.4f ? 1.5f : 1f;
+            if (ratio < 0.7f && m.Aux2 < 1f) { m.Aux2 = 1f; Spawn("C02", m.Pos + new Vec2(2f, 0f)); Spawn("C02", m.Pos + new Vec2(-2f, 0f)); }
+            if (ratio < 0.4f) { m.FleeLeft -= dt; if (m.FleeLeft <= 0f) { m.FleeLeft = 5f; EnemyBlast(m.Pos, 5f, 15f, 0.9f); } }
+            switch (m.State)
+            {
+                case 0:   // ゆっくり近づいて、次の攻撃をえらぶ
+                    m.Pos = m.Pos + dir * (m.Def.Speed * sp * dt); m.Aux += dt;
+                    if (m.Aux >= 1.6f)
+                    {
+                        m.Aux = 0f; int pick = Rng.Next(ratio >= 0.7f ? 2 : 3);
+                        if (pick == 0) { m.State = 3; m.Aux = 0.9f; EnemyBlast(m.Pos, 3f, 15f, 0.9f); }
+                        else if (pick == 1) { m.State = 1; m.Aux = 0.8f; m.Heading = (float)Math.Atan2(dir.Y, dir.X); Events.Add(new SimEvent(EventKind.Telegraph, m.Pos, m.Pos + dir * 8f, 0.8f, "dash")); }
+                        else { m.State = 4; m.Aux = 1.2f; for (int i = 0; i < 6; i++) EnemyBlast(Player.Pos + FromAngle(Rng.NextDouble() * Math.PI * 2.0) * (float)(Rng.NextDouble() * 5.0), 1.2f, 12f, 1.0f); }
+                    }
+                    break;
+                case 1: m.Aux -= dt; m.Heading = (float)Math.Atan2(dir.Y, dir.X); if (m.Aux <= 0f) { m.State = 2; m.Aux = 0.6f; } break;                    // 突進の予告
+                case 2: m.Pos = m.Pos + FromAngle(m.Heading) * (7f * sp * dt); m.Aux -= dt; if (m.Aux <= 0f) { m.State = 0; m.Aux = 0f; } break;            // 突進（速さ7）
+                default: m.Aux -= dt; if (m.Aux <= 0f) { m.State = 0; m.Aux = 0f; } break;                                                                 // 地ならし・落石のあとの、少しの休み
             }
         }
     }

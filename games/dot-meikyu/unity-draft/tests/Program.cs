@@ -25,7 +25,9 @@ static class Check
         var mush = d.Enemies.Find(e => e.Id == "F04");
         Ok(mush.RangedMax == 3f, "毒キノコの毒：3 → " + mush.RangedMax);
         var cave = d.Enemies.Find(e => e.Id == "C01");
-        Ok(!cave.HasNumbers, "洞窟の敵は、まだ数値なし");
+        Ok(cave.HasNumbers && cave.Hp == 40f && cave.Xp == 3, "洞窟のスケルトン：体力40・経験値3");
+        var giant = d.Enemies.Find(e => e.Id == "CB"); Ok(giant.IsBoss && giant.Hp == 9000f && Math.Abs(giant.WeaponDrop - 1f) < 1e-6f, "岩の巨人：体力9000・武器100%");
+        var gob = d.Enemies.Find(e => e.Id == "C05"); Ok(gob.IsThief && Math.Abs(gob.Speed - 2.6f) < 0.001f && gob.Hp == 70f, "ゴブリン盗賊：体力70・速さ2.6");
         var potion = d.Cards.Find(c => c.Id == "U14");
         Ok(potion.OnlyWhenHpLow && potion.MaxLevel == 99, "薬びん：HPが低いときだけ");
         Ok(d.Cards.Find(c => c.Id == "EV1").IsEvolution, "進化カードの目印");

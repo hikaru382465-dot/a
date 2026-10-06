@@ -119,7 +119,31 @@ static class EffectChecks
         Ok(xs.Level == 2 && xs.PendingLevelUps == 1 && xs.Xp == 12f, "スライム12体で、Lv2（Lv3は累計13から）→ Lv" + xs.Level);
         xs.KillMob(Put(xs, "F01", 20f, 20f, true, 1f));
         Ok(xs.Level == 3 && xs.PendingLevelUps == 2, "もう1体で、Lv3 → Lv" + xs.Level);
-        // --- 召喚の流派 ---
+        // --- 洞窟の敵 ---
+        var cs = NewSim(WeaponKind.Staff); var sk1 = Put(cs, "C01", 3f, 0f); cs.DamageMob(sk1, 10f, new Vec2(0f, 0f), false); float frontLoss = Lost(sk1);
+        cs.DamageMob(sk1, 10f, new Vec2(6f, 0f), false); float backLoss = Lost(sk1) - frontLoss;
+        Ok(Near(frontLoss, 3f, 0.01f) && Near(backLoss, 10f, 0.01f), "スケルトン：正面は70%へる（" + frontLoss.ToString("0.0") + "）／背中は通常（" + backLoss.ToString("0.0") + "）");
+        var cgl = cs.Spawn("C02", new Vec2(5f, 0f)); cgl.SpawnDelay = 0f; cgl.Stun = 9999f; var fs = cs.Spawn("F01", new Vec2(5f, 3f)); fs.SpawnDelay = 0f; fs.Stun = 9999f;
+        cs.DamageMob(cgl, 1f, new Vec2(0f, 0f), false, 1f); cs.DamageMob(fs, 1f, new Vec2(0f, 3f), false, 1f); Run(cs, 0.6f);
+        Ok(cgl.Pos.X - 5f > 0f && (fs.Pos.X - 5f) > (cgl.Pos.X - 5f) * 4f, "岩ゴーレム：はね返しがほとんどきかない（ゴーレム" + (cgl.Pos.X - 5f).ToString("0.00") + " ／ スライム" + (fs.Pos.X - 5f).ToString("0.00") + "）");
+        var gd = NewSim(WeaponKind.Staff); var cg2 = Put(gd, "C02", 0.6f, 0f, true, 1f); gd.Player.Hp = 100f; gd.KillMob(cg2); Run(gd, 0.2f);
+        Ok(gd.Player.Hp < 100f, "岩ゴーレム：倒れると、そばのプレイヤーに岩の衝撃 → HP" + gd.Player.Hp.ToString("0"));
+        var bg = NewSim(WeaponKind.Staff); bg.attackCdForTest(); var bug = bg.Spawn("C03", new Vec2(1.1f, 0f)); bug.SpawnDelay = 0f; int k0 = bg.Kills; Run(bg, 1.0f);
+        Ok(!bug.Alive && bg.Player.Hp <= 82.5f && bg.Kills == k0 && bg.Xp == 0f, "光る虫：近づくと自爆（ダメ18）。自爆では、倒した数も経験値も増えない → HP" + bg.Player.Hp.ToString("0"));
+        var bg2 = NewSim(WeaponKind.Staff); var bug2 = Put(bg2, "C03", 6f, 0f, true, 1f); bg2.KillMob(bug2); Ok(bg2.Xp == 2f && bg2.Player.Hp == 100f, "光る虫：遠くで倒すと、安全で経験値が入る");
+        var sw = NewSim(WeaponKind.Staff); sw.attackCdForTest(); sw.Player.Invuln = 0f; var bat = sw.Spawn("C04", new Vec2(8f, 0f)); bat.SpawnDelay = 0f; Run(sw, 4.6f);
+        Ok(Math.Cos(bat.Heading) > 0.2, "コウモリの大群：通りすぎたら、ねらいなおす（向き" + bat.Heading.ToString("0.0") + "）");
+        var th = NewSim(WeaponKind.Staff); th.attackCdForTest(); var gob = th.Spawn("C05", new Vec2(4f, 0f)); gob.SpawnDelay = 0f; th.DropWeapon(new Vec2(2.5f, 0f), WeaponItem.Create(WeaponKind.Bow, Rarity.Rare, new Random(1))); Run(th, 1.5f);
+        Ok(gob.Held != null && gob.MaxHp > 70f * 1.4f, "ゴブリン盗賊：武器をひろって逃げる（体力+50%×レア段階）");
+        var cgi = NewSim(WeaponKind.Staff); cgi.attackCdForTest(); var boss = cgi.Spawn("CB", new Vec2(0f, 7f)); boss.SpawnDelay = 0f; boss.Hp = boss.MaxHp * 0.6f; Run(cgi, 0.2f);
+        Ok(cgi.AliveCount("C02") == 2 && cgi.BossAlive, "岩の巨人：体力70%以下で、岩ゴーレムを2体呼ぶ");
+        boss.Hp = boss.MaxHp * 0.3f; boss.FleeLeft = 0f; cgi.Events.Clear(); int blasts = 0; for (float t = 0f; t < 2f; t += 0.05f) { cgi.Tick(0.05f); foreach (var cev in cgi.Events) if (cev.Kind == EventKind.Telegraph && cev.Tag == "blast") blasts++; }
+        Ok(blasts >= 1, "岩の巨人：体力40%以下で、全周の衝撃波の予告が出る");
+        var gk = NewSim(WeaponKind.Staff); gk.attackCdForTest(); var b3 = gk.Spawn("CB", new Vec2(0f, 7f)); b3.SpawnDelay = 0f; gk.KillMob(b3); int wd = gk.Drops.Count;
+        Ok(!gk.BossAlive && wd >= 1 && Count(gk, EventKind.BossDied) == 1, "岩の巨人：倒すと、ボス撃破・武器と宝石が落ちる");
+        var cd = NewSim(WeaponKind.Staff); var dir0 = new StageDirector(cd) { Region = "洞窟" }; dir0.Begin(0); for (float t = 0f; t < 6f; t += 0.05f) { cd.Tick(0.05f); dir0.Tick(0.05f); }
+        bool allCave = true; foreach (var m in cd.Mobs) if (!m.Def.Id.StartsWith("C")) allCave = false; Ok(allCave && cd.Mobs.Count > 6, "洞窟の場所1：洞窟の敵だけが出る（" + cd.Mobs.Count + "体）");
+                // --- 召喚の流派 ---
         var sb = NewSim(WeaponKind.Staff, "獣"); sb.StartRun("獣"); Ok(sb.Cards.Level("SK_M7") == 1 && Near(sb.Mods.PetAtkBonus, 0.30f) && Near(sb.Mods.SummonLifeAdd, 2f), "獣の流派：狼から始まる・ペット攻撃+30%・狼の持続+2秒");
         var sk = NewSim(WeaponKind.Staff, "騎士団"); sk.StartRun("騎士団"); Ok(sk.Cards.Level("SK_M1") == 1 && Near(sk.Mods.AllyHpBonus, 0.60f) && Near(sk.Mods.AllyAtkBonus, 0.25f), "騎士団の流派：騎士から始まる・味方HP+60%・攻撃+25%");
         var ss = NewSim(WeaponKind.Staff, "精霊"); ss.StartRun("精霊"); Ok(ss.Cards.Level("SK_M3") == 1 && Near(ss.Mods.SkillIntervalMul, 0.92f), "精霊の流派：火の精霊から始まる・スキルの間隔-8%");

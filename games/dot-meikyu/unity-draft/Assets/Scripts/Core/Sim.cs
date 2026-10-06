@@ -98,9 +98,9 @@ namespace DotMeikyu.Core
             EnemyDef d = defs[id];
             var m = new Mob { Def = d, Pos = pos, IsElite = elite };
             m.MaxHp = m.Hp = d.Hp * hpMul * DangerHpMul * (elite ? 6f : 1f);
-            m.Radius = id == "FB" ? 1.2f : id == "FB_MINI" ? 0.8f : (elite ? 0.6f : 0.4f);
+            m.Radius = id == "FB" ? 1.2f : id == "CB" ? 1.5f : id == "FB_MINI" ? 0.8f : (elite ? 0.6f : id == "C02" ? 0.7f : id == "C03" || id == "C04" ? 0.3f : id == "C01" ? 0.45f : 0.4f);
             m.Soul = elite ? 5f : 1f;
-            if (id == "FB") BossAlive = true;
+            if (d.IsBoss) BossAlive = true;
             Mobs.Add(m); Events.Add(new SimEvent(EventKind.Spawned, pos, pos, 0f, id));
             return m;
         }
@@ -165,11 +165,12 @@ namespace DotMeikyu.Core
             {
                 if (canCrit && Rng.NextDouble() < Player.CritChance) { dmg *= Player.CritMul; crit = true; }
                 dmg *= Player.DamageMul;
+                if (m.Def.Id == "C01") { Vec2 front = (Player.Pos - m.Pos).Normalized, atk = (from - m.Pos).Normalized; if (front.X * atk.X + front.Y * atk.Y > 0.34f) dmg *= 0.3f; }   // スケルトンの盾：正面（約±70度）から70%へる
                 if (Mods.FullHpAttackBonus > 0f && Player.Hp >= Player.MaxHp - 0.01f) dmg *= 1f + Mods.FullHpAttackBonus;       // 吸血5
                 if (Mods.VsSlowedMul > 1f && (m.SlowLeft > 0f || m.Stun > 0f)) dmg *= Mods.VsSlowedMul;                          // 氷5
             }
             m.Hp -= dmg; Events.Add(new SimEvent(EventKind.Hit, m.Pos, from, dmg, crit ? "crit" : null) { Target = m });
-            if (knock > 0f && !m.IsBossLike && !m.Anchored) { Vec2 d = (m.Pos - from).Normalized; m.Knock = m.Knock + d * (knock * 6f); }
+            if (knock > 0f && !m.IsBossLike && !m.Anchored) { Vec2 d = (m.Pos - from).Normalized; m.Knock = m.Knock + d * (knock * 6f * (m.Def.Id == "C02" ? 0.15f : 1f)); }
             if (!dot && (fromAttack || crit)) Leech(dmg, crit);
             if (m.Hp <= 0f) { KillMob(m); return; }
             if (fromAttack) OnHit(m, dmg, crit, from);
@@ -207,10 +208,11 @@ namespace DotMeikyu.Core
             else if (Rng.NextDouble() < m.Def.WeaponDrop * Luck) DropWeapon(m.Pos, WeaponItem.Random(Rng));
             float gem = m.IsElite ? 0.05f : m.Def.GemDrop;
             if (Rng.NextDouble() < gem * Luck) DropGem(m.Pos);
+            if (m.Def.Id == "C02") EnemyBlast(m.Pos, 1f, 8f, 0.05f, false);                              // 岩ゴーレム：倒れると小さな岩の衝撃
             if (m.Def.Id == "F04") Clouds.Add(new Cloud { Pos = m.Pos, Radius = 0.9f, Life = 2f, Damage = 3f * StageAtkMul * DangerAtkMul, Tick = 0.5f });
             if (Mods.BurnDeathExplosion && m.BurnLeft > 0f) AreaHit(m.Pos, 1f, 10f, 0.5f);                   // 炎5：燃えている敵が倒れると爆発
             if (Mods.PoisonDeathPuddle && m.PoisonLeft > 0f) AddFriendlyCloud(m.Pos, 1f, 3f, 4f);           // 毒5：毒だまり
-            if (m.Def.Id == "FB")
+            if (m.Def.IsBoss && m.Def.Id != "FB_MINI")
             {
                 BossAlive = false; Events.Add(new SimEvent(EventKind.BossDied, m.Pos, m.Pos, 0f));
                 DropWeapon(m.Pos, WeaponItem.Random(Rng, 1)); DropGem(m.Pos);

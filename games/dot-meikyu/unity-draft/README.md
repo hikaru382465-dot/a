@@ -101,3 +101,8 @@ Unity 6.6 では、まだ動かしていません（私は Unity が動かせな
 - `HitSparks`：当たった所に火花を散らす。ParticleSystem を1つ用意して（設定はスクリプトの上のコメント）、`sparks` に入れる。会心は黄色で多め。
 - どちらも `SimRunner` を指定するだけ。`SimEvent.Target`（当たった敵）を、Core に足した。
 - Unityでの見た目は、金曜に確認する（シェーダーは、URP用に書いたが、動かして確かめていない）。
+
+## 追加（洞窟の敵）
+- 数値は `design/enemies.csv`（C01〜C05・CB）。動きは `SimEnemies.cs`：スケルトンの盾（正面70%減）、岩ゴーレム（はね返し無効・倒れると衝撃）、光る虫の自爆、コウモリの大群、ゴブリン盗賊（コボルトと同じ）、岩の巨人（地ならし・突進・落石・ゴーレム召喚・全周の衝撃波）。
+- `StageDirector.Region = "洞窟"` で洞窟の出方になる。`SimRunner` の `startRegion` で選ぶ。
+- 敵の範囲攻撃の予告は、`Telegraph`＋タグ `blast`（Value＝秒、Pos2.X−Pos.X＝半径）。炸裂は `Cloud`＋タグ `blast`。見た目の部品は、まだ。
