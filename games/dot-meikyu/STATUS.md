@@ -209,3 +209,5 @@
 - 敵のしろ光り（HitFlash＋SpriteFlash.shader）と火花（HitSparks）の部品を追加。SimEvent.Target を追加。Unityで動かして確認が必要（シェーダーは未確認）。
 
 - 洞窟の敵（C01〜C05・CB）の数字と動きを実装（テスト全部OK）。StageDirector に Region（森/洞窟）。まだ：洞窟の絵・blastの見た目・洞窟の試走（ボットでの釣り合い確認）。数値は仮。
+
+- ホームに、召喚の魔法使い（歩きアニメ）と召喚たち（狼・騎士・射手・守護像）が、ついてくるようにした（home/chars.js）。動画 assets/home_walk_demo.mp4。
