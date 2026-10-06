@@ -7,7 +7,7 @@ PAL = [(255, 255, 255), (215, 245, 255), (150, 215, 250), (90, 160, 235), (50, 1
 def ease(t): return 1 - (1 - t) ** 3
 mage = Image.open('assets/chars/mage_rapid_walk_0.png').convert('RGBA'); mage = mage.resize((int(mage.width * 40 / mage.height), 40), Image.LANCZOS)
 spikes = []
-for ring, (rad, cnt) in enumerate([(22, 9), (38, 14), (52, 20)]):
+for ring, (rad, cnt) in enumerate([(24, 6), (42, 6), (56, 12)]):
     for k in range(cnt):
         a = k / cnt * 6.283 + ring * 0.3 + random.uniform(-0.12, 0.12); spikes.append((a, rad + random.uniform(-3, 3), random.uniform(8, 17), 0.12 + ring * 0.10 + random.uniform(0, 0.05)))
 flakes = [(random.uniform(0, 6.283), random.uniform(10, 55), random.uniform(0.3, 1.0)) for _ in range(34)]
@@ -15,15 +15,30 @@ def frame(i):
     t = i / (N - 1); im = Image.new('RGBA', (S, S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     def pt(a, r, h=0): return (C + math.cos(a) * r, C + 6 + math.sin(a) * r * 0.62 - h)
     fade = 1 if t < 0.55 else max(0, 1 - (t - 0.55) / 0.45)
-    # 地面の霜：広がる輪（中は、うすい氷の面）
+    # 地面：雪の結晶の模様（6方向。枝が分かれる）。広がりながら、ゆっくり回る
     R = ease(min(1, t / 0.4)) * 60
-    if R > 1:
-        box = [C - R, C + 6 - R * 0.62, C + R, C + 6 + R * 0.62]
-        d.ellipse(box, fill=PAL[3] + (int(150 * fade),)); d.ellipse([C - R * 0.8, C + 6 - R * 0.5, C + R * 0.8, C + 6 + R * 0.5], fill=PAL[2] + (int(170 * fade),))
-        d.ellipse(box, outline=PAL[0] + (int(255 * fade),), width=2)
-    # ひび（雪の結晶のような線）
-    for k in range(8):
-        a = k / 8 * 6.283 + 0.2; d.line([pt(a, 4), pt(a, R * 0.95)], fill=PAL[1] + (int(200 * fade),), width=1)
+    if R > 2:
+        P = 240; flat = Image.new('RGBA', (P, P), (0, 0, 0, 0)); fd = ImageDraw.Draw(flat); c0 = P / 2; rot = t * 0.35
+        al = int(255 * fade); sc = P / 2 / 60.0 * R / 60.0 * 60.0 / R * R / 60.0 * 60.0 / 60.0
+        k = R / 60.0 * (P / 2 - 6)
+        fd.ellipse([c0 - k, c0 - k, c0 + k, c0 + k], fill=PAL[4] + (int(120 * fade),))
+        fd.ellipse([c0 - k * 0.7, c0 - k * 0.7, c0 + k * 0.7, c0 + k * 0.7], fill=PAL[3] + (int(110 * fade),))
+        def branch(x, y, ang, ln, depth, col, w):
+            x2, y2 = x + math.cos(ang) * ln, y + math.sin(ang) * ln
+            fd.line([x, y, x2, y2], fill=col + (al,), width=w)
+            if depth > 0:
+                for fr in (0.45, 0.75):
+                    bx, by = x + (x2 - x) * fr, y + (y2 - y) * fr
+                    for sg in (-1, 1): branch(bx, by, ang + sg * 0.95, ln * (0.38 if fr < 0.6 else 0.30), depth - 1, col, max(2, w - 2))
+        for arm in range(6):
+            ang = arm * math.pi / 3 + rot
+            branch(c0, c0, ang, k * 0.95, 2, PAL[1], 6); branch(c0, c0, ang, k * 0.95, 0, PAL[0], 2)
+        # 内がわの六角形の輪
+        for rr, col in ((k * 0.28, PAL[0]), (k * 0.55, PAL[1])):
+            fd.polygon([(c0 + math.cos(m * math.pi / 3 + rot + 0.52) * rr, c0 + math.sin(m * math.pi / 3 + rot + 0.52) * rr) for m in range(6)], outline=col + (al,), width=3)
+        fd.ellipse([c0 - k, c0 - k, c0 + k, c0 + k], outline=PAL[0] + (al,), width=4)
+        fl2 = flat.resize((int(R * 2), max(2, int(R * 2 * 0.62))), Image.LANCZOS)
+        im.alpha_composite(fl2.crop((0, 0, fl2.width, fl2.height)), (int(C - fl2.width / 2), int(C + 6 - fl2.height / 2))) if (C - fl2.width / 2 >= 0) else im.alpha_composite(fl2.crop((int(-(C - fl2.width / 2)), 0, fl2.width - int(-(C - fl2.width / 2)), fl2.height)), (0, int(C + 6 - fl2.height / 2)))
     # 氷のトゲ：外へ順番に、速く突き出し、少しのこって、砕けて消える
     for a, r, hgt, t0 in sorted(spikes, key=lambda s: math.sin(s[0])):
         if t < t0: continue
@@ -48,7 +63,7 @@ def frame(i):
     # 最初の閃光
     if i < 2:
         r = (22, 15)[i]; fl = Image.new('RGBA', (S, S), (0, 0, 0, 0)); ImageDraw.Draw(fl).ellipse([C - r, C + 6 - r * 0.62, C + r, C + 6 + r * 0.62], fill=(255, 255, 255, 230)); im.alpha_composite(fl)
-    r_, g_, b_, a_ = im.split(); a_ = a_.point(lambda v: 255 if v > 70 else 0)
+    r_, g_, b_, a_ = im.split(); a_ = a_.point(lambda v: 255 if v > 60 else 0)
     q = Image.merge('RGB', (r_, g_, b_)).quantize(colors=20, dither=Image.NONE).convert('RGB')
     return Image.merge('RGBA', (*q.split(), a_))
 frames = [frame(i) for i in range(N)]
