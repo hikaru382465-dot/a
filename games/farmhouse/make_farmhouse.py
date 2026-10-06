@@ -621,7 +621,8 @@ scene.camera = co
 
 
 # ---------------------------------------------------------------- 農夫（ドット絵の板を、カメラに向けて立てる）
-FARMER = os.path.join(OUT, "character", "farmer_front.png")
+FARMER = os.path.join(OUT, "character", "farmer_front_v2.png")
+if not os.path.exists(FARMER): FARMER = os.path.join(OUT, "character", "farmer_front.png")
 if os.path.exists(FARMER):
     img = bpy.data.images.load(FARMER)
     fm = bpy.data.materials.new("Farmer"); fm.use_nodes = True
@@ -632,7 +633,7 @@ if os.path.exists(FARMER):
     fm.node_tree.links.new(ft.outputs["Alpha"], fb.inputs["Alpha"]); fb.inputs["Roughness"].default_value = 1
     FARMER_POS = (1.0, -4.3); FARMER_OBJS = []
     for (fx, fy) in [FARMER_POS]:
-        hgt = 2.3; wid = hgt * 32 / 40
+        hgt = 2.3; wid = hgt * 32 / 41
         bpy.ops.mesh.primitive_plane_add(size=1)
         fo = bpy.context.object; fo.name = "Farmer"
         fo.matrix_world = xf((fx, fy, hgt / 2 * .86 + .02), (radians(90), 0, radians(45)), (wid, hgt, 1))
@@ -700,7 +701,7 @@ if os.path.exists(FARMER):
     from PIL import ImageDraw
     ImageDraw.Draw(shade).ellipse((fx_ - 8, fy_ - 4, fx_ + 8, fy_ + 2), fill=(10, 14, 20, 120))
     pix = Image.alpha_composite(pix, shade)
-    pix.alpha_composite(sp, (fx_ - 16, fy_ - 39))
+    pix.alpha_composite(sp, (fx_ - 16, fy_ - (sp.height - 1)))
     pix = pix.convert("RGB")
 pix.save(os.path.join(OUT, "farmhouse_pixel_1x.png"))
 pix.resize((PX[0] * 4, PX[1] * 4), Image.NEAREST).save(os.path.join(OUT, "farmhouse_pixel.png"))

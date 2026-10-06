@@ -7,6 +7,7 @@
   @mirror              左半分だけ書けば、右に折り返す（正面向きの物）
   @sidelight 2 K       左を明るく右を暗く（段数）。K系統（輪郭）には効かない
   @outline sel         外側に輪郭線をつける。sel=となりの色の一番暗い色 / K=夜の黒1色
+  @align right         行の短いマスを中央そろえで書ける（左の「..」を省略できる。@mirror と一緒に使う）
   @ramp D 8a5430       系統Dの基本色をこの場で変える（パレットの上書き）
   マス目: 1マス=2文字。 ..=すきま、D3=系統D の明るさ3。マスは空白で区切る。 # から行末はメモ
 """
@@ -26,7 +27,7 @@ def make_ramp(base, n=8):
         t = (i - mid) / (mid if i < mid else n - 1 - mid)          # -1 … +1
         if t < 0:
             k = -t; tint = (36, 28, 70)
-            c = [v * (1 - .62 * k) + tt * .62 * k for v, tt in zip((r, g, b), tint)]
+            c = [v * (1 - .38 * k) * (1 - .80 * k) + tt * .80 * k for v, tt in zip((r, g, b), tint)]
         else:
             k = t; tint = (255, 238, 190)
             c = [v * (1 - .55 * k) + tt * .55 * k for v, tt in zip((r, g, b), tint)]
@@ -43,7 +44,7 @@ def load_palette(overrides=None):
 
 def parse(path):
     text = [l.split("#")[0].rstrip() for l in open(path, encoding="utf-8")]
-    meta = dict(size=None, mirror=False, side=(0, ""), outline=None, ramps={})
+    meta = dict(align=False, size=None, mirror=False, side=(0, ""), outline=None, ramps={})
     rows = []
     for ln, l in enumerate(text, 1):
         s = l.strip()
@@ -52,6 +53,7 @@ def parse(path):
             w = s.split()
             if w[0] == "@size": meta["size"] = (int(w[1]), int(w[2]))
             elif w[0] == "@mirror": meta["mirror"] = True
+            elif w[0] == "@align": meta["align"] = True
             elif w[0] == "@sidelight": meta["side"] = (int(w[1]), w[2] if len(w) > 2 else "")
             elif w[0] == "@outline": meta["outline"] = w[1] if len(w) > 1 else "sel"
             elif w[0] == "@ramp": meta["ramps"][w[1]] = w[2]
@@ -67,6 +69,7 @@ def build(path):
     if len(rows) != H: raise SystemExit(f"{path}: 行が{len(rows)}本。@size では{H}本のはず")
     code = np.full((H, W), "..", dtype="<U2")
     for y, (ln, toks) in enumerate(rows):
+        if meta["align"] and len(toks) < half: toks = [".."] * (half - len(toks)) + toks
         if len(toks) != half: raise SystemExit(f"{path}:{ln}: マスが{len(toks)}個。{half}個のはず")
         for x, t in enumerate(toks):
             if t != ".." and (len(t) != 2 or t[0] not in pal or not t[1].isdigit() or int(t[1]) >= len(pal[t[0]])):
