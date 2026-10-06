@@ -149,6 +149,10 @@ namespace DotMeikyu.Core
                       Vec2 land = d.Pos; Events.Add(new SimEvent(EventKind.Chain, p, land, 0f, "orb")); AreaHit(land, 1.2f * am, 12f * Sc(lv, 0.15f), 0f);
                       foreach (var m in NearestN(land, 3, 5f * am)) Chain(land, m, 8f * Sc(lv, 0.15f), 1 + lv, 0.9f, 0f, false);
                       return 5f; }
+                case "SK_M7":   // 幻影の狼：8秒ごとに狼を呼ぶ（2匹・Lv3とLv5で+1・6秒だけ）
+                    { int n = 2 + (lv >= 3 ? 1 : 0) + (lv >= 5 ? 1 : 0); int have = 0; foreach (var a in Allies) if (a.Type == AllyType.Wolf) have++;
+                      for (int k = 0; k < n; k++) Allies.Add(new Ally { Type = AllyType.Wolf, Pos = Player.Pos + FromAngle(k * 2.4 + Time) * 0.8f, Slot = have + k, Life = 6f });
+                      Events.Add(new SimEvent(EventKind.Slash, Player.Pos, Player.Pos, 1.5f, "wolf_summon")); return 8f; }
                 case "SK_M3":   // 火の精霊：4秒ごとに精霊が敵へ飛んで爆発（半径1.2・ダメ20）。レベルごとに数+1
                     { foreach (var m in NearestN(p, lv, 9f * am)) AreaHit(m.Pos, 1.2f * am, 20f * (1f + Mods.AllyAtkBonus), 0f, true); return 4f; }
                 case "SK_M5":   // 雷の精霊鳥：飛びまわって2秒ごとに雷（連鎖3・ダメ8）。レベルごとに連鎖+1・ダメ+15%
@@ -185,6 +189,13 @@ namespace DotMeikyu.Core
                             if (a.AttackCd <= 0f) { foreach (var m in Mobs) if (m.Alive && (m.Pos - a.Pos).Length < 2.2f) { m.SlowPct = Math.Max(m.SlowPct, 0.3f); m.SlowLeft = 1.5f; if (SkillLevel("SK_M4") >= 5) m.Stun = Math.Max(m.Stun, 0.5f); } a.AttackCd = 1f; }
                             break;
                         }
+                    case AllyType.Wolf:
+                        {   // 幻影の狼：いちばん近い敵へ猛ダッシュして、噛む（0.45秒ごとにダメ7）。6秒で消える
+                            a.Life -= dt; Mob t = Nearest(a.Pos, 9f); Vec2 goal = t != null ? t.Pos : home;
+                            a.Pos = a.Pos + (goal - a.Pos).Normalized * (6.5f * dt);
+                            if (t != null && a.AttackCd <= 0f && (t.Pos - a.Pos).Length < 0.9f + t.Radius) { DamageMob(t, 7f * Sc(SkillLevel("SK_M7"), 0.15f) * mul, a.Pos, true, 0.2f); Events.Add(new SimEvent(EventKind.Slash, a.Pos, t.Pos, 0.6f, "wolf")); a.AttackCd = 0.45f; }
+                            break;
+                        }
                     default:
                         {   // スライム分身：敵へ体当たり（ダメ4・1.2秒ごと）
                             Mob t = Nearest(Pet.Pos, 5f); Vec2 goal = t != null ? t.Pos : (Pet.Pos + FromAngle(a.Slot * 2.1) * 1.0f);
@@ -194,6 +205,7 @@ namespace DotMeikyu.Core
                         }
                 }
             }
+            Allies.RemoveAll(x => x.Life == -1f ? false : x.Life <= 0f);   // 時間がきた味方（狼）は消える
         }
     }
 }

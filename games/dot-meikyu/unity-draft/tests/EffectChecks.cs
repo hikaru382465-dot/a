@@ -119,6 +119,11 @@ static class EffectChecks
         Ok(xs.Level == 2 && xs.PendingLevelUps == 1 && xs.Xp == 12f, "スライム12体で、Lv2（Lv3は累計13から）→ Lv" + xs.Level);
         xs.KillMob(Put(xs, "F01", 20f, 20f, true, 1f));
         Ok(xs.Level == 3 && xs.PendingLevelUps == 2, "もう1体で、Lv3 → Lv" + xs.Level);
+        // --- 幻影の狼 ---
+        var wf = NewSim(WeaponKind.Staff, "召喚"); wf.attackCdForTest(); Give(wf, "SK_M7"); var wm = Put(wf, "F01", 4f, 0f);
+        Run(wf, 1.2f); int wolves = wf.Allies.FindAll(x => x.Type == AllyType.Wolf).Count; Ok(wolves == 2 && Lost(wm) >= 14f, "幻影の狼：2匹が走って噛む → " + wolves + "匹・ダメ" + Lost(wm).ToString("0"));
+        Run(wf, 6.5f); Ok(wf.Allies.FindAll(x => x.Type == AllyType.Wolf).Count == 0, "狼は、6秒で消える");
+        var wl = NewSim(WeaponKind.Staff, "召喚"); wl.attackCdForTest(); Give(wl, "SK_M7", 5); Run(wl, 0.7f); Ok(wl.Allies.FindAll(x => x.Type == AllyType.Wolf).Count == 4, "幻影の狼Lv5：4匹");
         // --- 雷球 ---
         var ob = NewSim(WeaponKind.Staff, "範囲"); ob.attackCdForTest(); Give(ob, "SK_A7"); var o1 = Put(ob, "F01", 4f, 0f); var o2 = Put(ob, "F01", 4.8f, 0.8f); var o3 = Put(ob, "F01", 3.4f, -0.9f); var far = Put(ob, "F01", 8.5f, 0f);
         Run(ob, 1.5f); Ok(Lost(o1) > 0f && Lost(o2) > 0f && Lost(o3) > 0f, "雷球：着いた所の近くの3体に、雷が走る → " + Lost(o1).ToString("0") + "/" + Lost(o2).ToString("0") + "/" + Lost(o3).ToString("0"));

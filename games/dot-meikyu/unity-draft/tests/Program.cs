@@ -13,7 +13,7 @@ static class Check
     {
         string dir = args.Length > 0 ? args[0] : "../../design";
         var d = DataLoader.Load(File.ReadAllText(Path.Combine(dir, "cards.csv")), File.ReadAllText(Path.Combine(dir, "enemies.csv")), File.ReadAllText(Path.Combine(dir, "gems.csv")));
-        Ok(d.Cards.Count == 59, "カードは59枚 → " + d.Cards.Count);
+        Ok(d.Cards.Count == 60, "カードは60枚 → " + d.Cards.Count);
         Ok(d.Enemies.Count == 17, "敵は17体 → " + d.Enemies.Count);
         Ok(d.Gems.Count == 12, "宝石は12種類 → " + d.Gems.Count);
         var kobold = d.Enemies.Find(e => e.Id == "F05");

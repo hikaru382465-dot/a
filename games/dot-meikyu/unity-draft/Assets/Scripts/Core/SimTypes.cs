@@ -56,8 +56,8 @@ namespace DotMeikyu.Core
 
 namespace DotMeikyu.Core
 {
-    public enum AllyType { Knight, Archer, Golem, SlimeClone }
+    public enum AllyType { Knight, Archer, Golem, SlimeClone, Wolf }
 
     // 召喚した味方（幻影の騎士・射手・氷霊の守護像・スライム分身）。戦闘中は、やられない（今は）
-    public sealed class Ally { public AllyType Type; public Vec2 Pos; public float AttackCd, Hp = 60f; public int Slot; }
+    public sealed class Ally { public AllyType Type; public Vec2 Pos; public float AttackCd, Hp = 60f, Life = -1f; public int Slot; }   // Life：残りの秒数（0より小さい＝ずっといる）
 }
