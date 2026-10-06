@@ -280,14 +280,8 @@ def build():
     for y in np.arange(-3.2, 1.21, .8): box(9.35, y - .05, 0, 9.45, y + .05, .9, plank)
     for z in (.35, .7):
         box(5, -3.25, z, 9.4, -3.15, z + .07, plank); box(5, 1.15, z, 9.4, 1.25, z + .07, plank); box(9.35, -3.2, z, 9.45, 1.2, z + .07, plank)
-    # 木箱
-    for (cx, cy, cz) in ((-1.0, -2.4, 0), (-.35, -2.55, 0), (-.7, -2.45, .5)):
-        box(cx - .25, cy - .25, cz, cx + .25, cy + .25, cz + .5, plank)
-        box(cx - .27, cy - .27, cz + .12, cx + .27, cy + .27, cz + .2, beam); box(cx - .27, cy - .27, cz + .32, cx + .27, cy + .27, cz + .4, beam)
     # 切り株・丸太
     box(7.8, -4.8, 0, 8.3, -4.3, .42, plank)
-    for i, (lx, lz) in enumerate(((0, 0), (.34, 0), (.17, .3))):
-        box(8.9 + lx, -4.9, lz, 9.2 + lx, -3.5, lz + .3, plank)
 
 # 部品（絵）を置く：anchor=足もとの世界の点
 def stamp(code, p, k=None):
@@ -328,11 +322,15 @@ def dots(p, f, s, pts):
         ok = key < zb[ys, xs] + .6
         fam[ys, xs][ok] = FI[f]; shd[ys, xs][ok] = s; zb[ys, xs][ok] = key; oid[ys, xs][ok] = 3
 
+def load_sprite(name): return pxl.build(os.path.join(HERE, "sprites", name + ".pxl"))[0]
+
 def props():
-    barrel, *_ = pxl.build(os.path.join(HERE, "sprites", "barrel.pxl"))
-    for (x, y) in ((3.2, -3.1), (3.9, -3.5)): stamp(barrel, np.array([x, y, 0.]))
-    for (x, y) in ((2.5, -3.7), (4.5, -2.8)):                                   # バケツ
-        blob(np.array([x, y, 0.]), 3, 2, 'D', 3); dots(np.array([x, y, .3]), 'I', 4, [(-2, -2), (2, -2), (-1, -3), (0, -3), (1, -3)])
+    k = max(1, S // 2)
+    barrel, bucket, crate, logs = (load_sprite(n) for n in ("barrel", "bucket", "crate", "logs"))
+    for (x, y) in ((3.2, -3.1), (3.9, -3.5)): stamp(barrel, np.array([x + .1, y - .1, 0.]), k)
+    for (x, y) in ((2.5, -3.7), (4.5, -2.8)): stamp(bucket, np.array([x + .1, y - .1, 0.]), k)
+    for (cx, cy, cz) in ((-1.0, -2.4, 0), (-.35, -2.55, 0), (-.7, -2.45, .5)): stamp(crate, np.array([cx + .28, cy - .28, cz]), k)
+    stamp(logs, np.array([9.0, -3.9, 0.]), k)
     for (x, y) in ((2.5, -3.05), (2.15, -3.4)): blob(np.array([x, y, 0.]), 4, 3, 'C', 4)   # 麻袋
     # トマト
     for i in range(7):
