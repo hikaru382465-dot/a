@@ -11,6 +11,7 @@ static class Check
 
     static int Main(string[] args)
     {
+        if (args.Length > 1 && args[1] == "balance") return Balance.Run(args[0]);
         string dir = args.Length > 0 ? args[0] : "../../design";
         var d = DataLoader.Load(File.ReadAllText(Path.Combine(dir, "cards.csv")), File.ReadAllText(Path.Combine(dir, "enemies.csv")), File.ReadAllText(Path.Combine(dir, "gems.csv")));
         Ok(d.Cards.Count == 61, "カードは61枚 → " + d.Cards.Count);
