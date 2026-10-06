@@ -18,8 +18,10 @@ namespace UnityEngine
         public static Vector3 operator *(Vector3 a, float k) { return new Vector3(a.x * k, a.y * k, a.z * k); }
     }
     public struct Rect { public Rect(float a, float b, float c, float d) { } }
-    public class Transform { public Vector3 position, localScale; public Quaternion rotation; }
-    public class SpriteRenderer { public bool flipX; }
+    public class Transform { public Vector3 position, localScale, localPosition; public Quaternion rotation; }
+    public class TooltipAttribute : Attribute { public TooltipAttribute(string s) { } }
+    public class Sprite { }
+    public class SpriteRenderer { public bool flipX; public Sprite sprite; }
     public struct Quaternion { public static Quaternion identity { get { return new Quaternion(); } } }
     public class GameObject { public Transform transform = new Transform(); public void SetActive(bool b) { } public T GetComponent<T>() where T : class, new() { return new T(); } }
     public struct Color { public float r, g, b, a; public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; } }
@@ -36,7 +38,7 @@ namespace UnityEngine
     public class SerializeFieldAttribute : Attribute { }
     public class HeaderAttribute : Attribute { public HeaderAttribute(string s) { } }
     public static class Debug { public static void Log(object o) { Console.WriteLine(o); } }
-    public static class Time { public static float deltaTime = 0.016f, time = 0f; }
+    public static class Time { public static float deltaTime = 0.016f, time = 0f, unscaledDeltaTime = 0.016f, timeScale = 1f; }
     public static class Screen { public static float dpi = 160f; }
     public static class Mathf
     {

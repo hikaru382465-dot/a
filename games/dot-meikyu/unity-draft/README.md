@@ -89,3 +89,9 @@ Unity 6.6 では、まだ動かしていません（私は Unity が動かせな
 ## 追加（ダメージ数字）
 - `DamageNumbers`（Unity）：`SimRunner` を指定して、TextMesh入りのPrefabを渡すと、当てた数字（会心は黄色・大きめ）と、受けた数字（赤）が出る。40個を使い回す。
 - シーンに空のオブジェクトを作って付ける。Prefabの作り方：空オブジェクト＋TextMesh（Anchor=Middle Center、Font Size=64、Character Size=0.05）。
+
+## 追加（攻撃の見せ方：なめらかさと手ごたえ）
+- `FrameAnimator`：コマごとに長さを変えて絵を切りかえる。`clips` に、絵と `durations`（秒）と `hitFrame`（当たりのコマ）を入れる。ためを長く、振りを短く、当たりを少し長く。
+- `HitFeedback`：会心・ダメージ・ボス撃破で、ヒットストップ（時間をほぼ止める）と画面の揺れ。`SimRunner` と カメラ を指定する。数字は小さめから。
+- 見本：`assets/fx/smooth_demo.mp4`（左：全コマ同じ長さ／右：強弱つき）。目安の時間割は `art/make_smooth_demo.py`。
+- 絵の中間コマが足せるときは「振り」の途中の2〜3枚が、いちばん効く。
