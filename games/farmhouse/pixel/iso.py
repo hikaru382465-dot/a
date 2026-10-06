@@ -107,7 +107,30 @@ def T(f, base, spk=None):
         return np.full(x.shape, fi, np.int8), s
     return t
 
-def plaster(x, y, z, u, v, px, py):
+
+# ---- 手描きの模様タイル（tiles.py）を読んで、面に並べる
+def load_tiles(prefix, n):
+    arrs = []
+    for i in range(n):
+        code = pxl.build(os.path.join(HERE, "sprites", f"{prefix}{i}.pxl"))[0]
+        f = np.vectorize(lambda t: FI[t[0]])(code).astype(np.int8); s_ = np.vectorize(lambda t: int(t[1]))(code).astype(np.int8)
+        arrs.append((f, s_))
+    return arrs
+ART = A / max(1, S // 2) / 1.0                                    # 1mあたりの絵のドット数（1ドット=S//2 のドット）
+
+def tile_lookup(tiles, u, v, seed):
+    th, tw = tiles[0][0].shape
+    ix = np.floor(u * ART).astype(np.int64); iy = np.floor(v * ART).astype(np.int64)
+    cx, cy = ix // tw, iy // th
+    var = (h2(cx, cy, seed) * len(tiles)).astype(np.int64) % len(tiles)
+    flip = h2(cx, cy, seed + 7) > .5
+    lx = np.where(flip, tw - 1 - (ix % tw), ix % tw); ly = iy % th
+    F = np.stack([t[0] for t in tiles]); Sh = np.stack([t[1] for t in tiles])
+    return F[var, ly, lx], Sh[var, ly, lx].astype(np.int16)
+
+PLASTER_T = THATCH_T = None
+
+def plaster_old(x, y, z, u, v, px, py):
     s = np.full(x.shape, 4, np.int8); r = h2(px >> 1, py >> 1, 1)
     s = s + (r > .94).astype(np.int8) - (r < .07).astype(np.int8)
     bl = vnoise(u * 1.3, v * 1.3, 5); s = s - (bl > .72).astype(np.int8)
@@ -115,6 +138,16 @@ def plaster(x, y, z, u, v, px, py):
     gr = (z < .75) & (h2(px >> 1, py >> 1, 2) < (1 - z / .75) * .7)           # 足もとの苔と泥
     f = np.where(gr, FI['E'], f); s = np.where(gr, 2 + (h2(px >> 1, py >> 1, 6) > .6), s)
     return f, s.astype(np.int8)
+
+def plaster(x, y, z, u, v, px, py):
+    global PLASTER_T
+    if PLASTER_T is None: PLASTER_T = load_tiles("tile_plaster", 3)
+    f, s = tile_lookup(PLASTER_T, u, v, 31)
+    # 足もとの苔：ぼかした模様の形で（点ではなく、かたまりで）
+    base = .32 + .28 * vnoise(u * 5.0, v * 5.0, 33)
+    moss = z < base
+    f = np.where(moss, FI['E'], f); s = np.where(moss, 2 + (z < base - .12) * 0 + (vnoise(u * 12, v * 12, 34) > .6), s)
+    return f.astype(np.int8), np.clip(s, 0, 7).astype(np.int8)
 
 def beam(x, y, z, u, v, px, py):
     r = h2(px, py, 4); s = np.full(x.shape, 3, np.int8) + (r > .8) - (r < .12)
@@ -128,16 +161,16 @@ def doorwood(x, y, z, u, v, px, py):
 
 def thatch(dark=False):
     def t(x, y, z, u, v, px, py):
+        global THATCH_T
+        if THATCH_T is None: THATCH_T = load_tiles("tile_thatch", 3)
+        f, s = tile_lookup(THATCH_T, u, v, 41)
         h = .62; k = np.floor(v / h); fr = v - k * h
         tooth = (np.abs(((u / .55) % 1) - .5) * 2 * .30 + (vnoise(u * 3.2, k, 31) - .5) * .22)
         band = (k % 2 == 1) & (fr > tooth + .02) & (fr < tooth + .30 + (vnoise(u * 2.1, k + 9, 32) - .5) * .12)
-        s = np.where(band, 2, 4).astype(np.int16)
-        st = h2(np.floor(u * 18), 0, 9); s = np.where(band, s, s - (st < .06) + (st > .96))
-        r = h2(px >> 1, py >> 1, 10); s = np.where(band, s, s - (r < .05) + (r > .95))
-        s = np.where(fr < .05, s - 2, s)
-        f = np.full(x.shape, FI['H'], np.int8)
+        s = np.where(band, s - 2, s)
+        s = np.where(fr < .04, s - 2, s)                                   # 段のさかい目の線
         if dark: s = s - 2
-        return f, np.clip(s, 0, 7).astype(np.int8)
+        return f.astype(np.int8), np.clip(s, 0, 7).astype(np.int8)
     return t
 
 def stone(x, y, z, u, v, px, py):
