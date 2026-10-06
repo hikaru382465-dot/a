@@ -38,6 +38,7 @@ def load_palette(overrides=None):
     p = json.load(open(os.path.join(HERE, "palette.json")))
     pal = {}
     for f, d in p["families"].items():
+        if "ramp" in d: pal[f] = [hex2rgb(c) for c in d["ramp"]]; continue
         base = hex2rgb((overrides or {}).get(f, d["base"]))
         pal[f] = make_ramp(base, p["shades"])
     return pal, p
