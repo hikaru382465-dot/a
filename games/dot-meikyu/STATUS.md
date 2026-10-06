@@ -197,3 +197,5 @@
 - 幻影の狼の絵（ChatGPT：走り8コマ・かみつき5コマ）を切り出して assets/chars/wolf_run_*, wolf_bite_* に保存（art/cut_wolf.py）。見本動画あり。
 
 - 召喚の絵：幻影の騎士（歩き8・切る5）と幻影の射手（歩き8・射る5）を切り出し（art/cut_units.py → assets/chars/knight_*, archer_*）。見本動画 summon_demo。残り：火の精霊・雷の精霊鳥・氷霊の守護像。
+
+- 氷霊の守護像の絵（立つ4・光る4）を切り出し（assets/chars/golem_idle_*, golem_glow_*）。立つ絵は、背景が白の市松だったので、色で背景を抜いた。見本 golem_demo。残り：火の精霊・雷の精霊鳥。
