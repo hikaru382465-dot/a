@@ -144,6 +144,11 @@ namespace DotMeikyu.Core
                     { Mob d = Densest(2.5f, 10f); if (d != null) AddFriendlyCloud(d.Pos, (2.5f + 0.3f * (lv - 1)) * am, 6f, 5f + (lv - 1)); return 6f; }
                 case "SK_A6":   // 雷雲：頭の上の雲が1秒ごとに近くの敵へ雷（ダメ9）。Lv3・Lv5で同時に落ちる数+1
                     { int n = 1 + (lv >= 3 ? 1 : 0) + (lv >= 5 ? 1 : 0); foreach (var m in NearestN(p, n, 8f * am)) { Events.Add(new SimEvent(EventKind.Chain, m.Pos + new Vec2(0f, 3f), m.Pos, 9f, "cloud")); DamageMob(m, 9f * Sc(lv, 0.15f), p, true); } return 1f; }
+                case "SK_A7":   // 雷球：5秒ごとに雷の球を敵の群れへ。着地で小爆発（ダメ12）→ 近くの3体へ一斉に雷 → そこから連鎖
+                    { Mob d = Densest(3f, 9f); if (d == null) return 1f;
+                      Vec2 land = d.Pos; Events.Add(new SimEvent(EventKind.Chain, p, land, 0f, "orb")); AreaHit(land, 1.2f * am, 12f * Sc(lv, 0.15f), 0f);
+                      foreach (var m in NearestN(land, 3, 5f * am)) Chain(land, m, 8f * Sc(lv, 0.15f), 1 + lv, 0.9f, 0f, false);
+                      return 5f; }
                 case "SK_M3":   // 火の精霊：4秒ごとに精霊が敵へ飛んで爆発（半径1.2・ダメ20）。レベルごとに数+1
                     { foreach (var m in NearestN(p, lv, 9f * am)) AreaHit(m.Pos, 1.2f * am, 20f * (1f + Mods.AllyAtkBonus), 0f, true); return 4f; }
                 case "SK_M5":   // 雷の精霊鳥：飛びまわって2秒ごとに雷（連鎖3・ダメ8）。レベルごとに連鎖+1・ダメ+15%
