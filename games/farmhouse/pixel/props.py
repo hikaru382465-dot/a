@@ -221,32 +221,37 @@ def flower(seed, Wd=44, Ht=76):
     def put(x, y, t):
         x, y = int(round(x)), int(round(y))
         if 0 <= x < Wd and 0 <= y < Ht: code[y, x] = t
-    # 青い葉（細長く、のび上がって先がとがる）
-    for i in range(12):
-        side = -1 if i % 2 == 0 else 1; hgt = r.uniform(20, 44); lean = side * r.uniform(4, 17) * (.6 + .4 * (i % 3) / 2)
-        sh = r.integers(0, 2)
-        for t in np.linspace(0, 1, 110):
-            x = cx0 + lean * t ** 1.5 + side * 2 * (1 - t) * r.uniform(.9, 1.1) * 0 + side * 1.5 * (1 - t); y = base - hgt * t
-            wd = 2.6 * (1 - t) ** .8 + .3
+    # 幅の広い青緑の葉（根もとから扇のように広がり、先がとがる）
+    blades = [(-1, int(r.integers(30, 38)), 15, 4.6), (1, 30, 13, 4.4), (-1, 40, 6, 4.0), (1, 38, 5, 4.2), (-1, 26, 20, 3.8), (1, 24, 19, 3.8), (0, 44, 1, 3.6)]
+    for (side, hgt, lean, w0) in blades:
+        sh = int(r.integers(0, 2))
+        for t in np.linspace(0, 1, 140):
+            x = cx0 + side * lean * t ** 1.4 + side * 1.5 * (1 - t); y = base - hgt * t
+            wd = w0 * (1 - t) ** .75 * (.55 + .45 * min(1, t * 5)) + .3
             for dx in np.arange(-wd, wd + .01, .5):
-                lit = (dx / wd) if wd > 0 else 0
-                f_, s_ = ("F", 2 + sh) if lit > -.3 else ("F", 1)
-                if lit < -.5: f_, s_ = "P", 3 if t < .5 else 4                  # 左ふちの青緑のつや
-                if abs(dx) < .35: s_ += 1                                       # 中ほどの筋
+                lit = dx / wd
+                if lit < -.55: f_, s_ = "P", 4 if t < .6 else 5                   # 左ふち：青緑のつや
+                elif lit > .55: f_, s_ = "F", 1                                    # 右ふち：暗い青
+                else: f_, s_ = "F", 2 + sh + (t > .55)
+                if abs(dx) < .4 and t < .85: s_ += 1                               # 中ほどの筋
                 put(x + dx, y, f"{f_}{min(7, s_)}")
-    # 茎
-    top = 14
-    for y in range(top, base + 1): put(cx0, y, "E3"); put(cx0 + 1, y, "E2")
-    # だいだいの花（茎のまわりに、くだ状の花がななめに出る）
-    for j in range(11):
-        y = top + 1 + j * 2.9; side = -1 if j % 2 == 0 else 1; x = cx0 + .5
-        L = 3 + (j % 3)
-        for q in range(L):
-            put(x + side * (1 + q), y - q * .55, "H4" if q == 0 else "H5" if q < L - 1 else "H6")
-            put(x + side * (1 + q), y - q * .55 + 1, "H3")
-        put(x + side * L, y - L * .55 - 1, "B6")
-        put(x + side, y + 1, "E4")
-    for q, t in enumerate(("H6", "H5", "H5", "H4")): put(cx0, top - 1 - q, t); put(cx0 + 1, top - 1 - q, "H3")
+    # 細い茎（ゆるく曲がる）
+    top = 12; stems = []
+    for k_, (sx_, lean_) in enumerate(((0, 0), (-5, -3), (5, 4))):
+        pts = []
+        for y in range(top + 6 * (k_ > 0), base - 2):
+            u = (base - y) / (base - top); x = cx0 + sx_ * (1 - u) + lean_ * u ** 2
+            put(x, y, "E3"); put(x + 1, y, "E2"); pts.append((x, y))
+        stems.append(pts)
+    # 小さなだいだいの花（茎の上のほうに、左右に交互に）
+    for pts in stems:
+        n = len(pts)
+        for j in range(5):
+            x, y = pts[int(n * (.05 + j * .15 + r.uniform(-.02, .02)))]; side = -1 if j % 2 == 0 else 1
+            for (dx, dy, t) in ((1, 0, "H5"), (2, 0, "H4"), (3, 0, "H3"), (1, -1, "H6"), (2, -1, "H5"), (3, -1, "H4"), (2, 1, "H3"), (3, 1, "H3"), (1, 1, "H4"), (2, -2, "H6")):
+                put(x + side * dx, y + dy, t)
+            put(x + side * 2, y - 1, "B6")
+        x, y = pts[0]; put(x, y - 1, "H5"); put(x + 1, y - 1, "H4"); put(x, y - 2, "H6"); put(x, y - 3, "H4")
     ys, xs = np.nonzero(code != ".."); y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
     code = code[y0 - 1: y1 + 2, x0 - 1: x1 + 2]
     return write(f"flower{seed}", code.tolist(), "# 背の高い花（青い葉、だいだいの花）\n@size %d %d\n@outline sel" % (code.shape[1], code.shape[0]))
