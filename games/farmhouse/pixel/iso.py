@@ -15,10 +15,11 @@ import pxl
 PAL, _ = pxl.load_palette()
 FAM = list(PAL.keys()); FI = {f: i for i, f in enumerate(FAM)}
 TABLE = np.array([PAL[f] for f in FAM], np.uint8)              # (系統, 明るさ, rgb)
-W, H = 480, 270
-A = 15.0                                                        # 1m = 横に15ドット
+S = 4                                                           # 細かさ（4で見本と同じくらい）
+W, H = 480 * S, 270 * S
+A = 15.0 * S                                                    # 1m = 横にAドット
 HZ = A * math.sqrt(1.5)                                         # 高さ1mの縦のドット数（仰角30度）
-OX, OY = 233.0, 138.0
+OX, OY = 233.0 * S, 138.0 * S
 P = np.array([[A, A, 0.0], [A / 2, -A / 2, -HZ]])
 D = np.array([-math.cos(math.radians(30)) / math.sqrt(2), math.cos(math.radians(30)) / math.sqrt(2), -.5])  # カメラの向き
 LIGHT = np.array([-.35, -.75, .55]); LIGHT /= np.linalg.norm(LIGHT)
@@ -128,10 +129,10 @@ def doorwood(x, y, z, u, v, px, py):
 def thatch(dark=False):
     def t(x, y, z, u, v, px, py):
         h = .62; k = np.floor(v / h); fr = v - k * h
-        tooth = np.abs(((u / .6) % 1) - .5) * 2 * .36
-        band = (k % 2 == 1) & (fr > tooth) & (fr < h * .84)
+        tooth = (np.abs(((u / .55) % 1) - .5) * 2 * .30 + (vnoise(u * 3.2, k, 31) - .5) * .22)
+        band = (k % 2 == 1) & (fr > tooth + .02) & (fr < tooth + .30 + (vnoise(u * 2.1, k + 9, 32) - .5) * .12)
         s = np.where(band, 2, 4).astype(np.int16)
-        st = h2(np.floor(u * 18), 0, 9); s = np.where(band, s, s - (st < .12) + (st > .9))
+        st = h2(np.floor(u * 18), 0, 9); s = np.where(band, s, s - (st < .06) + (st > .96))
         r = h2(px >> 1, py >> 1, 10); s = np.where(band, s, s - (r < .05) + (r > .95))
         s = np.where(fr < .05, s - 2, s)
         f = np.full(x.shape, FI['H'], np.int8)
@@ -143,7 +144,7 @@ def stone(x, y, z, u, v, px, py):
     bh, bw = .27, .42; row = np.floor(v / bh); uo = u + (row % 2) * bw / 2
     col = np.floor(uo / bw)
     mortar = (((v / bh) % 1) < .12) | (((uo / bw) % 1) < .08)
-    base = 2 + (h2(col, row, 12) * 3).astype(np.int16)
+    base = 1 + (h2(col, row, 12) * 3).astype(np.int16)
     s = np.where(mortar, 1, base); r = h2(px >> 1, py >> 1, 13); s = s + (r > .9) - (r < .1)
     f = np.full(x.shape, FI['I'], np.int8)
     mo = (h2(col, row, 14) > .62) & (~mortar); f = np.where(mo, FI['E'], f); s = np.where(mo, 3, s)
@@ -193,16 +194,16 @@ def inside(h, x, y):
     return ok
 
 def ground(x, y, z, u, v, px, py):
-    n1 = vnoise(x * .45, y * .45, 21); n2 = vnoise(x * 1.7, y * 1.7, 22); r = h2(px >> 1, py >> 1, 23)
-    s = np.where(n1 > .64, 3, np.where(n1 > .26, 2, 1)).astype(np.int16) + (n2 > .85)
+    n1 = vnoise(x * 1.1, y * 1.1, 21) * .6 + vnoise(x * .4, y * .4, 26) * .4; n2 = vnoise(x * 3.4, y * 3.4, 22); r = h2(px >> 1, py >> 1, 23)
+    s = np.where(n1 > .6, 3, np.where(n1 > .28, 2, 1)).astype(np.int16) + (n2 > .88) - (n2 < .08)
     f = np.full(x.shape, FI['E'], np.int8)
     dirt = np.zeros(x.shape, bool)
     for (cx, cy, rx, ry) in DIRT:
         d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
         dirt |= d < (1 + (vnoise(x * 1.3, y * 1.3, 24) - .5) * .5)
-    f = np.where(dirt, FI['J'], f); sd = 3 + (n2 > .55) - (n2 < .3) + (r > .93) - (r < .06)
+    f = np.where(dirt, FI['N'], f); sd = 3 + (n2 > .55) - (n2 < .3) + (r > .93) - (r < .06)
     s = np.where(dirt, sd - 1, s + (r > .96) - (r < .03))
-    peb = dirt & (h2(px >> 1, py >> 1, 25) < .025); f = np.where(peb, FI['I'], f); s = np.where(peb, 4, s)
+    peb = dirt & (h2(px >> 1, py >> 1, 25) < .03); f = np.where(peb, FI['I'], f); s = np.where(peb, 4, s)
     # 家の足もとの影と、まわりの暗がり
     sh = np.zeros(x.shape, bool)
     for hh in SHADOWS: sh |= inside(hh, x, y)
@@ -289,19 +290,24 @@ def build():
         box(8.9 + lx, -4.9, lz, 9.2 + lx, -3.5, lz + .3, plank)
 
 # 部品（絵）を置く：anchor=足もとの世界の点
-def stamp(code, p, base=(0, 0)):
+def stamp(code, p, k=None):
+    k = k or max(1, round(A * .044))
     h, w = code.shape; sx, sy = proj(p); key = float(np.dot(p, D)) - .02
-    x0, y0 = int(round(sx)) - w // 2, int(round(sy)) - h + 1
+    x0, y0 = int(round(sx)) - w * k // 2, int(round(sy)) - h * k + 1
     for yy in range(h):
         for xx in range(w):
             t = code[yy, xx]
             if t == "..": continue
-            X, Y = x0 + xx, y0 + yy
-            if 0 <= X < W and 0 <= Y < H and key < zb[Y, X] + .6:
-                fam[Y, X] = FI[t[0]]; shd[Y, X] = int(t[1]); zb[Y, X] = key; oid[Y, X] = 3
+            X, Y = x0 + xx * k, y0 + yy * k
+            ys, xs = slice(max(0, Y), min(H, Y + k)), slice(max(0, X), min(W, X + k))
+            sub = zb[ys, xs]
+            if sub.size == 0: continue
+            ok = key < sub + .6
+            fam[ys, xs][ok] = FI[t[0]]; shd[ys, xs][ok] = int(t[1]); zb[ys, xs][ok] = key; oid[ys, xs][ok] = 3
 
 def blob(p, rx, ry, f, s, oi=3):
     sx, sy = proj(p); key = float(np.dot(p, D)) - .02
+    rx, ry = rx * S, ry * S
     for dy in range(-ry, ry + 1):
         for dx in range(-rx, rx + 1):
             d = (dx / (rx + .5)) ** 2 + (dy / (ry + .5)) ** 2
@@ -314,10 +320,13 @@ def blob(p, rx, ry, f, s, oi=3):
 
 def dots(p, f, s, pts):
     sx, sy = proj(p); key = float(np.dot(p, D)) - .03
+    b = S // 2
     for dx, dy in pts:
-        X, Y = int(round(sx)) + dx, int(round(sy)) + dy
-        if 0 <= X < W and 0 <= Y < H and key < zb[Y, X] + .6:
-            fam[Y, X] = FI[f]; shd[Y, X] = s; zb[Y, X] = key; oid[Y, X] = 3
+        X, Y = int(round(sx)) + dx * b, int(round(sy)) + dy * b
+        ys, xs = slice(max(0, Y), min(H, Y + b)), slice(max(0, X), min(W, X + b))
+        if zb[ys, xs].size == 0: continue
+        ok = key < zb[ys, xs] + .6
+        fam[ys, xs][ok] = FI[f]; shd[ys, xs][ok] = s; zb[ys, xs][ok] = key; oid[ys, xs][ok] = 3
 
 def props():
     barrel, *_ = pxl.build(os.path.join(HERE, "sprites", "barrel.pxl"))
@@ -349,17 +358,22 @@ def props():
     # 屋根の苔
     # 草のたば
     ys, xs = np.nonzero((oid == 0) & (fam == FI['E']) & (shd >= 3))
-    for i in rng.choice(len(ys), size=min(260, len(ys)), replace=False):
+    b = S // 2
+    for i in rng.choice(len(ys), size=min(900 * S * S // 2, len(ys)), replace=False):
         X, Y = xs[i], ys[i]
-        for dx, dy, s in ((0, 0, 5), (0, -1, 5), (-1, -1, 4), (1, -1, 4), (0, -2, 5)):
-            if 0 <= X + dx < W and 0 <= Y + dy < H and oid[Y + dy, X + dx] == 0: fam[Y + dy, X + dx] = FI['E']; shd[Y + dy, X + dx] = s
+        pat = ((0, 0, 4), (0, -1, 5), (-1, -1, 3), (1, -1, 3), (0, -2, 5)) if rng.random() < .7 else ((0, 0, 3), (1, -1, 5), (2, -2, 5))
+        for dx, dy, s in pat:
+            Y2, X2 = Y + dy * b, X + dx * b
+            if 0 <= X2 < W - b and 0 <= Y2 < H - b and (oid[Y2:Y2 + b, X2:X2 + b] == 0).all():
+                fam[Y2:Y2 + b, X2:X2 + b] = FI['E']; shd[Y2:Y2 + b, X2:X2 + b] = s
 
 def outline():
     """建物・物のふちを、自分の色の一番暗い色にする（地面に接するところだけ）"""
     out = np.zeros_like(oid, bool)
-    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-        nb = np.roll(np.roll(oid, dy, 0), dx, 1)
-        out |= (oid != 0) & (nb == 0)
+    for k in range(1, S // 2 + 1):
+        for dy, dx in ((k, 0), (-k, 0), (0, k), (0, -k)):
+            nb = np.roll(np.roll(oid, dy, 0), dx, 1)
+            out |= (oid != 0) & (nb == 0)
     shd[out] = np.maximum(0, shd[out] - 3)
 
 def finish(path):
@@ -368,13 +382,13 @@ def finish(path):
     rgb[ok] = TABLE[fam[ok], shd[ok]]
     img = Image.fromarray(rgb).convert("RGBA")
     spr = os.path.join(HERE, "..", "assets", "character", "farmer_front_v2.png")
-    if os.path.exists(spr):
+    if False and os.path.exists(spr):
         sp = Image.open(spr).convert("RGBA"); fx, fy = proj(np.array([1.0, -4.3, 0.]))
         from PIL import ImageDraw
         sh = Image.new("RGBA", img.size, (0, 0, 0, 0)); ImageDraw.Draw(sh).ellipse((fx - 8, fy - 3, fx + 8, fy + 3), fill=(12, 16, 28, 110))
         img = Image.alpha_composite(img, sh); img.alpha_composite(sp, (int(fx) - 16, int(fy) - 40))
     img = img.convert("RGB"); img.save(path)
-    img.resize((W * 4, H * 4), Image.NEAREST).save(path.replace(".png", "_x4.png"))
+    img.resize((W // 2, H // 2), Image.NEAREST).save(path.replace(".png", "_half.png"))
 
 if __name__ == "__main__":
     build(); props(); outline()
