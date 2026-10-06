@@ -25,7 +25,7 @@ def draw_bolt(d, pts, level, col_w, alpha):
 def render(level, seed):
     rng = random.Random(seed); frames = []
     me = (22, 78); targets = [(70, 50), (98, 76), (84, 100)]
-    width = 1 + level * 0.5; branches = 1 + level
+    width = 1.0 + level * 0.1; branches = 1 + level // 2 * 2
     for i in range(N):
         t = i / (N - 1); im = Image.new('RGBA', (S, S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
         chain = [me] + targets[:2 + (1 if level >= 3 else 0)]
@@ -38,7 +38,7 @@ def render(level, seed):
                 pts = bolt(r2, a, b, 0.28)
                 draw_bolt(d, pts, level, width, alpha)
                 for _ in range(branches):                              # 枝：途中から、まわりへ
-                    j = r2.randrange(len(pts) // 4, len(pts) * 3 // 4); st = pts[j]; ang = math.atan2(b[1] - a[1], b[0] - a[0]) + r2.uniform(-1.2, 1.2); ln = r2.uniform(8, 16) * (0.7 + level * 0.15)
+                    j = r2.randrange(len(pts) // 4, len(pts) * 3 // 4); st = pts[j]; ang = math.atan2(b[1] - a[1], b[0] - a[0]) + r2.uniform(-1.2, 1.2); ln = r2.uniform(8, 16) * (0.8 + level * 0.08)
                     en = (st[0] + math.cos(ang) * ln, st[1] + math.sin(ang) * ln); draw_bolt(d, bolt(r2, st, en, 0.35, 3), level, max(1, width * 0.5), int(alpha * 0.9))
                 if k < 0.15:   # 当たった点の閃光
                     rr = 7 + level
