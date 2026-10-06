@@ -62,7 +62,7 @@ def parse(path):
             rows.append((ln, s.split()))
     return meta, rows
 
-def build(path):
+def build(path, pre=False):
     meta, rows = parse(path)
     pal, _ = load_palette(meta["ramps"])
     W, H = meta["size"]; half = W // 2 if meta["mirror"] else W
@@ -76,6 +76,7 @@ def build(path):
                 raise SystemExit(f"{path}:{ln}: マス{x+1}の「{t}」は使えない")
             code[y, x] = t
             if meta["mirror"]: code[y, W - 1 - x] = t
+    if pre: return code, meta
     k, ex = meta["side"]
     if k:  # 左を明るく、右を暗く
         for y in range(H):
