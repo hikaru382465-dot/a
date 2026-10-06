@@ -57,3 +57,7 @@
 - 歩き：4コマ（開く→そろえて片足あげ→反対に開く→反対あげ）。1コマ約140ms（約7fps）
 - 出力：`assets/character/hero_sheet.png`（4コマを横に並べた1行）、`hero_walk.gif`、`hero_preview.png`、`sprites/hero_walk0〜3.pxl`
 - 顔・腕・足の長さは下書き。足が短く見える／腕がまだらになる
+
+## 手描きの1枚（hand_girl.py）
+- `python hand_girl.py` → `sprites/hand_girl.pxl/.png/_big.png`：旅の薬草売りの少女（右向き、26×59）。文字1つ＝1ドットで、全部手で決めて描いた（外側の輪郭だけ自動）
+- 見本との比べ：形・ポーズ（ひじを外に、手を腰に、歩幅）・スカートのひだは近づいた。顔（3/4の向き、目の色）と髪の毛束の細かさは見本に負けている
