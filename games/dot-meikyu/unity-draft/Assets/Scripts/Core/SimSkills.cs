@@ -151,7 +151,7 @@ namespace DotMeikyu.Core
                       return 5f; }
                 case "SK_M7":   // 幻影の狼：8秒ごとに狼を呼ぶ（2匹・Lv3とLv5で+1・6秒だけ）
                     { int n = 2 + (lv >= 3 ? 1 : 0) + (lv >= 5 ? 1 : 0); int have = 0; foreach (var a in Allies) if (a.Type == AllyType.Wolf) have++;
-                      for (int k = 0; k < n; k++) Allies.Add(new Ally { Type = AllyType.Wolf, Pos = Player.Pos + FromAngle(k * 2.4 + Time) * 0.8f, Slot = have + k, Life = 6f });
+                      for (int k = 0; k < n; k++) Allies.Add(new Ally { Type = AllyType.Wolf, Pos = Player.Pos + FromAngle(k * 2.4 + Time) * 0.8f, Slot = have + k, Life = 6f + Mods.SummonLifeAdd });
                       Events.Add(new SimEvent(EventKind.Slash, Player.Pos, Player.Pos, 1.5f, "wolf_summon")); return 8f; }
                 case "SK_M3":   // 火の精霊：4秒ごとに精霊が敵へ飛んで爆発（半径1.2・ダメ20）。レベルごとに数+1
                     { foreach (var m in NearestN(p, lv, 9f * am)) AreaHit(m.Pos, 1.2f * am, 20f * (1f + Mods.AllyAtkBonus), 0f, true); return 4f; }

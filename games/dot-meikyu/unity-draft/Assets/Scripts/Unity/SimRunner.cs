@@ -22,7 +22,7 @@ namespace DotMeikyu
         [SerializeField] int startStage = 0;
         [SerializeField] WeaponKind startWeapon = WeaponKind.Staff;
         [SerializeField] Rarity startRarity = Rarity.Common;
-        [SerializeField] string startJob = "連射";                 // 連射／範囲／召喚
+        [SerializeField] string startJob = "騎士団";               // 獣／騎士団／精霊（召喚の流派）
         [SerializeField] int rerollsPerRun = 1;
 
         public Sim Sim { get; private set; }

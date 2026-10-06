@@ -8,7 +8,7 @@ namespace DotMeikyu.Core
     {
         // 数字の強化
         public float DamageBonus, AttackSpeedBonus, MoveBonus, CritChanceAdd, CritDmgAdd, Lifesteal, MaxHpAdd, DamageTakenMul = 1f;
-        public float AreaBonus, ChargeTimeMul = 1f, PickupBonus, LuckBonus, DashCooldownMul = 1f, SkillIntervalMul = 1f, BulletIntervalMul = 1f, InvulnAdd;
+        public float AreaBonus, ChargeTimeMul = 1f, PickupBonus, LuckBonus, DashCooldownMul = 1f, SkillIntervalMul = 1f, BulletIntervalMul = 1f, InvulnAdd, SummonLifeAdd;
         // 当たったときに起きること（ふつうの攻撃・ため攻撃）
         public float BurnPct, BurnMul = 1f, BurnTime = 3f;                 // 燃える：毎秒、攻撃のBurnPct
         public float SlowPct, FreezeChance;                                // 遅くする・たまに凍る
@@ -107,7 +107,10 @@ namespace DotMeikyu.Core
             {
                 case "連射": m.BulletIntervalMul *= 0.90f; break;
                 case "範囲": m.AreaBonus += 0.15f; m.BurnTime *= 1.2f; m.PoisonTime *= 1.2f; break;
-                case "召喚": m.AllyAtkBonus += 0.15f; m.PetAtkBonus += 0.15f; m.AllyHpBonus += 0.30f; break;
+                case "獣": m.AllyAtkBonus += 0.15f; m.PetAtkBonus += 0.30f; m.AllyHpBonus += 0.30f; m.SummonLifeAdd += 2f; break;
+                case "騎士団": m.AllyAtkBonus += 0.25f; m.PetAtkBonus += 0.15f; m.AllyHpBonus += 0.60f; break;
+                case "精霊": m.AllyAtkBonus += 0.15f; m.PetAtkBonus += 0.15f; m.AllyHpBonus += 0.30f; m.SkillIntervalMul *= 0.92f; break;
+                case "召喚": m.AllyAtkBonus += 0.15f; m.PetAtkBonus += 0.15f; m.AllyHpBonus += 0.30f; break;   // 古い呼び名（テスト用）
             }
             m.ChargeTimeMul = Math.Max(0.3f, m.ChargeTimeMul); m.DashCooldownMul = Math.Max(0.3f, m.DashCooldownMul);
             return m;
@@ -116,6 +119,6 @@ namespace DotMeikyu.Core
         static void Inc(Dictionary<string, int> d, string k) { int v; d.TryGetValue(k, out v); d[k] = v + 1; }
 
         // 魔法使いごとの、最初から持っているスキル
-        public static string StartSkill(string job) { return job == "範囲" ? "SK_A1" : job == "召喚" ? "SK_M1" : "SK_R1"; }
+        public static string StartSkill(string job) { return job == "範囲" ? "SK_A1" : job == "騎士団" || job == "召喚" ? "SK_M1" : job == "獣" ? "SK_M7" : job == "精霊" ? "SK_M3" : "SK_R1"; }
     }
 }

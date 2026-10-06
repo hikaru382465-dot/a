@@ -32,7 +32,7 @@ static class Check
         Ok(d.Gems.FindAll(g => g.FirstRelease).Count == 8, "最初の版の宝石は8種類");
 
         // カード3枚を、たくさん引いて、決まりどおりか調べる
-        foreach (string job in new[] { "連射", "範囲", "召喚" })
+        foreach (string job in new[] { "獣", "騎士団", "精霊" })
         {
             var picker = new CardPicker(d.Cards, new Random(12345));
             var run = new RunCards { Job = job };
@@ -56,9 +56,9 @@ static class Check
                     }
                 }
             }
-            Console.WriteLine("--- " + job + "の魔法使い（6000回）：強化" + strengthen + " スキル" + skill + " 変化" + change + " ペット" + pet);
+            Console.WriteLine("--- 召喚・" + job + "の流派（6000回）：強化" + strengthen + " スキル" + skill + " 変化" + change + " ペット" + pet);
             Ok(dup == 0, "同じカードが重ならない");
-            Ok(skillOther == 0, "ほかの魔法使いの専用スキルは出ない");
+            Ok(skillOther == 0, "ほかの流派・あとの更新の魔法使い（連射・範囲）の専用スキルは出ない");
             double share = (double)skillOwn / (skillOwn + skillCommon);
             Ok(share > 0.5 && share < 0.7, "スキルの専用の割合 約60% → " + (share * 100).ToString("0") + "%");
             double petRate = (double)pet / n; Ok(petRate > 0.28 && petRate < 0.42, "3枚の中にペットが出る確率 約35% → " + (petRate * 100).ToString("0") + "%");
@@ -66,8 +66,8 @@ static class Check
         }
 
         // スキルが4つそろったら、新しいスキルは出ない
-        var full = new RunCards { Job = "範囲" };
-        foreach (var id in new[] { "SK_A1", "SK_A2", "SK_C1", "SK_C2" }) full.Levels[id] = 1;
+        var full = new RunCards { Job = "騎士団" };
+        foreach (var id in new[] { "SK_M1", "SK_M2", "SK_C1", "SK_C2" }) full.Levels[id] = 1;
         var p2 = new CardPicker(d.Cards, new Random(7)); bool newSkill = false;
         for (int i = 0; i < 3000; i++) foreach (var c in p2.Pick3(full)) if (c.Kind == CardKind.Skill && full.Level(c.Id) == 0) newSkill = true;
         Ok(!newSkill, "スキル4つ：新しいスキルは出ない");

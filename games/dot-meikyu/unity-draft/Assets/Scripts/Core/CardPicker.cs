@@ -6,7 +6,7 @@ namespace DotMeikyu.Core
     // いまの挑戦の状態（カードを選ぶのに必要なぶんだけ）
     public sealed class RunCards
     {
-        public string Job = "連射";                                              // 連射／範囲／召喚
+        public string Job = "騎士団";                                              // 獣／騎士団／精霊（召喚の魔法使いの流派。連射・範囲は、あとの更新）
         public float HpRatio = 1f;                                               // 0〜1
         public Dictionary<string, int> Levels = new Dictionary<string, int>();   // カードid → いまのレベル
         public HashSet<string> EvolutionReady = new HashSet<string>();           // 進化の条件を満たしたカードid
