@@ -1,64 +1,66 @@
-# 幻影の狼の見本（仮の絵：コードで描いた青い狼）。本番はChatGPTの絵に差し替える。 python3 art/make_wolf_demo.py
+# 幻影の狼の見本（ChatGPTの絵）：魔法陣→2匹が走って噛む→消える。 python3 art/make_wolf_demo.py
 import math, random
 from PIL import Image, ImageDraw, ImageChops, ImageFilter
-S = 128; W = 512; K = W / S; N = 56
-CY = [(200, 245, 255), (140, 215, 255), (80, 150, 240), (50, 90, 190)]
-mage = Image.open('assets/chars/mage_summon_walk_0.png').convert('RGBA'); mage = mage.resize((int(mage.width * 40 / mage.height), 40), Image.LANCZOS)
-sl = Image.open('assets/chars/pet_slime_0.png').convert('RGBA'); sl = sl.resize((int(sl.width * 22 / sl.height), 22), Image.LANCZOS)
+W = 512; N = 64; random.seed(8)
+run = [Image.open('assets/chars/wolf_run_%d.png' % i).convert('RGBA') for i in range(8)]
+bite = [Image.open('assets/chars/wolf_bite_%d.png' % i).convert('RGBA') for i in range(5)]
+SC = 0.7
+def sc(im): return im.resize((int(im.width * SC), int(im.height * SC)), Image.LANCZOS)
+run = [sc(i) for i in run]; bite = [sc(i) for i in bite]
+mage = Image.open('assets/chars/mage_summon_walk_0.png').convert('RGBA'); mage = mage.resize((int(mage.width * 160 / mage.height), 160), Image.LANCZOS)
+sl = Image.open('assets/chars/pet_slime_0.png').convert('RGBA'); sl = sl.resize((int(sl.width * 60 / sl.height), 60), Image.LANCZOS)
 r_, g_, b_, a_ = sl.split(); gr = Image.merge('RGB', (r_, g_, b_)).convert('L')
 enemy = Image.merge('RGBA', (*ImageChops.multiply(Image.merge('RGB', (gr,) * 3), Image.new('RGB', sl.size, (255, 130, 130))).split(), a_))
-def wolf(d, x, y, face, phase, alpha):
-    # 右向きを基本に、face=-1 で左右反転。4コマの走り（足の動き）
-    def P(px, py): return (x + px * face, y + py)
-    a = alpha; sw = math.sin(phase) * 3
-    body = [P(-7, -4), P(-3, -6), P(4, -6), P(7, -4), P(6, -1), P(-6, -1)]
-    d.polygon(body, fill=CY[2] + (a,)); d.polygon([P(-6, -4), P(0, -5.5), P(5, -5), P(5, -3), P(-5, -3)], fill=CY[1] + (a,))
-    d.polygon([P(5, -6), P(10, -7), P(12, -4), P(9, -2), P(5, -3)], fill=CY[1] + (a,))                 # 頭
-    d.polygon([P(6, -6), P(7, -9), P(8.5, -6.5)], fill=CY[0] + (a,)); d.polygon([P(8.5, -6.5), P(10, -9), P(10.5, -6)], fill=CY[0] + (a,))   # 耳
-    d.polygon([P(12, -4), P(14, -3.5), P(12, -2.5)], fill=CY[3] + (a,)); d.rectangle([min(P(9, -5)[0], P(9.8, -4.2)[0]), P(9, -5)[1], max(P(9, -5)[0], P(9.8, -4.2)[0]), P(9, -4.2)[1]], fill=(255, 255, 255, a))  # 鼻・目
-    d.polygon([P(-7, -4), P(-12, -7 + sw * 0.4), P(-11, -4), P(-7, -2)], fill=CY[1] + (a,))             # しっぽ
-    for lx, ph in ((-5, 0), (-2, 2), (3, 1), (6, 3)):                                                    # 足4本
-        o = math.sin(phase + ph) * 3.2; d.line([P(lx, -1), P(lx + o, 3)], fill=CY[2 if ph % 2 else 3] + (a,), width=2)
-random.seed(8)
-me = (22, 84); tg = [(70, 54), (96, 84), (66, 104)]
 bg = Image.new('RGB', (W, W), (22, 34, 28)); bd = ImageDraw.Draw(bg)
 for _ in range(700): x, y = random.randrange(W), random.randrange(W); bd.rectangle([x, y, x + 3, y + 3], fill=random.choice([(28, 44, 34), (18, 28, 24), (32, 50, 38)]))
-frames = []
-hp = [30, 30, 30]
-wolves = [{'t': 0.0, 'tg': 0, 'pos': list(me), 'spawn': 6}, {'t': 0.0, 'tg': 1, 'pos': list(me), 'spawn': 8}]
-bites = []
+me = (88, 340); tg = [(280, 220), (390, 330), (270, 420)]
+hp = [100, 100, 100]
+wolves = [{'tg': 0, 'pos': [me[0] + 30, me[1] - 10], 'spawn': 6, 'state': 'run', 'bt': 0}, {'tg': 1, 'pos': [me[0] + 30, me[1] + 10], 'spawn': 10, 'state': 'run', 'bt': 0}]
+frames = []; flash = {}
 for f in range(N):
-    base = bg.copy().convert('RGBA'); lay = Image.new('RGBA', (S, S), (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
-    # 召喚の魔法陣
-    if f < 14:
-        k = f / 14; R = 16 * min(1, k * 2); al = int(255 * (1 - k) ** 0.6)
-        d.ellipse([me[0] + 12 - R, me[1] + 6 - R * 0.55, me[0] + 12 + R, me[1] + 6 + R * 0.55], outline=CY[0] + (al,), width=1)
-        for q in range(6): a = q * 1.05 + f * 0.2; d.rectangle([me[0] + 12 + math.cos(a) * R * 0.9, me[1] + 6 + math.sin(a) * R * 0.5, me[0] + 12 + math.cos(a) * R * 0.9 + 1, me[1] + 6 + math.sin(a) * R * 0.5 + 1], fill=CY[0] + (al,))
-    for wi, w in enumerate(wolves):
+    base = bg.copy().convert('RGBA'); fx = Image.new('RGBA', (W, W), (0, 0, 0, 0)); d = ImageDraw.Draw(fx)
+    if f < 16:   # 魔法陣
+        k = f / 16; R = 70 * min(1, k * 2); al = int(255 * (1 - k) ** 0.6); cx, cy = me[0] + 50, me[1] + 24
+        d.ellipse([cx - R, cy - R * 0.55, cx + R, cy + R * 0.55], outline=(200, 245, 255, al), width=3)
+        for q in range(6): a = q * 1.05 + f * 0.2; d.ellipse([cx + math.cos(a) * R * 0.9 - 3, cy + math.sin(a) * R * 0.5 - 3, cx + math.cos(a) * R * 0.9 + 3, cy + math.sin(a) * R * 0.5 + 3], fill=(200, 245, 255, al))
+    sprites = []
+    for w in wolves:
         if f < w['spawn']: continue
-        t = tg[w['tg']]; dx, dy = t[0] - w['pos'][0], t[1] - w['pos'][1]; L = math.hypot(dx, dy)
-        if L > 8: w['pos'][0] += dx / L * 3.4; w['pos'][1] += dy / L * 3.4; mode = 'run'
-        else:
-            mode = 'bite'
-            if f % 5 == 0: bites.append((f, t, wi)); hp[w['tg']] -= 7
-            if hp[w['tg']] <= 0 or f % 17 == 0: w['tg'] = (w['tg'] + 1) % 3
-        life = (f - w['spawn']) / 40; alpha = 255 if life < 0.8 else int(255 * (1 - (life - 0.8) / 0.2))
+        life = (f - w['spawn']) / 44
         if life >= 1: continue
-        for tr in range(1, 5):   # かげのしっぽ
-            wolf(d, w['pos'][0] - dx / (L or 1) * tr * 3, w['pos'][1] - dy / (L or 1) * tr * 3, 1 if dx >= 0 else -1, f * 1.1, int(alpha * 0.18))
-        wolf(d, w['pos'][0], w['pos'][1], 1 if dx >= 0 else -1, f * 1.1 if mode == 'run' else f * 0.5, alpha)
-    for bf, t, wi in bites:
-        k = f - bf
-        if 0 <= k < 4:
-            for q in range(5): a = q * 1.26 + bf; d.line([t[0], t[1] - 3, t[0] + math.cos(a) * (3 + k * 2.5), t[1] - 3 + math.sin(a) * (3 + k * 2.5)], fill=CY[0] + (255,), width=1)
-    r2, g2, b2, a2 = lay.split(); a2 = a2.point(lambda v: v if v > 60 else 0)
-    big = Image.merge('RGBA', (r2, g2, b2, a2)).resize((W, W), Image.NEAREST)
-    items = [(me[1], 'm', me)] + [(t[1], 'e', t) for i, t in enumerate(tg) if hp[i] > 0 or f < 50]
-    for _, kind, p in sorted(items):
-        if kind == 'm': m = mage.resize((mage.width * 4, mage.height * 4), Image.LANCZOS); base.alpha_composite(m, (int(p[0] * K - m.width / 2), int(p[1] * K - m.height / 2 + 16)))
+        alpha = 1.0 if life < 0.85 else 1 - (life - 0.85) / 0.15
+        alpha = min(alpha, min(1, (f - w['spawn']) / 4))
+        t = tg[w['tg']]; dx, dy = t[0] - w['pos'][0], t[1] - w['pos'][1]; L = math.hypot(dx, dy); face = 1 if dx >= 0 else -1
+        if w['state'] == 'run':
+            if L > 70: w['pos'][0] += dx / L * 13; w['pos'][1] += dy / L * 13; img = run[(f // 1) % 8]
+            else: w['state'] = 'bite'; w['bt'] = 0; img = bite[0]
+        if w['state'] == 'bite':
+            img = bite[min(4, w['bt'] // 1)]; w['bt'] += 1
+            if w['bt'] == 3: hp[w['tg']] -= 35; flash[w['tg']] = f
+            if w['bt'] >= 6: w['state'] = 'run'; w['tg'] = (w['tg'] + 1) % 3
+        spr = img if face > 0 else img.transpose(Image.FLIP_LEFT_RIGHT)
+        if alpha < 1: spr = spr.copy(); spr.putalpha(spr.split()[3].point(lambda v: int(v * alpha)))
+        sprites.append((w['pos'][1], spr, w['pos'][0], w['pos'][1]))
+        if w['state'] == 'run':   # 残像
+            for j in (1, 2, 3):
+                gh = spr.copy(); gh.putalpha(gh.split()[3].point(lambda v: int(v * 0.16 / j)))
+                fx.alpha_composite(gh, (int(w['pos'][0] - dx / (L or 1) * j * 16 - spr.width / 2), int(w['pos'][1] - dy / (L or 1) * j * 16 - spr.height / 2)))
+    # 絵を並べる（奥から手前）
+    items = [(me[1], 'm', me)] + [(tg[i][1], 'e', i) for i in range(3) if hp[i] > -20 and not (hp[i] <= 0 and f - flash.get(i, 0) > 6)] + [(s[0], 'w', s) for s in sprites]
+    for _, kind, p in sorted(items, key=lambda x: x[0]):
+        if kind == 'm': base.alpha_composite(mage, (int(p[0] - mage.width / 2), int(p[1] - mage.height + 20)))
+        elif kind == 'e':
+            e = enemy
+            if f - flash.get(p, -9) < 3: al = enemy.split()[3]; e = Image.merge('RGBA', (*ImageChops.add(enemy.convert('RGB'), Image.new('RGB', enemy.size, (120, 120, 140))).split(), al))
+            base.alpha_composite(e, (int(tg[p][0] - e.width / 2), int(tg[p][1] - e.height / 2)))
         else:
-            e = enemy.resize((enemy.width * 4, enemy.height * 4), Image.LANCZOS); base.alpha_composite(e, (int(p[0] * K - e.width / 2), int(p[1] * K - e.height / 2 + 8)))
-    glow = big.convert('RGB').filter(ImageFilter.GaussianBlur(10)); rgb = ImageChops.add(base.convert('RGB'), glow.point(lambda v: v * 6 // 10))
-    rgb.paste(big.convert('RGB'), (0, 0), big.split()[3]); frames.append(rgb)
-frames[0].save('assets/fx/wolf_demo.gif', save_all=True, append_images=frames[1:], duration=60, loop=0)
-frames[24].save('/tmp/wolf24.png'); print('ok')
+            _, spr, x, y = p; base.alpha_composite(spr, (int(x - spr.width / 2), int(y - spr.height / 2)))
+    for i, t0 in flash.items():
+        k = f - t0
+        if 0 <= k < 4:
+            tx, ty = tg[i]
+            for q in range(7): a = q * 0.9 + t0; d.line([tx, ty - 20, tx + math.cos(a) * (14 + k * 10), ty - 20 + math.sin(a) * (14 + k * 10)], fill=(255, 255, 255, 255), width=3)
+    glow = fx.convert('RGB').filter(ImageFilter.GaussianBlur(10)); rgb = ImageChops.add(base.convert('RGB'), glow.point(lambda v: v * 5 // 10))
+    rgb.paste(fx.convert('RGB'), (0, 0), fx.split()[3]); frames.append(rgb)
+frames[0].save('assets/fx/wolf_demo.gif', save_all=True, append_images=frames[1:], duration=55, loop=0)
+frames[26].save('/tmp/wolf26.png'); print('ok')
