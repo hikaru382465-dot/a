@@ -213,3 +213,5 @@
 - ホームに、召喚の魔法使い（歩きアニメ）と召喚たち（狼・騎士・射手・守護像）が、ついてくるようにした（home/chars.js）。動画 assets/home_walk_demo.mp4。
 
 - 敵の範囲攻撃の見た目（TelegraphView）を追加。見本動画 telegraph_demo。Unityで確認が必要。
+
+- 騎士・射手の歩きが同じポーズだったので、足をふる8コマをコードで作った（art/make_walk_frames.py → knight_walk2_*, archer_walk2_*）。ホームに反映。絵を頼み直せるなら、足の動きがはっきりした絵に差し替える。
