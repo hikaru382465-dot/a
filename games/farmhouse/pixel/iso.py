@@ -262,6 +262,16 @@ if FLAT:
             return np.full(x.shape, FI['D'], np.int8), s.astype(np.int8)
         return t
 
+def eave_shadow(tex):
+    """屋根のはりだしがつくる影。正面の壁は上端から約0.65m、右の壁は屋根の斜めの下を暗くする"""
+    def t(x, y, z, u, v, px, py):
+        f, sh = tex(x, y, z, u, v, px, py)
+        zr = 7.1 - np.abs(y - 1) * (4.3 / 3.15)
+        dark = ((y < -1.4) & (z > 2.35)) | ((x > 3.85) & (z > zr - .8))
+        return f, np.where(dark, np.maximum(0, sh.astype(np.int16) - 2), sh).astype(np.int8)
+    return t
+plaster = eave_shadow(plaster); beam = eave_shadow(beam)
+
 # ---------------------------------------------------------------- 物を置く
 def build():
     cast([(x, y, z) for x in (-4.2, 4.2) for y in (-1.6, 3.6) for z in (0, 3)] + [(-4.8, 1, 7.2), (4.8, 1, 7.2), (-4.2, -2.1, 2.9), (4.2, -2.1, 2.9)])
@@ -381,9 +391,17 @@ def shade_ellipse(p, rx, ry, d=2):
             if 0 <= xx < W and 0 <= yy < H and ((xx - X0) / rx) ** 2 + ((yy - Y0) / ry) ** 2 <= 1 and oid[yy, xx] in (0, 1):
                 shd[yy, xx] = max(0, shd[yy, xx] - d)
 
+def drop(p, r=1.0, ry=None, d=2):
+    """物の影：地面を右（+x,+y 側）にずらして暗くする"""
+    shade_ellipse(np.array([p[0] + .3 * r, p[1] + .3 * r, 0.]), int(.5 * A * r), int((ry or .5) * .5 * A * r), d)
+
 def props():
     k = max(1, S // 2)
     barrel, bucket, crate, logs = (load_sprite(n) for n in ("barrel", "bucket", "crate", "logs"))
+    for (x, y) in ((3.2, -3.1), (3.9, -3.5)): drop((x, y), .9)
+    for (x, y) in ((2.5, -3.7), (4.5, -2.8)): drop((x, y), .45)
+    for (cx, cy, cz) in ((-1.0, -2.4, 0), (-.35, -2.55, 0)): drop((cx, cy), 1.0)
+    drop((9.0, -3.9), 1.9, .6)
     for (x, y) in ((3.2, -3.1), (3.9, -3.5)): stamp(barrel, np.array([x + .1, y - .1, 0.]), k)
     for (x, y) in ((2.5, -3.7), (4.5, -2.8)): stamp(bucket, np.array([x + .1, y - .1, 0.]), k)
     for (cx, cy, cz) in ((-1.0, -2.4, 0), (-.35, -2.55, 0), (-.7, -2.45, .5)): stamp(crate, np.array([cx + .28, cy - .28, cz]), k)
@@ -397,7 +415,7 @@ def props():
     # 背の高い花（小物の絵）
     fl = [load_sprite("flower1"), load_sprite("flower2")]
     for i, (fx, fy) in enumerate(((4.7, -2.2), (5.0, -1.0), (4.65, .3), (4.9, 1.1), (5.6, .7), (4.4, -.4), (9.1, -2.6), (9.2, .6))):
-        stamp(fl[i % 2], np.array([fx, fy, 0.]), k)
+        drop((fx, fy), .7); stamp(fl[i % 2], np.array([fx, fy, 0.]), k)
     # つる（家の壁）
     for (x, top) in ((-3.85, 2.8), (-1.4, 2.2), (-1.7, 1.2), (.6, 2.6), (2.6, 1.8), (3.9, 2.9)):
         u = 0.; z = .3
