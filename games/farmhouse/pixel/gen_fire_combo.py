@@ -72,7 +72,7 @@ def frame(i, N, P):
     heat = heat + (n - .5) * .35 * (heat > .02) + (n - .5) * .08
     # 上へ舞いあがる炎の舌（弧の上がわ）：弧のうち先頭に近い所から
     tongue = np.clip(1 - np.abs(xx - (CX + R * np.cos(head - .25))) / 22, 0, 1) * np.clip((CY + R * np.sin(head - .25) - yy) / 38, 0, 1) * np.clip(yy / 70, 0, 1) * (1 if t < .45 else 0) * 0
-    heat = np.clip(heat, 0, 1)
+    heat = np.clip(heat * P.get('gain', 1.0), 0, 1)                    # 打が進むほど熱く（白寄り）
     # --- 網点（ディザ）で段階に切る
     q = heat * 7.4 + (BAYER[(yy.astype(int) % 4), (xx.astype(int) % 4)] - .5) * .45
     idx = np.clip(np.floor(q), -1, 7).astype(int)
@@ -121,11 +121,11 @@ def arc_from_points(S, E, bulge):
     if abs(de) < abs(dm) or dm * de < 0: de += 2 * math.pi * (1 if dm > 0 else -1)      # Mを通るほうの向きにする
     return dict(cx=ux, cy=uy, r=r, a0=math.degrees(a_s), a1=math.degrees(a_s + de))
 
-HITS = [
- dict(name="hit1_ななめ下ぎり", half=15, **arc_from_points((20, 30), (140, 102), 30)),
- dict(name="hit2_ななめ下ぎり左", half=15, **arc_from_points((140, 30), (20, 100), 30)),
- dict(name="hit3_横なぎ", half=14, **arc_from_points((150, 88), (10, 72), 24)),
- dict(name="hit4_たて斬り", half=16, **arc_from_points((88, 24), (72, 104), 24)),
+HITS = [   # 打が進むほど、太く・熱く・火の粉が多く・炎の舌が長くなる
+ dict(name="hit1_ななめ下ぎり", half=13, gain=.9, sparks=18, lick=.9, **arc_from_points((20, 30), (140, 102), 30)),
+ dict(name="hit2_ななめ下ぎり左", half=15, gain=.97, sparks=26, lick=1.1, **arc_from_points((140, 30), (20, 100), 30)),
+ dict(name="hit3_横なぎ", half=17, gain=1.05, sparks=36, lick=1.25, **arc_from_points((152, 90), (8, 70), 26)),
+ dict(name="hit4_たて斬り", half=23, gain=1.12, sparks=48, lick=1.5, **arc_from_points((90, 14), (70, 108), 26)),
 ]
 NH = 8
 allf = []
@@ -134,7 +134,7 @@ for h in HITS:
     allf.append(fr)
 # --- 5撃目：しあげ（大きなX字を2本重ねて、中央から衝撃のわ）
 NF = 12
-P1 = dict(half=19, sparks=40, **arc_from_points((20, 28), (140, 106), 30)); P2 = dict(half=19, sparks=0, **arc_from_points((140, 28), (20, 106), 30))
+P1 = dict(half=21, gain=1.12, lick=1.4, sparks=72, **arc_from_points((26, 30), (134, 96), 26)); P2 = dict(half=21, gain=1.12, lick=1.4, sparks=0, **arc_from_points((134, 30), (26, 96), 26))
 x1 = [frame(i, NF, P1) for i in range(NF)]; x2 = [frame(i, NF, P2) for i in range(NF)]
 fin = []
 yy_, xx_ = np.mgrid[0:H, 0:W].astype(float)
