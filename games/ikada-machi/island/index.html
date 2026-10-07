@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>島マップ（HD-2D・確認用）</title>
+<style>
+html,body{margin:0;height:100%;background:#0c1530;overflow:hidden;font-family:system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;color:#e8dcb8}
+canvas{display:block}
+#hud{position:fixed;left:10px;top:10px;display:flex;flex-direction:column;gap:6px;max-width:220px;user-select:none}
+#hud h1{font-size:13px;margin:0 0 2px;font-weight:600;text-shadow:0 1px 2px #000}
+.row{display:flex;gap:5px;flex-wrap:wrap}
+button{background:#2b1636cc;color:#e8dcb8;border:1px solid #6b4231;border-radius:5px;padding:6px 10px;font-size:13px;cursor:pointer}
+button.on{background:#6b4231;color:#fff}
+#help{position:fixed;left:10px;bottom:10px;font-size:11px;opacity:.75;text-shadow:0 1px 2px #000}
+#mini{position:fixed;right:10px;top:10px;border:1px solid #6b4231;background:#0008;image-rendering:pixelated;width:120px;height:120px}
+#log{position:fixed;right:10px;bottom:10px;font-size:11px;color:#ffb0a0;max-width:50vw;text-align:right}
+</style></head><body>
+<div id="hud"><h1>島マップ（HD-2D・確認用）</h1>
+<div class="row" id="times"><button data-t="morning" class="on">朝</button><button data-t="dusk">夕</button><button data-t="night">夜</button></div>
+<div class="row"><button id="bBloom" class="on">光のにじみ</button><button id="bBlur" class="on">奥のぼかし</button></div></div>
+<canvas id="mini" width="24" height="24"></canvas>
+<div id="help">ドラッグ：動かす／ホイール・ピンチ：拡大縮小／矢印キー：動かす　URLの最後に ?low で軽くなる</div>
+<div id="log"></div>
+<script src="common.js"></script><script src="map.js"></script>
+<script src="camera.js"></script><script src="terrain.js"></script><script src="water.js"></script>
+<script src="dock.js"></script><script src="houses.js"></script><script src="props.js"></script><script src="light.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const I=window.ISLAND, $=id=>document.getElementById(id);
+const renderer=new THREE.WebGLRenderer({antialias:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.NoToneMapping; document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color('#1f4e6b');
+const q=new URLSearchParams(location.search);
+const c={THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,map:I.map,pal:I.pal,
+  onResize:[],low:q.has('low'),sprites:[],glows:[],windows:[],camera:null,render:null};
+// 絵（ドット絵）を、ぼやけない板に変える
+c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
+  if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
+// 地面に立つ絵：カメラの向きに合わせ、見下ろしでちぢむぶん縦をのばす
+c.sprite=(cv,{x,y,z,ppu=16})=>{
+  const m=new THREE.MeshBasicMaterial({map:c.tex(cv),transparent:true,alphaTest:.45});c.sprites.push(m);
+  const g=new THREE.PlaneGeometry(1,1);g.translate(0,.5,0);
+  const mesh=new THREE.Mesh(g,m);mesh.scale.set(cv.width/ppu,cv.height/ppu/Math.cos(c.cam.pitch),1);
+  mesh.rotation.y=c.cam.yaw;mesh.position.set(x,y,z);return mesh;};
+const only=q.get('parts')?q.get('parts').split(','):null, upd=[], log=[];
+for(const name of I.order){
+  if(only&&!only.includes(name)&&name!=='camera')continue;
+  try{const r=I.parts[name]&&I.parts[name](c);if(r&&r.update)upd.push(r.update);}
+  catch(e){console.error(name,e);log.push('パーツ「'+name+'」でエラー：'+e.message);}
+}
+if(!c.camera){c.camera=new THREE.OrthographicCamera(-10,10,10,-10,-100,100);c.camera.position.set(20,20,20);c.camera.lookAt(12,0,12);}
+if(!c.render)c.render=()=>renderer.render(scene,c.camera);
+$('log').textContent=log.join(' / ');
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);c.onResize.forEach(f=>f());});
+// 時間帯・ぼかしのボタン
+document.querySelectorAll('#times button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#times button').forEach(x=>x.classList.remove('on'));b.classList.add('on');c.setTime&&c.setTime(b.dataset.t);});
+const tog=(id,fn)=>{const b=$(id);b.onclick=()=>{b.classList.toggle('on');fn&&fn(b.classList.contains('on'));};};
+tog('bBloom',on=>c.fx&&c.fx.setBloom(on)); tog('bBlur',on=>c.fx&&c.fx.setBlur(on));
+// 設計図の小さな地図
+(()=>{const m=$('mini').getContext('2d'),col={sand:'#d0c09a',grass:'#587a45',path:'#9f704a',rock:'#736967',water:'#1f4e6b'};
+  I.map.tiles.forEach((row,z)=>row.forEach((t,x)=>{m.fillStyle=col[t.t];m.fillRect(x,z,1,1);}));
+  m.fillStyle='#b8654f';I.map.houses.forEach(h=>m.fillRect(h.x,h.z,h.w,h.d));
+  m.fillStyle='#caa97e';m.fillRect(I.map.dock.x,I.map.dock.z0,I.map.dock.w,Math.min(I.map.dock.len,I.map.D-I.map.dock.z0));})();
+let last=performance.now(),t=0;
+function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;t+=dt;upd.forEach(f=>f(t,dt));c.render();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+window.__c=c;
+</script></body></html>
