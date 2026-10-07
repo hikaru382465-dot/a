@@ -139,3 +139,5 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - ひかるの感想：農夫は相当上達。横向きの靴が少し大きい
 - 次にやること：農夫の横向きの靴を小さく／麻袋・切り株／地面の模様（迷彩に見える）／うしろ向き
 - 詳しくは `games/farmhouse/README.md` と `games/farmhouse/pixel/README.md`
+
+- 2026-10-07 farmhouse：炎エフェクト・SMG・イカダ・海タイル・水ぎわの家の反射（pixel/iso_reflect.py）を追加。次：反射に小物/つるを入れる、イカダの縁タイル。

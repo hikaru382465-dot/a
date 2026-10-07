@@ -273,10 +273,10 @@ def eave_shadow(tex):
 plaster = eave_shadow(plaster); beam = eave_shadow(beam)
 
 # ---------------------------------------------------------------- 物を置く
-def build():
+def build(ground_plane=True, extras=True):
     cast([(x, y, z) for x in (-4.2, 4.2) for y in (-1.6, 3.6) for z in (0, 3)] + [(-4.8, 1, 7.2), (4.8, 1, 7.2), (-4.2, -2.1, 2.9), (4.2, -2.1, 2.9)])
     cast([(-5.4 + dx, -3.4 + dy, z) for dx in (-.9, .9) for dy in (-.7, .7) for z in (0, 2.2)])
-    face((-20, -20, 0), (40, 0, 0), (0, 40, 0), ground, 0, 0)
+    if ground_plane: face((-20, -20, 0), (40, 0, 0), (0, 40, 0), ground, 0, 0)
     # 土台と壁
     box(-4.15, -1.65, 0, 4.15, 3.65, .3, stone)
     box(-4, -1.5, .3, 4, 3.5, 3, {'all': plaster})
@@ -323,6 +323,7 @@ def build():
     solid(o, (9.2, 0, 0), up * 1.02, ny, {'+C': thatch(), '+A': beam, '-A': beam, '-B': thatch(True), 'all': None}, 2)
     solid((-4.8, RY - .12, RZ - .05), (9.6, 0, 0), (0, .28, 0), (0, 0, .3), beam, 2)
     solid((-4.8, RY - .3, RZ - .1), (9.6, 0, 0), (0, .2, 0), (0, 0, .25), beam, 2)
+    if not extras: return
     # 井戸
     wx, wy = -5.4, -3.4
     for k in range(10):
