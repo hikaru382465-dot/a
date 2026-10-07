@@ -100,3 +100,8 @@
 - `python photo_to_pixel.py ref/smg_photo.jpg 160 名前` → `sprites/名前.pxl/.png/_big.png/_compare.png`（写真と並べた絵）。背景が白い写真の物を、形（シルエット）と明暗を写真から取って、パレットの段階に切る
 - 色は青灰の鋼（S0〜S6）、赤い表示だけ赤（G）。明暗は網点で出し、ぽつんと浮いた点は消す
 - 写真のサブマシンガン（`ref/smg_photo.jpg`）の変換が `mp_c`。形・レール・トリガーガード・グリップ・マガジン・折りたたみストックは写真どおり。細かい刻印や文字は、ドットでは潰れるので省いた
+
+## 炎の精霊（gen_fire_spirit.py）
+- `python gen_fire_spirit.py` → `assets/effects/fire_spirit_sheet.png`（64×64 のコマを 4列×2行＝8コマ、背景は透明）、`fire_spirit.gif`、`fire_spirit_preview.png`
+- 右向き。丸くひかる体、黒ふちに白い芯の目が2つ、うしろ（左）へなびく炎のしっぽ、頭の上の小さな炎の舌、まばらな点の光のもや、ゆっくり上る火の粉。ふわふわ上下（8コマで1周）、7コマ目でまばたき
+- 色はパレットの炎の系統 `f`。1ドットの暗い輪郭、左上から光
