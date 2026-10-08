@@ -8,33 +8,41 @@ window.RAFT.parts.hud = function (c) {
   const timeName = t => times.find(x => t < x[0])[1];
   const toast = msg => { const e = $('toast'); e.textContent = msg; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, 2400); };
   function refresh() {
-    const inv = Object.keys(s.inv).filter(k => s.inv[k] > 0).map(k => `<span class="it"><canvas width="12" height="12" data-k="${k}"></canvas>${D.ITEMS[k].name} ${s.inv[k]}</span>`).join('') || '<span class="dim">持ち物なし</span>';
-    $('inv').innerHTML = inv;
+    const slots = [];
+    s.tools.forEach(k => slots.push({ t: 'tool', k, n: 'Lv' + s.net.lv, name: D.TOOLS[k].name, tip: D.TOOLS[k].tip, on: s.equip === k }));
+    Object.keys(D.ITEMS).forEach(k => { if ((s.inv[k] || 0) > 0) slots.push({ t: 'item', k, n: s.inv[k], name: D.ITEMS[k].name, tip: D.ITEMS[k].food || D.ITEMS[k].drink ? 'タップで使う' : '材料' }); });
+    $('inv').innerHTML = slots.map((o, i) => `<button class="slot${o.on ? ' on' : ''}" data-t="${o.t}" data-k="${o.k}" title="${o.name}：${o.tip}"><canvas width="12" height="12" data-k="${o.k}"></canvas><span class="nm">${o.name}</span><span class="n">${o.n}</span><span class="key">${i + 1}</span></button>`).join('');
     $('inv').querySelectorAll('canvas').forEach(cv => { const k = cv.dataset.k; if (c.itemIcon) cv.getContext('2d').drawImage(c.itemIcon(k === 'water' ? 'glass' : k), 0, 0); });
+    $('inv').querySelectorAll('.slot').forEach((b, i) => b.onclick = () => pick(i));
+    c.slots = slots;
     const nx = sim.nextNet(s);
     $('bNet').textContent = nx ? `網を強くする Lv${s.net.lv}→${nx.lv}（とどく${nx.range}マス・${Object.keys(nx.cost).map(k => D.ITEMS[k].name + nx.cost[k]).join('・')}）` : `網 Lv${s.net.lv}（さいだい）`;
     $('bBuild').textContent = c.mode.build ? '床を足す：えらぶ' : `床を足す（${Object.keys(D.BUILD.floor).map(k => D.ITEMS[k].name + D.BUILD.floor[k]).join('・')}）`;
     $('bBuild').classList.toggle('on', c.mode.build);
   }
+  function pick(i) {
+    const o = c.slots && c.slots[i]; if (!o) return;
+    if (o.t === 'tool') sim.equip(s, o.k); else if (!sim.use(s, o.k)) { /* 材料はお知らせだけ */ }
+    refresh();
+  }
+  addEventListener('keydown', e => { if (/^[1-9]$/.test(e.key)) pick(+e.key - 1); });
   c.hud = { refresh, toast };
-  $('bEat').onclick = () => { if (!sim.eat(s)) toast('食べ物がない'); refresh(); };
-  $('bDrink').onclick = () => { if (!sim.drink(s)) toast('飲み物がない（嵐の雨でたまる）'); refresh(); };
   $('bBuild').onclick = () => { c.mode.build = !c.mode.build; c.setHighlight && c.setHighlight(c.mode.build); refresh(); toast(c.mode.build ? '光っているマスをタップして床を足す' : ''); };
   $('bNet').onclick = () => { sim.upgradeNet(s); refresh(); };
   $('bHaul').onclick = () => { if (!sim.recallNet(s)) toast('網は出ていない（海を押して投げる）'); };
   // 雨
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
-  const msgs = { caught: e => `かかった：${D.ITEMS[e.k].name}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ', short: () => '材料がたりない', built: () => '床を足した', throw: () => '', splash: () => '', miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった', stormnet: () => '嵐の間は網が投げられない（雨水をためよう）', netup: () => '嵐！ 網を引き寄せた', netlv: e => `網が Lv${e.lv} になった`, weather: e => `天気：${D.WEATHER[e.id].name}` };
+  const msgs = { caught: e => `かかった：${D.ITEMS[e.k].name}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ', short: () => '材料がたりない', built: () => '床を足した', equip: e => e.id ? '網を持った：海を押し続けて、離すと投げる' : '網をしまった', noequip: () => '持ち物の「網」を選んでから投げる', material: e => `${D.ITEMS[e.k].name}：材料（床や網の強化に使う）`, throw: () => '', splash: () => '', miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった', stormnet: () => '嵐の間は網が投げられない（雨水をためよう）', netup: () => '嵐！ 網を引き寄せた', netlv: e => `網が Lv${e.lv} になった`, weather: e => `天気：${D.WEATHER[e.id].name}` };
   let acc = 0, lastKey = '';
   return { update(t, dt) {
-    s.events.splice(0).forEach(e => { const f = msgs[e.e]; if (f) toast(f(e)); if (['caught', 'haul', 'eat', 'drink', 'built', 'netlv', 'netup'].includes(e.e)) refresh(); });
+    s.events.splice(0).forEach(e => { const f = msgs[e.e]; if (f) toast(f(e)); if (['caught', 'haul', 'eat', 'drink', 'built', 'netlv', 'netup', 'equip'].includes(e.e)) refresh(); });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
     const bb = sim.bbox(s);
     $('clock').textContent = `${s.clock.day}日目 ${timeName(s.clock.t)}　${D.WEATHER[s.weather.id].name}　イカダ ${s.raft.cells.length}マス（${bb.w}×${bb.d}）`;
-    const nl = D.NET_LV[s.net.lv - 1], cs = s.net.cast, nk = s.net.lv + (cs ? cs.phase + cs.held.length : '-');
-    if (nk !== lastKey) { lastKey = nk; $('netinfo').textContent = `網 Lv${s.net.lv}（とどく${nl.range}マス・${nl.cap}個まで）` + (cs ? `　${{ fly: '飛んでいる', rest: 'とっている', back: 'もどってくる' }[cs.phase]} ${cs.held.length}/${nl.cap}` : ''); }
+    const nl = D.NET_LV[s.net.lv - 1], cs = s.net.cast, nk = s.net.lv + (s.equip || '-') + (cs ? cs.phase + cs.held.length : '-');
+    if (nk !== lastKey) { lastKey = nk; $('netinfo').textContent = `網 Lv${s.net.lv}（とどく${nl.range}マス・${nl.cap}個まで）${s.equip === 'net' ? '　手に持っている' : '　持ち物から選ぶ'}` + (cs ? `　${{ fly: '飛んでいる', rest: 'とっている', back: 'もどってくる' }[cs.phase]} ${cs.held.length}/${nl.cap}` : ''); }
     const gv = $('gauge'); gv.style.display = c.aim.active && !cs ? 'block' : 'none';
     if (c.aim.active) { $('gaugeFill').style.width = (c.aim.power * 100) + '%'; $('gaugeTxt').textContent = `${(D.NET_MIN + (nl.range - D.NET_MIN) * c.aim.power).toFixed(1)}マス先`; }
     // 雨と目のかすみ

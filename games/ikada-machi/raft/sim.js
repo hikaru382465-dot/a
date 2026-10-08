@@ -15,7 +15,7 @@
       clock: { day: 1, t: 0.16 },
       weather: { id: 'sunny', left: 80 },
       current: { ang: 0 },
-      net: { lv: 1, cast: null },
+      net: { lv: 1, cast: null }, tools: ['net'], equip: null,
       buddy: { x: 1.5, z: 1.5, face: 1, path: [], task: null, act: null, eatT: 0 },
       drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
     };
@@ -59,6 +59,7 @@
   };
   S.throwNet = function (s, tx, tz, power) {
     if (s.net.cast) return false;
+    if (s.equip !== 'net') { s.events.push({ e: 'noequip' }); return false; }
     if (s.weather.id === 'storm') { s.events.push({ e: 'stormnet' }); return false; }
     const b = s.buddy, t = S.throwTarget(s, tx, tz, power);
     b.path = []; b.act = { type: 'throw', t: 0.5 };
@@ -73,6 +74,16 @@
     if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
     s.net.cast = null;
   }
+  // 持ち物から使う：道具＝手に持つ／切りかえ、食べ物・飲み物＝使う
+  S.equip = function (s, id) { if (!s.tools.includes(id)) return false; s.equip = s.equip === id ? null : id; s.events.push({ e: 'equip', id: s.equip }); return true; };
+  S.use = function (s, k) {
+    const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0) return false;
+    if (!it.food && !it.drink) { s.events.push({ e: 'material', k }); return false; }
+    s.inv[k]--;
+    if (it.food) s.needs.hunger = clamp(s.needs.hunger + it.food, 0, 100);
+    if (it.drink) s.needs.thirst = clamp(s.needs.thirst + it.drink, 0, 100);
+    s.buddy.act = { type: 'eat', t: 0.5 }; s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
+  };
   S.eat = function (s) {
     for (const k of ['fish', 'coconut']) if ((s.inv[k] || 0) > 0) {
       s.inv[k]--; s.needs.hunger = clamp(s.needs.hunger + D.ITEMS[k].food, 0, 100);

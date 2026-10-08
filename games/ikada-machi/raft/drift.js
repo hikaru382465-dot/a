@@ -10,6 +10,7 @@ window.RAFT.parts.drift = function (c) {
     clay(g) { for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) if (Math.hypot((x - 5.5) / 1.1, (y - 7) / 0.85) < 4.4) I.dot(g, x, y, y < 6 ? P.wood3 : P.wood2); I.dot(g, 4, 5, P.wood5); },
     stone(g) { for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) if (Math.hypot(x - 5.5, (y - 6.5) * 1.2) < 4.3) I.dot(g, x, y, y < 6 ? P.stone3 : P.stone2); I.dot(g, 4, 5, '#d8d8cf'); },
     iron(g) { I.rect(g, 2, 4, 8, 5, P.stone1); I.rect(g, 2, 4, 8, 1, P.stone3); I.rect(g, 3, 7, 6, 2, P.red0); I.dot(g, 5, 6, P.red2); },
+    net(g) { for (let i = 1; i < 11; i += 3) { I.rect(g, i, 1, 1, 10, P.wood5); I.rect(g, 1, i, 10, 1, P.wood5); } I.rect(g, 1, 1, 10, 1, P.wood2); I.rect(g, 1, 10, 10, 1, P.wood2); I.rect(g, 1, 1, 1, 10, P.wood2); I.rect(g, 10, 1, 1, 10, P.wood2); I.rect(g, 0, 0, 2, 2, P.red1); I.rect(g, 10, 0, 2, 2, P.red1); },
     glass(g) { I.rect(g, 3, 3, 6, 7, '#8fc3bd'); I.rect(g, 4, 4, 2, 3, '#e6f6f2'); I.rect(g, 3, 9, 6, 1, '#46909c'); }
   };
   const icon = k => { const [cv, g] = I.canvas(12, 12); draw[k] && draw[k](g);

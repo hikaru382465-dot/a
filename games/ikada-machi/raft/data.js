@@ -19,6 +19,8 @@ window.RAFT.data = {
     water:   { name: '真水',     lv: 0, w: 0, drink: 35 }   // 雨でたまる（流れてはこない）
   },
   // 網（投げる）：range＝ゲージ満タンで飛ぶ距離（マス）、r＝網がとる広さ（半径・マス）、cap＝1回で入る数
+  // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）
+  TOOLS: { net: { name: '網', tip: '海を押し続けて、離すと投げる' } },
   NET_LV: [
     { lv: 1, range: 4,   r: 0.9, cap: 3 },
     { lv: 2, range: 5.5, r: 1.0, cap: 4, cost: { wood: 8 } },

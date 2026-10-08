@@ -43,7 +43,7 @@ window.RAFT.parts.buddy = function (c) {
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
     if (!p || c.mode.build) return;
     if (s.net.cast) { R.sim.recallNet(s); down.recall = true; return; }
-    if (!R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) { down.aim = true; aimT0 = performance.now(); c.aim.active = true; setAim(p, 0); }
+    if (!R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) { if (s.equip !== 'net') { s.events.push({ e: 'noequip' }); return; } down.aim = true; aimT0 = performance.now(); c.aim.active = true; setAim(p, 0); }
   });
   el.addEventListener('pointermove', e => { if (down && down.aim) { const p = world(e); if (p) { down.p = p; } } });
   el.addEventListener('pointerup', e => {
