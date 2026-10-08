@@ -76,7 +76,7 @@ window.RAFT.parts.drift = function (c) {
     }
     // 網
     const cast = s.net.cast, useArt = art.ready && cast;
-    net.visible = !!cast && !useArt; ropeLine.visible = !!cast && !(useArt && cast.phase === 'back'); artMesh.visible = false;
+    net.visible = !!cast && !useArt; ropeLine.visible = !!cast; artMesh.visible = false;
     if (cast) {
       let y = 0.06 + Math.sin(t * 1.7) * 0.012, sc = nl.r * 2;
       if (cast.phase === 'fly') { const k = Math.min(1, cast.t); y = 0.7 + Math.sin(Math.PI * k) * 1.3 - k * 0.64; sc *= 0.35 + 0.65 * k; }
@@ -85,13 +85,12 @@ window.RAFT.parts.drift = function (c) {
         let f, u;
         if (cast.phase === 'fly') { f = NA.fly[Math.min(3, Math.floor(Math.min(1, cast.t) * 4))]; u = 2 * nl.r / NA.flyDiscW; }
         else if (cast.phase === 'rest' && cast.t < 0.5) { f = NA.splash[Math.min(3, Math.floor(cast.t / 0.125))]; u = 2 * nl.r / NA.flyDiscW; }
-        else if (cast.phase === 'back') { f = NA.haul[Math.min(NA.haul.length - 1, Math.floor((cast.bt || 0) / R.data.NET_HAUL * NA.haul.length))]; u = 2 * nl.r / NA.haulDiscW; }
-        else { f = NA.idle[Math.floor(t * 5) % 4]; u = 2 * nl.r / NA.idleDiscW; }
+        else { f = NA.idle[Math.floor(t * (cast.phase === 'back' ? 10 : 5)) % 4]; u = 2 * nl.r / NA.idleDiscW; if (cast.phase === 'back') u *= 0.92; }
         showArt(f, u, cast.x, y + 0.02, cast.z);
       } else { net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
       setLine(ropeLine, b.x, 0.55, b.z, cast.x, y, cast.z);
     }
-    const showHeld = cast && !(useArt && cast.phase === 'back');
+    const showHeld = !!cast;
     while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());
     if (showHeld) cast.held.forEach((k, i) => {
       if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); held[i] = c.sprite(mk(k), { x: 0, y: 0, z: 0, ppu: 36 }); group.add(held[i]); held[i].userData.k = k; }

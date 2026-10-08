@@ -181,9 +181,9 @@
       } else if (cast.phase === 'rest') {
         cast.t += dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
         if (cast.t >= D.NET_REST || cast.held.length >= nl.cap) cast.phase = 'back';
-      } else {   // 引き上げ：その場で絵が動いて、終わったら持ち物に入る
-        cast.bt = (cast.bt || 0) + dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
-        if (cast.bt >= D.NET_HAUL) collect(s);
+      } else {   // 引きずって引き寄せる：網が水の上を滑って、イカダの端に着いたら持ち物に入る
+        const dx = b.x - cast.x, dz = b.z - cast.z, d = Math.hypot(dx, dz), step = D.NET_DRAG * dt;
+        if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
       }
     }
     const rest = s.net.cast && s.net.cast.phase === 'rest' ? s.net.cast : null;
