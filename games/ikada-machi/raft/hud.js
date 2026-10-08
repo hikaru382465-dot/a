@@ -106,8 +106,8 @@ window.RAFT.parts.hud = function (c) {
   const msgs = {
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
     short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, placed: () => '置いた',
-    miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった', stormnet: () => '嵐の間は網が投げられない（雨水をためよう）',
-    netup: () => '嵐！ 網を引き寄せた', netlv: e => `網が Lv${e.lv} になった`, noequip: () => '右下の「持ち物」から、網を手に持とう',
+    miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった',
+    netlv: e => `網が Lv${e.lv} になった`, noequip: () => '右下の「持ち物」から、網を手に持とう',
     weather: e => `天気：${D.WEATHER[e.id].name}`, tankinfo: e => `貯水槽 ${e.w}/${e.cap}`, tankempty: () => '貯水槽が空（雨をためる／ろ過器を置く）',
     filterinfo: e => `ろ過器：あと${e.left}秒で水が1入る`, equip: e => e.id ? '網を持った：海を押し続けて、離すと投げる' : '網をしまった'
   };

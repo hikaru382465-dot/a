@@ -80,7 +80,6 @@
   S.throwNet = function (s, tx, tz, power) {
     if (s.net.cast) return false;
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); return false; }
-    if (s.weather.id === 'storm') { s.events.push({ e: 'stormnet' }); return false; }
     const b = s.player, t = S.throwTarget(s, tx, tz, power);
     b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(t.x - b.x, t.z - b.z);
     s.net.cast = { phase: 'fly', sx: b.x, sz: b.z, tx: t.x, tz: t.z, x: b.x, z: b.z, t: 0, held: [] };
@@ -167,7 +166,7 @@
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
   function pickItem(s) {
-    const list = Object.keys(D.ITEMS).filter(k => D.ITEMS[k].w > 0 && D.ITEMS[k].lv <= s.net.lv + 1);
+    const list = Object.keys(D.ITEMS).filter(k => D.ITEMS[k].w > 0 && D.ITEMS[k].lv <= s.net.lv);
     let tot = 0; list.forEach(k => tot += D.ITEMS[k].w); let r = S.rand() * tot;
     for (const k of list) { r -= D.ITEMS[k].w; if (r <= 0) return k; }
     return list[0];
@@ -177,7 +176,6 @@
     let r = S.rand() * tot, id = ids[0]; for (const k of ids) { r -= D.WEATHER[k].w; if (r <= 0) { id = k; break; } }
     s.weather = { id, left: 60 + S.rand() * 60 };
     s.events.push({ e: 'weather', id });
-    if (id === 'storm' && s.net.cast) { s.net.cast.phase = 'back'; s.events.push({ e: 'netup' }); }
   }
 
   S.step = function (s, dt) {
@@ -249,11 +247,23 @@
         if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
       }
     }
-    const rest = s.net.cast && s.net.cast.phase === 'rest' ? s.net.cast : null;
+    const ct = s.net.cast, rest = ct && (ct.phase === 'rest' || ct.phase === 'back') ? ct : null;   // 広げているとき・引きずっているときは、通りかかった物がかかる
+    const inRaft = (x, z) => S.has(s, Math.floor(x), Math.floor(z));
     for (let i = s.drift.length - 1; i >= 0; i--) {
-      const it = s.drift[i]; it.x += f.x * v * dt; it.z += f.z * v * dt; it.born += dt;
-      if (S.has(s, Math.floor(it.x), Math.floor(it.z))) { s.drift.splice(i, 1); continue; }              // イカダにぶつかって沈む
-      if (rest && Math.hypot(it.x - rest.x, it.z - rest.z) < nl.r && D.ITEMS[it.k].lv <= s.net.lv && rest.held.length < nl.cap) {
+      const it = s.drift[i], sp = v * dt; it.born += dt;
+      // 流れてきた物がイカダにぶつかったら、なくならずに、へりに沿ってすべって、また流れていく
+      let nx = it.x + f.x * sp, nz = it.z + f.z * sp;
+      if (inRaft(nx, nz)) {
+        if (!inRaft(it.x + f.x * sp * 1.4, it.z)) { nx = it.x + f.x * sp * 1.4; nz = it.z; }
+        else if (!inRaft(it.x, it.z + f.z * sp * 1.4)) { nx = it.x; nz = it.z + f.z * sp * 1.4; }
+        else { const px = -f.z, pz = f.x, side = ((it.x - cx) * px + (it.z - cz) * pz) >= 0 ? 1 : -1; nx = it.x + px * side * sp * 1.5; nz = it.z + pz * side * sp * 1.5; }
+      }
+      it.x = nx; it.z = nz;
+      if (inRaft(it.x, it.z)) {   // イカダが広がって、物の上にかぶさったとき：外へ押し出す
+        const px = -f.z, pz = f.x, side = ((it.x - cx) * px + (it.z - cz) * pz) >= 0 ? 1 : -1;
+        it.x += px * side * sp * 3; it.z += pz * side * sp * 3;
+      }
+      if (rest && Math.hypot(it.x - rest.x, it.z - rest.z) < nl.r && rest.held.length < nl.cap) {
         rest.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue;
       }
       if ((it.x - cx) * f.x + (it.z - cz) * f.z > R + 3) s.drift.splice(i, 1);
