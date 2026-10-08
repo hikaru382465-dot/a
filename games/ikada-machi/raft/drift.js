@@ -15,6 +15,8 @@ window.RAFT.parts.drift = function (c) {
     bench(g) { I.rect(g, 1, 3, 10, 3, P.wood4); I.rect(g, 1, 3, 10, 1, P.wood5); I.rect(g, 2, 6, 2, 5, P.wood1); I.rect(g, 8, 6, 2, 5, P.wood1); I.rect(g, 3, 1, 3, 2, P.stone3); },
     tank(g) { I.rect(g, 2, 2, 8, 9, P.wood2); I.rect(g, 3, 2, 6, 1, P.blue2); I.rect(g, 2, 5, 8, 1, P.stone3); I.rect(g, 2, 8, 8, 1, P.stone2); I.rect(g, 7, 3, 2, 8, P.wood1); },
     filter(g) { I.rect(g, 2, 6, 8, 5, P.wood2); I.rect(g, 3, 1, 6, 5, P.cream); I.rect(g, 3, 3, 6, 1, P.red1); I.rect(g, 10, 8, 2, 1, P.stone2); I.dot(g, 11, 10, P.blue3); },
+    bag(g) { I.rect(g, 3, 4, 6, 7, P.wood2); I.rect(g, 2, 5, 8, 5, P.wood2); I.rect(g, 3, 2, 6, 3, P.wood3); I.rect(g, 4, 3, 4, 1, P.wood1); I.rect(g, 4, 7, 4, 2, P.wood4); I.rect(g, 3, 5, 6, 1, P.wood1); },
+    hammer(g) { I.rect(g, 2, 2, 7, 3, P.stone3); I.rect(g, 2, 2, 7, 1, '#d8d8cf'); I.rect(g, 8, 3, 2, 2, P.stone1); I.rect(g, 5, 5, 2, 6, P.wood3); I.rect(g, 5, 5, 1, 6, P.wood4); },
     glass(g) { I.rect(g, 3, 3, 6, 7, '#8fc3bd'); I.rect(g, 4, 4, 2, 3, '#e6f6f2'); I.rect(g, 3, 9, 6, 1, '#46909c'); }
   };
   const icon = k => { const [cv, g] = I.canvas(12, 12); draw[k] && draw[k](g);
