@@ -11,13 +11,14 @@ canvas{display:block}
 button{background:#2b1636cc;color:#e8dcb8;border:1px solid #6b4231;border-radius:5px;padding:6px 10px;font-size:13px;cursor:pointer}
 button.on{background:#6b4231;color:#fff}
 #help{position:fixed;left:10px;bottom:10px;font-size:11px;opacity:.75;text-shadow:0 1px 2px #000}
-#mini{position:fixed;right:10px;top:10px;border:1px solid #6b4231;background:#0008;image-rendering:pixelated;width:120px;height:120px}
+#mini{position:fixed;right:10px;top:10px;border:1px solid #6b4231;background:#0008;image-rendering:pixelated;width:150px;height:150px}
 #log{position:fixed;right:10px;bottom:10px;font-size:11px;color:#ffb0a0;max-width:50vw;text-align:right}
 </style></head><body>
 <div id="hud"><h1>島マップ（HD-2D・確認用）</h1>
 <div class="row" id="times"><button data-t="morning" class="on">朝</button><button data-t="dusk">夕</button><button data-t="night">夜</button></div>
+<div class="row"><button id="bAll">全体を見る</button><button id="bNear">広場へ</button></div>
 <div class="row"><button id="bBloom" class="on">光のにじみ</button><button id="bBlur" class="on">奥のぼかし</button></div></div>
-<canvas id="mini" width="24" height="24"></canvas>
+<canvas id="mini" width="48" height="48"></canvas>
 <div id="help">ドラッグ：動かす／ホイール・ピンチ：拡大縮小／矢印キー：動かす　URLの最後に ?low で軽くなる</div>
 <div id="log"></div>
 <script src="common.js"></script><script src="map.js"></script>
@@ -67,6 +68,8 @@ tog('bBloom',on=>c.fx&&c.fx.setBloom(on)); tog('bBlur',on=>c.fx&&c.fx.setBlur(on
   I.map.tiles.forEach((row,z)=>row.forEach((t,x)=>{m.fillStyle=col[t.t];m.fillRect(x,z,1,1);}));
   m.fillStyle='#b8654f';I.map.houses.forEach(h=>m.fillRect(h.x,h.z,h.w,h.d));
   m.fillStyle='#caa97e';m.fillRect(I.map.dock.x,I.map.dock.z0,I.map.dock.w,Math.min(I.map.dock.len,I.map.D-I.map.dock.z0));})();
+$('bAll').onclick=()=>{const st=c.cam.st;st.target.set(I.map.W/2,0.5,I.map.D/2);st.zoom=Math.max(.3,Math.min(1,innerWidth/(I.map.W*64*.78)));c.cam.apply();};
+$('bNear').onclick=()=>{const st=c.cam.st,p=I.map.plaza;st.target.set(p.x+p.w/2,0.5,p.z+p.d/2);st.zoom=1;c.cam.apply();};
 let last=performance.now(),t=0;
 function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;t+=dt;upd.forEach(f=>f(t,dt));c.render();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);

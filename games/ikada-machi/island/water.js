@@ -43,8 +43,8 @@ void main(){
   #include <colorspace_fragment>
 }`
   });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(220, 220), mat);
-  m.rotation.x = -Math.PI / 2; m.position.set(12, c.WATER_Y == null ? -0.25 : c.WATER_Y, 12); scene.add(m);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), mat);
+  m.rotation.x = -Math.PI / 2; m.position.set(map.W / 2, c.WATER_Y == null ? -0.25 : c.WATER_Y, map.D / 2); scene.add(m);
   c.water = { uniforms: u };
   return { update(t) { u.uTime.value = t; } };
 };

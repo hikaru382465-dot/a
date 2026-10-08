@@ -7,11 +7,11 @@ window.ISLAND.parts.camera = function (c) {
   const dir = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
   const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
   const away = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-  const st = { target: new THREE.Vector3(12, 0.5, 13.5), zoom: 1 };
+  const st = { target: new THREE.Vector3(c.map.W / 2, 0.5, c.map.D * 0.62), zoom: 1 };
   function apply() {
     const ppu = PPU * st.zoom, w = innerWidth, h = innerHeight;
     cam.left = -w / 2 / ppu; cam.right = w / 2 / ppu; cam.top = h / 2 / ppu; cam.bottom = -h / 2 / ppu;
-    st.target.x = Math.min(30, Math.max(-6, st.target.x)); st.target.z = Math.min(30, Math.max(-6, st.target.z));
+    st.target.x = Math.min(c.map.W + 6, Math.max(-6, st.target.x)); st.target.z = Math.min(c.map.D + 6, Math.max(-6, st.target.z));
     cam.position.copy(st.target).addScaledVector(dir, 60);
     cam.lookAt(st.target); cam.updateProjectionMatrix();
   }
@@ -26,12 +26,12 @@ window.ISLAND.parts.camera = function (c) {
       const ppu = PPU * st.zoom;
       st.target.addScaledVector(right, -dx / ppu).addScaledVector(away, 2 * dy / ppu); apply();
     } else if (pts.size === 2) {
-      const [a, b] = [...pts.values()]; st.zoom = Math.min(3.5, Math.max(0.6, zoom0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch0)); apply();
+      const [a, b] = [...pts.values()]; st.zoom = Math.min(3.5, Math.max(0.3, zoom0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch0)); apply();
     }
   });
   const up = e => pts.delete(e.pointerId);
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
-  el.addEventListener('wheel', e => { e.preventDefault(); st.zoom = Math.min(3.5, Math.max(0.6, st.zoom * Math.exp(-e.deltaY * 0.0012))); apply(); }, { passive: false });
+  el.addEventListener('wheel', e => { e.preventDefault(); st.zoom = Math.min(3.5, Math.max(0.3, st.zoom * Math.exp(-e.deltaY * 0.0012))); apply(); }, { passive: false });
   addEventListener('keydown', e => {
     const s = 0.8 / st.zoom, k = e.key;
     if (k === 'ArrowLeft' || k === 'a') st.target.addScaledVector(right, -s);

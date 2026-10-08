@@ -24,7 +24,7 @@ window.ISLAND.parts.houses = function (c) {
     return cv;
   }
   const wallBase = { cream: plank(P.wood5, P.wood4, P.wood3, 11), wood: plank(P.wood3, P.wood2, P.wood1, 12) };
-  const roofCol = { red: [P.red1, P.red2, P.red0], brown: [P.wood2, P.wood3, P.wood0], blue: [P.blue1, P.blue2, P.blue0] };
+  const roofCol = { red: [P.red1, P.red2, P.red0], brown: [P.wood2, P.wood3, P.wood0], blue: [P.blue1, P.blue2, P.blue0], green: [P.grass2, P.grass3, P.grass1] };
   const rep = (cv, w, h) => { const t = c.tex(cv, { repeat: true }); t.repeat.set(w, h); return t; };
   const stoneCv = (() => { const [cv, g] = I.canvas(16, 16), r = I.rng(5); I.rect(g, 0, 0, 16, 16, P.stone2);
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const v = r(); if (v < .2) I.dot(g, x, y, P.stone1); else if (v < .3) I.dot(g, x, y, P.stone3); }

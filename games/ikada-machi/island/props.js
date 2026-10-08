@@ -62,26 +62,36 @@ window.ISLAND.parts.props = function (c) {
     gr.addColorStop(0, 'rgba(255,200,110,1)'); gr.addColorStop(.35, 'rgba(255,150,60,.45)'); gr.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return cv; }
   function shadow() { const [cv, g] = I.canvas(32, 16); g.fillStyle = 'rgba(20,10,40,.55)'; g.beginPath(); g.ellipse(16, 8, 15, 7, 0, 0, 6.3); g.fill(); return cv; }
 
+  function well() { const [cv, g] = I.canvas(22, 24);
+    I.rect(g, 3, 12, 16, 11, P.stone2); I.rect(g, 3, 12, 16, 2, P.stone3);
+    for (let y = 14; y < 23; y += 3) for (let x = 3 + (y % 2) * 2; x < 19; x += 5) I.rect(g, x, y, 1, 3, P.stone1);
+    I.rect(g, 3, 22, 16, 1, P.stone0); I.rect(g, 5, 12, 12, 2, P.night1);
+    I.rect(g, 3, 3, 2, 11, P.wood1); I.rect(g, 17, 3, 2, 11, P.wood1); I.rect(g, 4, 3, 1, 11, P.wood2);
+    I.rect(g, 1, 0, 20, 3, P.red1); I.rect(g, 2, 0, 18, 1, P.red2); I.rect(g, 1, 3, 20, 1, P.red0);
+    I.rect(g, 10, 5, 2, 7, P.wood5); I.rect(g, 9, 11, 4, 2, P.wood2);
+    for (let y = 12; y < 23; y++) { I.dot(g, 2, y, OUT); I.dot(g, 19, y, OUT); } for (let x = 3; x < 19; x++) I.dot(g, x, 23, OUT);
+    return cv; }
+
   const cache = {};
   const get = (k, f) => cache[k] || (cache[k] = f());
   const shadowTex = c.tex(shadow()), glowTex = c.tex(glow());
+  const SPR = { tree0: () => tree(0), tree1: () => tree(1), bush, rock, tuft };
+  const SHD = { tree0: 1.8, tree1: 1.8, bush: 1.1, rock: 0.9, tuft: 0 };
+  const inst = {}, shadows = [];       // 数の多い物は、同じ絵をまとめて1回で描く（スマホで軽くするため）
+  const addInst = (key, x, z) => { const y = c.ground(x, z); (inst[key] || (inst[key] = { cv: SPR[key](), list: [] })).list.push([x, y, z]); if (SHD[key]) shadows.push([x + 0.08, y + 0.02, z + 0.08, SHD[key]]); };
   function place(cv, x, z, opts = {}) {
     const y = opts.y != null ? opts.y : c.ground(x, z);
     const m = c.sprite(cv, { x, y, z, ppu: 16 }); group.add(m);
-    if (opts.shadow) {
-      const sh = new THREE.Mesh(new THREE.PlaneGeometry(opts.shadow, opts.shadow / 2), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
-      sh.rotation.x = -Math.PI / 2; sh.rotation.z = Math.PI / 4; sh.position.set(x + 0.08, y + 0.02, z + 0.08); group.add(sh);
-    }
+    if (opts.shadow) shadows.push([x + 0.08, y + 0.02, z + 0.08, opts.shadow]);
     return m;
   }
   map.props.forEach(p => {
-    const onDock = p.onDock, gy = onDock ? 0.1 : undefined;
-    if (p.k === 'tree') place(get('tree' + p.v, () => tree(p.v)), p.x, p.z, { shadow: 1.8 });
-    else if (p.k === 'bush') place(get('bush', bush), p.x, p.z, { shadow: 1.1 });
-    else if (p.k === 'rock') place(get('rock', rock), p.x, p.z, { shadow: 0.9 });
-    else if (p.k === 'tuft') place(get('tuft', tuft), p.x, p.z);
+    const onDock = p.onDock;
+    if (p.k === 'tree') addInst('tree' + p.v, p.x, p.z);
+    else if (p.k === 'bush' || p.k === 'rock' || p.k === 'tuft') addInst(p.k, p.x, p.z);
     else if (p.k === 'barrel') place(get('barrel', barrel), p.x, p.z, { y: 0.1, shadow: 0.7 });
     else if (p.k === 'crate') place(get('crate', crate), p.x, p.z, { y: 0.1, shadow: 0.8 });
+    else if (p.k === 'well') place(get('well', well), p.x, p.z, { shadow: 1.6 });
     else if (p.k === 'lantern') {
       const y = onDock ? 0.1 : c.ground(p.x, p.z);
       place(get('lantern', lantern), p.x, p.z, { y, shadow: 0.5 });
@@ -90,4 +100,20 @@ window.ISLAND.parts.props = function (c) {
       c.glows.push({ mat: gm });
     }
   });
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), c.cam.yaw);
+  Object.values(inst).forEach(o => {
+    const m = new THREE.MeshBasicMaterial({ map: c.tex(o.cv), transparent: true, alphaTest: 0.45 }); c.sprites.push(m);
+    const g = new THREE.PlaneGeometry(1, 1); g.translate(0, 0.5, 0);
+    const im = new THREE.InstancedMesh(g, m, o.list.length);
+    const S = new THREE.Vector3(o.cv.width / 16, o.cv.height / 16 / Math.cos(c.cam.pitch), 1), V = new THREE.Vector3();
+    o.list.forEach((p, i) => { M.compose(V.set(p[0], p[1], p[2]), Q, S); im.setMatrixAt(i, M); });
+    im.frustumCulled = false; group.add(im);
+  });
+  if (shadows.length) {
+    const sg = new THREE.PlaneGeometry(1, 0.5); sg.rotateX(-Math.PI / 2); sg.rotateY(Math.PI / 4);
+    const sm = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
+    const im = new THREE.InstancedMesh(sg, sm, shadows.length), I0 = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3();
+    shadows.forEach((p, i) => { M.compose(V.set(p[0], p[1], p[2]), I0, S.set(p[3], 1, p[3])); im.setMatrixAt(i, M); });
+    im.frustumCulled = false; group.add(im);
+  }
 };

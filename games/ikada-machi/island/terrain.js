@@ -5,15 +5,20 @@ window.ISLAND.parts.terrain = function (c) {
 
   function topCanvas(kind) {
     const [cv, g] = I.canvas(64, 64), r = I.rng(kind.length * 977 + 5);
-    const base = { sand: P.sand0, grass: P.grass2, path: P.wood3, rock: P.stone2 }[kind];
+    const base = { sand: P.sand0, grass: P.grass2, path: P.wood3, rock: P.stone2, plaza: P.stone2 }[kind];
     const alt = {
       sand: [P.sand1, P.wood5, P.wood4], grass: [P.grass3, P.grass1, P.grass4],
-      path: [P.wood2, P.wood4, P.stone3], rock: [P.stone1, P.stone3, P.stone0]
+      path: [P.wood2, P.wood4, P.stone3], rock: [P.stone1, P.stone3, P.stone0], plaza: [P.stone1, P.stone3, P.stone0]
     }[kind];
     I.rect(g, 0, 0, 64, 64, base);
     for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
       const v = r();
       if (v < 0.14) I.dot(g, x, y, alt[0]); else if (v < 0.27) I.dot(g, x, y, alt[1]); else if (v < 0.30) I.dot(g, x, y, alt[2]);
+    }
+    if (kind === 'plaza') {
+      for (let by = 0; by < 64; by += 8) for (let x = 0; x < 64; x++) { I.dot(g, x, by, P.stone1); }
+      for (let by = 0; by < 64; by += 8) for (let bx = (by / 8 % 2) * 4; bx < 64; bx += 8) for (let y = 0; y < 8; y++) I.dot(g, bx, by + y, P.stone1);
+      return cv;
     }
     for (let i = 0; i < 70; i++) {
       const x = 1 + Math.floor(r() * 61), y = 2 + Math.floor(r() * 60);
@@ -34,8 +39,8 @@ window.ISLAND.parts.terrain = function (c) {
     return cv;
   }
 
-  const topKinds = ['sand', 'grass', 'path', 'rock'], sideKinds = ['sandside', 'earth', 'rockside'];
-  const sideOf = { sand: 'sandside', grass: 'earth', path: 'earth', rock: 'rockside' };
+  const topKinds = ['sand', 'grass', 'path', 'rock', 'plaza'], sideKinds = ['sandside', 'earth', 'rockside'];
+  const sideOf = { sand: 'sandside', grass: 'earth', path: 'earth', rock: 'rockside', plaza: 'rockside' };
   const geo = {};
   topKinds.forEach(k => geo['t_' + k] = { p: [], n: [], u: [], i: [] });
   sideKinds.forEach(k => geo['s_' + k] = { p: [], n: [], u: [], i: [] });
