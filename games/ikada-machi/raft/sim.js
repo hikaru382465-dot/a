@@ -177,13 +177,13 @@
       if (cast.phase === 'fly') {
         cast.t += dt / D.NET_FLY; const k = Math.min(1, cast.t);
         cast.x = cast.sx + (cast.tx - cast.sx) * k; cast.z = cast.sz + (cast.tz - cast.sz) * k;
-        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { cast.phase = 'back'; s.events.push({ e: 'miss' }); } else s.events.push({ e: 'splash' }); }
+        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { s.net.cast = null; s.events.push({ e: 'miss' }); } else s.events.push({ e: 'splash' }); }
       } else if (cast.phase === 'rest') {
         cast.t += dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
         if (cast.t >= D.NET_REST || cast.held.length >= nl.cap) cast.phase = 'back';
-      } else {
-        const dx = b.x - cast.x, dz = b.z - cast.z, d = Math.hypot(dx, dz), step = 7 * dt;
-        if (d <= step + 0.3) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
+      } else {   // 引き上げ：その場で絵が動いて、終わったら持ち物に入る
+        cast.bt = (cast.bt || 0) + dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
+        if (cast.bt >= D.NET_HAUL) collect(s);
       }
     }
     const rest = s.net.cast && s.net.cast.phase === 'rest' ? s.net.cast : null;

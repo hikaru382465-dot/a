@@ -60,10 +60,10 @@ def frame(im, box, bg, near, rope):
                 if (x < x0 - 1 or x > x1 + 1) and po[x, y][3] == 255 and isnet(po[x, y][:3]): po[x, y] = (0, 0, 0, 0)
     bb = out.getbbox(); cx, cy = (x0 + x1 + 1) / 2, (y0 + y1 + 1) / 2
     out = out.crop(bb); buf = io.BytesIO(); out.save(buf, 'PNG')
-    return {'src': 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': out.width, 'h': out.height,
+    return {'cx': cx, 'cy': cy, 'bx': bb[0], 'by': bb[1], 'src': 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': out.width, 'h': out.height,
             'ax': round(cx - bb[0], 1), 'ay': round(cy - bb[1], 1), 'discW': x1 - x0 + 1}
 
-def sheet(name, cols, rows, rope_rows=(), up=1):
+def sheet(name, cols, rows, rope_rows=(), up=1, fixed=False, only_rows=None):
     im, s = load(name)
     if up > 1: im = im.resize((im.width * up, im.height * up), Image.NEAREST)   # 別の絵より細かさが小さいときは、整数倍に拡大して合わせる
     c = Counter(im.getdata()); bg = c.most_common(1)[0][0]
@@ -72,11 +72,16 @@ def sheet(name, cols, rows, rope_rows=(), up=1):
     for r in range(rows):
         for q in range(cols):
             frames.append(frame(im, (q * fw, r * fh, (q + 1) * fw, (r + 1) * fh), bg, near, r in rope_rows))
+    if fixed:   # 引き上げ：動きが分かるように、1コマ目の網の中心を、全部のコマで同じ場所にそろえる
+        rx, ry = frames[0]['cx'], frames[0]['cy']
+        for f in frames: f['ax'] = round(rx - f['bx'], 1); f['ay'] = round(ry - f['by'], 1)
+    if only_rows is not None: frames = frames[:cols * only_rows]
     print(name, 'scale', s, 'size', im.size, 'frame', (fw, fh), 'discW', [f['discW'] for f in frames])
     return frames
 
 t = sheet('throw_splash.png', 4, 2, rope_rows=(0,))
 idle = sheet('idle.png', 4, 1, up=2)
-data = {'fly': t[:4], 'splash': t[4:], 'idle': idle, 'flyDiscW': t[3]['discW'], 'idleDiscW': idle[0]['discW']}
+haul = sheet('haul_a.png', 6, 2, fixed=True, only_rows=1, up=2)
+data = {'haul': haul, 'haulDiscW': haul[0]['discW'], 'fly': t[:4], 'splash': t[4:], 'idle': idle, 'flyDiscW': t[3]['discW'], 'idleDiscW': idle[0]['discW']}
 (here / 'net_art.js').write_text('window.RAFT.netArt = ' + json.dumps(data, ensure_ascii=False) + ';\n', encoding='utf-8')
 print('net_art.js', (here / 'net_art.js').stat().st_size, 'bytes')

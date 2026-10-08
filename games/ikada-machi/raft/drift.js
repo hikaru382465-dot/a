@@ -42,14 +42,14 @@ window.RAFT.parts.drift = function (c) {
   const artM = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false }); c.sprites.push(artM);
   const artMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), artM); artMesh.visible = false; artMesh.rotation.y = c.cam.yaw; artMesh.renderOrder = 2; scene.add(artMesh);
   if (NA) {
-    let left = 0; const all = [].concat(NA.fly, NA.splash, NA.idle);
+    let left = 0; const all = [].concat(NA.fly, NA.splash, NA.idle, NA.haul);
     all.forEach(f => { left++; const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; f.tex = tx; if (--left === 0) art.ready = true; }; im.src = f.src; });
   }
   const camRight = new THREE.Vector3(Math.cos(c.cam.yaw), 0, -Math.sin(c.cam.yaw));
   function showArt(f, u, x, y, z) {
     artM.map = f.tex; artM.needsUpdate = true;
     artMesh.scale.set(f.w * u, f.h * u / Math.cos(c.cam.pitch), 1);
-    const dx = (f.ax - f.w / 2) * u, dy = (f.h / 2 - f.ay) * u / Math.cos(c.cam.pitch);
+    const dx = (f.ax - f.w / 2) * u, dy = (f.ay - f.h / 2) * u / Math.cos(c.cam.pitch);
     artMesh.position.set(x - camRight.x * dx, y + dy, z - camRight.z * dx);
     artMesh.visible = true;
   }
@@ -76,7 +76,7 @@ window.RAFT.parts.drift = function (c) {
     }
     // 網
     const cast = s.net.cast, useArt = art.ready && cast;
-    net.visible = !!cast && !useArt; ropeLine.visible = !!cast; artMesh.visible = false;
+    net.visible = !!cast && !useArt; ropeLine.visible = !!cast && !(useArt && cast.phase === 'back'); artMesh.visible = false;
     if (cast) {
       let y = 0.06 + Math.sin(t * 1.7) * 0.012, sc = nl.r * 2;
       if (cast.phase === 'fly') { const k = Math.min(1, cast.t); y = 0.7 + Math.sin(Math.PI * k) * 1.3 - k * 0.64; sc *= 0.35 + 0.65 * k; }
@@ -85,13 +85,15 @@ window.RAFT.parts.drift = function (c) {
         let f, u;
         if (cast.phase === 'fly') { f = NA.fly[Math.min(3, Math.floor(Math.min(1, cast.t) * 4))]; u = 2 * nl.r / NA.flyDiscW; }
         else if (cast.phase === 'rest' && cast.t < 0.5) { f = NA.splash[Math.min(3, Math.floor(cast.t / 0.125))]; u = 2 * nl.r / NA.flyDiscW; }
-        else { f = NA.idle[Math.floor(t * 5) % 4]; u = 2 * nl.r / NA.idleDiscW; if (cast.phase === 'back') u *= 0.85; }
+        else if (cast.phase === 'back') { f = NA.haul[Math.min(NA.haul.length - 1, Math.floor((cast.bt || 0) / R.data.NET_HAUL * NA.haul.length))]; u = 2 * nl.r / NA.haulDiscW; }
+        else { f = NA.idle[Math.floor(t * 5) % 4]; u = 2 * nl.r / NA.idleDiscW; }
         showArt(f, u, cast.x, y + 0.02, cast.z);
       } else { net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
       setLine(ropeLine, b.x, 0.55, b.z, cast.x, y, cast.z);
     }
-    while (held.length > (cast ? cast.held.length : 0)) group.remove(held.pop());
-    if (cast) cast.held.forEach((k, i) => {
+    const showHeld = cast && !(useArt && cast.phase === 'back');
+    while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());
+    if (showHeld) cast.held.forEach((k, i) => {
       if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); held[i] = c.sprite(mk(k), { x: 0, y: 0, z: 0, ppu: 36 }); group.add(held[i]); held[i].userData.k = k; }
       const ang = i * 2.4, rr = Math.min(nl.r * 0.55, 0.15 + i * 0.1);
       held[i].position.set(cast.x + Math.cos(ang) * rr, net.position.y + 0.03 + Math.sin(t * 2 + i) * 0.015, cast.z + Math.sin(ang) * rr);
