@@ -30,7 +30,7 @@ def background(t):
     return cv.img
 
 def stamp(base, f, ox, oy):
-    h, w = f.shape[:2]
+    h, w = f.shape[:2]; w = min(w, base.shape[1] - ox); h = min(h, base.shape[0] - oy); f = f[:h, :w]
     sub = base[oy:oy + h, ox:ox + w]; m = f[..., 3] > 0
     sub[m] = f[m]
 
