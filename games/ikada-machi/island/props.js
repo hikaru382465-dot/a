@@ -26,19 +26,12 @@ window.ISLAND.parts.props = function (c) {
       blob(g, [[20, 17, 15], [11, 24, 9], [29, 24, 9], [20, 26, 10]], G, 3, 40, 48);
       for (let i = 0; i < 18; i++) I.dot(g, 8 + Math.floor(r() * 24), 5 + Math.floor(r() * 20), P.grass4);
     } else {
-      I.rect(g, 19, 38, 3, 10, P.wood1); I.rect(g, 21, 38, 1, 10, P.wood0);
-      const tiers = [[20, 12, 11, 14], [20, 22, 15, 14], [20, 33, 19, 13]];
-      tiers.forEach(([cx, top, hw, hh], ti) => {
-        for (let y = 0; y < hh; y++) {
-          const w = Math.round(hw * (y + 1) / hh);
-          for (let x = cx - w; x <= cx + w; x++) {
-            const lit = (x - cx) / Math.max(w, 1), i = Math.round(1.8 + lit * 1.6 + y / hh * 0.8 + (r() - 0.5));
-            I.dot(g, x, top + y, G[Math.max(0, Math.min(4, i))]);
-          }
-          I.dot(g, cx - w, top + y, r() < 0.7 ? OUT : P.grass0); I.dot(g, cx + w, top + y, r() < 0.7 ? OUT : P.grass0);
-        }
-        for (let x = cx - hw; x <= cx + hw; x++) if (r() < 0.8) I.dot(g, x, top + hh, OUT);
-      });
+      // 白樺：白い幹に黒いすじ、明るい葉のかたまり
+      for (let y = 22; y < 48; y++) { I.rect(g, 19, y, 3, 1, P.sand1); I.dot(g, 21, y, P.stone3); I.dot(g, 18, y, OUT); I.dot(g, 22, y, OUT); }
+      for (let i = 0; i < 9; i++) { const y = 24 + i * 2 + (i % 2); I.rect(g, 19 + (i % 2), y, 2, 1, P.wine); }
+      I.rect(g, 17, 45, 7, 3, P.sand1); I.rect(g, 17, 47, 7, 1, P.stone3);
+      blob(g, [[20, 12, 9], [14, 18, 8], [26, 18, 8], [20, 21, 9], [13, 26, 5], [27, 26, 5], [20, 29, 5]], ['#c6d27c', P.grass4, P.grass3, P.grass2, P.grass1], 8, 40, 48);
+      for (let i = 0; i < 14; i++) I.dot(g, 9 + Math.floor(r() * 22), 6 + Math.floor(r() * 22), '#e3ecab');
     }
     return cv;
   }
