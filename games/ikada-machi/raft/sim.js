@@ -5,11 +5,11 @@
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   S.rand = Math.random;
-  S.KEY = 'ikada-save-v3';
+  S.KEY = 'ikada-save-v4';
 
   S.newState = function () {
     return {
-      v: 3, raftRev: 1, objRev: 1, uid: 1, events: [],
+      v: 4, raftRev: 1, objRev: 1, uid: 1, events: [],
       raft: { cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
       objects: [],          // 置いた物：{ id, k, x, z, w（貯水槽の水）, p（ろ過器の進み・秒）}
       inv: { wood: 10, coconut: 3, fish: 1 },
@@ -18,7 +18,9 @@
       weather: { id: 'sunny', left: 80 },
       current: { ang: 0 },
       net: { lv: 1, cast: null }, tools: ['net'], hand: 'net',
-      buddy: { x: 1.5, z: 1.5, face: 1, path: [], task: null, act: null, eatT: 0 },
+      // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
+      player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
+      buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3 },
       drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
     };
   };
@@ -50,25 +52,28 @@
     }
     return null;
   };
-  const bcell = s => [Math.floor(s.buddy.x), Math.floor(s.buddy.z)];
-  S.walkTo = function (s, x, z) {
-    const p = S.bfs(s, bcell(s), [x, z]); if (!p) return false;
-    s.buddy.path = p; s.buddy.task = null; s.buddy.act = null; return true;
+  const cellOf = a => [Math.floor(a.x), Math.floor(a.z)];
+  const bcell = s => cellOf(s.player);
+  S.walkTo = function (s, x, z, a) {
+    a = a || s.player; const p = S.bfs(s, cellOf(a), [x, z]); if (!p) return false;
+    a.path = p; a.task = null; a.act = null; return true;
   };
   // 物のそばまで歩いて、着いたら task を実行する
-  S.walkNear = function (s, x, z, task) {
-    let best = null;
+  S.walkNear = function (s, x, z, task, a) {
+    a = a || s.player; let best = null;
     for (const [dx, dz] of N4) {
       const X = x + dx, Z = z + dz; if (!free(s, X, Z)) continue;
-      const p = S.bfs(s, bcell(s), [X, Z]); if (p && (!best || p.length < best.length)) best = p;
+      const p = S.bfs(s, cellOf(a), [X, Z]); if (p && (!best || p.length < best.length)) best = p;
     }
     if (!best) return false;
-    s.buddy.path = best; s.buddy.act = null; s.buddy.task = task; return true;
+    a.path = best; a.act = null; a.task = task; return true;
   };
+  // 動いた向き → 絵の向き（画面で、+z＝手前（前）、-z＝奥（後ろ）、+x＝右、-x＝左）
+  const dirOf = (dx, dz) => Math.abs(dz) > Math.abs(dx) ? (dz > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
   const netNow = s => D.NET_LV[s.net.lv - 1];
   // 網を投げる：(tx,tz) の向きへ、ゲージ power(0〜1) の強さで飛ばす。海に落ちたら、とる時間のあいだ水の上にただよう
   S.throwTarget = function (s, tx, tz, power) {
-    const b = s.buddy, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, nl = netNow(s);
+    const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, nl = netNow(s);
     const dist = D.NET_MIN + (nl.range - D.NET_MIN) * clamp(power, 0, 1);
     return { x: b.x + dx / d * dist, z: b.z + dz / d * dist, dist };
   };
@@ -76,9 +81,8 @@
     if (s.net.cast) return false;
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); return false; }
     if (s.weather.id === 'storm') { s.events.push({ e: 'stormnet' }); return false; }
-    const b = s.buddy, t = S.throwTarget(s, tx, tz, power);
-    b.path = []; b.act = { type: 'throw', t: 0.5 };
-    const sx = (t.x - b.x) * 0.7071 - (t.z - b.z) * 0.7071; if (Math.abs(sx) > 0.01) b.face = sx > 0 ? 1 : -1;
+    const b = s.player, t = S.throwTarget(s, tx, tz, power);
+    b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(t.x - b.x, t.z - b.z);
     s.net.cast = { phase: 'fly', sx: b.x, sz: b.z, tx: t.x, tz: t.z, x: b.x, z: b.z, t: 0, held: [] };
     s.events.push({ e: 'throw' }); return true;
   };
@@ -92,12 +96,12 @@
   // 手に持つ（道具の切りかえ）
   S.hold = function (s, id) { if (!s.tools.includes(id)) return false; s.hand = s.hand === id ? null : id; s.events.push({ e: 'equip', id: s.hand }); return true; };
   // 食べ物・飲み物を使う
-  S.use = function (s, k) {
-    const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0 || (!it.food && !it.drink)) return false;
+  S.use = function (s, k, a) {
+    a = a || s.player; const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0 || (!it.food && !it.drink)) return false;
     s.inv[k]--;
     if (it.food) s.needs.hunger = clamp(s.needs.hunger + it.food, 0, 100);
     if (it.drink) s.needs.thirst = clamp(s.needs.thirst + it.drink, 0, 100);
-    s.buddy.act = { type: 'eat', t: 0.5 }; s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
+    a.act = { type: 'eat', t: 0.5 }; s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
   };
   S.canPay = (s, cost) => Object.keys(cost).every(k => (s.inv[k] || 0) >= cost[k]);
   S.pay = (s, cost) => Object.keys(cost).forEach(k => s.inv[k] -= cost[k]);
@@ -134,10 +138,10 @@
   // 置き場所：床板は海側のマス。ほかの物は、イカダの空いているマス。置いたあとも、空きマスがつながって2つ以上残ること
   S.placeCandidates = function (s, k) {
     if (k === 'floor') return S.floorCandidates(s);
-    const b = bcell(s), out = [];
+    const cs = [cellOf(s.player), cellOf(s.buddy)], out = [];
     const freeCells = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z));
     s.raft.cells.forEach(([x, z]) => {
-      if (S.objAt(s, x, z) || (x === b[0] && z === b[1])) return;
+      if (S.objAt(s, x, z) || cs.some(q => q[0] === x && q[1] === z)) return;
       const rest = freeCells.filter(c => !(c[0] === x && c[1] === z)); if (rest.length < 2) return;
       const seen = new Set([key(rest[0][0], rest[0][1])]), q = [rest[0]];
       while (q.length) { const c = q.shift(); for (const [dx, dz] of N4) { const X = c[0] + dx, Z = c[1] + dz, kk = key(X, Z); if (!seen.has(kk) && rest.some(r => r[0] === X && r[1] === Z)) { seen.add(kk); q.push([X, Z]); } } }
@@ -149,12 +153,13 @@
     if ((s.inv[k] || 0) <= 0 || !S.placeCandidates(s, k).some(c => c[0] === x && c[1] === z)) return false;
     s.inv[k]--;
     if (k === 'floor') { s.raft.cells.push([x, z]); s.raftRev++; }
-    else { s.objects.push({ id: s.uid++, k, x, z, w: 0, p: 0 }); s.objRev++; s.buddy.path = []; s.buddy.task = null; }
+    else { s.objects.push({ id: s.uid++, k, x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); }
     s.events.push({ e: 'placed', k }); return true;
   };
   // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
-  S.useObj = function (s, id) {
+  S.useObj = function (s, id, a) {
     const o = s.objects.find(x => x.id === id); if (!o) return false;
+    if (a) return S.walkNear(s, o.x, o.z, { type: o.k, id }, a);
     if (o.k === 'tank') s.events.push({ e: 'tankinfo', w: o.w, cap: D.ITEMS.tank.cap });
     if (o.k === 'filter') s.events.push({ e: 'filterinfo', left: Math.max(0, Math.ceil(D.ITEMS.filter.sec - o.p)) });
     return S.walkNear(s, o.x, o.z, { type: o.k, id });
@@ -192,32 +197,35 @@
       if (!t) { o.p = Math.min(o.p, D.ITEMS.filter.sec); return; }
       o.p += dt; if (o.p >= D.ITEMS.filter.sec) { o.p = 0; t.w++; s.events.push({ e: 'filtered' }); }
     });
-    // 相棒が心配して、自分で食べる・飲む
-    const b = s.buddy; b.eatT -= dt;
-    if (!b.act && b.eatT <= 0) {
-      if (s.needs.hunger < D.NEEDS.low && (s.inv.fish > 0 ? S.use(s, 'fish') : (s.inv.coconut > 0 && S.use(s, 'coconut')))) b.eatT = 3;
-      else if (s.needs.thirst < D.NEEDS.low && !b.task) {
+    // 相棒（女の子）：おなか・のどが減ったら自分で食べる・飲む。ひまなときは、イカダの上を歩き回る
+    const bu = s.buddy, b = s.player; bu.eatT -= dt; bu.wanderT -= dt;
+    if (!bu.act && !bu.task && !bu.path.length && bu.eatT <= 0) {
+      if (s.needs.hunger < D.NEEDS.low && (s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
+      else if (s.needs.thirst < D.NEEDS.low) {
         const t = tanks.find(x => x.w > 0);
-        if (t) { S.useObj(s, t.id); b.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut')) b.eatT = 3;
+        if (t) { S.useObj(s, t.id, bu); bu.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut', bu)) bu.eatT = 3;
+      } else if (bu.wanderT <= 0) {
+        const fc = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z)); const t = fc[Math.floor(S.rand() * fc.length)];
+        if (t) S.walkTo(s, t[0], t[1], bu); bu.wanderT = 4 + S.rand() * 7;
       }
     }
-    // 相棒の動き
+    // 2人の動き
     const slow = (s.needs.hunger <= 0 || s.needs.thirst <= 0) ? 0.5 : 1;
-    if (b.act) {
-      b.act.t -= dt;
-      if (b.act.t <= 0) b.act = null;
-    } else if (b.path.length) {
-      const tgt = b.path[0], tx = tgt[0] + 0.5, tz = tgt[1] + 0.5, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz), step = 2 * slow * dt;
-      if (Math.abs(dx) > 0.01) b.face = dx > 0 ? 1 : -1;
-      if (d <= step) { b.x = tx; b.z = tz; b.path.shift(); } else { b.x += dx / d * step; b.z += dz / d * step; }
-    } else if (b.task) {     // 着いたら、物を使う
-      const t = b.task; b.task = null; const o = s.objects.find(x => x.id === t.id);
-      if (o && o.k === 'bench') s.events.push({ e: 'bench' });
-      else if (o && o.k === 'tank') {
-        if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); b.act = { type: 'eat', t: 0.7 }; s.events.push({ e: 'drink', k: 'tank' }); }
-        else s.events.push({ e: 'tankempty' });
+    [b, bu].forEach(a => {
+      if (a.act) { a.act.t -= dt; if (a.act.t <= 0) a.act = null; }
+      else if (a.path.length) {
+        const tgt = a.path[0], tx = tgt[0] + 0.5, tz = tgt[1] + 0.5, dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz), step = 2 * slow * dt;
+        if (d > 0.01) a.dir = dirOf(dx, dz);
+        if (d <= step) { a.x = tx; a.z = tz; a.path.shift(); } else { a.x += dx / d * step; a.z += dz / d * step; }
+      } else if (a.task) {     // 着いたら、物を使う
+        const t = a.task; a.task = null; const o = s.objects.find(x => x.id === t.id);
+        if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
+        else if (o && o.k === 'tank') {
+          if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); a.act = { type: 'eat', t: 0.7 }; s.events.push({ e: 'drink', k: 'tank' }); }
+          else s.events.push({ e: 'tankempty' });
+        }
       }
-    }
+    });
     // 流れてくる物
     const f = S.flow(s), bb = S.bbox(s), cx = (bb.x0 + bb.x1 + 1) / 2, cz = (bb.z0 + bb.z1 + 1) / 2, R = s.view.r;
     s.spawnT -= dt;
@@ -253,5 +261,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); return s && s.v === 3 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); return s && s.v === 4 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
 })(window.RAFT);

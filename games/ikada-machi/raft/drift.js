@@ -74,7 +74,7 @@ window.RAFT.parts.drift = function (c) {
     });
     for (const [id, m] of meshes) if (!live.has(id)) { group.remove(m); meshes.delete(id); }
     // ねらい（押している間、ゲージの強さで落ちる場所が動く）
-    const a = c.aim, b = s.buddy, nl = R.data.NET_LV[s.net.lv - 1];
+    const a = c.aim, b = s.player, nl = R.data.NET_LV[s.net.lv - 1];
     ring.visible = aimLine.visible = !!a.active && !s.net.cast;
     if (ring.visible) {
       ring.position.set(a.x, 0.07, a.z); ring.scale.set(nl.r * 2, 1, nl.r * 2); ring.rotation.y = t * 0.6;
