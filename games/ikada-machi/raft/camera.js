@@ -8,11 +8,11 @@ window.RAFT.parts.camera = function (c) {
   const st = { target: new THREE.Vector3(1, 0.2, 1), zoom: 3, goal: 3, manual: 1 };
   function goalFor() {
     const bb = R.sim.bbox(s), n = bb.w + bb.d;
-    const fit = Math.min(innerWidth * 0.55 / (n * 32), innerHeight * 0.45 / (n * 16 + 48));
+    const z = c.size(), fit = Math.min(z.w * 0.55 / (n * 32), z.h * 0.45 / (n * 16 + 48));
     return Math.max(0.5, Math.min(3, Math.floor(fit * 4) / 4));     // 0.25きざみで切り下げ（一度引いたら戻らない）
   }
   function apply() {
-    const zoom = st.zoom * st.manual, ppu = PPU * zoom, w = innerWidth, h = innerHeight;
+    const zoom = st.zoom * st.manual, ppu = PPU * zoom, w = c.size().w, h = c.size().h;
     cam.left = -w / 2 / ppu; cam.right = w / 2 / ppu; cam.top = h / 2 / ppu; cam.bottom = -h / 2 / ppu;
     cam.position.copy(st.target).addScaledVector(dir, 60); cam.lookAt(st.target); cam.updateProjectionMatrix();
     s.view.r = Math.hypot(w / 2 / ppu, h / ppu) + 2;

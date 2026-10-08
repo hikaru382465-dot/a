@@ -6,6 +6,7 @@
 <style>
 html,body{margin:0;height:100%;background:#0c1530;overflow:hidden;font-family:"DotGothic16",system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;color:#e8dcb8;user-select:none;-webkit-user-select:none}
 canvas{display:block;-webkit-touch-callout:none;touch-action:none}
+#gl{position:fixed;left:0;top:0;width:100%;height:100%}
 #rain{position:fixed;inset:0;pointer-events:none}
 button{background:#2b1636e6;color:#e8dcb8;border:1px solid #6b4231;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;font-family:inherit;min-height:40px}
 button:disabled{opacity:.45;cursor:default}
@@ -105,13 +106,15 @@ import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 const R=window.RAFT, I=window.ISLAND, q=new URLSearchParams(location.search);
 const renderer=new THREE.WebGLRenderer({antialias:false});
 const PR=Math.min(devicePixelRatio,matchMedia('(pointer:coarse)').matches?1.5:2);
-renderer.setPixelRatio(PR); renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(PR); renderer.domElement.id='gl';
+const sz=()=>({w:Math.max(1,renderer.domElement.clientWidth||innerWidth),h:Math.max(1,renderer.domElement.clientHeight||innerHeight)});
+renderer.setSize(innerWidth,innerHeight,false);
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
-renderer.toneMapping=THREE.NoToneMapping; document.body.prepend(renderer.domElement);
+renderer.toneMapping=THREE.NoToneMapping; document.body.prepend(renderer.domElement); renderer.setSize(sz().w,sz().h,false);
 const scene=new THREE.Scene(); scene.background=new THREE.Color('#1f4e6b');
 if(q.has('new')){try{localStorage.removeItem(R.sim.KEY)}catch(e){}}
 const state=(q.has('new')?null:R.sim.load())||R.sim.newState();
-const c={pr:PR,THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
+const c={pr:PR,size:sz,THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
   onResize:[],low:q.has('low'),sprites:[],glows:[],camera:null,render:null,mode:{place:null},ui:{open:false}};
 c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
   if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
@@ -130,7 +133,8 @@ if(!c.camera){c.camera=new THREE.OrthographicCamera(-10,10,10,-10,-100,100);c.ca
 if(!c.render)c.render=()=>renderer.render(scene,c.camera);
 inits.forEach(f=>f());
 document.getElementById('log').textContent=log.join(' / ');
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);c.onResize.forEach(f=>f());});
+const onSize=()=>{const z=sz();renderer.setSize(z.w,z.h,false);c.onResize.forEach(f=>f());};
+addEventListener('resize',onSize); if(window.ResizeObserver)new ResizeObserver(onSize).observe(renderer.domElement);
 const fast=q.has('fast')?10:1; let last=performance.now(),t=0;
 function loop(now){
   let dt=Math.min(.1,(now-last)/1000);last=now;t+=dt;

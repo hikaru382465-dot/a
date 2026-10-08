@@ -30,7 +30,8 @@ window.RAFT.parts.buddy = function (c) {
   // 画面の位置 → 地面の位置。置くモードでは、光っている面の高さ（床板は海面ぎわ、ほかはイカダの上）で測る
   const world = e => {
     const pl = c.mode.place ? (c.mode.place.k === 'floor' ? 0.06 : 0.215) : 0.2; plane.constant = -pl;
-    ray.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), c.camera); return ray.ray.intersectPlane(plane, pt) ? pt.clone() : null;
+    const rc = el.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1), c.camera); return ray.ray.intersectPlane(plane, pt) ? pt.clone() : null;
   };
   const power = () => { const p = ((performance.now() - aimT0) / 1000 / GAUGE_SEC) % 2; return p < 1 ? p : 2 - p; };
   const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };

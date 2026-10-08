@@ -72,7 +72,7 @@ window.RAFT.parts.hud = function (c) {
   function cancelPlace() { if (!c.mode.place) return; c.mode.place = null; c.setHighlight && c.setHighlight(null); placeBar(); }
   function tryPlace(x, z) {
     const p = c.mode.place; if (!p) return;
-    if (!sim.place(s, p.k, x, z)) { toast('光っているマスをタップ（相棒が立っているマスには置けない）'); return; }
+    if (!sim.place(s, p.k, x, z)) { toast(`マス(${x},${z})を押しました。光っているマスをタップ（2人が立っているマスには置けない）`, 3000); return; }
     {
       const cands = (s.inv[p.k] || 0) > 0 ? sim.placeCandidates(s, p.k) : [];
       if (!cands.length) cancelPlace(); else { c.setHighlight(cands); placeBar(); }

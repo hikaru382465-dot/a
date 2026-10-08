@@ -25,11 +25,11 @@ window.RAFT.parts.light = function (c) {
   let composer = null, bloom = null, tilt = null, grade = null;
   if (!c.low) {
     const { EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass } = c;
-    composer = new EffectComposer(renderer); composer.setPixelRatio(c.pr || Math.min(devicePixelRatio, 2)); composer.setSize(innerWidth, innerHeight);
+    composer = new EffectComposer(renderer); composer.setPixelRatio(c.pr || Math.min(devicePixelRatio, 2)); composer.setSize(c.size().w, c.size().h);
     composer.addPass(new RenderPass(scene, camera));
-    bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.55, 0.95); composer.addPass(bloom);
+    bloom = new UnrealBloomPass(new THREE.Vector2(c.size().w, c.size().h), 0.4, 0.55, 0.95); composer.addPass(bloom);
     tilt = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, uAmt: { value: 0.0035 }, uFocus: { value: 0.35 }, uAsp: { value: innerWidth / innerHeight } },
+      uniforms: { tDiffuse: { value: null }, uAmt: { value: 0.0035 }, uFocus: { value: 0.35 }, uAsp: { value: c.size().w / c.size().h } },
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: `uniform sampler2D tDiffuse;uniform float uAmt,uFocus,uAsp;varying vec2 vUv;
 void main(){
@@ -42,7 +42,7 @@ void main(){
     });
     composer.addPass(tilt);
     grade = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, uTint: { value: new THREE.Color(1, 1, 1) }, uVig: { value: 0.4 }, uAsp: { value: innerWidth / innerHeight } },
+      uniforms: { tDiffuse: { value: null }, uTint: { value: new THREE.Color(1, 1, 1) }, uVig: { value: 0.4 }, uAsp: { value: c.size().w / c.size().h } },
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: `uniform sampler2D tDiffuse;uniform vec3 uTint;uniform float uVig,uAsp;varying vec2 vUv;
 void main(){
@@ -56,7 +56,7 @@ void main(){
   gl_FragColor=vec4(c,1.);}`
     });
     composer.addPass(grade); composer.addPass(new OutputPass());
-    c.onResize.push(() => { composer.setSize(innerWidth, innerHeight); tilt.uniforms.uAsp.value = grade.uniforms.uAsp.value = innerWidth / innerHeight; });
+    c.onResize.push(() => { const z = c.size(); composer.setSize(z.w, z.h); tilt.uniforms.uAsp.value = grade.uniforms.uAsp.value = z.w / z.h; });
     c.render = () => composer.render();
   }
   c.fx = {

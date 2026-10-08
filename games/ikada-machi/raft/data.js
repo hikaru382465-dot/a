@@ -1,7 +1,7 @@
 // イカダ暮らし：表（数字はここだけ。あとで Godot の Resource / Dictionary にそのまま移せる）
 window.RAFT = { parts: {}, order: ['camera', 'water', 'light', 'floor', 'objects', 'buddy', 'drift', 'sound', 'hud'] };
 window.RAFT.data = {
-  DAY_SEC: 240,                       // 1日の長さ（秒）。URLの最後に ?fast で10倍
+  DAY_SEC: 720,                       // 1日の長さ（秒）＝12分。URLの最後に ?fast で10倍
   MAX_SIZE: 8,                        // イカダの最大（8×8マス）
   NEEDS: { hunger: 0.25, thirst: 0.33, low: 30 },   // 1秒に減る量、相棒が自分で食べ始める値
   // lv：この網のレベル以上で取れる。w：流れてくる重み。food/drink：食べる・飲むで戻る量。place：置ける物
