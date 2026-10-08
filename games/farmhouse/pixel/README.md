@@ -149,3 +149,7 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 `python gen_redhead.py` → assets/character/redhead_sheet.png（4行×4列：下・左・右・上）, redhead_walk.gif, redhead_<向き>.gif, redhead_preview.png。
 32×52、頭は手描きの格子、体は手続き。左向きは右向きの反転。パレットに r（赤髪）・s（白シャツ）・k（うすい肌）を追加。参考絵は pixel/ref/redhead_src.png。
 弱点：頭が大きい・まるい、顔が小さい、横向きの腕と胴が薄い。
+
+## 赤髪のちびキャラ（gen_redhead_chibi.py）
+`python gen_redhead_chibi.py` → assets/character/redhead_chibi_sheet.png（4行×4列：下・左・右・上）, _walk.gif, _<向き>.gif, _preview.png（イカダ1マスに立てた大きさ比べ）。
+24×36、身長33ドット、2頭身。頭は手描きの格子（大きな目・ほほの赤み）。
