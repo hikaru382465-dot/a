@@ -31,23 +31,33 @@ window.RAFT.parts.buddy = function (c) {
   const base = m.scale.x;
   let t = 0;
 
-  // ---- クリック ----
+  // ---- 操作 ----
+  // 床をタップ＝歩く／海を押し続ける＝ゲージがたまる（行ったり来たり）→離すと、その強さの距離へ網を投げる／網が出ている間に押す＝引き寄せる
   const el = c.renderer.domElement, ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2), pt = new THREE.Vector3();
-  let down = null;
-  el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+  let down = null, aimT0 = 0;
+  const GAUGE_SEC = 1.1;
+  const world = e => { ray.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), c.camera); return ray.ray.intersectPlane(plane, pt) ? pt.clone() : null; };
+  const power = () => { const p = ((performance.now() - aimT0) / 1000 / GAUGE_SEC) % 2; return p < 1 ? p : 2 - p; };
+  const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };
+  el.addEventListener('pointerdown', e => {
+    const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
+    if (!p || c.mode.build) return;
+    if (s.net.cast) { R.sim.recallNet(s); down.recall = true; return; }
+    if (!R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) { down.aim = true; aimT0 = performance.now(); c.aim.active = true; setAim(p, 0); }
+  });
+  el.addEventListener('pointermove', e => { if (down && down.aim) { const p = world(e); if (p) { down.p = p; } } });
   el.addEventListener('pointerup', e => {
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return; }
-    down = null;
-    ray.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), c.camera);
-    if (!ray.ray.intersectPlane(plane, pt)) return;
-    const x = Math.floor(pt.x), z = Math.floor(pt.z), sim = R.sim;
+    const d = down; down = null; c.aim.active = false;
+    if (!d) return;
+    if (d.aim) { const p = d.p; if (p) R.sim.throwNet(s, p.x, p.z, power()); return; }
+    if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
+    const x = Math.floor(d.p.x), z = Math.floor(d.p.z), sim = R.sim;
     if (c.mode.build) { if (sim.build(s, x, z)) c.hud.refresh(); return; }
-    if (sim.has(s, x, z)) { sim.walkTo(s, x, z); return; }
-    if (s.net.cell && s.net.cell[0] === x && s.net.cell[1] === z) { sim.haulNet(s); return; }
-    if (!sim.placeNet(s, x, z)) s.events.push({ e: 'far' });
+    if (sim.has(s, x, z)) sim.walkTo(s, x, z);
   });
   return { update(tt, dt) {
-    t += dt; const b = s.buddy, walking = b.path.length > 0, bob = walking ? Math.abs(Math.sin(t * 11)) * 0.06 : (b.act ? Math.abs(Math.sin(t * 16)) * 0.04 : 0);
+    t += dt;
+    if (down && down.aim && down.p) setAim(down.p, power()); const b = s.buddy, walking = b.path.length > 0, bob = walking ? Math.abs(Math.sin(t * 11)) * 0.06 : (b.act ? Math.abs(Math.sin(t * 16)) * 0.04 : 0);
     m.position.set(b.x, 0.2 + bob, b.z); sh.position.set(b.x + 0.04, 0.215, b.z + 0.04);
     m.material.map = texs[walking ? 1 + (Math.floor(t * 6) % 2) : 0]; m.scale.x = base * b.face;
   } };

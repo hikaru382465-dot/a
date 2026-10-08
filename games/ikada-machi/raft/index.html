@@ -19,6 +19,9 @@ canvas{display:block}
 .row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;pointer-events:auto}
 button{background:#2b1636dd;color:#e8dcb8;border:1px solid #6b4231;border-radius:5px;padding:7px 10px;font-size:13px;cursor:pointer}
 button.on{background:#6b4231;color:#fff}
+#gauge{position:fixed;left:50%;bottom:118px;transform:translateX(-50%);display:none;width:min(320px,70vw);text-align:center;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
+#gauge .g{height:14px;background:#0008;border:1px solid #e8dcb8;border-radius:7px;overflow:hidden;margin-top:3px}
+#gaugeFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#8fc3bd,#f2c879,#b8654f)}
 #toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#2b1636dd;border:1px solid #6b4231;border-radius:6px;padding:6px 12px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 #help{position:fixed;right:10px;top:10px;font-size:11px;opacity:.7;text-align:right;text-shadow:0 1px 2px #000;pointer-events:none}
 #log{position:fixed;right:10px;bottom:10px;font-size:11px;color:#ffb0a0;max-width:50vw;text-align:right}
@@ -28,9 +31,10 @@ button.on{background:#6b4231;color:#fff}
 <div class="lab"><span>おなか</span><div class="bar"><i id="hunger"></i></div></div>
 <div class="lab"><span>のどのかわき</span><div class="bar"><i id="thirst"></i></div></div>
 <div id="netinfo"></div></div>
-<div id="help">床をタップ：相棒が歩く／海（イカダのそば）をタップ：網を投げる<br>網をタップ：引き上げる／ホイール：少しズーム</div>
+<div id="help">床をタップ：相棒が歩く／海を押し続ける：ゲージがたまる→離すと網を投げる<br>網が出ている間に押す：引き寄せる／ホイール：少しズーム</div>
 <div id="bottom"><div id="inv"></div>
-<div class="row"><button id="bEat">食べる</button><button id="bDrink">飲む</button><button id="bHaul">網を引き上げる</button><button id="bBuild">床を足す</button><button id="bNet">網を強くする</button></div></div>
+<div class="row"><button id="bEat">食べる</button><button id="bDrink">飲む</button><button id="bHaul">網を引き寄せる</button><button id="bBuild">床を足す</button><button id="bNet">網を強くする</button></div></div>
+<div id="gauge"><span id="gaugeTxt"></span><div class="g"><i id="gaugeFill"></i></div></div>
 <div id="toast"></div><div id="log"></div>
 <script src="../island/common.js"></script>
 <script src="data.js"></script><script src="sim.js"></script>

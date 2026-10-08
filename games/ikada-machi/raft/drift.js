@@ -20,16 +20,25 @@ window.RAFT.parts.drift = function (c) {
   const cache = {}; const mk = k => cache[k] || (cache[k] = icon(k));
   const group = new THREE.Group(); scene.add(group);
   const meshes = new Map();
-  // 網の絵（縄のあみ目と、うき）
+  // 網の絵（縄のあみ目）と、ねらいの輪
   const netCv = (() => { const [cv, g] = I.canvas(16, 16); for (let i = 0; i < 16; i += 4) { I.rect(g, i, 0, 1, 16, P.wood5); I.rect(g, 0, i, 16, 1, P.wood5); }
-    I.rect(g, 0, 0, 16, 1, P.wood2); I.rect(g, 0, 15, 16, 1, P.wood2); I.rect(g, 0, 0, 1, 16, P.wood2); I.rect(g, 15, 0, 1, 16, P.wood2); return cv; })();
-  const netG = new THREE.PlaneGeometry(1, 1); netG.rotateX(-Math.PI / 2);
-  const netM = new THREE.MeshBasicMaterial({ map: c.tex(netCv), transparent: true, opacity: 0.85, depthWrite: false, alphaTest: 0.1 }); c.sprites.push(netM);
-  const net = new THREE.Mesh(netG, netM); net.visible = false; scene.add(net);
-  const floatG = new THREE.CylinderGeometry(0.07, 0.07, 0.1, 8), floatM = new THREE.MeshLambertMaterial({ color: new THREE.Color(P.red1) });
-  const floats = [0, 1, 2, 3].map(() => { const f = new THREE.Mesh(floatG, floatM); f.visible = false; scene.add(f); return f; });
+    for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) if (Math.hypot(i - 7.5, j - 7.5) > 7.9) g.clearRect(i, j, 1, 1);
+    return cv; })();
+  const ringCv = (() => { const [cv, g] = I.canvas(64, 64); g.strokeStyle = 'rgba(255,240,200,.95)'; g.lineWidth = 3; g.setLineDash([6, 5]); g.beginPath(); g.arc(32, 32, 28, 0, 6.3); g.stroke(); return cv; })();
+  const ringTex = new THREE.CanvasTexture(ringCv); ringTex.colorSpace = THREE.SRGBColorSpace;
+  const flat = new THREE.PlaneGeometry(1, 1); flat.rotateX(-Math.PI / 2);
+  const netT = c.tex(netCv);
+  const netM = new THREE.MeshBasicMaterial({ map: netT, transparent: true, opacity: 0.9, depthWrite: false, alphaTest: 0.1, side: THREE.DoubleSide }); c.sprites.push(netM);
+  const net = new THREE.Mesh(flat, netM); net.visible = false; scene.add(net);
+  const ringM = new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, color: new THREE.Color(1.3, 1.2, 0.9) });
+  const ring = new THREE.Mesh(flat, ringM); ring.visible = false; scene.add(ring);
+  const lineG = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]);
+  const aimLine = new THREE.Line(lineG, new THREE.LineDashedMaterial({ color: 0xfff0c8, dashSize: 0.18, gapSize: 0.14, transparent: true, opacity: 0.9 })); aimLine.visible = false; scene.add(aimLine);
+  const ropeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: new THREE.Color(P.wood5) })); ropeLine.visible = false; scene.add(ropeLine);
+  const setLine = (line, ax, ay, az, bx, by, bz) => { const p = line.geometry.attributes.position; p.setXYZ(0, ax, ay, az); p.setXYZ(1, bx, by, bz); p.needsUpdate = true; line.computeLineDistances(); };
   const held = [];
   let t = 0;
+  c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
   return { update(tt, dt) {
     t += dt;
     const live = new Set();
@@ -41,18 +50,28 @@ window.RAFT.parts.drift = function (c) {
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
     for (const [id, m] of meshes) if (!live.has(id)) { group.remove(m); meshes.delete(id); }
-    // 網
-    const n = s.net.cell;
-    net.visible = !!n; floats.forEach(f => f.visible = !!n);
-    if (n) {
-      const y = 0.04 + Math.sin(t * 1.7) * 0.012; net.position.set(n[0] + 0.5, y, n[1] + 0.5);
-      [[0.04, 0.04], [0.96, 0.04], [0.04, 0.96], [0.96, 0.96]].forEach((p, i) => floats[i].position.set(n[0] + p[0], y + 0.03, n[1] + p[1]));
+    // ねらい（押している間、ゲージの強さで落ちる場所が動く）
+    const a = c.aim, b = s.buddy, nl = R.data.NET_LV[s.net.lv - 1];
+    ring.visible = aimLine.visible = !!a.active && !s.net.cast;
+    if (ring.visible) {
+      ring.position.set(a.x, 0.07, a.z); ring.scale.set(nl.r * 2, 1, nl.r * 2); ring.rotation.y = t * 0.6;
+      setLine(aimLine, b.x, 0.5, b.z, a.x, 0.07, a.z);
     }
-    while (held.length > (n ? s.net.held.length : 0)) group.remove(held.pop());
-    if (n) s.net.held.forEach((k, i) => {
-      if (!held[i]) { held[i] = c.sprite(mk(k), { x: 0, y: 0, z: 0, ppu: 36 }); group.add(held[i]); held[i].userData.k = k; }
-      if (held[i].userData.k !== k) { group.remove(held[i]); held[i] = c.sprite(mk(k), { x: 0, y: 0, z: 0, ppu: 36 }); group.add(held[i]); held[i].userData.k = k; }
-      held[i].position.set(n[0] + 0.25 + (i % 3) * 0.25, 0.07 + Math.sin(t * 2 + i) * 0.015, n[1] + 0.3 + Math.floor(i / 3) * 0.3);
+    // 網
+    const cast = s.net.cast;
+    net.visible = !!cast; ropeLine.visible = !!cast;
+    if (cast) {
+      let y = 0.06 + Math.sin(t * 1.7) * 0.012, sc = nl.r * 2;
+      if (cast.phase === 'fly') { const k = Math.min(1, cast.t); y = 0.7 + Math.sin(Math.PI * k) * 1.3 - k * 0.64; sc *= 0.35 + 0.65 * k; }
+      else if (cast.phase === 'back') { y = 0.12; sc *= 0.85; }
+      net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0;
+      setLine(ropeLine, b.x, 0.55, b.z, cast.x, y, cast.z);
+    }
+    while (held.length > (cast ? cast.held.length : 0)) group.remove(held.pop());
+    if (cast) cast.held.forEach((k, i) => {
+      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); held[i] = c.sprite(mk(k), { x: 0, y: 0, z: 0, ppu: 36 }); group.add(held[i]); held[i].userData.k = k; }
+      const ang = i * 2.4, rr = Math.min(nl.r * 0.55, 0.15 + i * 0.1);
+      held[i].position.set(cast.x + Math.cos(ang) * rr, net.position.y + 0.03 + Math.sin(t * 2 + i) * 0.015, cast.z + Math.sin(ang) * rr);
     });
   } };
 };

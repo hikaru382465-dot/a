@@ -3,6 +3,7 @@ window.RAFT.parts.hud = function (c) {
   const { state: s, R } = c, D = R.data, sim = R.sim;
   const $ = id => document.getElementById(id);
   c.mode = c.mode || { build: false };
+  c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
   const times = [[0.2, '朝'], [0.62, '昼'], [0.78, '夕'], [1.01, '夜']];
   const timeName = t => times.find(x => t < x[0])[1];
   const toast = msg => { const e = $('toast'); e.textContent = msg; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, 2400); };
@@ -11,7 +12,7 @@ window.RAFT.parts.hud = function (c) {
     $('inv').innerHTML = inv;
     $('inv').querySelectorAll('canvas').forEach(cv => { const k = cv.dataset.k; if (c.itemIcon) cv.getContext('2d').drawImage(c.itemIcon(k === 'water' ? 'glass' : k), 0, 0); });
     const nx = sim.nextNet(s);
-    $('bNet').textContent = nx ? `網を強くする Lv${s.net.lv}→${nx.lv}（${Object.keys(nx.cost).map(k => D.ITEMS[k].name + nx.cost[k]).join('・')}）` : `網 Lv${s.net.lv}（さいだい）`;
+    $('bNet').textContent = nx ? `網を強くする Lv${s.net.lv}→${nx.lv}（とどく${nx.range}マス・${Object.keys(nx.cost).map(k => D.ITEMS[k].name + nx.cost[k]).join('・')}）` : `網 Lv${s.net.lv}（さいだい）`;
     $('bBuild').textContent = c.mode.build ? '床を足す：えらぶ' : `床を足す（${Object.keys(D.BUILD.floor).map(k => D.ITEMS[k].name + D.BUILD.floor[k]).join('・')}）`;
     $('bBuild').classList.toggle('on', c.mode.build);
   }
@@ -20,11 +21,11 @@ window.RAFT.parts.hud = function (c) {
   $('bDrink').onclick = () => { if (!sim.drink(s)) toast('飲み物がない（嵐の雨でたまる）'); refresh(); };
   $('bBuild').onclick = () => { c.mode.build = !c.mode.build; c.setHighlight && c.setHighlight(c.mode.build); refresh(); toast(c.mode.build ? '光っているマスをタップして床を足す' : ''); };
   $('bNet').onclick = () => { sim.upgradeNet(s); refresh(); };
-  $('bHaul').onclick = () => { if (!s.net.cell) toast('網はまだ投げていない（海をタップ）'); else sim.haulNet(s); };
+  $('bHaul').onclick = () => { if (!sim.recallNet(s)) toast('網は出ていない（海を押して投げる）'); };
   // 雨
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
-  const msgs = { caught: e => `かかった：${D.ITEMS[e.k].name}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ', short: () => '材料がたりない', built: () => '床を足した', net: () => '網を投げた', netup: () => '嵐！ 網を引き上げた', far: () => 'イカダのすぐそばの海をタップ', netlv: e => `網が Lv${e.lv} になった`, weather: e => `天気：${D.WEATHER[e.id].name}` };
+  const msgs = { caught: e => `かかった：${D.ITEMS[e.k].name}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ', short: () => '材料がたりない', built: () => '床を足した', throw: () => '', splash: () => '', miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった', stormnet: () => '嵐の間は網が投げられない（雨水をためよう）', netup: () => '嵐！ 網を引き寄せた', netlv: e => `網が Lv${e.lv} になった`, weather: e => `天気：${D.WEATHER[e.id].name}` };
   let acc = 0, lastKey = '';
   return { update(t, dt) {
     s.events.splice(0).forEach(e => { const f = msgs[e.e]; if (f) toast(f(e)); if (['caught', 'haul', 'eat', 'drink', 'built', 'netlv', 'netup'].includes(e.e)) refresh(); });
@@ -32,7 +33,10 @@ window.RAFT.parts.hud = function (c) {
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
     const bb = sim.bbox(s);
     $('clock').textContent = `${s.clock.day}日目 ${timeName(s.clock.t)}　${D.WEATHER[s.weather.id].name}　イカダ ${s.raft.cells.length}マス（${bb.w}×${bb.d}）`;
-    const nk = s.net.held.length + '/' + D.NET_LV[s.net.lv - 1].cap + (s.net.cell ? 'on' : 'off'); if (nk !== lastKey) { lastKey = nk; $('netinfo').textContent = s.net.cell ? `網 Lv${s.net.lv}：${s.net.held.length}/${D.NET_LV[s.net.lv - 1].cap}` : `網 Lv${s.net.lv}：まだ投げていない`; }
+    const nl = D.NET_LV[s.net.lv - 1], cs = s.net.cast, nk = s.net.lv + (cs ? cs.phase + cs.held.length : '-');
+    if (nk !== lastKey) { lastKey = nk; $('netinfo').textContent = `網 Lv${s.net.lv}（とどく${nl.range}マス・${nl.cap}個まで）` + (cs ? `　${{ fly: '飛んでいる', rest: 'とっている', back: 'もどってくる' }[cs.phase]} ${cs.held.length}/${nl.cap}` : ''); }
+    const gv = $('gauge'); gv.style.display = c.aim.active && !cs ? 'block' : 'none';
+    if (c.aim.active) { $('gaugeFill').style.width = (c.aim.power * 100) + '%'; $('gaugeTxt').textContent = `${(D.NET_MIN + (nl.range - D.NET_MIN) * c.aim.power).toFixed(1)}マス先`; }
     // 雨と目のかすみ
     const storm = s.weather.id === 'storm'; rainA += ((storm ? 1 : 0) - rainA) * (1 - Math.exp(-dt * 1.5));
     if (rain.width !== innerWidth) { rain.width = innerWidth; rain.height = innerHeight; }

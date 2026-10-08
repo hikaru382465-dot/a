@@ -8,14 +8,14 @@
 
   S.newState = function () {
     return {
-      v: 1, raftRev: 1, uid: 1, events: [],
+      v: 2, raftRev: 1, uid: 1, events: [],
       raft: { cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
       inv: { wood: 8, water: 3, fish: 1 },
       needs: { hunger: 85, thirst: 85 },
       clock: { day: 1, t: 0.16 },
       weather: { id: 'sunny', left: 80 },
       current: { ang: 0 },
-      net: { lv: 1, cell: null, held: [] },
+      net: { lv: 1, cast: null },
       buddy: { x: 1.5, z: 1.5, face: 1, path: [], task: null, act: null, eatT: 0 },
       drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
     };
@@ -50,30 +50,28 @@
     const p = S.bfs(s, bcell(s), [x, z]); if (!p) return false;
     s.buddy.path = p; s.buddy.task = null; s.buddy.act = null; return true;
   };
-  // 網を投げる：海のマス(nx,nz)がイカダの外周に接していること
-  S.standFor = function (s, nx, nz) {
-    let best = null, bd = 1e9; const b = s.buddy;
-    for (const [dx, dz] of N4) {
-      const x = nx + dx, z = nz + dz; if (!S.has(s, x, z)) continue;
-      const d = Math.hypot(x + 0.5 - b.x, z + 0.5 - b.z); if (d < bd) { bd = d; best = [x, z]; }
-    }
-    return best;
+  const netNow = s => D.NET_LV[s.net.lv - 1];
+  // 網を投げる：(tx,tz) の向きへ、ゲージ power(0〜1) の強さで飛ばす。海に落ちたら、とる時間のあいだ水の上にただよう
+  S.throwTarget = function (s, tx, tz, power) {
+    const b = s.buddy, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, nl = netNow(s);
+    const dist = D.NET_MIN + (nl.range - D.NET_MIN) * clamp(power, 0, 1);
+    return { x: b.x + dx / d * dist, z: b.z + dz / d * dist, dist };
   };
-  S.placeNet = function (s, nx, nz) {
-    if (S.has(s, nx, nz)) return false;
-    const st = S.standFor(s, nx, nz); if (!st) return false;
-    const p = S.bfs(s, bcell(s), st); if (!p) return false;
-    s.buddy.path = p; s.buddy.act = null; s.buddy.task = { type: 'net', cell: [nx, nz], stand: st }; return true;
+  S.throwNet = function (s, tx, tz, power) {
+    if (s.net.cast) return false;
+    if (s.weather.id === 'storm') { s.events.push({ e: 'stormnet' }); return false; }
+    const b = s.buddy, t = S.throwTarget(s, tx, tz, power);
+    b.path = []; b.act = { type: 'throw', t: 0.5 };
+    const sx = (t.x - b.x) * 0.7071 - (t.z - b.z) * 0.7071; if (Math.abs(sx) > 0.01) b.face = sx > 0 ? 1 : -1;
+    s.net.cast = { phase: 'fly', sx: b.x, sz: b.z, tx: t.x, tz: t.z, x: b.x, z: b.z, t: 0, held: [] };
+    s.events.push({ e: 'throw' }); return true;
   };
-  S.haulNet = function (s) {
-    if (!s.net.cell) return false;
-    const st = S.standFor(s, s.net.cell[0], s.net.cell[1]); if (!st) return false;
-    const p = S.bfs(s, bcell(s), st); if (!p) return false;
-    s.buddy.path = p; s.buddy.act = null; s.buddy.task = { type: 'haul', stand: st }; return true;
-  };
+  S.recallNet = function (s) { const c = s.net.cast; if (!c) return false; if (c.phase !== 'back') c.phase = 'back'; return true; };
   function collect(s) {
-    s.net.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; });
-    const n = s.net.held.length; s.net.held = []; if (n) s.events.push({ e: 'haul', n });
+    const c = s.net.cast; if (!c) return;
+    c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; });
+    if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
+    s.net.cast = null;
   }
   S.eat = function (s) {
     for (const k of ['fish', 'coconut']) if ((s.inv[k] || 0) > 0) {
@@ -98,7 +96,6 @@
     s.raft.cells.forEach(([x, z]) => N4.forEach(([dx, dz]) => {
       const X = x + dx, Z = z + dz, k = key(X, Z); if (seen.has(k) || S.has(s, X, Z)) return; seen.add(k);
       if (Math.max(bb.x1, X) - Math.min(bb.x0, X) + 1 > D.MAX_SIZE || Math.max(bb.z1, Z) - Math.min(bb.z0, Z) + 1 > D.MAX_SIZE) return;
-      if (s.net.cell && s.net.cell[0] === X && s.net.cell[1] === Z) return;
       out.push([X, Z]);
     }));
     return out;
@@ -126,7 +123,7 @@
     let r = S.rand() * tot, id = ids[0]; for (const k of ids) { r -= D.WEATHER[k].w; if (r <= 0) { id = k; break; } }
     s.weather = { id, left: 60 + S.rand() * 60 };
     s.events.push({ e: 'weather', id });
-    if (id === 'storm' && s.net.cell) { collect(s); s.net.cell = null; s.events.push({ e: 'netup' }); }
+    if (id === 'storm' && s.net.cast) { s.net.cast.phase = 'back'; s.events.push({ e: 'netup' }); }
   }
 
   S.step = function (s, dt) {
@@ -149,19 +146,11 @@
     const slow = (s.needs.hunger <= 0 || s.needs.thirst <= 0) ? 0.5 : 1;
     if (b.act) {
       b.act.t -= dt;
-      if (b.act.t <= 0) {
-        const a = b.act; b.act = null;
-        if (a.type === 'throw' && a.cell) { if (s.net.cell) collect(s); s.net.cell = a.cell; s.events.push({ e: 'net' }); }
-        else if (a.type === 'haul') collect(s);
-      }
+      if (b.act.t <= 0) b.act = null;
     } else if (b.path.length) {
       const tgt = b.path[0], tx = tgt[0] + 0.5, tz = tgt[1] + 0.5, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz), step = 2 * slow * dt;
       if (Math.abs(dx) > 0.01) b.face = dx > 0 ? 1 : -1;
       if (d <= step) { b.x = tx; b.z = tz; b.path.shift(); } else { b.x += dx / d * step; b.z += dz / d * step; }
-    } else if (b.task) {
-      const t = b.task; b.task = null;
-      if (t.type === 'net') b.act = { type: 'throw', t: 0.6, cell: t.cell };
-      else if (t.type === 'haul') b.act = { type: 'haul', t: 0.5 };
     }
     // 流れてくる物
     const f = S.flow(s), bb = S.bbox(s), cx = (bb.x0 + bb.x1 + 1) / 2, cz = (bb.z0 + bb.z1 + 1) / 2, R = s.view.r;
@@ -171,19 +160,32 @@
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
-    const v = W.speed, cap = D.NET_LV[s.net.lv - 1].cap;
+    const v = W.speed, nl = netNow(s), cast = s.net.cast;
+    // 網の動き
+    if (cast) {
+      if (cast.phase === 'fly') {
+        cast.t += dt / D.NET_FLY; const k = Math.min(1, cast.t);
+        cast.x = cast.sx + (cast.tx - cast.sx) * k; cast.z = cast.sz + (cast.tz - cast.sz) * k;
+        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { cast.phase = 'back'; s.events.push({ e: 'miss' }); } else s.events.push({ e: 'splash' }); }
+      } else if (cast.phase === 'rest') {
+        cast.t += dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
+        if (cast.t >= D.NET_REST || cast.held.length >= nl.cap) cast.phase = 'back';
+      } else {
+        const dx = b.x - cast.x, dz = b.z - cast.z, d = Math.hypot(dx, dz), step = 7 * dt;
+        if (d <= step + 0.3) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
+      }
+    }
+    const rest = s.net.cast && s.net.cast.phase === 'rest' ? s.net.cast : null;
     for (let i = s.drift.length - 1; i >= 0; i--) {
       const it = s.drift[i]; it.x += f.x * v * dt; it.z += f.z * v * dt; it.born += dt;
-      const ix = Math.floor(it.x), iz = Math.floor(it.z);
-      if (S.has(s, ix, iz)) { s.drift.splice(i, 1); continue; }              // イカダにぶつかって沈む
-      const n = s.net.cell;
-      if (n && it.x > n[0] - 0.25 && it.x < n[0] + 1.25 && it.z > n[1] - 0.25 && it.z < n[1] + 1.25) {
-        if (D.ITEMS[it.k].lv <= s.net.lv && s.net.held.length < cap) { s.net.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue; }
+      if (S.has(s, Math.floor(it.x), Math.floor(it.z))) { s.drift.splice(i, 1); continue; }              // イカダにぶつかって沈む
+      if (rest && Math.hypot(it.x - rest.x, it.z - rest.z) < nl.r && D.ITEMS[it.k].lv <= s.net.lv && rest.held.length < nl.cap) {
+        rest.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue;
       }
       if ((it.x - cx) * f.x + (it.z - cz) * f.z > R + 3) s.drift.splice(i, 1);
     }
   };
 
-  S.save = function (s) { try { localStorage.setItem('ikada-save-v1', JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem('ikada-save-v1'); if (!j) return null; const s = JSON.parse(j); return s && s.v === 1 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
+  S.save = function (s) { try { localStorage.setItem('ikada-save-v2', JSON.stringify(s)); } catch (e) {} };
+  S.load = function () { try { const j = localStorage.getItem('ikada-save-v2'); if (!j) return null; const s = JSON.parse(j); return s && s.v === 2 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
 })(window.RAFT);
