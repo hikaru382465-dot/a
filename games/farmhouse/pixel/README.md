@@ -121,3 +121,10 @@
 `python iso_reflect.py` → assets/effects/house_reflect.gif / _frame0.png。
 家を島に置き、水面（WZ=-0.35）で上下反転。各ドットの高さzを逆算し、高いほど波でゆがみ・網点で薄くなる。色は水へ寄せてパレットの一番近い色に。
 弱点：反射は家の形だけ（つる・小物は未対応）。
+
+## 島のマップ（パーツ方式）
+`python compose_island.py [parts]` → assets/island/（island.png, island_water.gif, island_mask/depth.png, parts/*.png）
+- island_parts.py：部品（Terrain 地形, hut 小屋, pier 桟橋, boat, tree/bush/rock＝球を1ドットずつ計算, props_at）
+- island_map.json：位置だけを書く地図（小屋・桟橋・木・小物）。場所を変えるときはここだけ。
+- 反射は iso_reflect と同じ式（小物の絵も、奥行きから高さが出るので映る）。
+弱点：地形が0.5mの段々、木が丸い玉、小屋の向きが全部同じ、HD-2Dのぼかし・光はエンジン側。

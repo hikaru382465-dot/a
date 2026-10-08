@@ -141,3 +141,4 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 詳しくは `games/farmhouse/README.md` と `games/farmhouse/pixel/README.md`
 
 - 2026-10-07 farmhouse：炎エフェクト・SMG・イカダ・海タイル・水ぎわの家の反射（pixel/iso_reflect.py）を追加。次：反射に小物/つるを入れる、イカダの縁タイル。
+- 2026-10-08 farmhouse：HD-2D風の島マップ（パーツ方式：island_parts.py＋island_map.json＋compose_island.py）。小屋4・桟橋・舟・木。次：地形をなめらかに、小屋の向き違い、エンジンでぼかし/光。
