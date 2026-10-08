@@ -32,7 +32,8 @@ window.RAFT.parts.buddy = function (c) {
   let t = 0;
 
   // ---- 操作 ----
-  // 床をタップ＝歩く／海を押し続ける＝ゲージがたまる（行ったり来たり）→離すと、その強さの距離へ網を投げる／網が出ている間に押す＝引き寄せる
+  // 床・置いた物をタップ＝歩く・使う／海を押し続ける＝ゲージがたまる→離すと、その強さの距離へ網を投げる（網を手に持っているとき）
+  // 網が出ている間に押す＝引き寄せる／置くモード（持ち物から選んだ物）では、光るマスをタップして置く
   const el = c.renderer.domElement, ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2), pt = new THREE.Vector3();
   let down = null, aimT0 = 0;
   const GAUGE_SEC = 1.1;
@@ -40,19 +41,24 @@ window.RAFT.parts.buddy = function (c) {
   const power = () => { const p = ((performance.now() - aimT0) / 1000 / GAUGE_SEC) % 2; return p < 1 ? p : 2 - p; };
   const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };
   el.addEventListener('pointerdown', e => {
+    if (c.ui && c.ui.open) return;
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
-    if (!p || c.mode.build) return;
+    if (!p || c.mode.place) return;
     if (s.net.cast) { R.sim.recallNet(s); down.recall = true; return; }
-    if (!R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) { if (s.equip !== 'net') { s.events.push({ e: 'noequip' }); return; } down.aim = true; aimT0 = performance.now(); c.aim.active = true; setAim(p, 0); }
+    if (R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) return;
+    if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); down = null; return; }
+    down.aim = true; aimT0 = performance.now(); c.aim.active = true; setAim(p, 0);
   });
-  el.addEventListener('pointermove', e => { if (down && down.aim) { const p = world(e); if (p) { down.p = p; } } });
+  el.addEventListener('pointermove', e => { if (down && down.aim) { const p = world(e); if (p) down.p = p; } });
   el.addEventListener('pointerup', e => {
     const d = down; down = null; c.aim.active = false;
     if (!d) return;
     if (d.aim) { const p = d.p; if (p) R.sim.throwNet(s, p.x, p.z, power()); return; }
     if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
     const x = Math.floor(d.p.x), z = Math.floor(d.p.z), sim = R.sim;
-    if (c.mode.build) { if (sim.build(s, x, z)) c.hud.refresh(); return; }
+    if (c.mode.place) { c.hud.tryPlace(x, z); return; }
+    const o = sim.objAt(s, x, z);
+    if (o) { sim.useObj(s, o.id); return; }
     if (sim.has(s, x, z)) sim.walkTo(s, x, z);
   });
   return { update(tt, dt) {

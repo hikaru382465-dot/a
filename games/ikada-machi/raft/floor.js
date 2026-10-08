@@ -29,7 +29,7 @@ window.RAFT.parts.floor = function (c) {
   const hlGeo = new THREE.PlaneGeometry(0.94, 0.94); hlGeo.rotateX(-Math.PI / 2);
   const hlMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 1.2, 0.7), transparent: true, opacity: 0.45, depthWrite: false });
   const boxG = new THREE.BoxGeometry(1, THICK, 1);
-  let rev = -1, hlRev = -1, hlOn = false;
+  let rev = -1, hlRev = '', hlList = null;
   function build() {
     while (group.children.length) group.remove(group.children[0]);
     s.raft.cells.forEach(([x, z]) => {
@@ -45,14 +45,14 @@ window.RAFT.parts.floor = function (c) {
   const lp = c.sprite(lantern(), { x: 0.28, y: TOP, z: 0.28, ppu: 22 }); scene.add(lp);
   const gm = new THREE.MeshBasicMaterial({ map: c.tex(gl), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.15 });
   const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), gm); gp.rotation.y = c.cam.yaw; gp.position.set(0.28, TOP + 1.0, 0.28); scene.add(gp); c.glows.push({ mat: gm });
-  // 作る場所の光（床を足すモード）
-  c.setHighlight = on => { hlOn = on; hlRev = -1; };
+  // 置ける場所の光（置くモード）：[[x, z, 高さ], ...] を渡す。空で消える
+  c.setHighlight = list => { hlList = list && list.length ? list : null; hlRev = '#'; };
   return { update() {
     if (s.raftRev !== rev) build();
-    const want = hlOn ? s.raftRev + ':' + s.inv.wood : '';
+    const want = hlList ? hlList.map(p => p.join(',')).join('|') : '';
     if (want !== hlRev) {
       while (hl.children.length) hl.remove(hl.children[0]);
-      if (hlOn) c.R.sim.buildCandidates(s).forEach(([x, z]) => { const m = new THREE.Mesh(hlGeo, hlMat); m.position.set(x + 0.5, 0.06, z + 0.5); hl.add(m); });
+      if (hlList) hlList.forEach(([x, z, y]) => { const m = new THREE.Mesh(hlGeo, hlMat); m.position.set(x + 0.5, y, z + 0.5); hl.add(m); });
       hlRev = want;
     }
   } };

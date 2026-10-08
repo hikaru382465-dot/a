@@ -71,7 +71,7 @@ window.RAFT.parts.sound = function (c) {
     no: t => tone(t, 220, 160, 0.15, 'sawtooth', 0.1),
     thunder: t => noise(t, 1.6, 'lowpass', 420, 60, 0.6)
   };
-  const map = { throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', built: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', miss: 'no', material: 'equip' };
+  const map = { throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', crafted: 'built', placed: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', locked: 'no', tankempty: 'no', miss: 'no', filtered: 'caught' };
   const rec = {
     splash: () => shot(pick(['splash', 'splash2', 'splash3']), 0.9, 0.95 + Math.random() * 0.1),
     caught: () => shot(pick(['bubble1', 'bubble2', 'bubble3']), 1.4, 0.9 + Math.random() * 0.3),

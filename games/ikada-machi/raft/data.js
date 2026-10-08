@@ -1,26 +1,38 @@
 // イカダ暮らし：表（数字はここだけ。あとで Godot の Resource / Dictionary にそのまま移せる）
-window.RAFT = { parts: {}, order: ['camera', 'water', 'light', 'floor', 'buddy', 'drift', 'sound', 'hud'] };
+window.RAFT = { parts: {}, order: ['camera', 'water', 'light', 'floor', 'objects', 'buddy', 'drift', 'sound', 'hud'] };
 window.RAFT.data = {
   DAY_SEC: 240,                       // 1日の長さ（秒）。URLの最後に ?fast で10倍
   MAX_SIZE: 8,                        // イカダの最大（8×8マス）
-  BUILD: { floor: { wood: 4 } },      // 床を1マス足す材料
   NEEDS: { hunger: 0.25, thirst: 0.33, low: 30 },   // 1秒に減る量、相棒が自分で食べ始める値
-  // lv：この網のレベル以上で取れる。w：流れてくる重み。food/drink：食べる・飲むで戻る量
+  // lv：この網のレベル以上で取れる。w：流れてくる重み。food/drink：食べる・飲むで戻る量。place：置ける物
   ITEMS: {
-    wood:    { name: '木くず',   lv: 1, w: 6 },
-    fish:    { name: '小魚',     lv: 1, w: 3, food: 25 },
-    coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 22 },
-    rope:    { name: '縄',       lv: 2, w: 3 },
-    cloth:   { name: '布',       lv: 2, w: 2 },
-    clay:    { name: '粘土',     lv: 3, w: 2 },
-    stone:   { name: '石',       lv: 3, w: 2 },
-    iron:    { name: '鉄くず',   lv: 4, w: 1 },
-    glass:   { name: 'ガラス',   lv: 4, w: 1 },
-    water:   { name: '真水',     lv: 0, w: 0, drink: 35 }   // 雨でたまる（流れてはこない）
+    wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
+    fish:    { name: '小魚',     lv: 1, w: 3, food: 25, tip: '食べるとおなかが戻る' },
+    coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 28, tip: '飲むとのどが戻る（おなかも少し）' },
+    rope:    { name: '縄',       lv: 2, w: 3, tip: '作る材料' },
+    cloth:   { name: '布',       lv: 2, w: 2, tip: '作る材料' },
+    clay:    { name: '粘土',     lv: 3, w: 2, tip: '作る材料' },
+    stone:   { name: '石',       lv: 3, w: 2, tip: '作る材料' },
+    iron:    { name: '鉄くず',   lv: 4, w: 1, tip: '作る材料' },
+    glass:   { name: 'ガラス',   lv: 4, w: 1, tip: '作る材料' },
+    floor:   { name: '床板',     lv: 0, w: 0, place: true, tip: '海に面したところに置くと、イカダが広がる' },
+    bench:   { name: '作業台',   lv: 0, w: 0, place: true, tip: '置くと、いろいろ作れる（イカダに1つ）' },
+    tank:    { name: '貯水槽',   lv: 0, w: 0, place: true, cap: 8, tip: '雨の水をためる。タップで飲む' },
+    filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
-  // 網（投げる）：range＝ゲージ満タンで飛ぶ距離（マス）、r＝網がとる広さ（半径・マス）、cap＝1回で入る数
+  // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
+  RECIPES: [
+    { id: 'bench',  out: 'bench',  cost: { wood: 6 },                   need: null,    tip: '最初に作る。これがあれば、ほかの物が作れる' },
+    { id: 'floor',  out: 'floor',  cost: { wood: 4 },                   need: null,    tip: 'イカダを広げる' },
+    { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
+    { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
+    { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
+  ],
+  TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
+  RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）
   TOOLS: { net: { name: '網', tip: '海を押し続けて、離すと投げる' } },
+  // 網（投げる）：range＝ゲージ満タンで飛ぶ距離（マス）、r＝網がとる広さ（半径・マス）、cap＝1回で入る数
   NET_LV: [
     { lv: 1, range: 4,   r: 0.9, cap: 3 },
     { lv: 2, range: 5.5, r: 1.0, cap: 4, cost: { wood: 8 } },

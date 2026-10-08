@@ -5,17 +5,19 @@
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   S.rand = Math.random;
+  S.KEY = 'ikada-save-v3';
 
   S.newState = function () {
     return {
-      v: 2, raftRev: 1, uid: 1, events: [],
+      v: 3, raftRev: 1, objRev: 1, uid: 1, events: [],
       raft: { cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
-      inv: { wood: 8, water: 3, fish: 1 },
-      needs: { hunger: 85, thirst: 85 },
+      objects: [],          // 置いた物：{ id, k, x, z, w（貯水槽の水）, p（ろ過器の進み・秒）}
+      inv: { wood: 10, coconut: 3, fish: 1 },
+      needs: { hunger: 90, thirst: 100 },
       clock: { day: 1, t: 0.16 },
       weather: { id: 'sunny', left: 80 },
       current: { ang: 0 },
-      net: { lv: 1, cast: null }, tools: ['net'], equip: null,
+      net: { lv: 1, cast: null }, tools: ['net'], hand: 'net',
       buddy: { x: 1.5, z: 1.5, face: 1, path: [], task: null, act: null, eatT: 0 },
       drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
     };
@@ -29,16 +31,19 @@
   S.flow = s => { const a = Math.PI / 4 * -1 + s.current.ang; return { x: Math.cos(a), z: Math.sin(a) }; };   // 画面の左から右へ流れる向き
   S.speed = s => D.WEATHER[s.weather.id].speed;
 
+  S.objAt = (s, x, z) => s.objects.find(o => o.x === x && o.z === z) || null;
+  S.hasBench = s => s.objects.some(o => o.k === 'bench');
+  const free = (s, x, z) => S.has(s, x, z) && !S.objAt(s, x, z);
   S.bfs = function (s, from, to) {
     const k0 = key(from[0], from[1]), k1 = key(to[0], to[1]);
-    if (!S.has(s, to[0], to[1])) return null;
+    if (!free(s, to[0], to[1])) return null;
     if (k0 === k1) return [];
     const prev = { [k0]: null }, q = [from];
     while (q.length) {
       const c = q.shift();
       for (const [dx, dz] of N4) {
         const x = c[0] + dx, z = c[1] + dz, k = key(x, z);
-        if (k in prev || !S.has(s, x, z)) continue;
+        if (k in prev || !free(s, x, z)) continue;
         prev[k] = c; if (k === k1) { const out = []; let p = [x, z]; while (p && key(p[0], p[1]) !== k0) { out.push(p); p = prev[key(p[0], p[1])]; } return out.reverse(); }
         q.push([x, z]);
       }
@@ -50,6 +55,16 @@
     const p = S.bfs(s, bcell(s), [x, z]); if (!p) return false;
     s.buddy.path = p; s.buddy.task = null; s.buddy.act = null; return true;
   };
+  // 物のそばまで歩いて、着いたら task を実行する
+  S.walkNear = function (s, x, z, task) {
+    let best = null;
+    for (const [dx, dz] of N4) {
+      const X = x + dx, Z = z + dz; if (!free(s, X, Z)) continue;
+      const p = S.bfs(s, bcell(s), [X, Z]); if (p && (!best || p.length < best.length)) best = p;
+    }
+    if (!best) return false;
+    s.buddy.path = best; s.buddy.act = null; s.buddy.task = task; return true;
+  };
   const netNow = s => D.NET_LV[s.net.lv - 1];
   // 網を投げる：(tx,tz) の向きへ、ゲージ power(0〜1) の強さで飛ばす。海に落ちたら、とる時間のあいだ水の上にただよう
   S.throwTarget = function (s, tx, tz, power) {
@@ -59,7 +74,7 @@
   };
   S.throwNet = function (s, tx, tz, power) {
     if (s.net.cast) return false;
-    if (s.equip !== 'net') { s.events.push({ e: 'noequip' }); return false; }
+    if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); return false; }
     if (s.weather.id === 'storm') { s.events.push({ e: 'stormnet' }); return false; }
     const b = s.buddy, t = S.throwTarget(s, tx, tz, power);
     b.path = []; b.act = { type: 'throw', t: 0.5 };
@@ -74,54 +89,77 @@
     if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
     s.net.cast = null;
   }
-  // 持ち物から使う：道具＝手に持つ／切りかえ、食べ物・飲み物＝使う
-  S.equip = function (s, id) { if (!s.tools.includes(id)) return false; s.equip = s.equip === id ? null : id; s.events.push({ e: 'equip', id: s.equip }); return true; };
+  // 手に持つ（道具の切りかえ）
+  S.hold = function (s, id) { if (!s.tools.includes(id)) return false; s.hand = s.hand === id ? null : id; s.events.push({ e: 'equip', id: s.hand }); return true; };
+  // 食べ物・飲み物を使う
   S.use = function (s, k) {
-    const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0) return false;
-    if (!it.food && !it.drink) { s.events.push({ e: 'material', k }); return false; }
+    const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0 || (!it.food && !it.drink)) return false;
     s.inv[k]--;
     if (it.food) s.needs.hunger = clamp(s.needs.hunger + it.food, 0, 100);
     if (it.drink) s.needs.thirst = clamp(s.needs.thirst + it.drink, 0, 100);
     s.buddy.act = { type: 'eat', t: 0.5 }; s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
   };
-  S.eat = function (s) {
-    for (const k of ['fish', 'coconut']) if ((s.inv[k] || 0) > 0) {
-      s.inv[k]--; s.needs.hunger = clamp(s.needs.hunger + D.ITEMS[k].food, 0, 100);
-      if (D.ITEMS[k].drink) s.needs.thirst = clamp(s.needs.thirst + D.ITEMS[k].drink * 0.3, 0, 100);
-      s.buddy.act = { type: 'eat', t: 0.5 }; s.events.push({ e: 'eat', k }); return true;
-    }
-    return false;
-  };
-  S.drink = function (s) {
-    for (const k of ['water', 'coconut']) if ((s.inv[k] || 0) > 0) {
-      s.inv[k]--; s.needs.thirst = clamp(s.needs.thirst + D.ITEMS[k].drink, 0, 100);
-      if (D.ITEMS[k].food) s.needs.hunger = clamp(s.needs.hunger + D.ITEMS[k].food, 0, 100);
-      s.buddy.act = { type: 'eat', t: 0.5 }; s.events.push({ e: 'drink', k }); return true;
-    }
-    return false;
-  };
   S.canPay = (s, cost) => Object.keys(cost).every(k => (s.inv[k] || 0) >= cost[k]);
   S.pay = (s, cost) => Object.keys(cost).forEach(k => s.inv[k] -= cost[k]);
-  S.buildCandidates = function (s) {
+  S.nextNet = s => D.NET_LV[s.net.lv];       // 次のレベル（なければ undefined）
+  const costOf = (s, r) => r.special === 'net' ? (S.nextNet(s) ? S.nextNet(s).cost : null) : r.cost;
+  // 作れるか：{ ok, why }  why = 'locked'（作業台がいる）／'short'（材料がたりない）／'max'／'have'（もうある）
+  S.canCraft = function (s, r) {
+    const cost = costOf(s, r);
+    if (r.special === 'net' && !cost) return { ok: false, why: 'max' };
+    if (r.need === 'bench' && !S.hasBench(s)) return { ok: false, why: 'locked' };
+    if (r.out === 'bench' && (S.hasBench(s) || (s.inv.bench || 0) > 0)) return { ok: false, why: 'have' };
+    if (!S.canPay(s, cost)) return { ok: false, why: 'short' };
+    return { ok: true };
+  };
+  S.craft = function (s, id) {
+    const r = D.RECIPES.find(x => x.id === id); if (!r) return false;
+    const c = S.canCraft(s, r); if (!c.ok) { s.events.push({ e: c.why === 'locked' ? 'locked' : 'short' }); return false; }
+    S.pay(s, costOf(s, r));
+    if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
+    else { s.inv[r.out] = (s.inv[r.out] || 0) + 1; s.events.push({ e: 'crafted', k: r.out }); }
+    return true;
+  };
+  // 床板：海に面した、まだ床でないマス（8×8まで）
+  S.floorCandidates = function (s) {
     const bb = S.bbox(s), out = [], seen = new Set();
     s.raft.cells.forEach(([x, z]) => N4.forEach(([dx, dz]) => {
       const X = x + dx, Z = z + dz, k = key(X, Z); if (seen.has(k) || S.has(s, X, Z)) return; seen.add(k);
       if (Math.max(bb.x1, X) - Math.min(bb.x0, X) + 1 > D.MAX_SIZE || Math.max(bb.z1, Z) - Math.min(bb.z0, Z) + 1 > D.MAX_SIZE) return;
-      out.push([X, Z]);
+      if (s.net.cast && Math.floor(s.net.cast.x) === X && Math.floor(s.net.cast.z) === Z) return;
+      out.push([X, Z, 0.06]);
     }));
     return out;
   };
-  S.build = function (s, x, z) {
-    if (!S.buildCandidates(s).some(c => c[0] === x && c[1] === z)) return false;
-    if (!S.canPay(s, D.BUILD.floor)) { s.events.push({ e: 'short' }); return false; }
-    S.pay(s, D.BUILD.floor); s.raft.cells.push([x, z]); s.raftRev++; s.events.push({ e: 'built' }); return true;
+  // 置き場所：床板は海側のマス。ほかの物は、イカダの空いているマス。置いたあとも、空きマスがつながって2つ以上残ること
+  S.placeCandidates = function (s, k) {
+    if (k === 'floor') return S.floorCandidates(s);
+    const b = bcell(s), out = [];
+    const freeCells = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z));
+    s.raft.cells.forEach(([x, z]) => {
+      if (S.objAt(s, x, z) || (x === b[0] && z === b[1])) return;
+      const rest = freeCells.filter(c => !(c[0] === x && c[1] === z)); if (rest.length < 2) return;
+      const seen = new Set([key(rest[0][0], rest[0][1])]), q = [rest[0]];
+      while (q.length) { const c = q.shift(); for (const [dx, dz] of N4) { const X = c[0] + dx, Z = c[1] + dz, kk = key(X, Z); if (!seen.has(kk) && rest.some(r => r[0] === X && r[1] === Z)) { seen.add(kk); q.push([X, Z]); } } }
+      if (seen.size === rest.length) out.push([x, z, 0.215]);
+    });
+    return out;
   };
-  S.nextNet = s => D.NET_LV[s.net.lv];       // 次のレベル（なければ undefined）
-  S.upgradeNet = function (s) {
-    const n = S.nextNet(s); if (!n) return false;
-    if (!S.canPay(s, n.cost)) { s.events.push({ e: 'short' }); return false; }
-    S.pay(s, n.cost); s.net.lv = n.lv; s.events.push({ e: 'netlv', lv: n.lv }); return true;
+  S.place = function (s, k, x, z) {
+    if ((s.inv[k] || 0) <= 0 || !S.placeCandidates(s, k).some(c => c[0] === x && c[1] === z)) return false;
+    s.inv[k]--;
+    if (k === 'floor') { s.raft.cells.push([x, z]); s.raftRev++; }
+    else { s.objects.push({ id: s.uid++, k, x, z, w: 0, p: 0 }); s.objRev++; s.buddy.path = []; s.buddy.task = null; }
+    s.events.push({ e: 'placed', k }); return true;
   };
+  // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
+  S.useObj = function (s, id) {
+    const o = s.objects.find(x => x.id === id); if (!o) return false;
+    if (o.k === 'tank') s.events.push({ e: 'tankinfo', w: o.w, cap: D.ITEMS.tank.cap });
+    if (o.k === 'filter') s.events.push({ e: 'filterinfo', left: Math.max(0, Math.ceil(D.ITEMS.filter.sec - o.p)) });
+    return S.walkNear(s, o.x, o.z, { type: o.k, id });
+  };
+  S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
   function pickItem(s) {
     const list = Object.keys(D.ITEMS).filter(k => D.ITEMS[k].w > 0 && D.ITEMS[k].lv <= s.net.lv + 1);
@@ -146,12 +184,22 @@
     // おなか・のどのかわき（0で止まる。死なない）
     s.needs.hunger = Math.max(0, s.needs.hunger - D.NEEDS.hunger * dt);
     s.needs.thirst = Math.max(0, s.needs.thirst - D.NEEDS.thirst * W.thirst * dt);
-    if (s.weather.id === 'storm') { s.rainT += dt; if (s.rainT >= 5) { s.rainT = 0; s.inv.water = Math.min(9, (s.inv.water || 0) + 1); } }
+    const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
+    if (s.weather.id === 'storm') { s.rainT += dt; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
+    s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
+      if (o.k !== 'filter') return;
+      const t = tanks.filter(x => x.w < tcap).sort((a, c) => a.w - c.w)[0];
+      if (!t) { o.p = Math.min(o.p, D.ITEMS.filter.sec); return; }
+      o.p += dt; if (o.p >= D.ITEMS.filter.sec) { o.p = 0; t.w++; s.events.push({ e: 'filtered' }); }
+    });
     // 相棒が心配して、自分で食べる・飲む
     const b = s.buddy; b.eatT -= dt;
     if (!b.act && b.eatT <= 0) {
-      if (s.needs.hunger < D.NEEDS.low && S.eat(s)) b.eatT = 3;
-      else if (s.needs.thirst < D.NEEDS.low && S.drink(s)) b.eatT = 3;
+      if (s.needs.hunger < D.NEEDS.low && (s.inv.fish > 0 ? S.use(s, 'fish') : (s.inv.coconut > 0 && S.use(s, 'coconut')))) b.eatT = 3;
+      else if (s.needs.thirst < D.NEEDS.low && !b.task) {
+        const t = tanks.find(x => x.w > 0);
+        if (t) { S.useObj(s, t.id); b.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut')) b.eatT = 3;
+      }
     }
     // 相棒の動き
     const slow = (s.needs.hunger <= 0 || s.needs.thirst <= 0) ? 0.5 : 1;
@@ -162,6 +210,13 @@
       const tgt = b.path[0], tx = tgt[0] + 0.5, tz = tgt[1] + 0.5, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz), step = 2 * slow * dt;
       if (Math.abs(dx) > 0.01) b.face = dx > 0 ? 1 : -1;
       if (d <= step) { b.x = tx; b.z = tz; b.path.shift(); } else { b.x += dx / d * step; b.z += dz / d * step; }
+    } else if (b.task) {     // 着いたら、物を使う
+      const t = b.task; b.task = null; const o = s.objects.find(x => x.id === t.id);
+      if (o && o.k === 'bench') s.events.push({ e: 'bench' });
+      else if (o && o.k === 'tank') {
+        if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); b.act = { type: 'eat', t: 0.7 }; s.events.push({ e: 'drink', k: 'tank' }); }
+        else s.events.push({ e: 'tankempty' });
+      }
     }
     // 流れてくる物
     const f = S.flow(s), bb = S.bbox(s), cx = (bb.x0 + bb.x1 + 1) / 2, cz = (bb.z0 + bb.z1 + 1) / 2, R = s.view.r;
@@ -197,6 +252,6 @@
     }
   };
 
-  S.save = function (s) { try { localStorage.setItem('ikada-save-v2', JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem('ikada-save-v2'); if (!j) return null; const s = JSON.parse(j); return s && s.v === 2 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
+  S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); return s && s.v === 3 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
 })(window.RAFT);
