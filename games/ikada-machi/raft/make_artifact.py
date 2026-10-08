@@ -4,7 +4,7 @@ here = pathlib.Path(__file__).parent
 src = (here / 'index.html').read_text(encoding='utf-8')
 style = re.search(r'<style>(.*?)</style>', src, re.S).group(1)
 body = re.search(r'<body>(.*?)<script src=', src, re.S).group(1)
-files = ['../island/common.js', 'data.js', 'sim.js', 'camera.js', 'water.js', 'light.js', 'floor.js', 'buddy.js', 'drift.js', 'hud.js']
+files = ['../island/common.js', 'data.js', 'net_art.js', 'sim.js', 'camera.js', 'water.js', 'light.js', 'floor.js', 'buddy.js', 'drift.js', 'hud.js']
 js = '\n'.join((here / f).read_text(encoding='utf-8') for f in files)
 imap = re.search(r'<script type="importmap">.*?</script>', src, re.S).group(0)
 mod = re.search(r'(<script type="module">.*?</script>)', src, re.S).group(1)

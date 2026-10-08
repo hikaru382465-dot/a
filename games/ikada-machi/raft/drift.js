@@ -37,6 +37,22 @@ window.RAFT.parts.drift = function (c) {
   const aimLine = new THREE.Line(lineG, new THREE.LineDashedMaterial({ color: 0xfff0c8, dashSize: 0.18, gapSize: 0.14, transparent: true, opacity: 0.9 })); aimLine.visible = false; scene.add(aimLine);
   const ropeLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: new THREE.Color(P.wood5) })); ropeLine.visible = false; scene.add(ropeLine);
   const setLine = (line, ax, ay, az, bx, by, bz) => { const p = line.geometry.attributes.position; p.setXYZ(0, ax, ay, az); p.setXYZ(1, bx, by, bz); p.needsUpdate = true; line.computeLineDistances(); };
+  // ひかるが描いた網の絵（net_art.js）。読み込めたら、プログラムで描いた網のかわりに使う
+  const NA = R.netArt, art = { ready: false, fly: [], splash: [], idle: [] };
+  const artM = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false }); c.sprites.push(artM);
+  const artMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), artM); artMesh.visible = false; artMesh.rotation.y = c.cam.yaw; artMesh.renderOrder = 2; scene.add(artMesh);
+  if (NA) {
+    let left = 0; const all = [].concat(NA.fly, NA.splash, NA.idle);
+    all.forEach(f => { left++; const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; f.tex = tx; if (--left === 0) art.ready = true; }; im.src = f.src; });
+  }
+  const camRight = new THREE.Vector3(Math.cos(c.cam.yaw), 0, -Math.sin(c.cam.yaw));
+  function showArt(f, u, x, y, z) {
+    artM.map = f.tex; artM.needsUpdate = true;
+    artMesh.scale.set(f.w * u, f.h * u / Math.cos(c.cam.pitch), 1);
+    const dx = (f.ax - f.w / 2) * u, dy = (f.h / 2 - f.ay) * u / Math.cos(c.cam.pitch);
+    artMesh.position.set(x - camRight.x * dx, y + dy, z - camRight.z * dx);
+    artMesh.visible = true;
+  }
   const held = [];
   let t = 0;
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
@@ -59,13 +75,19 @@ window.RAFT.parts.drift = function (c) {
       setLine(aimLine, b.x, 0.5, b.z, a.x, 0.07, a.z);
     }
     // 網
-    const cast = s.net.cast;
-    net.visible = !!cast; ropeLine.visible = !!cast;
+    const cast = s.net.cast, useArt = art.ready && cast;
+    net.visible = !!cast && !useArt; ropeLine.visible = !!cast; artMesh.visible = false;
     if (cast) {
       let y = 0.06 + Math.sin(t * 1.7) * 0.012, sc = nl.r * 2;
       if (cast.phase === 'fly') { const k = Math.min(1, cast.t); y = 0.7 + Math.sin(Math.PI * k) * 1.3 - k * 0.64; sc *= 0.35 + 0.65 * k; }
       else if (cast.phase === 'back') { y = 0.12; sc *= 0.85; }
-      net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0;
+      if (useArt) {
+        let f, u;
+        if (cast.phase === 'fly') { f = NA.fly[Math.min(3, Math.floor(Math.min(1, cast.t) * 4))]; u = 2 * nl.r / NA.flyDiscW; }
+        else if (cast.phase === 'rest' && cast.t < 0.5) { f = NA.splash[Math.min(3, Math.floor(cast.t / 0.125))]; u = 2 * nl.r / NA.flyDiscW; }
+        else { f = NA.idle[Math.floor(t * 5) % 4]; u = 2 * nl.r / NA.idleDiscW; if (cast.phase === 'back') u *= 0.85; }
+        showArt(f, u, cast.x, y + 0.02, cast.z);
+      } else { net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
       setLine(ropeLine, b.x, 0.55, b.z, cast.x, y, cast.z);
     }
     while (held.length > (cast ? cast.held.length : 0)) group.remove(held.pop());
