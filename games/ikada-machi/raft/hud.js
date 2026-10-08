@@ -36,7 +36,7 @@ window.RAFT.parts.hud = function (c) {
   const msgs = { caught: e => `かかった：${D.ITEMS[e.k].name}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ', short: () => '材料がたりない', built: () => '床を足した', equip: e => e.id ? '網を持った：海を押し続けて、離すと投げる' : '網をしまった', noequip: () => '持ち物の「網」を選んでから投げる', material: e => `${D.ITEMS[e.k].name}：材料（床や網の強化に使う）`, throw: () => '', splash: () => '', miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった', stormnet: () => '嵐の間は網が投げられない（雨水をためよう）', netup: () => '嵐！ 網を引き寄せた', netlv: e => `網が Lv${e.lv} になった`, weather: e => `天気：${D.WEATHER[e.id].name}` };
   let acc = 0, lastKey = '';
   return { update(t, dt) {
-    s.events.splice(0).forEach(e => { const f = msgs[e.e]; if (f) toast(f(e)); if (['caught', 'haul', 'eat', 'drink', 'built', 'netlv', 'netup', 'equip'].includes(e.e)) refresh(); });
+    s.events.splice(0).forEach(e => { c.sfx && c.sfx.onEvent(e); const f = msgs[e.e]; if (f) toast(f(e)); if (['caught', 'haul', 'eat', 'drink', 'built', 'netlv', 'netup', 'equip'].includes(e.e)) refresh(); });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
     const bb = sim.bbox(s);
