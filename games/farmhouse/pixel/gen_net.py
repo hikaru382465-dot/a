@@ -8,6 +8,9 @@ import os, math
 import numpy as np
 from PIL import Image
 import pxl
+SC = float(os.environ.get('NET_SCALE', '1'))                # 大きさの倍率（2で2倍の細かさ）
+SUF = '_hd' if SC != 1 else ''
+LW = SC ** .8                                                # 線の太さ
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "assets", "effects"); os.makedirs(OUT, exist_ok=True)
 pal, _ = pxl.load_palette()
@@ -48,10 +51,10 @@ def draw_net(cv, cx, cy, a, asp, spin, P=9, haze=0.0, sink=False):
     grad = (kk / 2) * math.hypot(1 / a, 1 / (a * asp))
     g1, g2 = (uu + vv) * kk / 2, (uu - vv) * kk / 2
     d1 = np.abs(g1 - np.round(g1)) / grad; d2 = np.abs(g2 - np.round(g2)) / grad
-    th = .62
+    th = .62 * LW
     mesh = inside & ((d1 < th) | (d2 < th))
     knot = inside & (d1 < th * 1.1) & (d2 < th * 1.1)
-    rim = inside & (r > 1 - max(2.0, 2.4) / a)
+    rim = inside & (r > 1 - max(2.0, 2.4) * LW / a)
     # 色：上（奥）は明るく、手前は影。しずむ網は中心ほど暗く青い
     base = np.round(4 - v * 1.3 + (np.where(knot, 1, 0))).astype(int)
     rope = mesh | rim
@@ -63,24 +66,24 @@ def draw_net(cv, cx, cy, a, asp, spin, P=9, haze=0.0, sink=False):
     rimshade = np.where(rim, base + 0, base)
     cv.put(rope, 'C', np.clip(np.where(rim, base - (v > .3) * 1, base) - 0, 1, 6))
     # ふちのなわは太く見えるよう、内がわにも1ドット（明るい線）
-    inner = inside & (r > 1 - 4.0 / a) & (r <= 1 - 2.4 / a) & (v < .2) & (BAY[cv.Y % 4, cv.X % 4] < .6)
+    inner = inside & (r > 1 - 4.0 * LW / a) & (r <= 1 - 2.4 * LW / a) & (v < .2) & (BAY[cv.Y % 4, cv.X % 4] < .6)
     cv.put(inner & ~rope, 'C', np.clip(base - 1, 1, 6))
     # おもり（ふちに8こ）とうき（あいだに4こ）
     for j in range(8):
         th_ = spin + j * math.tau / 8
         px, py = cx + math.cos(th_) * a * .985, cy + math.sin(th_) * a * asp * .985
-        m = (cv.X + .5 - px) ** 2 + ((cv.Y + .5 - py) / max(.6, asp * 1.25)) ** 2 <= (1.9 if a > 12 else 1.2) ** 2
+        m = (cv.X + .5 - px) ** 2 + ((cv.Y + .5 - py) / max(.6, asp * 1.25)) ** 2 <= ((1.9 if a > 12 * SC else 1.2) * LW) ** 2
         cv.put(m & inside | (m & rim), 'I', np.where(cv.Y + .5 < py - .3, 4, 2) if m.any() else 2)
     for j in range(4):
         th_ = spin + (j * 2 + 1) * math.tau / 8 + math.tau / 16
         px, py = cx + math.cos(th_) * a * .985, cy + math.sin(th_) * a * asp * .985
-        m = (cv.X + .5 - px) ** 2 + ((cv.Y + .5 - py) / max(.6, asp * 1.25)) ** 2 <= (1.6 if a > 12 else 1.0) ** 2
+        m = (cv.X + .5 - px) ** 2 + ((cv.Y + .5 - py) / max(.6, asp * 1.25)) ** 2 <= ((1.6 if a > 12 * SC else 1.0) * LW) ** 2
         cv.put(m, 'H', np.where(cv.Y + .5 < py - .3, 5, 3) if m.any() else 3)
     return inside
 
 def water_bg(W, H, t=0.0):
     cv = Canvas(W, H)
-    h = np.sin(2 * math.pi * (cv.X / 31.0 + cv.Y / 11.0 - t)) * .5 + np.sin(2 * math.pi * (cv.X / 17.0 - cv.Y / 7.0 + t * 2)) * .35
+    h = np.sin(2 * math.pi * (cv.X / (31.0 * SC) + cv.Y / (11.0 * SC) - t)) * .5 + np.sin(2 * math.pi * (cv.X / (17.0 * SC) - cv.Y / (7.0 * SC) + t * 2)) * .35
     q = (h + 1) / 2
     idx = np.clip(np.floor(q * 2.4 + (BAY[cv.Y % 4, cv.X % 4] - .5) * .6).astype(int) + 2, 2, 4)
     cv.put(np.ones((H, W), bool), 'w', idx)
@@ -97,19 +100,19 @@ def shadow(cv, cx, cy, a, asp=.5, k=.5):
     cv.put(m & (cv.img[:, :, 3] == 0), 'w', 1)
 
 # ---------------------------------------------------------------- 投げる 16コマ
-W1, H1 = 176, 104
+W1, H1 = int(176 * SC), int(104 * SC)
 NFLY, NSPL = 12, 4
-p0 = np.array([22.0, 62.0]); p3 = np.array([112.0, 70.0]); APEX = 46.0
+p0 = np.array([22.0, 62.0]) * SC; p3 = np.array([112.0, 70.0]) * SC; APEX = 46.0 * SC
 frames_throw = []
 for i in range(NFLY + NSPL):
     cv = Canvas(W1, H1)
     if i < NFLY:
         t = i / (NFLY - 1); te = t ** .9
         gx = p0[0] + (p3[0] - p0[0]) * te; gy = p0[1] + (p3[1] - p0[1]) * te
-        cy_ = gy - APEX * 4 * te * (1 - te) - 4 * (1 - te)
-        a = (3.5 + (25 - 3.5) * smooth(.12, .86, t)) * (1 + .09 * math.sin(t * 9.4) * (1 - t)); asp = (1.0 - .5 * smooth(.25, 1.0, t)) * (1 + .16 * math.sin(t * 11) * (1 - t))
+        cy_ = gy - APEX * 4 * te * (1 - te) - 4 * SC * (1 - te)
+        a = SC * (3.5 + (25 - 3.5) * smooth(.12, .86, t)) * (1 + .09 * math.sin(t * 9.4) * (1 - t)); asp = (1.0 - .5 * smooth(.25, 1.0, t)) * (1 + .16 * math.sin(t * 11) * (1 - t))
         spin = (1 - smooth(0, 1, t)) * math.pi * 1.7
-        P = 4 + 5 * smooth(.1, .8, t)
+        P = (4 + 5 * smooth(.1, .8, t)) * SC * .8
         shadow(cv, gx, gy + 3, a * .9, .5, .45 * smooth(0, .4, t))
         # 手もとへのなわ（たるむ）：網のふちの近い所 → 手
         att = np.array([gx - a * .9, cy_ + 1])
@@ -123,35 +126,35 @@ for i in range(NFLY + NSPL):
             cv.put(m & (cv.img[:, :, 3] == 0), 'C', np.where(sh > .35, 2, 3))
     else:
         k = i - NFLY; gx, gy = p3
-        a, asp = 25, .5; cy_ = gy - 4 * (1 - k / 3.0) ** 2 * 3 + 0
-        ripple(cv, gx, gy + 1, 26 + k * 6 + 4, .5, 0, 1.0 - k * .22)
-        if k >= 1: ripple(cv, gx, gy + 1, 22 + k * 3, .5, 0, .8 - k * .15, 'w', 5)
-        draw_net(cv, gx, gy, a, asp, 0.0, P=9, sink=True, haze=.2 * k)
+        a, asp = 25 * SC, .5; cy_ = gy - 4 * (1 - k / 3.0) ** 2 * 3 + 0
+        ripple(cv, gx, gy + 1, (26 + k * 6 + 4) * SC, .5, 0, 1.0 - k * .22)
+        if k >= 1: ripple(cv, gx, gy + 1, (22 + k * 3) * SC, .5, 0, .8 - k * .15, 'w', 5)
+        draw_net(cv, gx, gy, a, asp, 0.0, P=9 * SC * .8, sink=True, haze=.2 * k)
         # しぶき：上へとんで落ちる水のつぶ
         for j in range(14):
-            ang = j * math.tau / 14 + .3; sp = [13, 19, 21, 17][k] * (.6 + .5 * h2(j, 1, 2))
-            dx = math.cos(ang) * sp * (1.0 + k * .35); dy = -abs(math.sin(ang)) * sp * 1.1 * [1.2, 1.0, .5, -.2][k] + 6 * k * k * .3
-            xx, yy = int(gx + dx * 1.6 + math.cos(ang) * a * .7), int(gy + dy - 4 + math.sin(ang) * a * .3)
+            ang = j * math.tau / 14 + .3; sp = [13, 19, 21, 17][k] * SC * (.6 + .5 * h2(j, 1, 2))
+            dx = math.cos(ang) * sp * (1.0 + k * .35); dy = -abs(math.sin(ang)) * sp * 1.1 * [1.2, 1.0, .5, -.2][k] + 6 * k * k * .3 * SC
+            xx, yy = int(gx + dx * 1.6 + math.cos(ang) * a * .7), int(gy + dy - 4 * SC + math.sin(ang) * a * .3)
             if k < 3 or j % 2 == 0:
-                for ox, oy in ((0, 0), (1, 0), (0, 1), (1, 1)) if k < 2 else ((0, 0), (1, 0)):
+                for ox, oy in [(i_, j_) for i_ in range(int(round(2 * SC)) if k < 2 else int(round(2 * SC))) for j_ in range(int(round(2 * SC)) if k < 2 else int(round(SC)))]:
                     if 0 <= xx + ox < W1 and 0 <= yy + oy < H1:
                         cv.img[yy + oy, xx + ox, :3] = col('w', 7 if k < 2 else 6); cv.img[yy + oy, xx + ox, 3] = 255
     frames_throw.append(cv.img.copy())
 
 # ---------------------------------------------------------------- 海にうかぶ 4コマ
-W2, H2 = 84, 56
+W2, H2 = int(84 * SC), int(56 * SC)
 frames_float = []
 for i in range(4):
     cv = Canvas(W2, H2); ph = i / 4.0
     cx, cy = W2 / 2, H2 / 2 + 1
-    bob = [0, 0, 1, 1][i] if False else int(round(math.sin(math.tau * ph) * .8))
-    ripple(cv, cx, cy + 1, 32 + 3 * ph, .5, 0, .9 - .5 * ph, 'w', 5 if ph < .5 else 4)
-    ripple(cv, cx, cy + 1, 29 + 3 * ph, .5, 0, .5, 'w', 4)
-    draw_net(cv, cx + (1 if i in (1, 2) else 0) * 0, cy + bob, 25, .5, math.sin(math.tau * ph) * .035, P=10, sink=True)
+    bob = [0, 0, 1, 1][i] if False else int(round(math.sin(math.tau * ph) * .8 * SC))
+    ripple(cv, cx, cy + 1, (32 + 3 * ph) * SC, .5, 0, .9 - .5 * ph, 'w', 5 if ph < .5 else 4)
+    ripple(cv, cx, cy + 1, (29 + 3 * ph) * SC, .5, 0, .5, 'w', 4)
+    draw_net(cv, cx + (1 if i in (1, 2) else 0) * 0, cy + bob, 25 * SC, .5, math.sin(math.tau * ph) * .035, P=10 * SC * .8, sink=True)
     # 水が網のふちを洗う、白いあわ（ふち手前）
     for j in range(7):
         th_ = (.12 + j * .13 + ph * .08) * math.pi + math.pi * .0
-        xx, yy = int(cx + math.cos(th_) * 25.5), int(cy + bob + math.sin(th_) * 12.9)
+        xx, yy = int(cx + math.cos(th_) * 25.5 * SC), int(cy + bob + math.sin(th_) * 12.9 * SC)
         if h2(j, i, 5) > .35 and 0 <= xx < W2 and 0 <= yy < H2: cv.img[yy, xx, :3] = col('w', 7); cv.img[yy, xx, 3] = 255
     frames_float.append(cv.img.copy())
 
@@ -161,19 +164,19 @@ def sheet(frames, cols):
     s = np.zeros((h * rows, w * cols, 4), np.uint8)
     for i, f in enumerate(frames): s[(i // cols) * h:(i // cols + 1) * h, (i % cols) * w:(i % cols + 1) * w] = f
     return s
-Image.fromarray(sheet(frames_throw, 8)).save(os.path.join(OUT, "net_throw_sheet.png"))
-Image.fromarray(sheet(frames_float, 4)).save(os.path.join(OUT, "net_float_sheet.png"))
-Image.fromarray(frames_float[0]).save(os.path.join(OUT, "net_still.png"))
-K = 5
+Image.fromarray(sheet(frames_throw, 8)).save(os.path.join(OUT, "net_throw_sheet" + SUF + ".png"))
+Image.fromarray(sheet(frames_float, 4)).save(os.path.join(OUT, "net_float_sheet" + SUF + ".png"))
+Image.fromarray(frames_float[0]).save(os.path.join(OUT, "net_still" + SUF + ".png"))
+K = max(2, int(round(5 / SC)))
 def over_sea(f, t, k=K):
     bg = water_bg(f.shape[1], f.shape[0], t); im = Image.fromarray(bg.img); im.alpha_composite(Image.fromarray(f))
     return im.resize((im.width * k, im.height * k), Image.NEAREST).convert("RGB")
 gt = [over_sea(f, i / 16.0) for i, f in enumerate(frames_throw)]
-gt[0].save(os.path.join(OUT, "net_throw.gif"), save_all=True, append_images=gt[1:], duration=[90] * 11 + [140] + [110, 110, 110, 160], loop=0)
-gf = [over_sea(f, i / 4.0, 8) for i, f in enumerate(frames_float)]
-gf[0].save(os.path.join(OUT, "net_float.gif"), save_all=True, append_images=gf[1:], duration=240, loop=0)
+gt[0].save(os.path.join(OUT, "net_throw" + SUF + ".gif"), save_all=True, append_images=gt[1:], duration=[90] * 11 + [140] + [110, 110, 110, 160], loop=0)
+gf = [over_sea(f, i / 4.0, max(3, int(round(8 / SC)))) for i, f in enumerate(frames_float)]
+gf[0].save(os.path.join(OUT, "net_float" + SUF + ".gif"), save_all=True, append_images=gf[1:], duration=240, loop=0)
 # 一枚の確認画像：飛んでいくコマを重ねて見る＋うかぶ絵
 strip = Image.new("RGBA", (W1, H1)); bg = water_bg(W1, H1); strip.alpha_composite(Image.fromarray(bg.img))
 for i in (0, 2, 4, 6, 8, 10, 12, 14): strip.alpha_composite(Image.fromarray(frames_throw[i]))
-strip.resize((W1 * 6, H1 * 6), Image.NEAREST).convert("RGB").save(os.path.join(OUT, "net_preview.png"))
+strip.resize((W1 * 6, H1 * 6), Image.NEAREST).convert("RGB").save(os.path.join(OUT, "net_preview" + SUF + ".png"))
 print("ok")

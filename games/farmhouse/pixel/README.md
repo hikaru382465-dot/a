@@ -141,3 +141,6 @@
 ## 網の一連（gen_net_sequence.py）
 `python gen_net_sequence.py` → assets/effects/net_sequence.gif / net_sequence_sheet.png（36コマ：投げる12＋着水4＋うかぶ8＋引き上げ12）。
 gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手）にそろえて置く。引き上げ中は、なわが手のほうへ引っぱられる。
+
+## 網の高精細版
+`NET_SCALE=2 python gen_net.py` → net_*_hd.png/gif（網の直径が約2倍、あみ目が細かい）。倍率は NET_SCALE で変えられる（ふつうは1）。
