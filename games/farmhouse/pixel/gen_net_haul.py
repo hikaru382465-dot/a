@@ -80,7 +80,8 @@ def bag_mask(cx, top, bot, Wd):
     hw = np.where(u >= uc, Wd * np.sqrt(np.clip(1 - ((u - uc) / (1 - uc)) ** 2, 0, 1)), Wd * np.clip(u / uc, 0, 1) ** 1.25 + 1.2)
     return (u >= 0) & (u <= 1) & (np.abs(X + .5 - cx) <= hw), hw, u
 
-def frame(i, N=12, sway=0.0):
+ATT = [0, 0]
+def frame(i, N=12, sway=0.0, rope=True):
     t = i / (N - 1)
     c = C()
     rise = smooth(.12, .95, t)                                       # 引き上げ具合
@@ -99,7 +100,7 @@ def frame(i, N=12, sway=0.0):
         kk = 2 * a / 10; g1 = ((X + .5 - cx) / a + (Y + .5 - cyy) / (a * asp)) * kk / 2; g2 = ((X + .5 - cx) / a - (Y + .5 - cyy) / (a * asp)) * kk / 2
         grad = (kk / 2) * math.hypot(1 / a, 1 / (a * asp))
         mesh = inside & ((np.abs(g1 - np.round(g1)) / grad < .62) | (np.abs(g2 - np.round(g2)) / grad < .62))
-        rim = inside & (r > 1 - 2.4 / a)
+        rim = inside & (r > 1 - 2.4 / a); ATT[:] = [cx - a * .95, cyy]
         c.mask(mesh | rim, 'C', np.clip(np.round(4 - (Y + .5 - cyy) / (a * asp) * 1.3 - (r < .6) * 1), 1, 6).astype(int))
     else:
         # 袋：中身 → あみ目 → ふち。水の下の部分は水色に
@@ -119,9 +120,9 @@ def frame(i, N=12, sway=0.0):
         c.mask(mesh, 'C', lit)
         c.mask(edge, 'C', np.clip(lit - 1, 1, 6))
         # 口のすぼめ結び目とロープ
-        kx, ky = int(cx), int(top)
+        kx, ky = int(cx), int(top); ATT[:] = [kx, ky]
         c.rect(kx - 2, ky - 1, kx + 3, ky + 3, 'D', 3); c.rect(kx - 1, ky - 1, kx + 2, ky, 'D', 5)
-        for yy in range(HOOK[1], ky - 1):
+        for yy in (range(HOOK[1], ky - 1) if rope else []):
             xx = int(round(HOOK[0] + (cx - 48) * ((yy - HOOK[1]) / max(1, ky - HOOK[1]))))
             c.px(xx, yy, 'C', 4); c.px(xx + 1, yy, 'C', 2)
         # 口からはみだす板（引き上げたあとの資材）

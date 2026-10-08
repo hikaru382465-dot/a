@@ -137,3 +137,7 @@
 `python gen_net_haul.py` → assets/effects/net_haul(.gif/_sheet.png)（12コマ）, net_haul_still.png（引き上げた袋）。
 ひろがった網 → ふちをすぼめて持ち上がる → 資材（板・樽・丸太・魚・箱）を包んだ袋。水のしたたりと波紋つき。
 弱点：中身が小さく、あみ目の穴でよく見えない。
+
+## 網の一連（gen_net_sequence.py）
+`python gen_net_sequence.py` → assets/effects/net_sequence.gif / net_sequence_sheet.png（36コマ：投げる12＋着水4＋うかぶ8＋引き上げ12）。
+gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手）にそろえて置く。引き上げ中は、なわが手のほうへ引っぱられる。

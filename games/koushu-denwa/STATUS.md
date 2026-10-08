@@ -144,3 +144,4 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 2026-10-08 farmhouse：HD-2D風の島マップ（パーツ方式：island_parts.py＋island_map.json＋compose_island.py）。小屋4・桟橋・舟・木。次：地形をなめらかに、小屋の向き違い、エンジンでぼかし/光。
 - 2026-10-08 farmhouse：資材回収の網（投げる16コマ・海にうかぶ4コマ）を gen_net.py で追加。次：島の地形をなめらかに、網でひろう演出。
 - 2026-10-08 farmhouse：網を調整（開きのゆらぎ・しぶき大・沈む網）＋引き上げ（gen_net_haul.py 12コマ）。次：中身をはっきり、島の地形をなめらかに。
+- 2026-10-08 farmhouse：網の一連（投げる→うかぶ→引き上げ）を gen_net_sequence.py でGIF化。
