@@ -128,3 +128,7 @@
 - island_map.json：位置だけを書く地図（小屋・桟橋・木・小物）。場所を変えるときはここだけ。
 - 反射は iso_reflect と同じ式（小物の絵も、奥行きから高さが出るので映る）。
 弱点：地形が0.5mの段々、木が丸い玉、小屋の向きが全部同じ、HD-2Dのぼかし・光はエンジン側。
+
+## 網（gen_net.py）
+`python gen_net.py` → assets/effects/net_throw(.gif/_sheet.png)（投げる12コマ＋着水4コマ）, net_float(.gif/_sheet.png)（海にうかぶ4コマ）, net_still.png（透明背景の1枚）。
+あみ目は2:1の斜め線（(x±2y) の格子）、ふちになわ・おもり8・うき4。しずむ中心ほど暗く。
