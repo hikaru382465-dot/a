@@ -105,3 +105,4 @@
 - 作りの分け方：`data.js`（表）／`sim.js`（しくみ。THREE を使わない。Godot にはここを移す）／`camera.js`・`water.js`・`light.js`・`floor.js`・`buddy.js`・`drift.js`・`hud.js`。色は `island/common.js` を使い回し。
 - URL：`?new`（保存を消して最初から）／`?fast`（時間10倍）／`?low`（軽く）／`?zoom=2`（ズーム固定）／`?parts=floor,water`（そのパーツだけ）。保存は自動（このブラウザの中）。
 - まだ入れていない：船と交渉、住人、図鑑、景色を眺める、雨の見た目の細かさ、効果音。
+- スマホで見る：`raft/make_artifact.py 出力先.html` で、部品を1枚にまとめた公開用のHTMLを作れる（Claudeの「アーティファクト」として公開する用）。スマホでは画面の細かさを1.5倍までに下げている。

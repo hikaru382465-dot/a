@@ -25,7 +25,7 @@ window.RAFT.parts.light = function (c) {
   let composer = null, bloom = null, tilt = null, grade = null;
   if (!c.low) {
     const { EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass } = c;
-    composer = new EffectComposer(renderer); composer.setPixelRatio(Math.min(devicePixelRatio, 2)); composer.setSize(innerWidth, innerHeight);
+    composer = new EffectComposer(renderer); composer.setPixelRatio(c.pr || Math.min(devicePixelRatio, 2)); composer.setSize(innerWidth, innerHeight);
     composer.addPass(new RenderPass(scene, camera));
     bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.55, 0.95); composer.addPass(bloom);
     tilt = new ShaderPass({

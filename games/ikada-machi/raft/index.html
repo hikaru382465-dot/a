@@ -4,14 +4,15 @@
 <title>イカダの海暮らし（最小の試作）</title>
 <style>
 html,body{margin:0;height:100%;background:#0c1530;overflow:hidden;font-family:system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;color:#e8dcb8;user-select:none}
-canvas{display:block}
+canvas{display:block;-webkit-touch-callout:none;-webkit-user-select:none;touch-action:none}
+@media (max-width:700px){#help{display:none}button{padding:6px 8px;font-size:12px}#top{font-size:12px}.bar{width:120px}}
 #rain{position:fixed;inset:0;pointer-events:none}
 #top{position:fixed;left:10px;top:10px;display:flex;flex-direction:column;gap:5px;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
 .bar{width:150px;height:9px;background:#0007;border:1px solid #6b4231;border-radius:5px;overflow:hidden}
 .bar i{display:block;height:100%;width:100%;background:#a8b862;transition:width .3s}
 .bar i.low{background:#b8654f}
 .lab{display:flex;align-items:center;gap:6px}
-#bottom{position:fixed;left:0;right:0;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;pointer-events:none}
+#bottom{position:fixed;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;pointer-events:none}
 #inv{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;font-size:12px;text-shadow:0 1px 2px #000}
 .it{display:inline-flex;align-items:center;gap:3px;background:#2b1636aa;border:1px solid #6b4231;border-radius:5px;padding:2px 6px}
 .it canvas{width:18px;height:18px;image-rendering:pixelated}
@@ -19,7 +20,7 @@ canvas{display:block}
 .row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;pointer-events:auto}
 button{background:#2b1636dd;color:#e8dcb8;border:1px solid #6b4231;border-radius:5px;padding:7px 10px;font-size:13px;cursor:pointer}
 button.on{background:#6b4231;color:#fff}
-#gauge{position:fixed;left:50%;bottom:118px;transform:translateX(-50%);display:none;width:min(320px,70vw);text-align:center;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
+#gauge{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:none;width:min(320px,70vw);text-align:center;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
 #gauge .g{height:14px;background:#0008;border:1px solid #e8dcb8;border-radius:7px;overflow:hidden;margin-top:3px}
 #gaugeFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#8fc3bd,#f2c879,#b8654f)}
 #toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#2b1636dd;border:1px solid #6b4231;border-radius:6px;padding:6px 12px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
@@ -50,12 +51,14 @@ import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 const R=window.RAFT, I=window.ISLAND, q=new URLSearchParams(location.search);
 const renderer=new THREE.WebGLRenderer({antialias:false});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
+const PR=Math.min(devicePixelRatio,matchMedia('(pointer:coarse)').matches?1.5:2);
+renderer.setPixelRatio(PR); renderer.setSize(innerWidth,innerHeight);
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
 renderer.toneMapping=THREE.NoToneMapping; document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene(); scene.background=new THREE.Color('#1f4e6b');
 if(q.has('new')){try{localStorage.removeItem('ikada-save-v1')}catch(e){}}
 const state=(q.has('new')?null:R.sim.load())||R.sim.newState();
-const c={THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
+const c={pr:PR,THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
   onResize:[],low:q.has('low'),sprites:[],glows:[],camera:null,render:null,mode:{build:false}};
 c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
   if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
