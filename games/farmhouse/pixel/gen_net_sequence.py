@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 import gen_net as N
 import gen_net_haul as Hl
-import gen_redhead_chibi as RC
+import gen_blonde_chibi as RC
 OUT = N.OUT
 W, H = 176, 150
 HORIZON = 84
@@ -45,7 +45,7 @@ def rope_line(img, a, b, sag):
 
 def character(img, hand, lean=0, bob=0, ph=1):
     """ちびキャラ（右向き・うでなし）を置き、肩から手まで腕をのばす。手の位置（場面の座標）を返す"""
-    spr = RC.side(ph, arms=False).a
+    spr = RC.side(ph, arms_on=False).a
     stamp(img, spr, CH_X + lean, CH_Y + bob)
     sx, sy = SHOULDER[0] + lean, SHOULDER[1] + bob
     hx, hy = sx + hand[0], sy + hand[1]

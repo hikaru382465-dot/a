@@ -147,3 +147,4 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 2026-10-08 farmhouse：網の一連（投げる→うかぶ→引き上げ）を gen_net_sequence.py でGIF化。
 - 2026-10-08 farmhouse：赤髪の女性の歩行キャラ（前後左右4コマ）を gen_redhead.py で追加（初版）。次：頭の比率・顔・横向きの胴を直す。
 - 2026-10-08 farmhouse：網の一連に、赤髪ちびキャラが桟橋で投げて引き上げる動きを入れた（gen_net_sequence.py）。
+- 2026-10-08 farmhouse：キャラを金髪ボブのちびキャラ（gen_blonde_chibi.py）に変更。網の一連もこのキャラ。赤髪版は残してある。

@@ -153,3 +153,7 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 ## 赤髪のちびキャラ（gen_redhead_chibi.py）
 `python gen_redhead_chibi.py` → assets/character/redhead_chibi_sheet.png（4行×4列：下・左・右・上）, _walk.gif, _<向き>.gif, _preview.png（イカダ1マスに立てた大きさ比べ）。
 24×36、身長33ドット、2頭身。頭は手描きの格子（大きな目・ほほの赤み）。
+
+## 金髪ボブのちびキャラ（gen_blonde_chibi.py）
+`python gen_blonde_chibi.py` → assets/character/blonde_chibi_*（sheet / walk.gif / 向き別gif / preview）。24×36、赤い制服・灰色スカート・紺のリボン・赤いリボンの髪。パレットに n（金髪）・u（制服の赤）・g（スカートの灰）を追加。
+網の一連（gen_net_sequence.py）は、このキャラを使う。参考絵は pixel/ref/blonde_ref*。
