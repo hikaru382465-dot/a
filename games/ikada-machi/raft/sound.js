@@ -13,6 +13,25 @@ window.RAFT.parts.sound = function (c) {
     const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
     const g = ctx.createGain(); g.gain.value = gain; src.connect(fl); fl.connect(g); g.connect(master); src.start(); return g;
   }
+  // 本物の録音（sound_data.js。CC0）。読み込めるまでは、作った音で代わりにする
+  const SD = window.RAFT.soundData, buf = {};
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  function dec(k) {
+    try { const bin = atob(SD[k].split(',')[1]), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); ctx.decodeAudioData(u.buffer, b => { buf[k] = b; }, () => {}); } catch (e) {}
+  }
+  function shot(k, vol, rate) {
+    const b = buf[k]; if (!b || !ctx) return false;
+    const src = ctx.createBufferSource(); src.buffer = b; src.playbackRate.value = rate || 1;
+    const g = ctx.createGain(); g.gain.value = vol; src.connect(g); g.connect(master); src.start(); return true;
+  }
+  function loopBuf(k) { const src = ctx.createBufferSource(); src.buffer = buf[k]; src.loop = true; const g = ctx.createGain(); g.gain.value = 0; src.connect(g); g.connect(master); src.start(); return g; }
+  function wave(vol) {     // 寄せては返す波を、ときどき1つずつ鳴らす（つなぎ目の音が出ない）
+    const k = pick(['wave1', 'wave2', 'wave3', 'wave4']), b = buf[k]; if (!b) return;
+    const src = ctx.createBufferSource(); src.buffer = b; src.playbackRate.value = 0.9 + Math.random() * 0.2;
+    const g = ctx.createGain(), t = ctx.currentTime, d = b.duration / src.playbackRate.value;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(0.7, d * 0.3)); g.gain.linearRampToValueAtTime(0, t + d - 0.05);
+    src.connect(g); g.connect(master); src.start(t);
+  }
   function start() {
     try {
       if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
@@ -22,7 +41,8 @@ window.RAFT.parts.sound = function (c) {
       amb = loop('lowpass', 520, 0.7, 0.08);                      // 波の音（ゆっくり大きくなったり小さくなったり）
       const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.13; lg.gain.value = 0.035; lfo.connect(lg); lg.connect(amb.gain); lfo.start();
       rain = loop('highpass', 2600, 0.5, 0);                      // 雨
-      swish = loop('bandpass', 750, 0.9, 0);                      // 網を引きずる音
+      swish = loop('bandpass', 750, 0.9, 0);                      // 網を引きずる音（録音が読めるまで）
+      if (SD) Object.keys(SD).forEach(dec);
     } catch (e) { ctx = null; }
   }
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, start, { passive: true }));
@@ -52,18 +72,35 @@ window.RAFT.parts.sound = function (c) {
     thunder: t => noise(t, 1.6, 'lowpass', 420, 60, 0.6)
   };
   const map = { throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', built: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', miss: 'no', material: 'equip' };
+  const rec = {
+    splash: () => shot(pick(['splash', 'splash2', 'splash3']), 0.9, 0.95 + Math.random() * 0.1),
+    caught: () => shot(pick(['bubble1', 'bubble2', 'bubble3']), 1.4, 0.9 + Math.random() * 0.3),
+    haul: () => shot('haul', 0.45, 1.1),
+    drink: () => shot('bubble2', 0.9, 0.8)
+  };
+  const both = { haul: true, drink: true };   // 録音と、作った音を重ねる
   c.sfx = {
-    probe: () => ({ ctx, master }),
+    probe: () => ({ ctx, master, buf }),
     onEvent(e) {
       if (!ctx || muted) return;
       const k = e.e === 'weather' ? (e.id === 'storm' ? 'thunder' : null) : map[e.e];
-      if (k && play[k]) play[k](ctx.currentTime + 0.01);
+      if (!k) return;
+      const ok = rec[k] ? rec[k]() : false;
+      if ((!ok || both[k]) && play[k]) play[k](ctx.currentTime + 0.01);
     }
   };
   const T = { sunny: [0.09, 0], calm: [0.05, 0], storm: [0.2, 0.12] };
-  return { update() {
-    if (!ctx) return; const w = T[s.weather.id] || T.sunny, now = ctx.currentTime;
-    amb.gain.setTargetAtTime(w[0], now, 0.8); rain.gain.setTargetAtTime(w[1], now, 0.8);
-    swish.gain.setTargetAtTime(s.net.cast && s.net.cast.phase === 'back' ? 0.22 : 0, now, 0.08);
+  let waveT = 1, dragG = null, rainG = null;
+  const WV = { sunny: 0.55, calm: 0.35, storm: 0.9 };
+  return { update(t, dt) {
+    if (!ctx) return; const w = T[s.weather.id] || T.sunny, now = ctx.currentTime, back = s.net.cast && s.net.cast.phase === 'back';
+    if (!dragG && buf.drag) dragG = loopBuf('drag');
+    if (!rainG && buf.rain) rainG = loopBuf('rain');
+    amb.gain.setTargetAtTime(buf.wave1 ? 0.03 : w[0], now, 0.8);                    // 録音の波があれば、作った波はごく小さく
+    rain.gain.setTargetAtTime(rainG ? 0 : w[1], now, 0.8);
+    if (rainG) rainG.gain.setTargetAtTime(s.weather.id === 'storm' ? 0.5 : 0, now, 0.8);
+    swish.gain.setTargetAtTime(!dragG && back ? 0.22 : 0, now, 0.08);
+    if (dragG) dragG.gain.setTargetAtTime(back ? 0.7 : 0, now, 0.08);
+    waveT -= dt; if (waveT <= 0 && buf.wave1) { wave(WV[s.weather.id] || 0.5); waveT = 1.2 + Math.random() * 2.8; }
   } };
 };
