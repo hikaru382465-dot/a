@@ -136,7 +136,7 @@ def back(ph):
     braid(cv, 3, top + 10, 7, -1)
     shadow(cv); return cv
 
-def side(ph):
+def side(ph, arms=True):
     cv = Cv(); bob = 1 if ph in (0, 2) else 0; top = bob
     spread = {0: (2, -2), 1: (0, 0), 2: (-2, 2), 3: (0, 0)}[ph]; lift = {1: (0, 1), 3: (1, 0)}.get(ph, (0, 0))
     for (off, lf, sh) in ((spread[1], lift[1], 2), (spread[0], lift[0], 4)):
@@ -149,7 +149,7 @@ def side(ph):
         for x in range(9, 16): cv.p(x, y, 's', [6, 5, 4][shade3(x, 9, 15)])
     cv.p(15, top + 14, 's', 7)
     cv.rect(15, top + 14, 15, top + 19, 'T', 3)
-    for armsh, sg in ((2, -1), (5, 1)):
+    for armsh, sg in (((2, -1), (5, 1)) if arms else ()):
         sw_ = {0: 2, 1: 1, 2: -2, 3: -1}[ph] * sg
         for k in range(7):
             xx = 11 + int(round(sw_ * k / 6)); cv.p(xx, top + 14 + k, 's', armsh)

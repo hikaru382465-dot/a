@@ -1,79 +1,92 @@
 """
-網を、投げる → 着水 → うかぶ → 引き上げる、まで一連で。python gen_net_sequence.py → assets/effects/net_sequence.gif / net_sequence_sheet.png
-gen_net.py（投げる・うかぶ）と gen_net_haul.py（引き上げ）のコマを、ひとつの場面にそろえて置く。
+網を、投げる → 着水 → うかぶ → 引き上げる、まで一連で。赤髪のちびキャラが桟橋に立って、投げて、引き上げる。
+python gen_net_sequence.py → assets/effects/net_sequence.gif / net_sequence_sheet.png
+gen_net.py（投げる・うかぶ）と gen_net_haul.py（引き上げ）のコマを、ひとつの場面にそろえて置く。なわは場面側で、手から網へ描く。
 """
 import os, math
+os.environ["NET_NOROPE"] = "1"
 import numpy as np
 from PIL import Image
 import gen_net as N
 import gen_net_haul as Hl
+import gen_redhead_chibi as RC
 OUT = N.OUT
 W, H = 176, 150
 HORIZON = 84
-LAND = (128, 110)                      # 網が落ちる場所（水の上）
-HAND = (38, 103)                       # 投げる人の手
+LAND = (128, 110)
 col = N.col
+CH_X, CH_Y = 26, 75                       # ちびキャラ（24×36）を置く左上。足の裏＝桟橋の上
+SHOULDER = (CH_X + 13, CH_Y + 14)
 
 def background(t):
-    cv = N.Canvas(W, H)
-    yy = cv.Y
-    sky = yy < HORIZON
+    cv = N.Canvas(W, H); yy = cv.Y; sky = yy < HORIZON
     g = np.clip(2 - (HORIZON - yy) / 40.0, 0, 2)
     cv.put(sky, 'K', np.where(N.BAY[cv.Y % 4, cv.X % 4] < (g / 2) % 1, np.floor(g) + 1, np.floor(g)).astype(int) + 1)
     h = np.sin(2 * math.pi * (cv.X / 31.0 + cv.Y / 11.0 - t)) * .5 + np.sin(2 * math.pi * (cv.X / 17.0 - cv.Y / 7.0 + t * 2)) * .35
     idx = np.clip(np.floor((h + 1) / 2 * 2.4 + (N.BAY[cv.Y % 4, cv.X % 4] - .5) * .6).astype(int) + 2, 2, 4)
     near = np.clip((cv.Y - HORIZON) / 20.0, 0, 1)
     cv.put(~sky, 'w', np.where(near < .5, np.maximum(1, idx - 1), idx))
-    # 桟橋の板（左下）と、手
     cv.put((cv.X < 56) & (cv.Y >= 108), 'D', np.where(cv.Y == 108, 6, 4 - ((cv.Y // 4) % 2)))
-    for k in range(8): cv.img[108 + k * 5 // 1 if False else min(H - 1, 108 + k * 5), 20::12, :3] = col('D', 2)
+    for k in range(8): cv.img[min(H - 1, 108 + k * 5), 20::12, :3] = col('D', 2)
     return cv.img
 
 def stamp(base, f, ox, oy):
     h, w = f.shape[:2]; w = min(w, base.shape[1] - ox); h = min(h, base.shape[0] - oy); f = f[:h, :w]
-    sub = base[oy:oy + h, ox:ox + w]; m = f[..., 3] > 0
-    sub[m] = f[m]
+    sub = base[oy:oy + h, ox:ox + w]; m = f[..., 3] > 0; sub[m] = f[m]
+
+def put(img, x, y, f, s):
+    x, y = int(round(x)), int(round(y))
+    if 0 <= x < W and 0 <= y < H: img[y, x, :3] = col(f, s); img[y, x, 3] = 255
 
 def rope_line(img, a, b, sag):
     n = int(max(abs(b[0] - a[0]), abs(b[1] - a[1])) * 2) + 2
     for k in range(n + 1):
-        t = k / n; x = int(round(a[0] + (b[0] - a[0]) * t)); y = int(round(a[1] + (b[1] - a[1]) * t + sag * 4 * t * (1 - t)))
-        if 0 <= x < W and 0 <= y < H: img[y, x, :3] = col('C', 3); img[y, x, 3] = 255
+        t = k / n; put(img, a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + sag * 4 * t * (1 - t), 'C', 3)
 
-def hand(img, pull=0):
-    x, y = HAND[0] - 3 + pull, HAND[1] - 4
-    for yy in range(4):
-        for xx in range(6): 
-            if 0 <= y + yy < H and 0 <= x + xx < W: img[y + yy, x + xx, :3] = col('A', 4 if yy < 2 else 3); img[y + yy, x + xx, 3] = 255
-    for yy in range(3):
-        for xx in range(-8, 0):
-            if 0 <= y + 1 + yy < H and 0 <= x + xx < W: img[y + 1 + yy, x + xx, :3] = col('b', 4 if yy == 0 else 3); img[y + 1 + yy, x + xx, 3] = 255
+def character(img, hand, lean=0, bob=0, ph=1):
+    """ちびキャラ（右向き・うでなし）を置き、肩から手まで腕をのばす。手の位置（場面の座標）を返す"""
+    spr = RC.side(ph, arms=False).a
+    stamp(img, spr, CH_X + lean, CH_Y + bob)
+    sx, sy = SHOULDER[0] + lean, SHOULDER[1] + bob
+    hx, hy = sx + hand[0], sy + hand[1]
+    n = int(max(abs(hx - sx), abs(hy - sy))) + 1
+    for k in range(n + 1):
+        t = k / max(1, n); x, y = sx + (hx - sx) * t, sy + (hy - sy) * t
+        if k >= n - 1: put(img, x, y, 'k', 4)
+        else: put(img, x, y, 's', 5); put(img, x, y + 1, 's', 3) if abs(hx - sx) < abs(hy - sy) else put(img, x + 1, y, 's', 3)
+    put(img, hx, hy, 'k', 5)
+    return (hx + .5, hy + .5)
 
 seq = []; dur = []; tt = 0
-# 1) 投げる＋着水（16コマ）：飛んでいる間のなわは gen_net が手の位置 (22,62)→ 場面の手へ合わせるため、同じ移動量で置く
 THO = (LAND[0] - 112, LAND[1] - 70)
+HANDS_THROW = [(-4, -2), (-5, -4), (-5, -6), (-4, -7), (-1, -9), (3, -9), (6, -7), (8, -4), (8, -2), (8, -1), (8, 0), (8, 0)]
+# 1) 投げる＋着水
 for i, f in enumerate(N.frames_throw):
-    b = background(tt / 40.0); stamp(b, f, THO[0], THO[1]) if False else None
-    img = b.copy(); fr = np.zeros((H, W, 4), np.uint8)
-    ox, oy = THO
-    sub = f[max(0, -oy):, max(0, -ox):]
-    stamp(fr, f, ox, oy)
-    # 手もとのなわと手は場面側で描く（飛行中は gen_net のなわを消して、場面の手へつなぎ直す）
-    m = fr[..., 3] > 0; img[m] = fr[m]; seq.append(img); dur.append(90 if i < 11 else 130 if i == 11 else 110); tt += 1
-# 2) うかぶ（8コマ）：なわが水の上にゆるくのびる
+    img = background(tt / 40.0); fr = np.zeros((H, W, 4), np.uint8); stamp(fr, f, *THO)
+    m = fr[..., 3] > 0; img[m] = fr[m]
+    hand = HANDS_THROW[i] if i < 12 else (7, 1 + (i - 12))
+    lean = -1 if i < 3 else 0
+    hp = character(img, hand, lean=lean, ph=1 if i < 8 else 0)
+    att = N.ATTS[i]
+    if att is not None: rope_line(img, hp, (att[0] + THO[0], att[1] + THO[1]), 7 * (1 - i / 11) + 1)
+    elif i >= 12: rope_line(img, hp, (LAND[0] - 24, LAND[1] + 1), 5)
+    seq.append(img); dur.append(90 if i < 11 else 130 if i == 11 else 110); tt += 1
+# 2) うかぶ（8コマ）：なわを手でゆるく持つ
 FO = (LAND[0] - 42, LAND[1] - 29)
 for i in range(8):
-    b = background(tt / 40.0); fr = np.zeros((H, W, 4), np.uint8); stamp(fr, N.frames_float[i % 4], FO[0], FO[1])
+    b = background(tt / 40.0); fr = np.zeros((H, W, 4), np.uint8); stamp(fr, N.frames_float[i % 4], *FO)
     m = fr[..., 3] > 0; b[m] = fr[m]
-    rope_line(b, (LAND[0] - 24, LAND[1] + 1), HAND, 6 + math.sin(i * .8)); hand(b); seq.append(b); dur.append(220); tt += 1
-# 3) 引き上げ（12コマ）：手のほうへ引っぱる
+    hp = character(b, (7, 2 + (1 if i % 4 in (1, 2) else 0)), ph=0)
+    rope_line(b, hp, (LAND[0] - 24, LAND[1] + 1), 6 + math.sin(i * .8)); seq.append(b); dur.append(220); tt += 1
+# 3) 引き上げ（12コマ）：手を交互に引く。体をうしろへかたむける
 HO = (LAND[0] - 48, LAND[1] - 96)
+HANDS_HAUL = [(6, 3), (4, 5), (3, 6), (5, 3), (4, 5), (3, 6), (5, 3), (4, 5), (3, 6), (4, 4), (4, 4), (4, 4)]
 for i in range(12):
     f = Hl.frame(i, 12, sway=0, rope=False); ax, ay = Hl.ATT
-    b = background(tt / 40.0); fr = np.zeros((H, W, 4), np.uint8); stamp(fr, f, HO[0], HO[1])
+    b = background(tt / 40.0); fr = np.zeros((H, W, 4), np.uint8); stamp(fr, f, *HO)
     m = fr[..., 3] > 0; b[m] = fr[m]
-    t_ = i / 11
-    rope_line(b, (HO[0] + ax, HO[1] + ay), HAND, 6 * (1 - t_) + 1); hand(b, pull=int(2 * math.sin(i * 1.2))); seq.append(b); dur.append(110 if i < 10 else 300); tt += 1
+    hp = character(b, HANDS_HAUL[i], lean=-1 if 1 <= i <= 9 else 0, bob=0, ph=[1, 2, 3, 0][i % 4])
+    rope_line(b, hp, (HO[0] + ax, HO[1] + ay), 5 * (1 - i / 11) + 1); seq.append(b); dur.append(110 if i < 10 else 300); tt += 1
 dur[-1] = 900
 K = 5
 g = [Image.fromarray(s).convert("RGB").resize((W * K, H * K), Image.NEAREST) for s in seq]

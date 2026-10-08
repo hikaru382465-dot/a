@@ -10,6 +10,8 @@ from PIL import Image
 import pxl
 SC = float(os.environ.get('NET_SCALE', '1'))                # 大きさの倍率（2で2倍の細かさ）
 SUF = '_hd' if SC != 1 else ''
+NOROPE = os.environ.get('NET_NOROPE') == '1'                # 1：なわと手を描かない（場面側で描く）
+ATTS = []                                                    # 投げるコマごとの、なわをつなぐ点
 LW = SC ** .8                                                # 線の太さ
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "assets", "effects"); os.makedirs(OUT, exist_ok=True)
@@ -116,8 +118,9 @@ for i in range(NFLY + NSPL):
         shadow(cv, gx, gy + 3, a * .9, .5, .45 * smooth(0, .4, t))
         # 手もとへのなわ（たるむ）：網のふちの近い所 → 手
         att = np.array([gx - a * .9, cy_ + 1])
-        if t < .97: cv.line(p0 + np.array([2, 2]), att, 7 * (1 - t) + 2, 'C', 3)
-        if t < .5:
+        ATTS.append(att if t < .97 else None)
+        if t < .97 and not NOROPE: cv.line(p0 + np.array([2, 2]), att, 7 * (1 - t) + 2, 'C', 3)
+        if t < .5 and not NOROPE:
             cv.put((cv.X >= p0[0] - 3) & (cv.X <= p0[0] + 1) & (cv.Y >= p0[1] - 1) & (cv.Y <= p0[1] + 4), 'D', 2)
         draw_net(cv, gx, cy_, a, asp, spin, P=P)
         if t < .25:                                   # まるめた網のかたまり：球の陰影
@@ -125,6 +128,7 @@ for i in range(NFLY + NSPL):
             sh = ((cv.X + .5 - gx) + (cv.Y + .5 - cy_)) / (2 * a)
             cv.put(m & (cv.img[:, :, 3] == 0), 'C', np.where(sh > .35, 2, 3))
     else:
+        ATTS.append(None)
         k = i - NFLY; gx, gy = p3
         a, asp = 25 * SC, .5; cy_ = gy - 4 * (1 - k / 3.0) ** 2 * 3 + 0
         ripple(cv, gx, gy + 1, (26 + k * 6 + 4) * SC, .5, 0, 1.0 - k * .22)
