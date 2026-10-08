@@ -62,7 +62,7 @@ window.RAFT.parts.hud = function (c) {
   // ---- 置くモード ----
   function startPlace(k) {
     const cands = sim.placeCandidates(s, k);
-    if (!cands.length) { toast('置ける場所がない'); return; }
+    if (!cands.length) { toast(k === 'floor' ? 'これ以上は広げられない（8×8まで）' : 'イカダがせまくて置けない。まず「床板」で広げよう', 3500); return; }
     c.mode.place = { k }; c.setHighlight && c.setHighlight(cands); closeSheet(); placeBar();
   }
   function placeBar() {
@@ -72,7 +72,8 @@ window.RAFT.parts.hud = function (c) {
   function cancelPlace() { if (!c.mode.place) return; c.mode.place = null; c.setHighlight && c.setHighlight(null); placeBar(); }
   function tryPlace(x, z) {
     const p = c.mode.place; if (!p) return;
-    if (sim.place(s, p.k, x, z)) {
+    if (!sim.place(s, p.k, x, z)) { toast('光っているマスをタップ（相棒が立っているマスには置けない）'); return; }
+    {
       const cands = (s.inv[p.k] || 0) > 0 ? sim.placeCandidates(s, p.k) : [];
       if (!cands.length) cancelPlace(); else { c.setHighlight(cands); placeBar(); }
       refresh();
