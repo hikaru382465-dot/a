@@ -59,7 +59,7 @@ def draw_net(cv, cx, cy, a, asp, spin, P=9, haze=0.0, sink=False):
         deep = np.clip(1 - r / .95, 0, 1)
         lost = (deep > .55)
         base = base - np.round(deep * 2.0).astype(int)
-        rope = rope & ~(lost & ~rim & (r < .55) & (kk > 0) & (h2(cv.X // 2, cv.Y // 2, 9) > .5))
+        pass
     rimshade = np.where(rim, base + 0, base)
     cv.put(rope, 'C', np.clip(np.where(rim, base - (v > .3) * 1, base) - 0, 1, 6))
     # ふちのなわは太く見えるよう、内がわにも1ドット（明るい線）
@@ -107,7 +107,7 @@ for i in range(NFLY + NSPL):
         t = i / (NFLY - 1); te = t ** .9
         gx = p0[0] + (p3[0] - p0[0]) * te; gy = p0[1] + (p3[1] - p0[1]) * te
         cy_ = gy - APEX * 4 * te * (1 - te) - 4 * (1 - te)
-        a = 3.5 + (25 - 3.5) * smooth(.12, .86, t); asp = 1.0 - .5 * smooth(.25, 1.0, t)
+        a = (3.5 + (25 - 3.5) * smooth(.12, .86, t)) * (1 + .09 * math.sin(t * 9.4) * (1 - t)); asp = (1.0 - .5 * smooth(.25, 1.0, t)) * (1 + .16 * math.sin(t * 11) * (1 - t))
         spin = (1 - smooth(0, 1, t)) * math.pi * 1.7
         P = 4 + 5 * smooth(.1, .8, t)
         shadow(cv, gx, gy + 3, a * .9, .5, .45 * smooth(0, .4, t))
@@ -128,12 +128,12 @@ for i in range(NFLY + NSPL):
         if k >= 1: ripple(cv, gx, gy + 1, 22 + k * 3, .5, 0, .8 - k * .15, 'w', 5)
         draw_net(cv, gx, gy, a, asp, 0.0, P=9, sink=True, haze=.2 * k)
         # しぶき：上へとんで落ちる水のつぶ
-        for j in range(10):
-            ang = j * math.tau / 10 + .3; sp = [8, 12, 14, 12][k] * (.6 + .5 * h2(j, 1, 2))
+        for j in range(14):
+            ang = j * math.tau / 14 + .3; sp = [13, 19, 21, 17][k] * (.6 + .5 * h2(j, 1, 2))
             dx = math.cos(ang) * sp * (1.0 + k * .35); dy = -abs(math.sin(ang)) * sp * 1.1 * [1.2, 1.0, .5, -.2][k] + 6 * k * k * .3
             xx, yy = int(gx + dx * 1.6 + math.cos(ang) * a * .7), int(gy + dy - 4 + math.sin(ang) * a * .3)
             if k < 3 or j % 2 == 0:
-                for ox, oy in ((0, 0), (1, 0)) if k < 2 else ((0, 0),):
+                for ox, oy in ((0, 0), (1, 0), (0, 1), (1, 1)) if k < 2 else ((0, 0), (1, 0)):
                     if 0 <= xx + ox < W1 and 0 <= yy + oy < H1:
                         cv.img[yy + oy, xx + ox, :3] = col('w', 7 if k < 2 else 6); cv.img[yy + oy, xx + ox, 3] = 255
     frames_throw.append(cv.img.copy())
@@ -147,7 +147,7 @@ for i in range(4):
     bob = [0, 0, 1, 1][i] if False else int(round(math.sin(math.tau * ph) * .8))
     ripple(cv, cx, cy + 1, 32 + 3 * ph, .5, 0, .9 - .5 * ph, 'w', 5 if ph < .5 else 4)
     ripple(cv, cx, cy + 1, 29 + 3 * ph, .5, 0, .5, 'w', 4)
-    draw_net(cv, cx + (1 if i in (1, 2) else 0) * 0, cy + bob, 25, .5, math.sin(math.tau * ph) * .035, P=9, sink=True)
+    draw_net(cv, cx + (1 if i in (1, 2) else 0) * 0, cy + bob, 25, .5, math.sin(math.tau * ph) * .035, P=10, sink=True)
     # 水が網のふちを洗う、白いあわ（ふち手前）
     for j in range(7):
         th_ = (.12 + j * .13 + ph * .08) * math.pi + math.pi * .0

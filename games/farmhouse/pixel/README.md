@@ -132,3 +132,8 @@
 ## 網（gen_net.py）
 `python gen_net.py` → assets/effects/net_throw(.gif/_sheet.png)（投げる12コマ＋着水4コマ）, net_float(.gif/_sheet.png)（海にうかぶ4コマ）, net_still.png（透明背景の1枚）。
 あみ目は2:1の斜め線（(x±2y) の格子）、ふちになわ・おもり8・うき4。しずむ中心ほど暗く。
+
+## 網を引き上げる（gen_net_haul.py）
+`python gen_net_haul.py` → assets/effects/net_haul(.gif/_sheet.png)（12コマ）, net_haul_still.png（引き上げた袋）。
+ひろがった網 → ふちをすぼめて持ち上がる → 資材（板・樽・丸太・魚・箱）を包んだ袋。水のしたたりと波紋つき。
+弱点：中身が小さく、あみ目の穴でよく見えない。
