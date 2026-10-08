@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>イカダの海暮らし（最小の試作）</title>
+<style>
+html,body{margin:0;height:100%;background:#0c1530;overflow:hidden;font-family:system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;color:#e8dcb8;user-select:none}
+canvas{display:block}
+#rain{position:fixed;inset:0;pointer-events:none}
+#top{position:fixed;left:10px;top:10px;display:flex;flex-direction:column;gap:5px;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
+.bar{width:150px;height:9px;background:#0007;border:1px solid #6b4231;border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:#a8b862;transition:width .3s}
+.bar i.low{background:#b8654f}
+.lab{display:flex;align-items:center;gap:6px}
+#bottom{position:fixed;left:0;right:0;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;pointer-events:none}
+#inv{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;font-size:12px;text-shadow:0 1px 2px #000}
+.it{display:inline-flex;align-items:center;gap:3px;background:#2b1636aa;border:1px solid #6b4231;border-radius:5px;padding:2px 6px}
+.it canvas{width:18px;height:18px;image-rendering:pixelated}
+.dim{opacity:.6}
+.row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;pointer-events:auto}
+button{background:#2b1636dd;color:#e8dcb8;border:1px solid #6b4231;border-radius:5px;padding:7px 10px;font-size:13px;cursor:pointer}
+button.on{background:#6b4231;color:#fff}
+#toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#2b1636dd;border:1px solid #6b4231;border-radius:6px;padding:6px 12px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#help{position:fixed;right:10px;top:10px;font-size:11px;opacity:.7;text-align:right;text-shadow:0 1px 2px #000;pointer-events:none}
+#log{position:fixed;right:10px;bottom:10px;font-size:11px;color:#ffb0a0;max-width:50vw;text-align:right}
+</style></head><body>
+<canvas id="rain"></canvas>
+<div id="top"><div id="clock"></div>
+<div class="lab"><span>おなか</span><div class="bar"><i id="hunger"></i></div></div>
+<div class="lab"><span>のどのかわき</span><div class="bar"><i id="thirst"></i></div></div>
+<div id="netinfo"></div></div>
+<div id="help">床をタップ：相棒が歩く／海（イカダのそば）をタップ：網を投げる<br>網をタップ：引き上げる／ホイール：少しズーム</div>
+<div id="bottom"><div id="inv"></div>
+<div class="row"><button id="bEat">食べる</button><button id="bDrink">飲む</button><button id="bHaul">網を引き上げる</button><button id="bBuild">床を足す</button><button id="bNet">網を強くする</button></div></div>
+<div id="toast"></div><div id="log"></div>
+<script src="../island/common.js"></script>
+<script src="data.js"></script><script src="sim.js"></script>
+<script src="camera.js"></script><script src="water.js"></script><script src="light.js"></script>
+<script src="floor.js"></script><script src="buddy.js"></script><script src="drift.js"></script><script src="hud.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const R=window.RAFT, I=window.ISLAND, q=new URLSearchParams(location.search);
+const renderer=new THREE.WebGLRenderer({antialias:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.NoToneMapping; document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color('#1f4e6b');
+if(q.has('new')){try{localStorage.removeItem('ikada-save-v1')}catch(e){}}
+const state=(q.has('new')?null:R.sim.load())||R.sim.newState();
+const c={THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
+  onResize:[],low:q.has('low'),sprites:[],glows:[],camera:null,render:null,mode:{build:false}};
+c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
+  if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
+c.sprite=(cv,{x,y,z,ppu=16})=>{
+  const m=new THREE.MeshBasicMaterial({map:c.tex(cv),transparent:true,alphaTest:.45});c.sprites.push(m);
+  const g=new THREE.PlaneGeometry(1,1);g.translate(0,.5,0);
+  const mesh=new THREE.Mesh(g,m);mesh.scale.set(cv.width/ppu,cv.height/ppu/Math.cos(c.cam.pitch),1);
+  mesh.rotation.y=c.cam.yaw;mesh.position.set(x,y,z);return mesh;};
+const only=q.get('parts')?q.get('parts').split(','):null, upd=[], log=[], inits=[];
+for(const name of R.order){
+  if(only&&!only.includes(name)&&!['camera','hud'].includes(name))continue;
+  try{const r=R.parts[name]&&R.parts[name](c);if(r&&r.update)upd.push(r.update);if(r&&r.init)inits.push(r.init);}
+  catch(e){console.error(name,e);log.push('パーツ「'+name+'」でエラー：'+e.message);}
+}
+if(!c.camera){c.camera=new THREE.OrthographicCamera(-10,10,10,-10,-100,100);c.camera.position.set(20,20,20);c.camera.lookAt(0,0,0);}
+if(!c.render)c.render=()=>renderer.render(scene,c.camera);
+inits.forEach(f=>f());
+document.getElementById('log').textContent=log.join(' / ');
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);c.onResize.forEach(f=>f());});
+const fast=q.has('fast')?10:1; let last=performance.now(),t=0;
+function loop(now){
+  let dt=Math.min(.1,(now-last)/1000);last=now;t+=dt;
+  const sdt=dt*fast; for(let n=Math.ceil(sdt/0.05),i=0;i<n;i++)R.sim.step(state,sdt/n);
+  upd.forEach(f=>f(t,dt));c.render();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+window.__c=c;
+</script></body></html>
