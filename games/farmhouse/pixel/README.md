@@ -144,3 +144,8 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 
 ## 網の高精細版
 `NET_SCALE=2 python gen_net.py` → net_*_hd.png/gif（網の直径が約2倍、あみ目が細かい）。倍率は NET_SCALE で変えられる（ふつうは1）。
+
+## 赤髪の女性キャラ（gen_redhead.py）
+`python gen_redhead.py` → assets/character/redhead_sheet.png（4行×4列：下・左・右・上）, redhead_walk.gif, redhead_<向き>.gif, redhead_preview.png。
+32×52、頭は手描きの格子、体は手続き。左向きは右向きの反転。パレットに r（赤髪）・s（白シャツ）・k（うすい肌）を追加。参考絵は pixel/ref/redhead_src.png。
+弱点：頭が大きい・まるい、顔が小さい、横向きの腕と胴が薄い。
