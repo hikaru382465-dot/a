@@ -145,34 +145,37 @@ def cloth():
         for i in range(3 + k % 3): c.p(xx + i + (1 if k % 2 else 0), yy + (i // 2) * (1 if k % 2 else -1), 'C', 5 if i == 0 else 4)
     c.outline(('D', 1)); return c
 
-# ================================================================ ビニール袋（スーパーの袋：持ち手2つ・赤い印字・底のまち）
+# ================================================================ ビニール袋（口をしばってふくらんだ袋：結び目・ふたつの耳・放射状のしわ）
 def bag():
-    c = Cv(48, 40); X = c.X + .5; Y = c.Y + .5
-    xs = np.arange(c.w) + .5
-    topE = 16 + 1.6 * np.sin(xs * .35 + .4)                                              # 口のふち（波）
-    botE = 35 + 1.4 * np.sin(xs * .30 + 1.7)
-    L = 6 + (Y - 24) * .06 + 1.2 * np.sin(Y * .5); R = 41 - (Y - 24) * .05 + 1.2 * np.sin(Y * .45 + 1)
-    m = (Y > topE[None, :].repeat(c.h, 0)) & (Y < botE[None, :].repeat(c.h, 0)) & (X > L) & (X < R)
-    u = (X - 6) / 35.0; v = (Y - 16) / 19.0
-    fold = np.sin(u * 17.0 + .4) * .8 + np.sin(u * 7.0 + v * 3 + 1) * .9 + np.cos(v * 9 - u * 3) * .35
-    gx = np.gradient(fold, axis=1)
-    s = 5 + np.round(-gx * 7.0) + np.round((.5 - v) * .8)                                  # 大きなしわのかげ
+    c = Cv(46, 42); X = c.X + .5; Y = c.Y + .5
+    kx, ky = 23.0, 10.5
+    ell = (((X - 23) / 20.0) ** 2 + ((Y - 27) / 12.2) ** 2) < 1 + .05 * np.sin((X + Y) * .7)
+    cone = (Y > ky) & (Y < 27) & (np.abs(X - kx) < 2.2 + (Y - ky) * 1.18 + .8 * np.sin(Y * .8))
+    m = ell | cone
+    ang = np.arctan2(X - kx, Y - ky); dist = np.hypot(X - kx, (Y - ky) * .8)
+    fold = np.sin(ang * 11.0 + .3) * np.exp(-dist / 26.0) * 1.3                      # 結び目から広がるしわ
+    z = np.clip(1 - (((X - 23) / 20.0) ** 2 + ((Y - 27) / 12.2) ** 2), 0, 1)
+    lam = (-(X - 23) / 20.0) * .5 + (-(Y - 27) / 12.2) * .6 + np.sqrt(z) * .3
+    s = 5 + np.round(lam * 2.6 + fold * 1.4)
     c.mask(m, 's', np.clip(s, 3, 7).astype(int))
-    thin = m & (np.sin(u * 17.0 + .4) > .72); c.mask(thin, 'S', 5)                         # うすい所は青白く
-    c.mask(m & (v > .86), 's', np.clip(s - 2, 2, 5).astype(int))                             # 底のかげ
-    c.mask(m & (np.abs(v - .93) < .03), 's', 3)                                              # 底のまちの線
-    c.mask(m & (np.abs(u - .5) < .02) & (v > .2) & (v < .86) & (np.arange(c.h)[:, None] % 4 != 0), 's', 4)   # 中央の折り目
-    # 赤い印字（帯と文字ブロック）
-    band = m & (v > .40) & (v < .66) & (u > .12) & (u < .88)
-    c.mask(band, 'G', np.clip(4 - np.round(gx * 5), 3, 5).astype(int))
-    txt = band & (((np.floor(X) + 1) % 4) < 2) & (np.abs(v - .53) < .07) & (h2(np.floor(X / 2).astype(int), 9, 3) > .25); c.mask(txt, 's', 7)
-    # 持ち手（左右の輪）と、そこから口へのつけ根
+    thin = m & (s <= 4) & (np.sin(ang * 11.0 + .3) > .2); c.mask(thin, 'S', np.clip(s + 1, 3, 5).astype(int))
+    c.mask(m & ((((X - 23) / 20.0) ** 2 + ((Y - 27) / 12.2) ** 2) > .72) & (Y > 27), 's', np.clip(s - 1, 2, 5).astype(int))    # ふちのかげ（下）
+    # 大きなつや（左上）
+    sp = m & (np.hypot((X - 14) / 4.2, (Y - 22) / 2.0 - (X - 14) * .08) < 1); c.mask(sp, 's', 7)
+    sp2 = m & (np.hypot((X - 31) / 2.0, (Y - 31) / 1.2) < 1); c.mask(sp2, 's', 7)
+    # 赤い印字（ふくらみに沿ってカーブ）
+    ny = (Y - 27) / 12.2; nx = (X - 23) / 20.0
+    band = m & (np.abs(ny - (.08 + .22 * nx * nx)) < .16) & (nx > -.55) & (nx < .55)
+    c.mask(band, 'G', np.clip(4 + np.round(lam * 1.6), 2, 5).astype(int))
+    txt = band & (((np.floor(X) + 1) % 4) < 2) & (np.abs(ny - (.08 + .22 * nx * nx)) < .07) & (h2(np.floor(X / 2).astype(int), 9, 3) > .3); c.mask(txt, 's', 7)
+    # 耳（持ち手のたば）
     for sx in (-1, 1):
-        cx_ = 24 + sx * 8.5
-        pts = bez((cx_ - sx * 4.2, 16.5), (cx_ - sx * 4, 3), (cx_ + sx * 4, 3), (cx_ + sx * 4.2, 16.5), 60)
-        for (x, y) in pts: c.disc(x, y, 1.1, 's', 7 if sx < 0 else 5); c.p(x + 1, y + 1, 'S', 3)
-    c.mask(m & (v < .12), 's', np.clip(s + 1, 4, 7).astype(int))
-    c.outline(('S', 2)); return c
+        pts = bez((kx + sx * 1.5, ky), (kx + sx * 7, ky - 11), (kx + sx * 17, ky - 5), (kx + sx * 12.5, ky + 3.5), 70)
+        for i, (x, y) in enumerate(pts):
+            c.disc(x, y, 1.3, 's', 7 if (sx < 0) ^ (i > 45) else 5); c.p(x + sx * .6, y + 1.2, 'S', 3)
+    # 結び目
+    c.disc(kx, ky + .5, 3.0, 's', 4); c.disc(kx - .6, ky - .2, 1.8, 's', 6); c.p(kx + 1, ky + 2, 'S', 3); c.p(kx, ky + 3, 'S', 3)
+    c.outline(('S', 1)); return c
 
 # ================================================================ ペットボトル
 def bottle():
