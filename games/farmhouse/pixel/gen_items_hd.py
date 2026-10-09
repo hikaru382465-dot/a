@@ -116,34 +116,63 @@ def stone(kind):
     for (bx, by) in ((9, 22), (11, 24), (33, 24), (36, 21)): c.disc(bx, by, 1.2, 'L', 5); c.p(bx, by, 'L', 2)
     c.outline(('T', 1)); return c
 
-# ================================================================ 布
+# ================================================================ 布（波うつ1枚の布：青い縞・ぬい目・やぶれた右はし）
 def cloth():
-    c = Cv(54, 38); cx, cy = 26.5, 19.0
-    u = (c.X + .5 - cx) / 24.0; v = (c.Y + .5 - cy) / 15.0; ang = np.arctan2(v, u)
-    ang_i = np.floor((ang + math.pi) / (2 * math.pi) * 48).astype(int)
-    edge = 1 + .11 * np.sin(3 * ang + 1.0) + .07 * np.sin(5 * ang + .5) + (h2(ang_i, 3, 4) - .5) * .13 * (u > .25) + (h2(ang_i, 6, 4) - .5) * .06
-    r = np.hypot(u, v) / edge; m = r < 1
-    # ひだの高さ → かげ
-    X, Y = c.X * 1.0, c.Y * 1.0
-    hgt = np.sin(X * .30 + Y * .22 + 1.0) * 1.5 + np.sin(X * .13 - Y * .38) * 1.7 + np.sin(X * .52 + Y * .08 + 2) * .7
-    gx = np.gradient(hgt, axis=1); gy = np.gradient(hgt, axis=0)
-    lam = -gx * .55 - gy * .75
-    s = 4 + np.round(lam * 2.0) - (r > .86) * 1
-    wv = ((c.X + c.Y) % 2 == 0) * 1 - ((c.X * 3 + c.Y) % 5 == 0) * 1; s = s + wv * (h2(c.X >> 1, c.Y >> 1, 61) > .35)       # 織り目
-    stripe = ((c.X * 1.0 + c.Y * 1.5 + hgt * 2) % 11) < 3.4
+    c = Cv(56, 34); X = c.X + .5; Y = c.Y + .5
+    xs = np.arange(c.w) + .5
+    top = 8 + 2.6 * np.sin(xs * .20 + .6) + 1.2 * np.sin(xs * .47 + 1.5)                 # 上のふちの波
+    bot = top + 16 + 2.0 * np.sin(xs * .16 + 2.2)                                         # 下のふち
+    # 右はしをやぶく：ななめにのこぎり状
+    tear = 49 + 3.0 * np.sin(Y * .9) + (h2((Y * 1).astype(int), 5, 6) - .5) * 4.5 + (Y - 16) * .22
+    T = top[None, :].repeat(c.h, 0); B = bot[None, :].repeat(c.h, 0)
+    m = (Y > T) & (Y < B) & (X > 3) & (X < tear)
+    v = (Y - T) / (B - T)                                                                # 0（上）〜1（下）
+    slope = np.gradient(top)[None, :].repeat(c.h, 0) * .5 + np.gradient(bot)[None, :].repeat(c.h, 0) * .5
+    fold = np.cos(X * .20 + .6) * .9 + np.cos(X * .47 + 1.5) * .35
+    lam = -slope * 1.1 + fold * .35 - (v - .5) * .5
+    s = 4 + np.round(lam * 2.2)
+    stripe = ((v > .22) & (v < .36)) | ((v > .60) & (v < .74))                           # 長さ方向の青い縞
     c.mask(m, 'C', np.clip(s, 2, 6).astype(int))
     c.mask(m & stripe, 'F', np.clip(s - 1, 2, 5).astype(int))
-    stain = m & (vn(c.X * .18, c.Y * .18, 62) > .88); c.mask(stain, 'D', np.clip(s - 0, 2, 4).astype(int))                 # しみ
-    hem = m & (u < -.78 + (v * .0)) & (np.abs(v) < .9); c.mask(hem & ((c.Y % 3) != 0) & (np.abs(u + .86) < .035 * 8 / 3), 'C', 6)   # ぬい目（点線）
-    for y in range(c.h):
-        if y % 3 == 0: c.p(int(cx + (-.80) * 24 + 0), y, 'D', 3) if False else None
-    hole = (np.hypot((c.X - 18) / 3.6, (c.Y - 24) / 2.6) < 1); c.a[hole & m] = 0
-    ring = (np.hypot((c.X - 18) / 4.6, (c.Y - 24) / 3.4) < 1) & ~hole & m & (h2(c.X, c.Y, 63) > .4); c.mask(ring, 'C', 2)
-    fray = m & (u > .6) & ((c.Y % 2) == 0) & (h2(c.X, c.Y, 8) > .35); c.mask(fray, 'C', 3)
-    for k in range(7):                                                                                               # とび出した糸
-        fx = int(cx + 24 * .9 * (.9 + h2(k, 1, 5) * .1) + 2); fy = int(cy - 9 + k * 3 + h2(k, 2, 5) * 2)
-        for i in range(2 + k % 3): c.p(fx + i, fy + (i // 2) * (1 if k % 2 else -1), 'C', 4 if i else 3)
+    c.mask(m & stripe & (((c.X // 2 + (v * 20).astype(int)) % 2) == 0) & (np.abs(v - .29) < .02), 'F', 2)
+    wv = m & (((c.X + c.Y) % 4) == 0) & (h2(c.X, c.Y, 61) > .5); c.mask(wv, 'C', np.clip(s - 1, 2, 6).astype(int))               # 織り目（まばら）
+    stitch = m & (np.abs(v - .91) < .04) & (c.X % 3 != 0); c.mask(stitch, 'D', 3)                                               # ぬい目（下のはし）
+    stitch2 = m & (np.abs(v - .07) < .04) & (c.X % 3 != 0); c.mask(stitch2, 'D', 3)
+    hole = np.hypot((X - 20) / 2.8, (Y - 17) / 2.2) < 1; c.a[hole & m] = 0                                                       # 小さな穴
+    rim = (np.hypot((X - 20) / 3.8, (Y - 17) / 3.2) < 1) & ~hole & m; c.mask(rim, 'C', np.clip(s - 2, 2, 4).astype(int))
+    for k in range(9):                                                                  # やぶれ口から出る糸
+        yy = 11 + k * 1.9; xx = tear[int(min(c.h - 1, yy))] if False else 49 + (k % 3) - 1
+        for i in range(3 + k % 3): c.p(xx + i + (1 if k % 2 else 0), yy + (i // 2) * (1 if k % 2 else -1), 'C', 5 if i == 0 else 4)
     c.outline(('D', 1)); return c
+
+# ================================================================ ビニール袋（スーパーの袋：持ち手2つ・赤い印字・底のまち）
+def bag():
+    c = Cv(48, 40); X = c.X + .5; Y = c.Y + .5
+    xs = np.arange(c.w) + .5
+    topE = 16 + 1.6 * np.sin(xs * .35 + .4)                                              # 口のふち（波）
+    botE = 35 + 1.4 * np.sin(xs * .30 + 1.7)
+    L = 6 + (Y - 24) * .06 + 1.2 * np.sin(Y * .5); R = 41 - (Y - 24) * .05 + 1.2 * np.sin(Y * .45 + 1)
+    m = (Y > topE[None, :].repeat(c.h, 0)) & (Y < botE[None, :].repeat(c.h, 0)) & (X > L) & (X < R)
+    u = (X - 6) / 35.0; v = (Y - 16) / 19.0
+    fold = np.sin(u * 17.0 + .4) * .8 + np.sin(u * 7.0 + v * 3 + 1) * .9 + np.cos(v * 9 - u * 3) * .35
+    gx = np.gradient(fold, axis=1)
+    s = 5 + np.round(-gx * 7.0) + np.round((.5 - v) * .8)                                  # 大きなしわのかげ
+    c.mask(m, 's', np.clip(s, 3, 7).astype(int))
+    thin = m & (np.sin(u * 17.0 + .4) > .72); c.mask(thin, 'S', 5)                         # うすい所は青白く
+    c.mask(m & (v > .86), 's', np.clip(s - 2, 2, 5).astype(int))                             # 底のかげ
+    c.mask(m & (np.abs(v - .93) < .03), 's', 3)                                              # 底のまちの線
+    c.mask(m & (np.abs(u - .5) < .02) & (v > .2) & (v < .86) & (np.arange(c.h)[:, None] % 4 != 0), 's', 4)   # 中央の折り目
+    # 赤い印字（帯と文字ブロック）
+    band = m & (v > .40) & (v < .66) & (u > .12) & (u < .88)
+    c.mask(band, 'G', np.clip(4 - np.round(gx * 5), 3, 5).astype(int))
+    txt = band & (((np.floor(X) + 1) % 4) < 2) & (np.abs(v - .53) < .07) & (h2(np.floor(X / 2).astype(int), 9, 3) > .25); c.mask(txt, 's', 7)
+    # 持ち手（左右の輪）と、そこから口へのつけ根
+    for sx in (-1, 1):
+        cx_ = 24 + sx * 8.5
+        pts = bez((cx_ - sx * 4.2, 16.5), (cx_ - sx * 4, 3), (cx_ + sx * 4, 3), (cx_ + sx * 4.2, 16.5), 60)
+        for (x, y) in pts: c.disc(x, y, 1.1, 's', 7 if sx < 0 else 5); c.p(x + 1, y + 1, 'S', 3)
+    c.mask(m & (v < .12), 's', np.clip(s + 1, 4, 7).astype(int))
+    c.outline(('S', 2)); return c
 
 # ================================================================ ペットボトル
 def bottle():
@@ -203,30 +232,6 @@ def bottle():
     # つや（上のすじ）と、下のかげ
     for x in range(6, 40): c.p(x, cy - body_h(x) + 2, 'S', 7) if x % 6 != 5 else None
     c.outline(('S', 1)); return c
-
-# ================================================================ ビニール袋
-def bag():
-    c = Cv(42, 38); cx, cy = 21.0, 22.0
-    u = (c.X + .5 - cx) / 16.5; v = (c.Y + .5 - cy) / 13.5; ang = np.arctan2(v, u)
-    edge = 1 + .19 * np.sin(4 * ang + .5) + .1 * np.sin(7 * ang + 1) + .06 * np.sin(11 * ang)
-    r = np.hypot(u, v) / edge; m = r < 1
-    X, Y = c.X * 1.0, c.Y * 1.0
-    hgt = np.sin(X * .45 + Y * .32) * 1.6 + np.sin(X * .21 - Y * .55 + 1) * 1.8 + np.sin(X * .8 - Y * .15 + 2) * .8
-    gx = np.gradient(hgt, axis=1); gy = np.gradient(hgt, axis=0)
-    s = 5 + np.round((-gx * .7 - gy * .9) * 3.4) + np.round(-v * .8)
-    # うすい所は青がかる
-    thin = vn(c.X * .2, c.Y * .2, 71) > .6
-    c.mask(m, 's', np.clip(s, 2, 7).astype(int)); c.mask(m & thin & (s < 5), 'S', np.clip(s + 1, 3, 6).astype(int))
-    # 赤い印字（ロゴの帯）
-    band = m & (np.abs(v + .05 + .1 * np.sin(u * 3)) < .17) & (np.abs(u) < .75)
-    c.mask(band, 'G', np.clip(4 + np.round(-gx * 1.5 - gy * 1.5), 2, 5).astype(int))
-    txt = band & (((c.X * 5 + 1) % 6 < 2) & (h2(c.X >> 1, 1, 72) > .3)); c.mask(txt, 's', 6)
-    # 持ち手（2本・上）
-    for sx in (-1, 1):
-        pts = bez((cx + sx * 3.5, 12), (cx + sx * 6, 7), (cx + sx * 9.5, 6), (cx + sx * 8.5, 11), 40)
-        for (x, y) in pts: c.disc(x, y, 1.2, 's', 6 if sx < 0 else 5); c.p(x + 1, y + 1, 'S', 3)
-    c.disc(cx, 13.2, 2.4, 's', 4); c.p(cx - 1, 12, 's', 7); c.p(cx + 1, 14, 'S', 3)                       # 結び目
-    c.outline(('S', 2)); return c
 
 # ================================================================ ヤシの実
 def coconut(cut=False):
