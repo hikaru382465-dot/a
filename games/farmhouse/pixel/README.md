@@ -157,3 +157,7 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 ## 金髪ボブのちびキャラ（gen_blonde_chibi.py）
 `python gen_blonde_chibi.py` → assets/character/blonde_chibi_*（sheet / walk.gif / 向き別gif / preview）。24×36、赤い制服・灰色スカート・紺のリボン・赤いリボンの髪。パレットに n（金髪）・u（制服の赤）・g（スカートの灰）を追加。
 網の一連（gen_net_sequence.py）は、このキャラを使う。参考絵は pixel/ref/blonde_ref*。
+
+## 釣竿と漂流物（gen_items.py）
+`python gen_items.py` → assets/items/（rod, rope, stone1, stone2, cloth, bottle, bag, coconut, coconut_cut の各PNG）, items_sheet.png（一覧）, items_float.gif（海にうかんで流れる）。
+ロープ＝ねじれた縄のうず巻き、石＝球のかげ＋こけ、布＝やぶれ・ほつれ・青い縞、プラスチック＝ボトルとビニール袋、ヤシの実＝まるごと／わって水入り。
