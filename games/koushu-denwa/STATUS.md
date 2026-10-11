@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **入口の向きは -Y に決定**（ひかる確認）。`setup_game_fp.py` は FRONT="-Y"。FirstPersonMap はスタート画面用なので、実行しない（PROTECT_LEVELS で止まる）。本編用に「現在のレベルを別名で保存」で L_Main などにコピー → そのレベルで `setup_game_fp.py` → `kd_game.py` → Play
+
 - **新プロジェクト用の準備を作成（未実行）**：`unreal/setup_game_fp.py`（買った公衆電話に当たり判定・ドア板・蛍光灯・開始位置・懐中電灯・張り紙・幽霊を付ける）と、`kd_game.py` をテンプレのキャラ・入口の向きに対応。下見の結果：電話ボックス 中心(4308,-1223,257) 半径(71,78,157)、位置(4310,-1210,100)、拡大3。**入口の向き（FRONT）がまだ不明** → ひかるに聞いて `FRONT` を決める
 
 - **新プロジェクト（ひかるが別に作った `kousyuudennwa`、UE 5.8、First Personテンプレート）**：Landscape・草・街灯・買った公衆電話（Unityアセットストアの「Japanese Street Prop Models」、1メッシュ・2116三角・ドアなし・当たり判定1つ）が置いてある。ゲームのしくみをここに移す計画。まず `unreal/kd_probe.py`（下見：大きさ・部品・入口の向きを調べる）をひかるが実行 → 結果を見て、ドア用の板・蛍光灯・当たり判定・テンプレのキャラに合わせた `kd_game.py` を作る。買った素材はGitHubに上げない

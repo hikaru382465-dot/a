@@ -22,7 +22,8 @@ import unreal
 GAME_DIR = "/Game/KoushuDenwa"
 TAG = "KD_Game"
 BOOTH_KEY = "phone_box"              # 電話ボックスの名前に入っている言葉（glass を含む名前は除く）
-FRONT = "+Y"                         # 入口（開いている側）の向き。+X / -X / +Y / -Y のどれか
+FRONT = "-Y"                         # 入口（開いている側）の向き。+X / -X / +Y / -Y のどれか（下見で確認済み：-Y）
+PROTECT_LEVELS = ("FirstPersonMap",)  # このレベル（スタート画面用）では実行しない。本編用にコピーしたレベルで実行する
 START_DIST = 1800.0                  # プレイヤーを、入口の正面から何cm 離して立たせるか
 FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ）
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
@@ -351,6 +352,13 @@ def find_booth():
 
 def s_env():
     log("エンジン: %s" % unreal.SystemLibrary.get_engine_version())
+    try:
+        wname = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
+    except Exception:  # noqa
+        wname = ""
+    log("いま開いているレベル: %s" % wname)
+    if wname in PROTECT_LEVELS:
+        raise RuntimeError("このレベル（%s）はスタート画面用なので、何も変えません。「ファイル → 現在のレベルを別名で保存」で本編用（例 L_Main）にコピーして、そのレベルで実行してください" % wname)
     b = find_booth()
     if b is None:
         raise RuntimeError("名前に %s を含む電話ボックスが見つかりません（BOOTH_KEY を直してください）" % BOOTH_KEY)
