@@ -29,6 +29,17 @@ window.RAFT.data = {
     { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
+  // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）
+  BUDDY: {
+    JOBS: {
+      fish:  { name: '釣り番',     tip: '相棒がざおで魚を釣る（リズムなしなので、ゆっくり）' },
+      net:   { name: '網番',       tip: '相棒が網を投げて、引き上げる（網のレベルしだい）' },
+      water: { name: '水くみ番',   tip: 'ろ過器・貯水槽のそばで手伝う（ろ過と雨水ためが速くなる）' },
+      rest:  { name: '休む・眺める', tip: '景色を眺めて、機嫌をもどす' }
+    },
+    MOOD0: 80, DRAIN: 0.12, REST: 0.9, IDLE: 0.15, TIRED: 12,
+    FISH_WAIT: [5, 12], FISH_REST: [2, 5], NET_REST: 6, NET_POWER: 0.6, VIEW_SEC: 25
+  },
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）

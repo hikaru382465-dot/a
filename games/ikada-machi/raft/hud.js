@@ -89,7 +89,17 @@ window.RAFT.parts.hud = function (c) {
     $('fabBadge').style.display = s.hand === 'net' ? '' : 'none';
     if (c.ui.open) renderBook();
   }
-  c.hud = { refresh, toast, tryPlace };
+  // ---- 相棒にお願い ----
+  const jobBtns = [...Object.keys(D.BUDDY.JOBS), null];
+  function jobPanel() {
+    const bu = s.buddy, nm = bu.job ? D.BUDDY.JOBS[bu.job].name : 'おまかせ（自由に歩く）';
+    $('jobNow').textContent = `いまの仕事：${nm}`; $('mood').style.width = bu.mood + '%'; $('mood').classList.toggle('low', bu.mood < 30);
+    $('jobBtns').innerHTML = jobBtns.map(k => `<button data-j="${k || ''}" class="${(bu.job || null) === k ? 'on' : ''}">${k ? D.BUDDY.JOBS[k].name : 'おまかせ'}<small>${k ? D.BUDDY.JOBS[k].tip : '仕事をやめて、自由に歩き回る'}</small></button>`).join('');
+    $('jobBtns').querySelectorAll('button').forEach(b => b.onclick = () => { sim.setJob(s, b.dataset.j || null); jobPanel(); });
+  }
+  const openJobs = () => { cancelPlace(); closeSheet(); $('jobbox').style.display = 'block'; jobPanel(); };
+  $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
+  c.hud = { refresh, toast, tryPlace, openJobs };
   // ---- ボタン ----
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
@@ -120,7 +130,7 @@ window.RAFT.parts.hud = function (c) {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
       const f = msgs[e.e]; if (f) toast(f(e));
-      if (['caught', 'fished', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
@@ -136,6 +146,7 @@ window.RAFT.parts.hud = function (c) {
     rg.clearRect(0, 0, rain.width, rain.height);
     if (rainA > 0.02) { rg.strokeStyle = `rgba(200,220,255,${0.35 * rainA})`; rg.lineWidth = 1.5; rg.beginPath();
       drops.forEach(d => { d.y += dt * d.v * 1.6; d.x -= dt * 0.25; if (d.y > 1) { d.y = -0.05; d.x = Math.random() * 1.3; } const x = d.x * rain.width, y = d.y * rain.height; rg.moveTo(x, y); rg.lineTo(x - 5, y + 16); }); rg.stroke(); }
+    if ($('jobbox').style.display === 'block') { $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }
     acc += dt; if (acc > 10) { acc = 0; sim.save(s); }
     if (!update.first) { update.first = true; toast('右下の「持ち物」から、網を持って、海を押してみよう', 4000); }
   }, init: refresh };

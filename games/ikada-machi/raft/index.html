@@ -65,6 +65,10 @@ button.on{background:#6b4231;color:#fff}
 #helpbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(420px,86vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.7}
 #helpbox h2{margin:0 0 6px;font-size:15px}
 #helpbox ul{margin:0;padding-left:1.2em}
+#jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#jobbox h2{margin:0 0 4px;font-size:15px}
+#jobBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#jobBtns button small{display:block;font-size:10px;opacity:.75;line-height:1.3}
 #log{position:fixed;left:10px;bottom:6px;font-size:11px;color:#ffb0a0;max-width:50vw}
 </style></head><body>
 <canvas id="rain"></canvas>
@@ -81,6 +85,7 @@ button.on{background:#6b4231;color:#fff}
 <button id="bClose" aria-label="閉じる">×</button>
 <div id="pages"><div class="page" id="pageL"><div id="grid"></div></div><div class="page" id="pageR"><div id="detail"></div></div></div>
 </div></div>
+<div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
 <div id="helpbox"><h2>あそびかた</h2><ul>
 <li>右下の「持ち物」から、網を選んで手に持つ</li>
 <li>海を押し続ける → ゲージがたまる → 離すと網を投げる</li>

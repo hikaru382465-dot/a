@@ -20,7 +20,7 @@
       net: { lv: 1, cast: null }, tools: ['net'], hand: 'net', rod: null,
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
-      buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3 },
+      buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0 },
       drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
     };
   };
@@ -89,7 +89,8 @@
   function collect(s) {
     const c = s.net.cast; if (!c) return;
     c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; });
-    if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
+    if (c.by === 'buddy') { s.buddy.jobT = D.BUDDY.NET_REST; if (c.held.length) s.events.push({ e: 'bhaul', n: c.held.length }); }
+    else if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
     s.net.cast = null;
   }
   // 手に持つ（道具の切りかえ）
@@ -184,6 +185,70 @@
     if (S.rand() > D.ROD.fishP) { const o = ['wood', 'coconut', 'cloth', 'rope']; k = o[Math.floor(S.rand() * o.length)]; }
     const n = q === 'great' ? 2 : 1; s.inv[k] = (s.inv[k] || 0) + n; s.reelFx = { id: s.uid++, k, x: r.x, z: r.z }; s.events.push({ e: 'fished', k, n, q }); return true;
   };
+  // ---- 相棒の仕事 ----
+  const faceOf = (s, x, z) => { const o = N4.find(([dx, dz]) => !S.has(s, x + dx, z + dz)); return o || [0, 1]; };
+  S.edgeCells = s => s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z) && N4.some(([dx, dz]) => !S.has(s, x + dx, z + dz)));
+  S.setJob = function (s, job) {
+    const bu = s.buddy; if (job && !D.BUDDY.JOBS[job]) return false;
+    bu.job = job || null; bu.spot = null; bu.line = null; bu.jobT = 0; bu.working = false; bu.path = []; bu.task = null; bu.act = null;
+    s.events.push({ e: 'job', job: bu.job }); return true;
+  };
+  function goSpot(s, bu) {      // 水ぎわのマスに立つ。着いたら true
+    const me = cellOf(bu);
+    if (bu.spot && !(S.has(s, bu.spot[0], bu.spot[1]) && !S.objAt(s, bu.spot[0], bu.spot[1]))) bu.spot = null;
+    if (!bu.spot) {
+      const es = S.edgeCells(s).filter(c => !(cellOf(s.player)[0] === c[0] && cellOf(s.player)[1] === c[1]));
+      if (!es.length) return false;
+      es.sort((a, b) => Math.hypot(a[0] - me[0], a[1] - me[1]) - Math.hypot(b[0] - me[0], b[1] - me[1]));
+      bu.spot = es[Math.floor(S.rand() * Math.min(3, es.length))];
+    }
+    if (me[0] === bu.spot[0] && me[1] === bu.spot[1]) { const f = faceOf(s, me[0], me[1]); bu.face = f; bu.dir = dirOf(f[0], f[1]); return true; }
+    if (!S.walkTo(s, bu.spot[0], bu.spot[1], bu)) bu.spot = null;
+    return false;
+  }
+  function jobStep(s, dt) {
+    const bu = s.buddy, B = D.BUDDY, J = bu.job, eff = 0.5 + 0.5 * bu.mood / 100;
+    if (!J) { bu.mood = Math.min(100, bu.mood + B.IDLE * dt); return; }
+    if (J === 'rest') bu.mood = Math.min(100, bu.mood + B.REST * dt);
+    else if (!(J === 'net' && s.net.cast && s.net.cast.by !== 'buddy')) bu.mood = Math.max(0, bu.mood - B.DRAIN * dt);
+    if (J !== 'rest' && bu.mood < B.TIRED) { S.setJob(s, 'rest'); s.events.push({ e: 'btired' }); return; }
+    if (J === 'water') {
+      const o = s.objects.find(x => x.k === 'filter') || s.objects.find(x => x.k === 'tank');
+      if (!o) { S.setJob(s, null); s.events.push({ e: 'jobfail' }); return; }
+      const me = cellOf(bu); bu.working = Math.abs(me[0] - o.x) + Math.abs(me[1] - o.z) === 1 && !bu.path.length;
+    }
+    if (bu.act || bu.task || bu.path.length) return;
+    const rr = (a) => a[0] + S.rand() * (a[1] - a[0]);
+    if (J === 'water') {
+      const o = s.objects.find(x => x.k === 'filter') || s.objects.find(x => x.k === 'tank');
+      if (!bu.working) { S.walkNear(s, o.x, o.z, { type: 'work', id: null }, bu); return; }
+      bu.act = { type: 'eat', t: 0.7 }; return;
+    }
+    if (!goSpot(s, bu)) return;
+    const f = bu.face || [0, 1];
+    if (J === 'rest') { bu.viewT += dt; if (bu.viewT >= B.VIEW_SEC) { bu.viewT = 0; s.events.push({ e: 'bview' }); } return; }
+    if (J === 'fish') {
+      if (!bu.line) {
+        if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
+        bu.line = { x: bu.x + f[0] * 2.4, z: bu.z + f[1] * 2.4, t: 0, wait: rr(B.FISH_WAIT) }; bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'bcast' });
+      } else {
+        bu.line.t += dt * eff;
+        if (bu.line.t >= bu.line.wait) {
+          const o = ['wood', 'coconut', 'cloth', 'rope'], k = S.rand() < D.ROD.fishP ? 'fish' : o[Math.floor(S.rand() * o.length)];
+          s.inv[k] = (s.inv[k] || 0) + 1; bu.fx = { id: s.uid++, k, x: bu.line.x, z: bu.line.z }; s.events.push({ e: 'bfished', k });
+          bu.line = null; bu.jobT = rr(B.FISH_REST); bu.act = { type: 'throw', t: 0.4 };
+        }
+      }
+      return;
+    }
+    if (J === 'net') {
+      if (s.net.cast) return;
+      if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
+      const nl = netNow(s), dist = D.NET_MIN + (nl.range - D.NET_MIN) * B.NET_POWER;
+      s.net.cast = { phase: 'fly', sx: bu.x, sz: bu.z, tx: bu.x + f[0] * dist, tz: bu.z + f[1] * dist, x: bu.x, z: bu.z, t: 0, held: [], by: 'buddy' };
+      bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'throw' });
+    }
+  }
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
   function pickItem(s) {
@@ -208,13 +273,14 @@
     // おなか・のどのかわき（0で止まる。死なない）
     s.needs.hunger = Math.max(0, s.needs.hunger - D.NEEDS.hunger * dt);
     s.needs.thirst = Math.max(0, s.needs.thirst - D.NEEDS.thirst * W.thirst * dt);
+    const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
     const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
-    if (s.weather.id === 'storm') { s.rainT += dt; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
+    if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
       const t = tanks.filter(x => x.w < tcap).sort((a, c) => a.w - c.w)[0];
       if (!t) { o.p = Math.min(o.p, D.ITEMS.filter.sec); return; }
-      o.p += dt; if (o.p >= D.ITEMS.filter.sec) { o.p = 0; t.w++; s.events.push({ e: 'filtered' }); }
+      o.p += dt * wm; if (o.p >= D.ITEMS.filter.sec) { o.p = 0; t.w++; s.events.push({ e: 'filtered' }); }
     });
     // 相棒（女の子）：おなか・のどが減ったら自分で食べる・飲む。ひまなときは、イカダの上を歩き回る
     const bu = s.buddy, b = s.player; bu.eatT -= dt; bu.wanderT -= dt;
@@ -223,11 +289,12 @@
       else if (s.needs.thirst < D.NEEDS.low) {
         const t = tanks.find(x => x.w > 0);
         if (t) { S.useObj(s, t.id, bu); bu.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut', bu)) bu.eatT = 3;
-      } else if (bu.wanderT <= 0) {
+      } else if (bu.wanderT <= 0 && !bu.job) {
         const fc = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z)); const t = fc[Math.floor(S.rand() * fc.length)];
         if (t) S.walkTo(s, t[0], t[1], bu); bu.wanderT = 4 + S.rand() * 7;
       }
     }
+    jobStep(s, dt); if (!bu.job || bu.job !== 'fish') bu.line = null;
     // 2人の動き
     const slow = (s.needs.hunger <= 0 || s.needs.thirst <= 0) ? 0.5 : 1;
     [b, bu].forEach(a => {
@@ -259,12 +326,12 @@
       if (cast.phase === 'fly') {
         cast.t += dt / D.NET_FLY; const k = Math.min(1, cast.t);
         cast.x = cast.sx + (cast.tx - cast.sx) * k; cast.z = cast.sz + (cast.tz - cast.sz) * k;
-        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { s.net.cast = null; s.events.push({ e: 'miss' }); } else s.events.push({ e: 'splash' }); }
+        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { s.net.cast = null; if (cast.by !== 'buddy') s.events.push({ e: 'miss' }); else s.buddy.jobT = 2; } else s.events.push({ e: 'splash' }); }
       } else if (cast.phase === 'rest') {
         cast.t += dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
         if (cast.t >= D.NET_REST || cast.held.length >= nl.cap) cast.phase = 'back';
       } else {   // 引きずって引き寄せる：網が水の上を滑って、イカダの端に着いたら持ち物に入る
-        const dx = b.x - cast.x, dz = b.z - cast.z, d = Math.hypot(dx, dz), step = D.NET_DRAG * dt;
+        const ow = cast.by === 'buddy' ? s.buddy : b, dx = ow.x - cast.x, dz = ow.z - cast.z, d = Math.hypot(dx, dz), step = D.NET_DRAG * dt;
         if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
       }
     }

@@ -91,6 +91,10 @@ window.RAFT.parts.drift = function (c) {
     m.position.set(x, (yb === undefined ? 0.06 : yb) + (SA.ay - SA.h / 2) * u / pc, z);
   };
   const playFx = (x, z, from, n, fps, sc) => { if (!SA) return; let f = fxPool.find(q => !q.on); if (!f) { f = { m: spMesh(), on: false }; fxPool.push(f); } f.on = true; f.t = 0; f.x = x; f.z = z; f.from = from; f.n = n; f.fps = fps; f.sc = sc; };
+  // 相棒の釣り：ウキと糸、釣れた物がとんでくる
+  const bobB = c.sprite(bobCv, { x: 0, y: 0, z: 0, ppu: 40 }); bobB.visible = false; group.add(bobB);
+  const lineB = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: 0xf1ead8 })); lineB.visible = false; scene.add(lineB);
+  let bFxLast = s.buddy.fx ? s.buddy.fx.id : 0, bFly = null, bLine = false;
   let lastPh = null;
   const held = [];
   let t = 0;
@@ -133,7 +137,7 @@ window.RAFT.parts.drift = function (c) {
         else { f = NA.idle[Math.floor(t * (cast.phase === 'back' ? 10 : 5)) % 4]; u = 2 * nl.r / NA.idleDiscW; if (cast.phase === 'back') u *= 0.92; }
         showArt(f, u, cast.x, y + 0.02, cast.z);
       } else { net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
-      setLine(ropeLine, b.x, 0.55, b.z, cast.x, y, cast.z);
+      const ow = cast.by === 'buddy' ? s.buddy : b; setLine(ropeLine, ow.x, 0.55, ow.z, cast.x, y, cast.z);
     }
     const rd = s.rod; bob.visible = lineRod.visible = !!rd;
     if (rd) {
@@ -167,6 +171,11 @@ window.RAFT.parts.drift = function (c) {
     beat.visible = beatT.visible = !!rd && rd.phase === 'bite';
     if (beat.visible) { const k = rd.t / R.data.ROD.bite; beat.position.set(rd.x, 0.1, rd.z); beatT.position.set(rd.x, 0.1, rd.z); const sc = 0.5 + Math.max(0, R.data.ROD.great[0] - k) * 3.2 + Math.max(0, k - R.data.ROD.great[0]) * 1.2; beat.scale.set(sc, 1, sc); }
     bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.material.depthTest = false; bang.renderOrder = 5; bang.position.set(b.x, 1.4 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);
+    const bl = s.buddy.line; bobB.visible = lineB.visible = !!bl;
+    if (bl) { const by = 0.08 + Math.sin(t * 2.2) * 0.02; bobB.position.set(bl.x, by, bl.z); setLine(lineB, s.buddy.x, 0.7, s.buddy.z, bl.x, by + 0.04, bl.z); }
+    if (!!bl !== bLine) { if (bl) playFx(bl.x, bl.z, 0, 20, 22, 0.8); bLine = !!bl; }
+    if (s.buddy.fx && s.buddy.fx.id !== bFxLast) { bFxLast = s.buddy.fx.id; playFx(s.buddy.fx.x, s.buddy.fx.z, 0, 20, 24, 0.9); const ac = artOf(s.buddy.fx.k, 0); bFly = { m: c.sprite(ac || mk(s.buddy.fx.k), { x: 0, y: 0, z: 0, ppu: ac ? ac.ppu : 30 }), x: s.buddy.fx.x, z: s.buddy.fx.z, t: 0 }; group.add(bFly.m); }
+    if (bFly) { bFly.t += dt / 0.6; const k = Math.min(1, bFly.t), bu = s.buddy; bFly.m.position.set(bFly.x + (bu.x - bFly.x) * k, 0.1 + Math.sin(Math.PI * k) * 1.1 + 0.5 * k, bFly.z + (bu.z - bFly.z) * k); if (k >= 1) { group.remove(bFly.m); bFly = null; } }
     const ph2 = rd ? rd.phase : null; if (ph2 === 'bite' && lastPh !== 'bite') playFx(rd.x, rd.z, 2, 10, 20, 0.6); lastPh = ph2;
     fxPool.forEach(f => { if (!f.on) return; f.t += dt; const i = Math.floor(f.t * f.fps); if (i >= f.n) { f.on = false; f.m.visible = false; return; } const tx = spTex[f.from + i]; f.m.visible = !!tx; if (tx) { f.m.material.map = tx; f.m.material.needsUpdate = true; spPlace(f.m, f.x, f.z, f.sc); } });
     // 釣れた物が、水面からとんでくる

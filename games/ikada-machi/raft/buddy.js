@@ -33,10 +33,13 @@ window.RAFT.parts.buddy = function (c) {
     const rc = el.getBoundingClientRect();
     ray.setFromCamera(new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1), c.camera); return ray.ray.intersectPlane(plane, pt) ? pt.clone() : null;
   };
+  const hitBuddy = e => { const ch = s.buddy, v = new THREE.Vector3(ch.x, 0.65, ch.z).project(c.camera), rc = el.getBoundingClientRect();
+    return Math.hypot(e.clientX - (rc.left + (v.x + 1) / 2 * rc.width), e.clientY - (rc.top + (1 - v.y) / 2 * rc.height)) < 36; };
   const power = () => { const p = ((performance.now() - aimT0) / 1000 / GAUGE_SEC) % 2; return p < 1 ? p : 2 - p; };
   const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };
   el.addEventListener('pointerdown', e => {
     if (c.ui && c.ui.open) return;
+    if (!c.mode.place && !s.net.cast && !s.rod && hitBuddy(e)) { down = { x: e.clientX, y: e.clientY, buddy: true }; return; }     // 相棒をタップ：お願いの画面
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
     if (!p || c.mode.place) return;
     if (s.rod) { R.sim.reelRod(s); down = null; return; }
@@ -50,6 +53,7 @@ window.RAFT.parts.buddy = function (c) {
   el.addEventListener('pointerup', e => {
     const d = down; down = null; c.aim.active = false;
     if (!d) return;
+    if (d.buddy) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openJobs(); return; }
     if (d.aim) { const p = d.p; if (p) R.sim.throwNet(s, p.x, p.z, power()); return; }
     if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
     const x = Math.floor(d.p.x), z = Math.floor(d.p.z), sim = R.sim;
