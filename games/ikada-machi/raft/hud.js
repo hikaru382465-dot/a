@@ -108,7 +108,7 @@ window.RAFT.parts.hud = function (c) {
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
-    short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => `釣れた：${nameOf(e.k)}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
+    short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => (e.q === 'great' ? 'ナイス！ ' : '') + `釣れた：${nameOf(e.k)}${e.n > 1 ? ' ×' + e.n : ''}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
     miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった',
     netlv: e => `網が Lv${e.lv} になった`, noequip: () => '右下の「持ち物」から、網か釣りざおを手に持とう',
     weather: e => `天気：${D.WEATHER[e.id].name}`, tankinfo: e => `貯水槽 ${e.w}/${e.cap}`, tankempty: () => '貯水槽が空（雨をためる／ろ過器を置く）',

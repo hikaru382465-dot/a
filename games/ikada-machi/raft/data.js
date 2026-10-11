@@ -7,7 +7,7 @@ window.RAFT.data = {
   // lv：この網のレベル以上で取れる。w：流れてくる重み。food/drink：食べる・飲むで戻る量。place：置ける物
   ITEMS: {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
-    fish:    { name: '小魚',     lv: 1, w: 3, food: 25, tip: '食べるとおなかが戻る' },
+    fish:    { name: '小魚',     lv: 1, w: 0, food: 25, tip: '食べるとおなかが戻る' },
     coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 28, tip: '飲むとのどが戻る（おなかも少し）' },
     rope:    { name: '縄',       lv: 2, w: 3, tip: '作る材料' },
     cloth:   { name: '布',       lv: 2, w: 2, tip: '作る材料' },
@@ -32,9 +32,9 @@ window.RAFT.data = {
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）
-  TOOLS: { net: { name: '網', tip: '海を押し続けて、離すと投げる' }, rod: { name: '釣りざお', tip: '海をタップして、糸をたらす。ウキがしずんだら、すぐタップ' } },
+  TOOLS: { net: { name: '網', tip: '海を押し続けて、離すと投げる' }, rod: { name: '釣りざお', tip: '海をタップして、糸をたらす。ウキがしずんだら、輪がちぢんで重なる時にタップ' } },
   // 釣り：range＝糸が届くマス、wait＝魚が来るまでの秒（最小〜最大）、bite＝ウキがしずんでいる秒（この間にタップ）
-  ROD: { range: 4.5, min: 1.5, wait: [3, 8], bite: 1.3, fishP: 0.8 },
+  ROD: { range: 4.5, min: 1.5, wait: [3, 8], bite: 1.7, fishP: 0.8, great: [0.55, 0.2] },   // great＝タイミングぴったり（しずんでからの割合の前後で2匹）
   // 網（投げる）：range＝ゲージ満タンで飛ぶ距離（マス）、r＝網がとる広さ（半径・マス）、cap＝1回で入る数
   NET_LV: [
     { lv: 1, range: 4,   r: 0.9, cap: 3 },

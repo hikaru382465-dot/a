@@ -70,10 +70,13 @@ window.RAFT.parts.drift = function (c) {
   const bob = c.sprite(bobCv, { x: 0, y: 0, z: 0, ppu: 40 }); bob.visible = false; group.add(bob);
   const lineRod = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: 0xf1ead8 })); lineRod.visible = false; scene.add(lineRod);
   // 釣りの動き：ざおをふる／ひいたら「！」／釣れた物がとんでくる／水しぶき
-  const bangCv = (() => { const [cv, g] = I.canvas(7, 11); I.rect(g, 2, 0, 3, 7, P.red1); I.rect(g, 2, 8, 3, 3, P.red1); I.rect(g, 3, 1, 1, 5, '#ffd0c0'); return cv; })();
-  const bang = c.sprite(bangCv, { x: 0, y: 0, z: 0, ppu: 34 }); bang.visible = false; group.add(bang);
+  const bangCv = (() => { const [cv, g] = I.canvas(7, 13); I.rect(g, 0, 0, 7, 13, '#fff1e0'); I.rect(g, 1, 1, 5, 7, '#ff2020'); I.rect(g, 1, 10, 5, 2, '#ff2020'); return cv; })();
+  const bang = c.sprite(bangCv, { x: 0, y: 0, z: 0, ppu: 50 }); bang.visible = false; group.add(bang);
   let rodM = null, rodMk = false, fxLast = s.reelFx ? s.reelFx.id : 0, flyFx = null, wasRod = null, castT = 9, reelT = 9;
   const splashRing = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, color: new THREE.Color(1.3, 1.5, 1.7) })); splashRing.visible = false; scene.add(splashRing);
+  const beatM = new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, depthTest: false, color: new THREE.Color(2, 0.5, 0.4) });
+  const beat = new THREE.Mesh(flat, beatM); beat.visible = false; beat.renderOrder = 4; scene.add(beat);
+  const beatT = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, depthTest: false, color: new THREE.Color(2, 2, 2) })); beatT.visible = false; beatT.renderOrder = 4; beatT.scale.set(0.5, 1, 0.5); scene.add(beatT);
   let splashT = 9, splashAt = [0, 0];
   const held = [];
   let t = 0;
@@ -84,11 +87,14 @@ window.RAFT.parts.drift = function (c) {
     s.drift.forEach(it => {
       live.add(it.id);
       let m = meshes.get(it.id);
-      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); }
-      m.position.set(it.x, 0.03 + Math.sin(t * 2.2 + it.id) * 0.03, it.z);
+      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); const rm = ringM.clone(); rm.opacity = 0; const rg = new THREE.Mesh(flat, rm); scene.add(rg); m.userData.rg = rg; }
+      const ph = t * 2.4 + it.id, hop = Math.sin(ph);
+      m.position.set(it.x, 0.05 + hop * 0.06, it.z); m.rotation.z = Math.sin(ph * 0.7) * 0.12;
+      const rg = m.userData.rg, rk = ((t * 0.7 + it.id * 0.37) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
+      rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff);
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
-    for (const [id, m] of meshes) if (!live.has(id)) { group.remove(m); meshes.delete(id); }
+    for (const [id, m] of meshes) if (!live.has(id)) { scene.remove(m.userData.rg); group.remove(m); meshes.delete(id); }
     // ねらい（押している間、ゲージの強さで落ちる場所が動く）
     const a = c.aim, b = s.player, nl = R.data.NET_LV[s.net.lv - 1];
     ring.visible = aimLine.visible = !!a.active && !s.net.cast;
@@ -119,7 +125,7 @@ window.RAFT.parts.drift = function (c) {
       setLine(lineRod, b.x, 0.7, b.z, rd.x, 0.12 + dip, rd.z);
     }
     // ざお（手にもっている間）
-    if (!rodM && artOf('rod', 0)) { rodM = c.sprite(artOf('rod', 0), { x: 0, y: 0, z: 0, ppu: 62 }); rodM.rotation.order = 'YXZ'; rodM.rotation.y = c.cam.yaw; group.add(rodM); }
+    if (!rodM && artOf('rod', 0)) { rodM = c.sprite(artOf('rod', 0), { x: 0, y: 0, z: 0, ppu: 140 }); rodM.rotation.order = 'YXZ'; rodM.rotation.y = c.cam.yaw; group.add(rodM); }
     if (rodM) {
       rodM.visible = s.hand === 'rod';
       if (rd && !wasRod) { castT = 0; splashT = 0; splashAt = [rd.x, rd.z]; }
@@ -131,7 +137,9 @@ window.RAFT.parts.drift = function (c) {
       else if (rd) ang = 1.0 + (rd.phase === 'bite' ? Math.sin(t * 40) * 0.14 : Math.sin(t * 1.5) * 0.03);
       rodM.rotation.z = -ang; rodM.position.set(b.x + 0.28, 0.4, b.z + 0.1);
     }
-    bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.position.set(b.x, 1.25 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);
+    beat.visible = beatT.visible = !!rd && rd.phase === 'bite';
+    if (beat.visible) { const k = rd.t / R.data.ROD.bite; beat.position.set(rd.x, 0.1, rd.z); beatT.position.set(rd.x, 0.1, rd.z); const sc = 0.5 + Math.max(0, R.data.ROD.great[0] - k) * 3.2 + Math.max(0, k - R.data.ROD.great[0]) * 1.2; beat.scale.set(sc, 1, sc); }
+    bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.material.depthTest = false; bang.renderOrder = 5; bang.position.set(b.x, 1.4 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);
     splashT += dt; splashRing.visible = splashT < 0.7;
     if (splashRing.visible) { const k = splashT / 0.7; splashRing.position.set(splashAt[0], 0.07, splashAt[1]); splashRing.scale.set(0.2 + k * 1.1, 1, 0.2 + k * 1.1); splashRing.material.opacity = 1 - k; }
     // 釣れた物が、水面からとんでくる
