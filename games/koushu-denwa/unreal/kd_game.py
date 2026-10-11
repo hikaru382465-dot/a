@@ -16,7 +16,9 @@
       あとで Blueprint に作り替える。決まりごとはここの Game クラスにまとめてあるので、そのまま移せる。
       毎フレーム検索はしない（参照は Play の最初に1回だけ集める）。
 """
+import json
 import math
+import os
 import random
 import traceback
 
@@ -75,6 +77,126 @@ def screen(world, msg, color=(255, 255, 255), t=3.0):
         pass
 
 
+
+# ---------------- 調整つまみ（設定ファイル） ----------------
+# 数字は Saved/kd_settings.json に書いてある。メモ帳で開いて数字を変えて保存するだけで効く。
+# （ZIP を取り直しても消えない場所にある。無い項目は、最初の実行で自動で足される）
+SETTINGS_DESCR = {
+    "FLASH_INSIDE": "閉じ込められたあとの懐中電灯の明るさ（外にいたときの何倍か）。明るすぎたら小さく",
+    "TUBE_SCALE": "蛍光灯の光の強さの倍率。明るすぎたら小さく",
+    "TUBE_GLOW": "蛍光灯の「光る見た目」の倍率",
+    "FLICKER_BLACK": "点滅の「消えた」瞬間に画面を黒くする割合（0〜1）。点滅が暗くならないなら大きく",
+    "DARK_BLACK": "暗転のあいだに画面を黒くする割合（0〜1）",
+    "DARK_WORLD": "暗転のとき、月と空の光を何倍まで下げるか",
+    "GLASS_DIRT": "ガラスのくもりの強さ（M_KDGlass を使うとき）",
+    "WALK_SPEED": "歩く速さ（cm/秒）。テンプレのキャラには効かない",
+    "ENTER_RANGE": "入口の前の、E で入れる距離（cm）",
+    "ENTER_FADE_OUT": "E を押してから暗くなるまでの秒数",
+    "ENTER_BLACK": "暗いまま待つ秒数（この間にドアの音が鳴る）",
+    "ENTER_FADE_IN": "明るくなるまでの秒数",
+    "FLICKER_TIME": "点滅の長さ（秒）",
+    "DARK_TIME": "暗転の長さ（秒）",
+    "GHOST_HOLD": "幽霊が外に見えている秒数（演出の強さ1〜4ごと）",
+    "POSTER_HOLD": "張り紙が貼られている秒数（演出の強さ1〜4ごと）",
+    "POSTER_STEP": "張り紙が1枚ずつ貼られる間隔（秒）",
+    "POSTER_FRAC": "張り紙が何割まで貼られるか（演出の強さ1〜4ごと）",
+    "PUZZLE_COUNT": "謎の数（演出の強さが最後まで進む謎の数）",
+    "PRESSURE_INTERVAL": "謎が進まないとき、幽霊が1段階近づくまでの秒数",
+    "DEAD_DIST": "失敗のとき、幽霊が目の前に出る距離（cm）",
+    "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
+    "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
+    "FRONT": "電話ボックスの入口の向き（+X / -X / +Y / -Y）",
+    "START_DIST": "プレイヤーを入口の前から何cm離して立たせるか",
+    "NIGHT_MODE": "true で、本編レベルを夜にする",
+    "SUN_INTENSITY": "太陽の明るさ（夜は 0）",
+    "MOON_INTENSITY": "月の光の強さ",
+    "SKY_INTENSITY": "空の光の強さ",
+    "POSTER_SCALE": "張り紙の大きさ（1.0 = 横50cm×縦70cm）",
+    "WALL_INSET": "張り紙を、ボックスの外形から内側へ何cm入れて貼るか",
+    "POSTER_GLOW": "張り紙のうすい自己発光の強さ",
+    "FLASH_INTENSITY": "懐中電灯の明るさ（カンデラ。外にいるときの強さ）",
+    "FLASH_INNER": "懐中電灯の、中心の角度",
+    "FLASH_OUTER": "懐中電灯の、外側の角度",
+    "FLASH_RADIUS": "懐中電灯の光が届く距離（cm）",
+    "TUBE_Z_FROM_TOP": "蛍光灯を、天井の上端から何cm下に付けるか",
+    "REPLACE_GLASS_MATERIAL": "true で、買ったガラスの材質を M_KDGlass に替える。false で買ったまま",
+}
+
+
+def _kd_settings_path():
+    try:
+        d = unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_saved_dir())
+    except Exception:  # noqa
+        d = unreal.Paths.project_saved_dir()
+    return os.path.join(d, "kd_settings.json")
+
+
+def _kd_tojson(v):
+    if isinstance(v, (list, tuple)):
+        return [_kd_tojson(x) for x in v]
+    return v
+
+
+def _kd_coerce(default, v):
+    if isinstance(default, bool):
+        return bool(v)
+    if isinstance(default, int):
+        return int(v)
+    if isinstance(default, float):
+        return float(v)
+    if isinstance(default, (list, tuple)):
+        return type(default)(_kd_coerce(default[i] if i < len(default) else default[-1], x) if not isinstance(x, (list, tuple)) else tuple(x) for i, x in enumerate(v))
+    return v
+
+
+def apply_settings(names, logf):
+    """設定ファイルの数字を、このスクリプトの設定に反映する。ファイルに無い項目は、いまの値を書き足す"""
+    path = _kd_settings_path()
+    data = {}
+    ok = True
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:  # noqa
+            ok = False
+            logf("  (設定ファイルを読めません。いまの値を使います) %s : %s" % (path, e))
+    vals = data.setdefault("設定", {})
+    added = False
+    applied = []
+    g = globals()
+    for n in names:
+        if n not in g:
+            continue
+        if n in vals:
+            try:
+                new = _kd_coerce(g[n], vals[n])
+                if new != g[n]:
+                    applied.append(n)
+                g[n] = new
+            except Exception as e:  # noqa
+                logf("  (設定 %s の値が変です。いまの値を使います) %s" % (n, e))
+        else:
+            vals[n] = _kd_tojson(g[n])
+            added = True
+    descr = data.setdefault("説明", {})
+    for n in names:
+        if n in SETTINGS_DESCR and descr.get(n) != SETTINGS_DESCR[n]:
+            descr[n] = SETTINGS_DESCR[n]
+            added = True
+    if ok and added:
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:  # noqa
+            logf("  (設定ファイルを書けません) %s" % e)
+    logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
+
+
+KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+
+
 def game_world():
     for getter in (
         lambda: unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_game_world(),
@@ -100,6 +222,7 @@ class Game:
     """状態：WALK(歩く) → CLOSING(扉が閉まる) → TRAPPED(閉じ込め：IDLE/FLICKER/DARK をくりかえす)"""
 
     def __init__(self, world):
+        apply_settings(KD_SETTING_NAMES, log)        # Play のたびに、設定ファイルの数字を読み直す（ファイルを保存して Play するだけで反映）
         self.world = world
         self.t = 0.0
         self.state = "WALK"
@@ -673,6 +796,7 @@ def solve(name="謎"):
 
 
 def main():
+    apply_settings(KD_SETTING_NAMES, log)
     unreal._kd_solve = solve
     old = getattr(unreal, "_kd_tick_handle", None)
     if old is not None:

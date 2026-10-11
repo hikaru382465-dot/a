@@ -125,3 +125,11 @@ FBXから来る材質は簡単なものなので、次の3つだけ手で直す�
 3. `kd_game.py` を実行 → ▶（Play）。歩くのはテンプレートのキャラ。ボックスに入るとドアが閉まり、点滅・暗転・張り紙・幽霊・失敗エンドが動く
 - ドアが内側に開くときは `kd_game.py` の `DOOR_OPEN_YAW` を `-100` に
 - 買った素材はGitHubに上げない
+
+## 調整つまみ集（Saved/kd_settings.json）
+
+`kd_game.py` か `setup_game_fp.py` を一度動かすと、プロジェクトの `Saved\kd_settings.json`（例：`Documents\Unreal Projects\<プロジェクト名>\Saved\`）ができる。メモ帳で数字を直して保存するだけ。
+
+- `kd_game.py` の値（明るさ・点滅・時間など）：Play のたびに読み直す。コードの書き直し・ZIPの取り直しは不要
+- `setup_game_fp.py` の値（`POSTER_SCALE`・`FLASH_INTENSITY`・`NIGHT_MODE` など）：保存後に `setup_game_fp.py` をもう一度実行
+- 「説明」の欄に、それぞれの意味が書いてある。壊れたファイルは上書きされず、初期値で動く
