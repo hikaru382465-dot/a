@@ -40,6 +40,7 @@ KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動�
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
 SAFE_BACK = -28.0                    # ダイヤル式の金庫を、ボックスの中心から奥（入口の反対）へ何cm（－が奥）
 SAFE_SIDE = 22.0                     # 金庫を、中心から横へ何cm（＋は入口に向かって左）
+SAFE_SCALE = 1.6                     # 金庫の大きさ（1.0 = 本物の手提げ金庫 幅36cm。見やすいよう 1.6 で幅58cm）
 SAFE_TURN = 0.0                      # 金庫の向き（入口の向きから何度まわすか）
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
@@ -99,6 +100,7 @@ SETTINGS_DESCR = {
     "BOARD_SCALE": "掲示板の大きさの倍率（1.0 で横264×高さ245cm）。大きいと感じたら小さく",
     "SAFE_BACK": "ダイヤル式の金庫を、ボックスの中心から奥へ何cm（マイナスが奥）",
     "SAFE_SIDE": "金庫を、中心から横へ何cm（プラスは入口に向かって左）",
+    "SAFE_SCALE": "金庫の大きさの倍率（1.0 で幅36cm）",
     "SAFE_TURN": "金庫の向き（度）",
     "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
     "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
@@ -181,7 +183,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -1153,7 +1155,52 @@ COIN_DIST = 300.0                      # 10円①を、入口の前から何cm �
 COIN_SIDE = -220.0                     # 入口の正面から横へ何cm（＋は入口に向かって左）
 
 
+SAFE_FILES = ["safe_wood_color", "safe_wood_normal", "safe_wood_rough", "safe_plate"]
+
+
+def wood_material(name, prefix, tiling=1.0):
+    """木目の材質：色・法線（凹凸）・粗さの3画像。つまみ: Tiling / Brightness / NormalStrength / RoughMul"""
+    T = GAME_DIR + "/Textures/Game/"
+    ld = unreal.EditorAssetLibrary.load_asset
+    m = new_material(name)
+    uv = xx(m, unreal.MaterialExpressionTextureCoordinate, -1100, 0)
+    mulu = xx(m, unreal.MaterialExpressionMultiply, -950, 0)
+    mel.connect_material_expressions(uv, "", mulu, "A")
+    mel.connect_material_expressions(scalar_param(m, "Tiling", tiling, -1150, 120), "", mulu, "B")
+    col = tex_param(m, "Color", ld(T + prefix + "_color"), -800, -200, mulu)
+    nrm = tex_param(m, "Normal", ld(T + prefix + "_normal"), -800, 100, mulu, normal=True)
+    rgh = tex_param(m, "Rough", ld(T + prefix + "_rough"), -800, 400, mulu)
+    mel.connect_material_property(mulx(m, col, scalar_param(m, "Brightness", 1.0, -800, -350), -100), "", MP.MP_BASE_COLOR)
+    flat = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 250)
+    flat.set_editor_property("constant", unreal.LinearColor(0.0, 0.0, 1.0, 1.0))
+    lerp = xx(m, unreal.MaterialExpressionLinearInterpolate, -400, 250)
+    mel.connect_material_expressions(flat, "", lerp, "A")
+    mel.connect_material_expressions(nrm, "", lerp, "B")
+    mel.connect_material_expressions(scalar_param(m, "NormalStrength", 1.0, -650, 400), "", lerp, "Alpha")
+    mel.connect_material_property(lerp, "", MP.MP_NORMAL)
+    mel.connect_material_property(mulx(m, rgh, scalar_param(m, "RoughMul", 1.0, -800, 550), 450), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(m)
+    unreal.EditorAssetLibrary.save_loaded_asset(m)
+    return m
+
+
 def s_safe_materials():
+    d = tex_game_dir()
+    tasks = []
+    for b in SAFE_FILES:
+        f = os.path.join(d, b + ".png")
+        if not os.path.exists(f):
+            raise RuntimeError("画像がありません: %s（ZIPを取り直してください）" % f)
+        tasks.append(mk_task(f, GAME_DIR + "/Textures/Game"))
+    import_tasks(tasks)
+    tn = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_wood_normal")
+    setp(tn, "compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+    setp(tn, "srgb", False)
+    unreal.EditorAssetLibrary.save_loaded_asset(tn)
+    tr = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_wood_rough")
+    setp(tr, "srgb", False)
+    unreal.EditorAssetLibrary.save_loaded_asset(tr)
+
     def pbr(name, col, metal, rough):
         m = new_material(name)
         c = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 0)
@@ -1164,14 +1211,23 @@ def s_safe_materials():
         mel.recompile_material(m)
         unreal.EditorAssetLibrary.save_loaded_asset(m)
         return m
-    STATE["M_KDSafe"] = pbr("M_KDSafe", (0.10, 0.17, 0.13), 0.55, 0.5)         # 濃い緑の塗装の鉄
-    STATE["M_KDBrass"] = pbr("M_KDBrass", (0.75, 0.55, 0.20), 1.0, 0.3)         # 真ちゅう
+    STATE["M_KDSafeWood"] = wood_material("M_KDSafeWood", "safe_wood", 1.0)             # 木目プリントの塗装（傷とはがれつき）
+    STATE["M_KDNickel"] = pbr("M_KDNickel", (0.72, 0.72, 0.75), 1.0, 0.3)               # ニッケルめっき（取っ手・ダイヤル）
     STATE["M_KDBlack"] = pbr("M_KDBlack", (0.02, 0.02, 0.02), 0.0, 0.5)
-    log("金庫の材質を作りました（M_KDSafe / M_KDBrass / M_KDBlack）")
+    pm = new_material("M_KDSafePlate")                                                  # 銘板（黒いエナメルに銀の文字）
+    t = tex_param(pm, "Tex", unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_plate"), -800, 0)
+    mel.connect_material_property(t, "", MP.MP_BASE_COLOR)
+    mel.connect_material_property(mulx(pm, t, cst(pm, 0.08, 100), 100), "", MP.MP_EMISSIVE_COLOR)      # 暗くても、文字がうっすら見える
+    mel.connect_material_property(cst(pm, 0.4, 250), "", MP.MP_METALLIC)
+    mel.connect_material_property(cst(pm, 0.35, 330), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(pm)
+    unreal.EditorAssetLibrary.save_loaded_asset(pm)
+    STATE["M_KDSafePlate"] = pm
+    log("金庫の材質を作りました（木目・ニッケル・銘板・黒）")
 
 
 def s_safe():
-    """ダイヤル式の金庫（本体 DialSafe_Body＋回るつまみ DialSafe_Knob）を、ボックスの中に置く"""
+    """手提げ金庫（本体 DialSafe_Body＋回るつまみ DialSafe_Knob）を、ボックスの中に置く"""
     g = STATE["geo"]
     n = g["n"]
     gz = g["zmin"]
@@ -1181,26 +1237,33 @@ def s_safe():
         pl, pr = KEEP_POSE["DialSafe_Body"]
         px, py, gz, yaw = pl.x, pl.y, pl.z, pr.yaw + 90.0
         log("  手で動かした金庫の位置を使います: (%.0f,%.0f,%.0f) 向き=%.0f度" % (px, py, gz, yaw))
-    fx, fy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
-    body_mesh = import_fit("DialSafe.fbx", "Safe", 47.0)
+    f = (math.cos(math.radians(yaw)), math.sin(math.radians(yaw)))
+    right = (f[1], -f[0])                                                         # 金庫のおもてを見たときの「右」
+    S = SAFE_SCALE
+    body_mesh = import_fit("DialSafe.fbx", "Safe", 36.0)                          # 最長＝幅 36cm
     body = spawn(unreal.StaticMeshActor, (px, py, gz), (0, 0, yaw - 90.0))
     bc = body.get_component_by_class(unreal.StaticMeshComponent)
     bc.set_static_mesh(body_mesh)
-    bc.set_material(0, STATE["M_KDSafe"])
-    bc.set_material(1, STATE["M_KDBrass"])
+    bc.set_material(0, STATE["M_KDSafeWood"])
+    bc.set_material(1, STATE["M_KDNickel"])
+    bc.set_material(2, STATE["M_KDSafePlate"])
+    bc.set_material(3, STATE["M_KDBlack"])
     setp(bc, "mobility", unreal.ComponentMobility.MOVABLE)
+    body.set_actor_scale3d(unreal.Vector(S, S, S))
     tag_actor(body, "DialSafe_Body")
-    # つまみ：別のフォルダに取り込む（本体と同じフォルダだと、どちらか1つしか見つからないため）
-    kmesh = import_fit("SafeDial.fbx", "SafeKnob", 13.3, collision=False)
-    kx, ky, kz = px + fx * 21.8, py + fy * 21.8, gz + 27.6                       # 扉の前面の、ダイヤルの位置
+    kmesh = import_fit("SafeDial.fbx", "SafeKnob", 5.9, collision=False)         # つまみ：別のフォルダに取り込む
+    kx = px + right[0] * 4.0 * S + f[0] * 13.4 * S                                # 本体の原点から：右へ4cm・前へ13.4cm・高さ6cm（Blenderの設計どおり）
+    ky = py + right[1] * 4.0 * S + f[1] * 13.4 * S
+    kz = gz + 6.0 * S
     kn = spawn(unreal.StaticMeshActor, (kx, ky, kz), (0, 0, yaw - 90.0))
     kc = kn.get_component_by_class(unreal.StaticMeshComponent)
     kc.set_static_mesh(kmesh)
-    kc.set_material(0, STATE["M_KDBrass"])
+    kc.set_material(0, STATE["M_KDNickel"])
     kc.set_material(1, STATE["M_KDBlack"])
     setp(kc, "mobility", unreal.ComponentMobility.MOVABLE)
+    kn.set_actor_scale3d(unreal.Vector(S, S, S))
     tag_actor(kn, "DialSafe_Knob")
-    log("ダイヤル式の金庫を置きました: (%.0f,%.0f) 向き=%.0f度（奥へ %.0fcm・横へ %.0fcm）" % (px, py, yaw, SAFE_BACK, SAFE_SIDE))
+    log("手提げ金庫を置きました: (%.0f,%.0f) 向き=%.0f度・倍率 %.1f（奥へ %.0fcm・横へ %.0fcm）" % (px, py, yaw, S, SAFE_BACK, SAFE_SIDE))
 
 
 def s_coin():

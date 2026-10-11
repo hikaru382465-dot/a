@@ -1,8 +1,9 @@
 """
-ダイヤル式の金庫を作る（Blender用）。メートル単位。
-  DialSafe.fbx … 本体（幅0.42 × 奥行き0.38 × 高さ0.44m。足元が原点。おもて面は -Y 向き＝Unrealでは +Y 向き）
-  SafeDial.fbx … ダイヤルのつまみ（中心が原点。回すと Unreal の Pitch（Y軸まわり）で回る。おもて面は -Y 向き）
-  材質の穴：本体 0=塗装の鉄 1=真ちゅう／つまみ 0=真ちゅう 1=黒
+手提げ金庫（昭和の「HAND SAFE」：木目プリントの鉄の箱＋上の取っ手＋銘板＋ダイヤルのつまみ）を作る（Blender用）。メートル単位。
+  DialSafe.fbx … 本体（幅0.36 × 奥行き0.24 × 高さ0.17m。足元が原点。おもて面は -Y 向き＝Unrealでは +Y 向き）
+                 材質の穴：0=木目プリント 1=ニッケル（取っ手・ねじ・ちょうつがい） 2=銘板 3=黒（すきま・ダイヤル受け・足）
+  SafeDial.fbx … ダイヤルのつまみ（中心が原点。Unrealで Pitch（Y軸まわり）で回す）  穴：0=ニッケル 1=黒
+  つまみの位置（本体の原点から・メートル）：右へ +0.04、前へ 0.134、高さ 0.060
 使い方：python make_dial_safe.py     出力：assets/unreal/DialSafe.fbx, SafeDial.fbx
 """
 import bpy, bmesh, math, os, random
@@ -15,6 +16,9 @@ except NameError:
 OUT = os.path.normpath(os.path.join(HERE, '..', 'assets', 'unreal'))
 os.makedirs(OUT, exist_ok=True)
 random.seed(29)
+W, D, H = 0.36, 0.24, 0.17
+Z0 = 0.010                     # 足の高さ
+SEAM = 0.104                   # ふたの合わせ目の高さ
 
 
 def new_scene():
@@ -25,41 +29,82 @@ def mats(names):
     return [bpy.data.materials.new(n) for n in names]
 
 
-def box(name, size, loc, mat_index, ms, bevel=0.003):
+def finish_uv(o, tile):
+    """木目用：箱投影。1枚の画像が tile メートル。横方向に木目が流れる"""
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    uv = bm.loops.layers.uv.verify()
+    for f in bm.faces:
+        n = f.normal
+        ax = max(range(3), key=lambda i: abs(n[i]))
+        for l in f.loops:
+            p = l.vert.co
+            if ax == 0:
+                u, v = p.y, p.z
+            elif ax == 1:
+                u, v = p.x, p.z
+            else:
+                u, v = p.x, p.y
+            l[uv].uv = (u / tile, v / tile)
+    bm.to_mesh(o.data)
+    bm.free()
+
+
+def plate_uv(o):
+    """銘板用：前（-Y）の面に、画像をそのまま貼る（0〜1）"""
+    xs = [v.co.x for v in o.data.vertices]
+    zs = [v.co.z for v in o.data.vertices]
+    x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    uv = bm.loops.layers.uv.verify()
+    for f in bm.faces:
+        for l in f.loops:
+            p = l.vert.co
+            l[uv].uv = ((p.x - x0) / (x1 - x0), (p.z - z0) / (z1 - z0))
+    bm.to_mesh(o.data)
+    bm.free()
+
+
+def finish(o, ms, mi, bevel=0.0, loc=None, rot=None, jitter=0.0):
+    if bevel > 0:
+        m = o.modifiers.new('b', 'BEVEL')
+        m.width = bevel
+        m.segments = 3
+        m.limit_method = 'NONE'
+        bpy.ops.object.modifier_apply(modifier='b')
+    if jitter > 0:
+        for v in o.data.vertices:
+            v.co += Vector((random.uniform(-jitter, jitter), random.uniform(-jitter, jitter), random.uniform(-jitter, jitter)))
+    if rot is not None:
+        o.rotation_euler = rot
+    if loc is not None:
+        o.location = loc
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    for m in ms:
+        o.data.materials.append(m)
+    for p in o.data.polygons:
+        p.material_index = mi
+    return o
+
+
+def box(name, size, loc, mi, ms, bevel=0.002, rot=None, jitter=0.0):
     bpy.ops.mesh.primitive_cube_add(size=1)
     o = bpy.context.active_object
     o.name = name
     o.scale = size
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    if bevel > 0:
-        m = o.modifiers.new('b', 'BEVEL')
-        m.width = bevel
-        m.segments = 2
-        m.limit_method = 'NONE'
-        bpy.ops.object.modifier_apply(modifier='b')
-    o.location = loc
-    bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
-    for m in ms:
-        o.data.materials.append(m)
-    for p in o.data.polygons:
-        p.material_index = mat_index
-    return o
+    return finish(o, ms, mi, bevel, loc, rot, jitter)
 
 
-def cyl(name, r, depth, loc, mat_index, ms, verts=24, axis='Y'):
+def cyl(name, r, depth, loc, mi, ms, verts=24, axis='Y', bevel=0.0):
     bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=depth)
     o = bpy.context.active_object
     o.name = name
     if axis == 'Y':
         o.rotation_euler = (math.radians(90), 0, 0)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-    o.location = loc
-    bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
-    for m in ms:
-        o.data.materials.append(m)
-    for p in o.data.polygons:
-        p.material_index = mat_index
-    return o
+    return finish(o, ms, mi, bevel, loc)
 
 
 def join_export(parts, name, fname):
@@ -78,56 +123,62 @@ def join_export(parts, name, fname):
     print('書き出しました: %s  頂点=%d  大きさ(m)=%s  材質の穴=%d' % (fname, len(o.data.vertices), tuple(round(v, 3) for v in o.dimensions), len(o.data.materials)))
 
 
-# ---- 本体 ----
+# ================= 本体 =================
 new_scene()
-ms = mats(['Paint', 'Brass'])
-W, D, H = 0.42, 0.38, 0.44
+ms = mats(['Wood', 'Nickel', 'Plate', 'Black'])
 parts = []
-parts.append(box('body', (W, D, H), (0, 0, 0.03 + H / 2), 0, ms, 0.008))
+fy = -D / 2
+# 下の箱とふた（合わせ目に 3mm のすきま）。木目は箱投影
+low = box('low', (W, D, SEAM - Z0 - 0.002), (0, 0, Z0 + (SEAM - Z0 - 0.002) / 2), 0, ms, 0.004)
+finish_uv(low, 0.36)
+lid_h = H - SEAM - 0.002 + Z0
+lid = box('lid', (W + 0.002, D + 0.002, lid_h), (0, 0, SEAM + 0.002 + lid_h / 2), 0, ms, 0.014)
+finish_uv(lid, 0.36)
+parts += [low, lid]
+parts.append(box('gap', (W - 0.012, D - 0.012, 0.012), (0, 0, SEAM), 3, ms, 0.0005))               # すきまの奥の黒
 for sx in (-1, 1):
     for sy in (-1, 1):
-        parts.append(box('foot', (0.05, 0.05, 0.03), (sx * 0.17, sy * 0.15, 0.015), 0, ms, 0.004))
-# 扉（本体の前面にかぶせる。すこし出っぱる）
-fy = -D / 2
-parts.append(box('door', (W - 0.05, 0.022, H - 0.05), (0, fy - 0.009, 0.03 + H / 2), 0, ms, 0.006))
-parts.append(box('doorFrame', (W - 0.02, 0.012, H - 0.02), (0, fy - 0.002, 0.03 + H / 2), 0, ms, 0.004))
-# 蝶番（左）
-for z in (0.12, 0.40):
-    parts.append(cyl('hinge', 0.012, 0.07, (-W / 2 + 0.018, fy - 0.022, z), 1, ms, 12, axis='Z'))
-# ダイヤルの受け皿（真ちゅうの輪）
-parts.append(cyl('dialPlate', 0.082, 0.008, (0, fy - 0.024, 0.03 + H * 0.56), 1, ms, 32))
-# 目盛りの印（本体側の三角の目印＝上に1つ）
-parts.append(box('pointer', (0.012, 0.006, 0.02), (0, fy - 0.030, 0.03 + H * 0.56 + 0.092), 1, ms, 0.001))
-# ハンドル（右側。縦の棒）
-parts.append(box('handleBase', (0.045, 0.012, 0.09), (0.125, fy - 0.026, 0.03 + H * 0.30), 1, ms, 0.003))
-parts.append(box('handle', (0.018, 0.04, 0.07), (0.125, fy - 0.048, 0.03 + H * 0.30), 1, ms, 0.004))
-# ボルト（扉の四すみ）
+        parts.append(box('foot', (0.03, 0.03, Z0), (sx * 0.15, sy * 0.095, Z0 / 2), 3, ms, 0.002))
+top = Z0 + (SEAM - Z0 - 0.002) + 0.002 + lid_h
+# 取っ手（上。ニッケルの曲がった棒と、2本の柱）
 for sx in (-1, 1):
-    for sz in (-1, 1):
-        parts.append(cyl('bolt', 0.007, 0.008, (sx * 0.17, fy - 0.022, 0.03 + H / 2 + sz * 0.175), 1, ms, 8))
+    parts.append(cyl('post', 0.0075, 0.022, (sx * 0.055, 0.0, top + 0.009), 1, ms, 14, 'Z', 0.001))
+    parts.append(cyl('postCap', 0.011, 0.005, (sx * 0.055, 0.0, top + 0.002), 1, ms, 14, 'Z', 0.001))
+parts.append(box('barMid', (0.082, 0.011, 0.007), (0, 0, top + 0.027), 1, ms, 0.0025))
+for sx in (-1, 1):
+    parts.append(box('barEnd', (0.034, 0.011, 0.007), (sx * 0.066, 0.0, top + 0.022), 1, ms, 0.0025, rot=(0, sx * math.radians(-28), 0)))
+# 銘板（ふたの前の面に、右よりに）
+plate = box('plate', (0.115, 0.004, 0.045), (0.065, fy - 0.003, SEAM + 0.040), 2, ms, 0.0005)
+plate_uv(plate)
+parts.append(plate)
+# ダイヤル受け（黒いエナメルの板＋ニッケルの縁）
+DX, DZ = 0.04, 0.060
+parts.append(box('escutcheon', (0.085, 0.010, 0.085), (DX, fy - 0.005, DZ), 3, ms, 0.008))
+parts.append(cyl('ring', 0.037, 0.004, (DX, fy - 0.012, DZ), 1, ms, 36))
+# 前の両はし：丸い鍵穴のふた（黒＋ニッケルの円盤）
+for sx in (-1, 1):
+    parts.append(cyl('plug', 0.017, 0.006, (sx * 0.145, fy - 0.003, 0.050), 3, ms, 20))
+    parts.append(cyl('plugDisc', 0.011, 0.004, (sx * 0.145, fy - 0.008, 0.050), 1, ms, 20))
+# うしろのちょうつがい
+for sx in (-1, 1):
+    parts.append(box('hinge', (0.045, 0.010, 0.02), (sx * 0.11, D / 2 + 0.003, SEAM + 0.001), 1, ms, 0.002))
+# ふたの前の左右のかど当て
+for sx in (-1, 1):
+    parts.append(box('corner', (0.016, 0.006, 0.05), (sx * (W / 2 - 0.008), fy - 0.002, SEAM + 0.04), 1, ms, 0.002))
 join_export(parts, 'DialSafe', 'DialSafe.fbx')
 
-# ---- ダイヤルのつまみ ----
+# ================= ダイヤルのつまみ =================
 new_scene()
-ms = mats(['Brass', 'Black'])
+ms = mats(['Nickel', 'Black'])
 parts = []
-parts.append(cyl('knob', 0.058, 0.026, (0, -0.013, 0), 0, ms, 40))
-parts.append(cyl('cap', 0.022, 0.012, (0, -0.032, 0), 1, ms, 24))
-# ふちのギザギザ（24本）
-for i in range(24):
-    a = i * 2 * math.pi / 24
-    o = box('rib', (0.008, 0.026, 0.012), (math.cos(a) * 0.060, -0.013, math.sin(a) * 0.060), 0, ms, 0.001)
-    o.rotation_euler = (0, -a, 0)
-    bpy.context.view_layer.objects.active = o
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-    parts.append(o)
-# 目盛り（100分割のうち 10ごとに太い印）：つまみの面に、黒い小さな箱で
-for i in range(20):
-    a = i * 2 * math.pi / 20
-    big = (i % 5 == 0)
-    o = box('tick', (0.004, 0.003, 0.016 if big else 0.010), (math.cos(a) * 0.043, -0.0275, math.sin(a) * 0.043), 1, ms, 0.0005)
-    o.rotation_euler = (0, -a + math.pi / 2, 0)
-    bpy.context.view_layer.objects.active = o
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+parts.append(cyl('knob', 0.027, 0.018, (0, -0.009, 0), 0, ms, 40, 'Y', 0.002))
+parts.append(cyl('top', 0.020, 0.004, (0, -0.020, 0), 0, ms, 32, 'Y', 0.001))
+for i in range(6):                                              # 面の6つの穴（黒）
+    a = i * 2 * math.pi / 6
+    parts.append(cyl('hole', 0.0045, 0.003, (math.cos(a) * 0.012, -0.0235, math.sin(a) * 0.012), 1, ms, 10))
+parts.append(cyl('center', 0.0045, 0.004, (0, -0.0235, 0), 1, ms, 10))
+for i in range(30):                                              # ふちのギザギザ
+    a = i * 2 * math.pi / 30
+    o = box('rib', (0.0035, 0.018, 0.005), (math.cos(a) * 0.0275, -0.009, math.sin(a) * 0.0275), 0, ms, 0.0003, rot=(0, -a, 0))
     parts.append(o)
 join_export(parts, 'SafeDial', 'SafeDial.fbx')
