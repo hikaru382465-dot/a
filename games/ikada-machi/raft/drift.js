@@ -83,9 +83,9 @@ window.RAFT.parts.drift = function (c) {
   if (SA) SA.frames.forEach((src, i) => { const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; spTex[i] = tx; }; im.src = src; });
   const spGeo = new THREE.PlaneGeometry(1, 1);
   const spMesh = () => { const m = new THREE.Mesh(spGeo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 3; m.visible = false; scene.add(m); return m; };
-  const spPlace = (m, x, z, sc) => {      // 絵の中の水面の中心（ax, ay）を (x, z) に合わせる
+  const spPlace = (m, x, z, sc, yb) => {      // 絵の中の水面の中心（ax, ay）を (x, z) に合わせる
     const pc = Math.cos(c.cam.pitch), u = sc / SA.ppu; m.scale.set(SA.w * u, SA.h * u / pc, 1);
-    m.position.set(x, 0.06 + (SA.h / 2 - SA.ay) * u / pc, z);
+    m.position.set(x, (yb === undefined ? 0.06 : yb) + (SA.ay - SA.h / 2) * u / pc, z);
   };
   const playFx = (x, z, from, n, fps, sc) => { if (!SA) return; let f = fxPool.find(q => !q.on); if (!f) { f = { m: spMesh(), on: false }; fxPool.push(f); } f.on = true; f.t = 0; f.x = x; f.z = z; f.from = from; f.n = n; f.fps = fps; f.sc = sc; };
   let lastPh = null;
@@ -102,7 +102,7 @@ window.RAFT.parts.drift = function (c) {
       const ph = t * 2.4 + it.id, hop = Math.sin(ph);
       m.position.set(it.x, -0.07 + hop * 0.06, it.z);   // 下半分は水の中にしずむ m.rotation.z = Math.sin(ph * 0.7) * 0.12;
       const rg = m.userData.rg, rk = ((ph / 6.283 + 0.75) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
-      if (SA) { const tx = spTex[14 + Math.min(5, Math.floor(rk * 6))]; rg.visible = !!tx && it.born > 0.3; if (tx) { rg.material.map = tx; rg.material.needsUpdate = true; spPlace(rg, it.x, it.z, 0.5); } }
+      if (SA) { const tx = spTex[14 + Math.min(5, Math.floor(rk * 6))]; rg.visible = !!tx && it.born > 0.3; if (tx) { rg.material.map = tx; rg.material.needsUpdate = true; spPlace(rg, it.x, it.z, 0.5, m.position.y + m.scale.y * 0.5); } }
       else { rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff); }
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
