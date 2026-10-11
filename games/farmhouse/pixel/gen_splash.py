@@ -16,9 +16,10 @@ TAU = math.tau
 def h2(a, b, seed=0):
     h = (int(a) * 73856093) ^ (int(b) * 19349663) ^ (seed * 83492791); h = (h ^ (h >> 13)) * 1274126177 & 0x7fffffff
     return (h % 10007) / 10007.0
-W, H = 112, 84; CX, CY = 56.0, 52.0
+SC = float(os.environ.get('SPLASH_SCALE', '1')); SUF = '_small' if SC != 1 else ''
+W, H = int(112 * SC), int(84 * SC); CX, CY = 56.0 * SC, 52.0 * SC
 S45 = math.sin(math.radians(45)); C45 = math.cos(math.radians(45))      # ふかん45度：地面の奥ゆき＝sin、高さ＝cos
-NF = 20
+NF = 20 if SC == 1 else 12
 def proj(x, y, z): return CX + x, CY + y * S45 - z * C45
 
 class Cv:
@@ -37,18 +38,18 @@ def draw_crown(cv, tau, half):
     """王冠。half=-1：奥の半分（内がわが見える）、+1：手前の半分（外がわ）"""
     if tau > .82: return
     rise = math.sin(math.pi * min(1, tau / .62)) ** .75
-    Hm = 21.0 * rise * (1 - smooth(.55, .82, tau))
+    Hm = 21.0 * SC * rise * (1 - smooth(.55, .82, tau))
     if Hm < .6: return
-    r = 4.5 + 13.5 * (1 - math.exp(-tau * 4.2))
-    thick = 2.0 - 1.0 * smooth(.2, .75, tau)
+    r = SC * (4.5 + 13.5 * (1 - math.exp(-tau * 4.2)))
+    thick = (2.0 - 1.0 * smooth(.2, .75, tau)) if SC > .6 else 1.0
     ths = np.linspace(0, TAU, 220, endpoint=False)
     order = sorted(ths, key=lambda t: math.sin(t))
     for th in order:
         sn = math.sin(th)
         if (half < 0 and sn >= 0) or (half > 0 and sn < 0): continue
-        n = .75 + .25 * math.sin(th * 7 + 1.3) + .15 * math.sin(th * 13 + .4); spike = 4.0 * (h2(int(th * 11), 3) > .82) * rise
+        n = .75 + .25 * math.sin(th * 7 + 1.3) + .15 * math.sin(th * 13 + .4); spike = 4.0 * SC * (h2(int(th * 11), 3) > .82) * rise
         ht = Hm * n + spike
-        rr = r + (1 - rise) * 1.2
+        rr = r + (1 - rise) * 1.2 * SC
         gx, gy = rr * math.cos(th), rr * sn
         for z in np.arange(0, ht + .01, .5):
             x, y = proj(gx, gy, z)
@@ -68,9 +69,9 @@ def smooth(a, b, x): t = max(0, min(1, (x - a) / (b - a))); return t * t * (3 - 
 def draw_jet(cv, tau):
     if tau < .12 or tau > .85: return
     u = (tau - .12) / .73
-    top = 27.0 * math.sin(math.pi * min(1, u * 1.05)) ** .8 * (1 - smooth(.7, 1.0, u) * .6)
+    top = 27.0 * SC * math.sin(math.pi * min(1, u * 1.05)) ** .8 * (1 - smooth(.7, 1.0, u) * .6)
     if top < 1: return
-    base_r = 2.6 - smooth(0, .8, u) * .6
+    base_r = max(.9, (2.6 - smooth(0, .8, u) * .6) * SC)
     for z in np.arange(0, top + .01, .5):
         fz = z / top; rho = base_r * (1 - .25 * fz) + (1.5 if fz > .86 else 0)                 # 先にふくらみ
         for dx in np.arange(-rho, rho + .01, .5):
@@ -82,11 +83,11 @@ def draw_jet(cv, tau):
 # 水玉（3D）：たん生フレーム・初速・位置
 rng = np.random.default_rng(7)
 DROPS = []
-for i in range(46):
-    th = rng.uniform(0, TAU); sp = rng.uniform(.8, 3.2); vz = rng.uniform(3.4, 6.4)
-    t0 = int(rng.integers(1, 7)); r0 = rng.uniform(2, 10)
-    DROPS.append(dict(th=th, vx=math.cos(th) * sp, vy=math.sin(th) * sp, vz=vz, t0=t0, x0=math.cos(th) * r0, y0=math.sin(th) * r0, big=rng.random() > .5))
-G = .30
+for i in range(46 if SC == 1 else 9):
+    th = rng.uniform(0, TAU); sp = rng.uniform(.8, 3.2) * SC; vz = rng.uniform(3.4, 6.4) * SC
+    t0 = int(rng.integers(1, 7)); r0 = rng.uniform(2, 10) * SC
+    DROPS.append(dict(th=th, vx=math.cos(th) * sp, vy=math.sin(th) * sp, vz=vz, t0=t0, x0=math.cos(th) * r0, y0=math.sin(th) * r0, big=(rng.random() > .5) and SC > .6))
+G = .30 * SC
 
 def frame(i):
     cv = Cv(); tau = i / (NF - 1) * 1.0
@@ -94,9 +95,9 @@ def frame(i):
     for k in range(3):
         a = tau * 1.0 - k * .14
         if a <= 0: continue
-        rad = 4 + 44 * (1 - math.exp(-a * 2.4)); fade = max(0, 1 - a * 1.0)
-        if rad > 5: ripple(cv, rad, 6 if k == 0 else 5 if k == 1 else 4, .2 + .8 * fade)
-    if tau < .55: ripple(cv, 3.5 + 20 * tau, 7, .9 * (1 - tau / .55))
+        rad = SC * (4 + 44 * (1 - math.exp(-a * 2.4))); fade = max(0, 1 - a * 1.0)
+        if rad > 3: ripple(cv, rad, 6 if k == 0 else 5 if k == 1 else 4, .2 + .8 * fade)
+    if tau < .55: ripple(cv, SC * (3.5 + 20 * tau), 7, .9 * (1 - tau / .55))
     draw_crown(cv, tau, -1); draw_jet(cv, tau)
     # 水玉と、おちた先の小さな輪
     for d in DROPS:
@@ -108,7 +109,7 @@ def frame(i):
             tl = i - (d['t0'] + 2 * d['vz'] / G)
             if 0 <= tl < 4:
                 lx = d['x0'] + d['vx'] * (2 * d['vz'] / G); ly = d['y0'] + d['vy'] * (2 * d['vz'] / G)
-                rr = 1.2 + tl * 1.6
+                rr = (1.2 + tl * 1.6) * max(.5, SC)
                 for ang in np.linspace(0, TAU, 9, endpoint=False):
                     px_, py_ = proj(lx + math.cos(ang) * rr, ly + math.sin(ang) * rr * 1.0, 0); cv.p(px_, py_, 'w', 6 if tl < 2 else 5)
             continue
@@ -120,9 +121,9 @@ def frame(i):
     return cv.a
 
 frames = [frame(i) for i in range(NF)]
-sheet = np.zeros((H * 4, W * 5, 4), np.uint8)
+sheet = np.zeros((H * ((NF + 4) // 5), W * 5, 4), np.uint8)
 for i, f in enumerate(frames): sheet[(i // 5) * H:(i // 5 + 1) * H, (i % 5) * W:(i % 5 + 1) * W] = f
-Image.fromarray(sheet).save(os.path.join(OUT, "splash45_sheet.png"))
+Image.fromarray(sheet).save(os.path.join(OUT, "splash45_sheet" + SUF + ".png"))
 def sea_bg(t):
     Y, X = np.mgrid[0:H, 0:W]
     hh = np.sin(TAU * (X / 31.0 + Y / 11.0 - t)) * .5 + np.sin(TAU * (X / 17.0 - Y / 7.0 + t * 2)) * .35
@@ -130,12 +131,12 @@ def sea_bg(t):
     img = np.zeros((H, W, 4), np.uint8)
     for v in (2, 3, 4): img[idx == v, :3] = col('w', v)
     img[..., 3] = 255; return img
-K = 6
+K = 6 if SC == 1 else 10
 g = []
 for i, f in enumerate(frames):
     bg = Image.fromarray(sea_bg(i / NF)); bg.alpha_composite(Image.fromarray(f)); g.append(bg.resize((W * K, H * K), Image.NEAREST).convert("RGB"))
-g[0].save(os.path.join(OUT, "splash45.gif"), save_all=True, append_images=g[1:], duration=[70] * (NF - 1) + [300], loop=0)
+g[0].save(os.path.join(OUT, "splash45" + SUF + ".gif"), save_all=True, append_images=g[1:], duration=[70] * (NF - 1) + [300], loop=0)
 big = Image.new("RGB", (W * 5, H * 2))
-for k, i in enumerate((1, 3, 5, 7, 9, 11, 13, 15, 17, 19)):
+for k, i in enumerate(sorted(set(min(NF - 1, int(j * (NF - 1) / 9)) for j in range(10)))[:10]):
     bg = Image.fromarray(sea_bg(i / NF)); bg.alpha_composite(Image.fromarray(frames[i])); big.paste(bg.convert("RGB"), ((k % 5) * W, (k // 5) * H))
-big.resize((big.width * 2, big.height * 2), Image.NEAREST).save(os.path.join(OUT, "splash45_big.png")); print("ok")
+big.resize((big.width * 2, big.height * 2), Image.NEAREST).save(os.path.join(OUT, "splash45_big" + SUF + ".png")); print("ok")

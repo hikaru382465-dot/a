@@ -177,3 +177,5 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 `python gen_splash.py` → assets/effects/splash45_sheet.png（透明・20コマ）, splash45.gif, splash45_big.png。
 しぶきを3Dの点で計算し、45度（水面の奥ゆき・高さとも0.707倍）で投影。王冠（奥の内がわ→手前の外がわの順に描く）・中央の水柱・水玉（放物線、着水で小さな輪）・広がる波紋・白いあわ。
 弱点：王冠が小さく、水玉が細かい。
+
+小さい水しぶき：`SPLASH_SCALE=.35 python gen_splash.py` → splash45_small.gif / splash45_sheet_small.png（12コマ、39×29）。漂流物のはね用。倍率は変えられる。
