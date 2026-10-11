@@ -89,8 +89,8 @@ window.RAFT.parts.drift = function (c) {
       let m = meshes.get(it.id);
       if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); const rm = ringM.clone(); rm.opacity = 0; const rg = new THREE.Mesh(flat, rm); scene.add(rg); m.userData.rg = rg; }
       const ph = t * 2.4 + it.id, hop = Math.sin(ph);
-      m.position.set(it.x, 0.05 + hop * 0.06, it.z); m.rotation.z = Math.sin(ph * 0.7) * 0.12;
-      const rg = m.userData.rg, rk = ((t * 0.7 + it.id * 0.37) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
+      m.position.set(it.x, -0.07 + hop * 0.06, it.z);   // 下半分は水の中にしずむ m.rotation.z = Math.sin(ph * 0.7) * 0.12;
+      const rg = m.userData.rg, rk = ((ph / 6.283 + 0.75) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
       rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff);
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
@@ -125,16 +125,16 @@ window.RAFT.parts.drift = function (c) {
       setLine(lineRod, b.x, 0.7, b.z, rd.x, 0.12 + dip, rd.z);
     }
     // ざお（手にもっている間）
-    if (!rodM && artOf('rod', 0)) { rodM = c.sprite(artOf('rod', 0), { x: 0, y: 0, z: 0, ppu: 140 }); rodM.rotation.order = 'YXZ'; rodM.rotation.y = c.cam.yaw; group.add(rodM); }
+    if (!rodM && artOf('rod', 0)) { rodM = c.sprite(artOf('rod', 0), { x: 0, y: 0, z: 0, ppu: artOf('rod', 0).ppu * 0.5 }); rodM.rotation.order = 'YXZ'; rodM.rotation.y = c.cam.yaw; group.add(rodM); }
     if (rodM) {
       rodM.visible = s.hand === 'rod';
       if (rd && !wasRod) { castT = 0; splashT = 0; splashAt = [rd.x, rd.z]; }
       if (!rd && wasRod) { reelT = 0; splashT = 0; splashAt = [wasRod.x, wasRod.z]; }
       wasRod = rd ? { x: rd.x, z: rd.z } : null; castT += dt; reelT += dt;
-      let ang = 0.5;                                                  // 立てた角度（ラジアン）
-      if (castT < 0.45) ang = 0.5 - Math.sin(Math.min(1, castT / 0.45) * Math.PI) * 1.1 + (castT / 0.45) * 0.6;   // ふりかぶって投げる
-      else if (reelT < 0.5) ang = 0.5 - Math.sin(Math.min(1, reelT / 0.5) * Math.PI) * 0.9;                       // 引き上げる
-      else if (rd) ang = 1.0 + (rd.phase === 'bite' ? Math.sin(t * 40) * 0.14 : Math.sin(t * 1.5) * 0.03);
+      let ang = -0.1;                                                 // 立てた角度（絵がもともと右にかたむいているので、ほぼ0）
+      if (castT < 0.45) ang = -0.1 + Math.sin(Math.min(1, castT / 0.45) * Math.PI) * 1.2 - (castT / 0.45) * 0.5;   // 後ろにふりかぶって、前へ投げる
+      else if (reelT < 0.5) ang = -0.1 + Math.sin(Math.min(1, reelT / 0.5) * Math.PI) * 0.9;                      // 引き上げる
+      else if (rd) ang = -0.25 + (rd.phase === 'bite' ? Math.sin(t * 40) * 0.14 : Math.sin(t * 1.5) * 0.03);
       rodM.rotation.z = -ang; rodM.position.set(b.x + 0.28, 0.4, b.z + 0.1);
     }
     beat.visible = beatT.visible = !!rd && rd.phase === 'bite';

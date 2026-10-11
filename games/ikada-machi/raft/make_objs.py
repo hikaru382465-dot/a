@@ -84,10 +84,10 @@ def drip(img, on):
     return Image.fromarray(a, 'RGBA')
 
 # インベントリ・漂流物に使う小さな絵（3分の1の大きさ）。ppu＝ゲームの中での大きさ（いちばん長い辺が0.5マスぶん）
-def icon(box):
-    im = cutout(box, shrink=3); e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
+def icon(box, shrink=3):
+    im = cutout(box, shrink=shrink); e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
 icons = {'wood': [icon((38, 28, 142, 118))], 'floor': [icon((142, 28, 246, 118))], 'cloth': [icon((712, 36, 790, 118))],
-         'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))]}
+         'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))], 'rod': [icon((410, 232, 500, 344), shrink=2)]}
 for n, e in icons.items():
     im = Image.open(io.BytesIO(base64.b64decode(e[0]['src'].split(',')[1]))).convert('RGBA'); print(n, im.size, e[0]['ppu'])
     bg = Image.new('RGBA', (im.width * 5, im.height * 5), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 5, im.height * 5), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{n}.png')
