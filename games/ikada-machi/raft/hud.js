@@ -10,7 +10,9 @@ window.RAFT.parts.hud = function (c) {
   const timeName = t => times.find(x => t < x[0])[1];
   const toast = (msg, ms) => { const e = $('toast'); if (!msg) { e.style.opacity = 0; return; } e.textContent = msg; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, ms || 2400); };
   const iconOf = k => c.itemIcon ? c.itemIcon(k) : null;
-  const paint = (cv, k) => { const g = cv.getContext('2d'); g.clearRect(0, 0, 12, 12); const ic = k && iconOf(k); if (ic) g.drawImage(ic, 0, 0); };
+  const paint = (cv, k) => { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); const ic = k && iconOf(k); if (!ic) return; g.imageSmoothingEnabled = false;
+    let sc = Math.min(cv.width / ic.width, cv.height / ic.height); if (sc >= 1) sc = Math.floor(sc);
+    const w = Math.round(ic.width * sc), h = Math.round(ic.height * sc); g.drawImage(ic, Math.round((cv.width - w) / 2), Math.round((cv.height - h) / 2), w, h); };
   const nameOf = k => (D.ITEMS[k] || D.TOOLS[k] || {}).name || k;
 
   // ---- 本の形のメニュー：左のページ＝枠の一覧、右のページ＝くわしい説明と使うボタン ----
@@ -33,12 +35,12 @@ window.RAFT.parts.hud = function (c) {
     const list = tab === 'inv' ? slots() : recipes();
     if (!list.some(o => o.key === sel)) sel = list.length ? list[0].key : null;
     const fill = Math.max(12, Math.ceil(list.length / 4) * 4) - list.length;
-    $('grid').innerHTML = list.map(o => `<button class="slot${o.key === sel ? ' sel' : ''}${o.hand ? ' hand' : ''}${o.ck && o.ck.why === 'locked' ? ' lock' : ''}" data-key="${o.key}"><canvas width="12" height="12" data-k="${o.k}"></canvas><span class="nm">${o.name}</span>${o.n !== '' ? `<span class="n">${o.n}</span>` : ''}</button>`).join('') + '<div class="slot empty"></div>'.repeat(fill);
+    $('grid').innerHTML = list.map(o => `<button class="slot${o.key === sel ? ' sel' : ''}${o.hand ? ' hand' : ''}${o.ck && o.ck.why === 'locked' ? ' lock' : ''}" data-key="${o.key}"><canvas width="32" height="32" data-k="${o.k}"></canvas><span class="nm">${o.name}</span>${o.n !== '' ? `<span class="n">${o.n}</span>` : ''}</button>`).join('') + '<div class="slot empty"></div>'.repeat(fill);
     $('grid').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
     $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
     const o = list.find(x => x.key === sel), d = $('detail');
     if (!o) { d.innerHTML = '<div class="hint">まだ何も持っていません。<br>網を投げて、物をあつめよう。</div>'; return; }
-    let html = `<div class="big"><canvas width="12" height="12" data-k="${o.k}"></canvas><div><b>${o.name}</b>${o.t === 'tool' ? (o.hand ? '<br><span class="tag">手に持っている</span>' : '') : o.t === 'recipe' ? '' : `<br><span class="tag">×${o.n}</span>`}</div></div>`;
+    let html = `<div class="big"><canvas width="56" height="56" data-k="${o.k}"></canvas><div><b>${o.name}</b>${o.t === 'tool' ? (o.hand ? '<br><span class="tag">手に持っている</span>' : '') : o.t === 'recipe' ? '' : `<br><span class="tag">×${o.n}</span>`}</div></div>`;
     let btn = '', onclick = null;
     if (o.t === 'recipe') {
       const cost = o.net ? (o.nx ? o.nx.cost : null) : o.r.cost, tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.r.tip;

@@ -23,8 +23,12 @@ window.RAFT.parts.drift = function (c) {
     const d = g.getImageData(0, 0, 12, 12), o = new Uint8ClampedArray(d.data), on = (x, y) => x >= 0 && y >= 0 && x < 12 && y < 12 && d.data[(y * 12 + x) * 4 + 3] > 0;
     for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) if (!on(x, y) && (on(x + 1, y) || on(x - 1, y) || on(x, y + 1) || on(x, y - 1))) { const i = (y * 12 + x) * 4; o[i] = 0x37; o[i + 1] = 1; o[i + 2] = 0x27; o[i + 3] = 255; }
     g.putImageData(new ImageData(o, 12, 12), 0, 0); return cv; };
-  c.itemIcon = icon;
-  const cache = {}; const mk = k => cache[k] || (cache[k] = icon(k));
+  // ひかるの漂流物の絵（items.js）。読み込めるまでは、プログラムで描いた小さい絵を使う
+  const IA = R.itemArt, artCv = {}, cache = {};
+  if (IA) for (const k in IA.art) artCv[k] = IA.art[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; });
+  const artOf = (k, v) => { const a = artCv[k]; if (!a) return null; const cv = a[(v || 0) % a.length]; return cv.ok ? cv : null; };
+  const mk = (k, v) => artOf(k, v) || cache[k] || (cache[k] = icon(k));
+  c.itemIcon = k => mk(k, 0);
   const group = new THREE.Group(); scene.add(group);
   const meshes = new Map();
   // 網の絵（縄のあみ目）と、ねらいの輪
@@ -68,7 +72,7 @@ window.RAFT.parts.drift = function (c) {
     s.drift.forEach(it => {
       live.add(it.id);
       let m = meshes.get(it.id);
-      if (!m) { m = c.sprite(mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); }
+      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? 90 : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); }
       m.position.set(it.x, 0.03 + Math.sin(t * 2.2 + it.id) * 0.03, it.z);
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
@@ -99,7 +103,7 @@ window.RAFT.parts.drift = function (c) {
     const showHeld = !!cast;
     while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());
     if (showHeld) cast.held.forEach((k, i) => {
-      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); held[i] = c.sprite(mk(k), { x: 0, y: 0, z: 0, ppu: 36 }); group.add(held[i]); held[i].userData.k = k; }
+      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); const ac = artOf(k, 0); held[i] = c.sprite(ac || mk(k), { x: 0, y: 0, z: 0, ppu: ac ? 110 : 36 }); group.add(held[i]); held[i].userData.k = k; }
       const ang = i * 2.4, rr = Math.min(nl.r * 0.55, 0.15 + i * 0.1);
       held[i].position.set(cast.x + Math.cos(ang) * rr, net.position.y + 0.03 + Math.sin(t * 2 + i) * 0.015, cast.z + Math.sin(ang) * rr);
     });
