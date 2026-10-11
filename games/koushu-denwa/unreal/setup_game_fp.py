@@ -23,6 +23,10 @@ GAME_DIR = "/Game/KoushuDenwa"
 TAG = "KD_Game"
 BOOTH_KEY = "phone_box"              # 電話ボックスの名前に入っている言葉（glass を含む名前は除く）
 FRONT = "-Y"                         # 入口（開いている側）の向き。+X / -X / +Y / -Y のどれか（下見で確認済み：-Y）
+NIGHT_MODE = True                    # True: 夕方の空を夜にする（本編レベルだけ。スタート画面は変えない）
+SUN_INTENSITY = 0.0                  # 太陽の明るさ（夜は 0）
+MOON_INTENSITY = 0.35                # 月の光
+SKY_INTENSITY = 0.25                 # 空の光
 PROTECT_LEVELS = ("FirstPersonMap",)  # このレベル（スタート画面用）では実行しない。本編用にコピーしたレベルで実行する
 START_DIST = 1800.0                  # プレイヤーを、入口の正面から何cm 離して立たせるか
 FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ）
@@ -321,6 +325,30 @@ def s_ghost():
     log("幽霊（仮）を置きました。最初は見えません")
 
 
+def s_night():
+    """夕方 → 夜：太陽を消して、青白い月を足す。空の光も弱める"""
+    sun = find_actor("DirectionalLight")
+    if sun is not None and "KD" not in label_of(sun):
+        c = sun.get_component_by_class(unreal.DirectionalLightComponent)
+        setp(c, "intensity", SUN_INTENSITY)
+        log("太陽の明るさ = %s" % SUN_INTENSITY)
+    moon = spawn(unreal.DirectionalLight, (0, 0, 800), (0, -35.0, 40.0))
+    tag_actor(moon, "KD_Moon")
+    mc = moon.get_component_by_class(unreal.DirectionalLightComponent)
+    setp(mc, "intensity", MOON_INTENSITY)
+    setp(mc, "use_temperature", True)
+    setp(mc, "temperature", 9000.0)
+    setp(mc, "mobility", unreal.ComponentMobility.MOVABLE)
+    sky = find_actor("SkyLight")
+    if sky is not None:
+        setp(sky.get_component_by_class(unreal.SkyLightComponent), "intensity", SKY_INTENSITY)
+        try:
+            sky.get_component_by_class(unreal.SkyLightComponent).recapture_sky()
+        except Exception:  # noqa
+            pass
+    log("夜にしました（月=%s 空=%s）" % (MOON_INTENSITY, SKY_INTENSITY))
+
+
 def s_save():
     try:
         unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).save_current_level()
@@ -610,6 +638,8 @@ def main():
     step("張り紙の材質", s_poster_materials, ["張り紙の画像"])
     step("張り紙を貼る", s_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("幽霊（仮）", s_ghost, ["前回の生成物を消す"])
+    if NIGHT_MODE:
+        step("夜にする", s_night, ["前回の生成物を消す"])
     step("保存", s_save, ["環境確認"])
     log("SUMMARY: " + ", ".join("%s=%s" % (k, v) for k, v in RESULTS.items()))
     if any(v == "FAIL" for v in RESULTS.values()):

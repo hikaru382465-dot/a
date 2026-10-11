@@ -125,7 +125,7 @@ class Game:
             self.tubes.append((c, base))
         # 電話機にあててある SpotLight、月、空も、いっしょに暗くする
         self.extra = []
-        for nm, cls in (("SpotLight", unreal.SpotLightComponent), ("Moon", unreal.DirectionalLightComponent), ("DirectionalLight", unreal.DirectionalLightComponent), ("SkyLight", unreal.SkyLightComponent)):
+        for nm, cls in (("SpotLight", unreal.SpotLightComponent), ("Moon", unreal.DirectionalLightComponent), ("DirectionalLight", unreal.DirectionalLightComponent), ("KD_Moon", unreal.DirectionalLightComponent), ("SkyLight", unreal.SkyLightComponent)):
             a = found.get(nm)
             if a is None:
                 continue
