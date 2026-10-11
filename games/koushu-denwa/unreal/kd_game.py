@@ -59,6 +59,7 @@ PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この�
 FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
+FLASH_OUTSIDE = 1.0            # 外にいるときの、懐中電灯の明るさの倍率（まぶしいときは小さく。0.5 で半分）
 FLASH_INSIDE = 0.12          # 閉じ込められたあと、懐中電灯の明るさを、外にいたときの何倍にするか（中は狭くてまぶしいので小さく）
 TUBE_SCALE = 1.0             # 蛍光灯の光の強さの倍率（明るすぎるときは小さくする）
 IDLE_DIP = 1.0              # 静かな間に、ときどき光がゆれるときの弱さ（1.0 でゆれない）
@@ -88,6 +89,7 @@ def screen(world, msg, color=(255, 255, 255), t=3.0):
 # 数字は Saved/kd_settings.json に書いてある。メモ帳で開いて数字を変えて保存するだけで効く。
 # （ZIP を取り直しても消えない場所にある。無い項目は、最初の実行で自動で足される）
 SETTINGS_DESCR = {
+    "FLASH_OUTSIDE": "外にいるときの懐中電灯の明るさの倍率。まぶしいときは小さく（0.5 で半分）",
     "FLASH_INSIDE": "閉じ込められたあとの懐中電灯の明るさ（外にいたときの何倍か）。明るすぎたら小さく",
     "TUBE_SCALE": "蛍光灯の光の強さの倍率。明るすぎたら小さく",
     "IDLE_DIP": "静かな間（7秒に一度）光がゆれる弱さ。1.0 にするとゆれない",
@@ -206,7 +208,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -328,7 +330,12 @@ class Game:
             try:
                 loc, rot = a.get_actor_location(), a.get_actor_rotation()
                 top0 = unreal.MathLibrary.transform_location(unreal.Transform(loc, rot, a.get_actor_scale3d()), unreal.Vector(0, 0, 35.0))
-                self.sway.append((a, loc, rot, top0, i * 2.1))
+                sc = a.get_actor_scale3d()
+                b0 = unreal.MathLibrary.transform_location(unreal.Transform(loc, rot, sc), unreal.Vector(0, 0, -35.0))
+                b1 = unreal.MathLibrary.transform_location(unreal.Transform(loc, unreal.Rotator(rot.roll + 5.0, rot.pitch, rot.yaw), sc), unreal.Vector(0, 0, -35.0))
+                nrm = unreal.MathLibrary.transform_direction(unreal.Transform(loc, rot, sc), unreal.Vector(0, 1, 0))
+                sgn = 1.0 if ((b1.x - b0.x) * nrm.x + (b1.y - b0.y) * nrm.y + (b1.z - b0.z) * nrm.z) > 0 else -1.0       # 下が板から離れる向きのほうへだけゆらす（板にめり込まない）
+                self.sway.append((a, loc, rot, top0, i * 2.1, sgn))
             except Exception as e:  # noqa
                 log("  (紙のゆれを準備できません) %s: %s" % (nm, e))
         self.reading = False
@@ -375,6 +382,7 @@ class Game:
                 self.flash_base = self.flash.get_component_by_class(unreal.SpotLightComponent).get_editor_property("intensity")
             except Exception:  # noqa
                 pass
+            self.set_flash_scale(FLASH_OUTSIDE)
             self.set_flash(False)
         self.half_t, self.half_n = 70.0, 70.0
         if marker is not None:
@@ -569,9 +577,9 @@ class Game:
     def tick_sway(self):
         if SWAY_DEG <= 0.0 or not self.sway:
             return
-        for a, loc, rot, top0, ph in self.sway:
+        for a, loc, rot, top0, ph, sgn in self.sway:
             w = 2.0 * math.pi * SWAY_SPEED * self.t + ph
-            th = SWAY_DEG * (math.sin(w) + 0.4 * math.sin(2.3 * w + 0.7))
+            th = sgn * SWAY_DEG * (0.55 + 0.45 * (math.sin(w) + 0.4 * math.sin(2.3 * w + 0.7)) / 1.4)       # 0.1〜1.0 倍：外向きだけ
             try:
                 nr = unreal.Rotator(rot.roll + th, rot.pitch, rot.yaw)
                 top1 = unreal.MathLibrary.transform_location(unreal.Transform(loc, nr, a.get_actor_scale3d()), unreal.Vector(0, 0, 35.0))
@@ -709,7 +717,7 @@ class Game:
     # 謎が進むほど強い札を使い、使った札は二度と出さない（あとで出せる演出がなくならないよう、1回の謎で出すのは1つだけ）。
     # 謎が進まないまま時間がたつと、持ち札を使わずに「幽霊がじわじわ近づく」圧力だけが増える。
     def start_trapped(self):
-        self.set_flash_scale(FLASH_INSIDE)
+        self.set_flash_scale(FLASH_INSIDE * FLASH_OUTSIDE)
         self.steps = []
         self.step_i = 0
         self.pending = []
