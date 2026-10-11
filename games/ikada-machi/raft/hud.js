@@ -52,7 +52,7 @@ window.RAFT.parts.hud = function (c) {
       html += `<button id="act" ${o.ck.ok ? '' : 'disabled'}>${btn}</button>`;
     } else {
       html += `<p>${o.tip || ''}</p>`;
-      if (o.t === 'tool') { const du = Math.round(s.dur[o.k]); html += `<p class="${du <= D.DUR.low ? 'why' : ''}">じょうぶさ ${du}%${du <= 0 ? '（こわれている）' : du <= D.DUR.low ? '（もうすぐ壊れる：作業台で直せる）' : ''}</p>`; }
+      if (o.t === 'tool') { const du = Math.round(s.dur[o.k]); html += `<p class="${du <= D.DUR.low ? 'why' : ''}">じょうぶさ ${du}%${du <= 0 ? '（ぼろぼろ：遠くへ飛ばない・1個しか取れない）' : du <= D.DUR.low ? '（もうすぐ壊れる：作業台で直せる）' : ''}</p>`; }
       btn = o.t === 'tool' ? (o.hand ? 'しまう' : '手に持つ') : o.t === 'food' ? (D.ITEMS[o.k].drink ? '飲む' : '食べる') : o.t === 'place' ? '置く' : '';
       if (btn) { html += `<button id="act">${btn}</button>`; onclick = () => { if (o.t === 'tool') { sim.hold(s, o.k); closeSheet(); } else if (o.t === 'food') sim.use(s, o.k); else if (o.t === 'place') startPlace(o.k); refresh(); }; }
     }

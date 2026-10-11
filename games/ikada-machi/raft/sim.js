@@ -71,18 +71,20 @@
   // 動いた向き → 絵の向き（画面で、+z＝手前（前）、-z＝奥（後ろ）、+x＝右、-x＝左）
   const dirOf = (dx, dz) => Math.abs(dz) > Math.abs(dx) ? (dz > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
   const netNow = s => D.NET_LV[s.net.lv - 1];
+  S.worn = (s, k) => s.dur[k] <= 0;
+  const netRange = s => netNow(s).range * (S.weak(s) ? D.DIFF.weak : 1) * (S.worn(s, 'net') ? D.DUR.worn.range : 1);
+  const netCap = s => S.worn(s, 'net') ? D.DUR.worn.cap : netNow(s).cap;
   S.weak = s => s.needs.hunger <= 0 || s.needs.thirst <= 0;
   const diffNeed = s => 1 + Math.min(D.DIFF.needMax, (s.clock.day - 1) * D.DIFF.needPerDay);
   // 網を投げる：(tx,tz) の向きへ、ゲージ power(0〜1) の強さで飛ばす。海に落ちたら、とる時間のあいだ水の上にただよう
   S.throwTarget = function (s, tx, tz, power) {
     const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, nl = netNow(s);
-    const dist = D.NET_MIN + (nl.range * (S.weak(s) ? D.DIFF.weak : 1) - D.NET_MIN) * clamp(power, 0, 1);
+    const dist = D.NET_MIN + (netRange(s) - D.NET_MIN) * clamp(power, 0, 1);
     return { x: b.x + dx / d * dist, z: b.z + dz / d * dist, dist };
   };
   S.throwNet = function (s, tx, tz, power) {
     if (s.net.cast) return false;
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); return false; }
-    if (s.dur.net <= 0) { s.events.push({ e: 'broken', k: 'net' }); return false; }
     s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use); s.events.push({ e: 'dur', k: 'net' });
     const b = s.player, t = S.throwTarget(s, tx, tz, power);
     b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(t.x - b.x, t.z - b.z);
@@ -175,7 +177,6 @@
   // 釣り：海をタップすると糸をたらす（手前のマスから ROD.range まで）。ウキがしずんだ間にタップすると釣れる
   S.castRod = function (s, tx, tz) {
     if (s.hand !== 'rod' || s.rod) return false;
-    if (s.dur.rod <= 0) { s.events.push({ e: 'broken', k: 'rod' }); return false; }
     s.dur.rod = Math.max(0, s.dur.rod - D.DUR.rod.use); s.events.push({ e: 'dur', k: 'rod' });
     const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, dist = clamp(d, D.ROD.min, D.ROD.range);
     const x = b.x + dx / d * dist, z = b.z + dz / d * dist;
@@ -224,7 +225,6 @@
     if (sea && s.weather.id === 'storm') { bu.line = null; if (!bu.stormMsg) { bu.stormMsg = true; s.events.push({ e: 'bstorm' }); } return; }
     bu.stormMsg = false;
     if (S.weak(s) && J !== 'rest') bu.mood = Math.max(0, bu.mood - B.DRAIN * 2 * dt);       // 飢えて渇くと、疲れが速い
-    if ((J === 'fish' && s.dur.rod <= 0) || (J === 'net' && s.dur.net <= 0)) { S.setJob(s, null); s.events.push({ e: 'bjobbroke', k: J === 'fish' ? 'rod' : 'net' }); return; }
     if (J !== 'rest' && bu.mood < B.TIRED) { S.setJob(s, 'rest'); s.events.push({ e: 'btired' }); return; }
     if (J === 'water') {
       const o = s.objects.find(x => x.k === 'filter') || s.objects.find(x => x.k === 'tank');
@@ -258,7 +258,7 @@
     if (J === 'net') {
       if (s.net.cast) return;
       if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
-      const nl = netNow(s), dist = D.NET_MIN + (nl.range * (S.weak(s) ? D.DIFF.weak : 1) - D.NET_MIN) * B.NET_POWER; s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use);
+      const nl = netNow(s), dist = D.NET_MIN + (netRange(s) - D.NET_MIN) * B.NET_POWER; s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use);
       s.net.cast = { phase: 'fly', sx: bu.x, sz: bu.z, tx: bu.x + f[0] * dist, tz: bu.z + f[1] * dist, x: bu.x, z: bu.z, t: 0, held: [], by: 'buddy' };
       bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'throw' });
     }
@@ -267,8 +267,9 @@
 
   function pickItem(s) {
     const list = Object.keys(D.ITEMS).filter(k => D.ITEMS[k].w > 0 && D.ITEMS[k].lv <= s.net.lv);
-    let tot = 0; list.forEach(k => tot += D.ITEMS[k].w); let r = S.rand() * tot;
-    for (const k of list) { r -= D.ITEMS[k].w; if (r <= 0) return k; }
+    const wt = k => D.ITEMS[k].w * (k === 'wood' && (s.inv.wood || 0) < 3 ? 4 : 1);
+    let tot = 0; list.forEach(k => tot += wt(k)); let r = S.rand() * tot;
+    for (const k of list) { r -= wt(k); if (r <= 0) return k; }
     return list[0];
   }
   function nextWeather(s) {
@@ -346,14 +347,14 @@
         if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { s.net.cast = null; if (cast.by !== 'buddy') s.events.push({ e: 'miss' }); else s.buddy.jobT = 2; } else s.events.push({ e: 'splash' }); }
       } else if (cast.phase === 'rest') {
         cast.t += dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
-        if (cast.t >= D.NET_REST || cast.held.length >= nl.cap) cast.phase = 'back';
+        if (cast.t >= D.NET_REST || cast.held.length >= netCap(s)) cast.phase = 'back';
       } else {   // 引きずって引き寄せる：網が水の上を滑って、イカダの端に着いたら持ち物に入る
         const ow = cast.by === 'buddy' ? s.buddy : b, dx = ow.x - cast.x, dz = ow.z - cast.z, d = Math.hypot(dx, dz), step = D.NET_DRAG * dt;
         if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
       }
     }
     const rd = s.rod;
-    if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
+    if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite * (S.worn(s, 'rod') ? D.DUR.worn.bite : 1)) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
     if (cast && cast.phase !== 'fly' && s.weather.id === 'storm' && cast.held && !cast.torn) {
       const df = D.DIFF, p = Math.min(df.tearMax, df.tearBase + (s.clock.day - 1) * df.tearPerDay);
       if (S.rand() < p * dt) { cast.torn = true; cast.held.length = 0; cast.phase = 'back'; s.dur.net = Math.max(0, s.dur.net - df.tearDmg); s.events.push({ e: 'tear' }); }
@@ -374,7 +375,7 @@
         const px = -f.z, pz = f.x, side = ((it.x - cx) * px + (it.z - cz) * pz) >= 0 ? 1 : -1;
         it.x += px * side * sp * 3; it.z += pz * side * sp * 3;
       }
-      if (rest && Math.hypot(it.x - rest.x, it.z - rest.z) < nl.r && rest.held.length < nl.cap) {
+      if (rest && Math.hypot(it.x - rest.x, it.z - rest.z) < nl.r && rest.held.length < netCap(s)) {
         rest.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue;
       }
       if ((it.x - cx) * f.x + (it.z - cz) * f.z > R + 3) s.drift.splice(i, 1);
