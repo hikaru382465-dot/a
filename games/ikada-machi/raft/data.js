@@ -27,6 +27,8 @@ window.RAFT.data = {
     { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
     { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
     { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
+    { id: 'fixnet', special: 'fix', tool: 'net', cost: { wood: 2, rope: 1 }, need: 'bench', tip: '網のいたみを直す' },
+    { id: 'fixrod', special: 'fix', tool: 'rod', cost: { wood: 2, rope: 1 }, need: 'bench', tip: '釣りざおのいたみを直す' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）
@@ -40,6 +42,10 @@ window.RAFT.data = {
     MOOD0: 80, DRAIN: 0.12, REST: 0.9, IDLE: 0.15, TIRED: 12,
     FISH_WAIT: [5, 12], FISH_REST: [2, 5], NET_REST: 6, NET_POWER: 0.6, VIEW_SEC: 25
   },
+  // 道具のいたみ：使うたびに減る。0だと使えない。「作る」で直す（作業台がいる）
+  DUR: { net: { use: 3 }, rod: { use: 5 }, fixCost: { wood: 2, rope: 1 }, low: 25 },
+  // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
+  DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）

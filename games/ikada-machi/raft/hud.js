@@ -26,9 +26,9 @@ window.RAFT.parts.hud = function (c) {
     return a;
   }
   function recipes() {
-    return D.RECIPES.map(r => {
+    return D.RECIPES.filter(r => !(r.special === 'fix' && !s.tools.includes(r.tool))).map(r => {
       const net = r.special === 'net', nx = net ? sim.nextNet(s) : null, ck = sim.canCraft(s, r);
-      return { key: r.id, t: 'recipe', r, net, nx, ck, k: net ? 'net' : (r.special === 'rod' ? 'rod' : r.out), name: net ? (nx ? '網を強く' : '網（最大）') : (r.special === 'rod' ? D.TOOLS.rod.name : D.ITEMS[r.out].name), n: '' };
+      return { key: r.id, t: 'recipe', r, net, nx, ck, k: net ? 'net' : r.special === 'fix' ? r.tool : (r.special === 'rod' ? 'rod' : r.out), name: net ? (nx ? '網を強く' : '網（最大）') : r.special === 'fix' ? D.TOOLS[r.tool].name + 'を直す' : (r.special === 'rod' ? D.TOOLS.rod.name : D.ITEMS[r.out].name), n: '' };
     });
   }
   const r_have = o => o.r.special === 'rod' ? 'もう持っている' : 'もう持っている（イカダに1つ）';
@@ -46,12 +46,13 @@ window.RAFT.parts.hud = function (c) {
     if (o.t === 'recipe') {
       const cost = o.net ? (o.nx ? o.nx.cost : null) : o.r.cost, tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.r.tip;
       html += `<p>${tip}</p>` + (cost ? '<ul class="cost">' + Object.keys(cost).map(k => `<li class="${(s.inv[k] || 0) >= cost[k] ? '' : 'no'}">${nameOf(k)}　${s.inv[k] || 0} / ${cost[k]}</li>`).join('') + '</ul>' : '');
-      const why = { locked: '作業台を置くと作れる', have: r_have(o), max: 'これ以上は強くできない', short: '材料がたりない' }[o.ck.why];
+      const why = { locked: '作業台を置くと作れる', have: r_have(o), max: 'これ以上は強くできない', full: 'まだ新品同様', short: '材料がたりない' }[o.ck.why];
       if (why) html += `<p class="why">${why}</p>`;
-      btn = '作る'; onclick = () => { sim.craft(s, o.r.id); refresh(); };
+      btn = o.r.special === 'fix' ? '直す' : '作る'; onclick = () => { sim.craft(s, o.r.id); refresh(); };
       html += `<button id="act" ${o.ck.ok ? '' : 'disabled'}>${btn}</button>`;
     } else {
       html += `<p>${o.tip || ''}</p>`;
+      if (o.t === 'tool') { const du = Math.round(s.dur[o.k]); html += `<p class="${du <= D.DUR.low ? 'why' : ''}">じょうぶさ ${du}%${du <= 0 ? '（こわれている）' : du <= D.DUR.low ? '（もうすぐ壊れる：作業台で直せる）' : ''}</p>`; }
       btn = o.t === 'tool' ? (o.hand ? 'しまう' : '手に持つ') : o.t === 'food' ? (D.ITEMS[o.k].drink ? '飲む' : '食べる') : o.t === 'place' ? '置く' : '';
       if (btn) { html += `<button id="act">${btn}</button>`; onclick = () => { if (o.t === 'tool') { sim.hold(s, o.k); closeSheet(); } else if (o.t === 'food') sim.use(s, o.k); else if (o.t === 'place') startPlace(o.k); refresh(); }; }
     }
@@ -129,8 +130,8 @@ window.RAFT.parts.hud = function (c) {
     s.events.splice(0).forEach(e => {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
-      const f = msgs[e.e]; if (f) toast(f(e));
-      if (['caught', 'fished', 'bfished', 'bhaul', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
+      if (['caught', 'fished', 'bfished', 'bhaul', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);

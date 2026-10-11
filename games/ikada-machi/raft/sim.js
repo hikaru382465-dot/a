@@ -17,7 +17,7 @@
       clock: { day: 1, t: 0.16 },
       weather: { id: 'sunny', left: 80 },
       current: { ang: 0 },
-      net: { lv: 1, cast: null }, tools: ['net'], hand: 'net', rod: null,
+      net: { lv: 1, cast: null }, tools: ['net'], hand: 'net', rod: null, dur: { net: 100, rod: 100 }, flags: {},
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0 },
@@ -71,15 +71,19 @@
   // 動いた向き → 絵の向き（画面で、+z＝手前（前）、-z＝奥（後ろ）、+x＝右、-x＝左）
   const dirOf = (dx, dz) => Math.abs(dz) > Math.abs(dx) ? (dz > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
   const netNow = s => D.NET_LV[s.net.lv - 1];
+  S.weak = s => s.needs.hunger <= 0 || s.needs.thirst <= 0;
+  const diffNeed = s => 1 + Math.min(D.DIFF.needMax, (s.clock.day - 1) * D.DIFF.needPerDay);
   // 網を投げる：(tx,tz) の向きへ、ゲージ power(0〜1) の強さで飛ばす。海に落ちたら、とる時間のあいだ水の上にただよう
   S.throwTarget = function (s, tx, tz, power) {
     const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, nl = netNow(s);
-    const dist = D.NET_MIN + (nl.range - D.NET_MIN) * clamp(power, 0, 1);
+    const dist = D.NET_MIN + (nl.range * (S.weak(s) ? D.DIFF.weak : 1) - D.NET_MIN) * clamp(power, 0, 1);
     return { x: b.x + dx / d * dist, z: b.z + dz / d * dist, dist };
   };
   S.throwNet = function (s, tx, tz, power) {
     if (s.net.cast) return false;
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); return false; }
+    if (s.dur.net <= 0) { s.events.push({ e: 'broken', k: 'net' }); return false; }
+    s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use); s.events.push({ e: 'dur', k: 'net' });
     const b = s.player, t = S.throwTarget(s, tx, tz, power);
     b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(t.x - b.x, t.z - b.z);
     s.net.cast = { phase: 'fly', sx: b.x, sz: b.z, tx: t.x, tz: t.z, x: b.x, z: b.z, t: 0, held: [] };
@@ -112,6 +116,7 @@
     const cost = costOf(s, r);
     if (r.special === 'net' && !cost) return { ok: false, why: 'max' };
     if (r.need === 'bench' && !S.hasBench(s)) return { ok: false, why: 'locked' };
+    if (r.special === 'fix' && (s.dur[r.tool] >= 95)) return { ok: false, why: 'full' };
     if (r.special === 'rod' && s.tools.includes('rod')) return { ok: false, why: 'have' };
     if (r.out === 'bench' && (S.hasBench(s) || (s.inv.bench || 0) > 0)) return { ok: false, why: 'have' };
     if (!S.canPay(s, cost)) return { ok: false, why: 'short' };
@@ -121,7 +126,8 @@
     const r = D.RECIPES.find(x => x.id === id); if (!r) return false;
     const c = S.canCraft(s, r); if (!c.ok) { s.events.push({ e: c.why === 'locked' ? 'locked' : 'short' }); return false; }
     S.pay(s, costOf(s, r));
-    if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
+    if (r.special === 'fix') { s.dur[r.tool] = 100; s.events.push({ e: 'fixed', k: r.tool }); }
+    else if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
     else if (r.special === 'rod') { s.tools.push('rod'); s.events.push({ e: 'crafted', k: 'rod' }); }
     else { s.inv[r.out] = (s.inv[r.out] || 0) + 1; s.events.push({ e: 'crafted', k: r.out }); }
     return true;
@@ -169,6 +175,8 @@
   // 釣り：海をタップすると糸をたらす（手前のマスから ROD.range まで）。ウキがしずんだ間にタップすると釣れる
   S.castRod = function (s, tx, tz) {
     if (s.hand !== 'rod' || s.rod) return false;
+    if (s.dur.rod <= 0) { s.events.push({ e: 'broken', k: 'rod' }); return false; }
+    s.dur.rod = Math.max(0, s.dur.rod - D.DUR.rod.use); s.events.push({ e: 'dur', k: 'rod' });
     const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, dist = clamp(d, D.ROD.min, D.ROD.range);
     const x = b.x + dx / d * dist, z = b.z + dz / d * dist;
     if (S.has(s, Math.floor(x), Math.floor(z))) return false;
@@ -190,6 +198,7 @@
   S.edgeCells = s => s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z) && N4.some(([dx, dz]) => !S.has(s, x + dx, z + dz)));
   S.setJob = function (s, job) {
     const bu = s.buddy; if (job && !D.BUDDY.JOBS[job]) return false;
+    if (job === 'fish' && !s.tools.includes('rod')) { s.events.push({ e: 'needrod' }); return false; }
     bu.job = job || null; bu.spot = null; bu.line = null; bu.jobT = 0; bu.working = false; bu.path = []; bu.task = null; bu.act = null;
     s.events.push({ e: 'job', job: bu.job }); return true;
   };
@@ -211,6 +220,11 @@
     if (!J) { bu.mood = Math.min(100, bu.mood + B.IDLE * dt); return; }
     if (J === 'rest') bu.mood = Math.min(100, bu.mood + B.REST * dt);
     else if (!(J === 'net' && s.net.cast && s.net.cast.by !== 'buddy')) bu.mood = Math.max(0, bu.mood - B.DRAIN * dt);
+    const sea = J === 'fish' || J === 'net';
+    if (sea && s.weather.id === 'storm') { bu.line = null; if (!bu.stormMsg) { bu.stormMsg = true; s.events.push({ e: 'bstorm' }); } return; }
+    bu.stormMsg = false;
+    if (S.weak(s) && J !== 'rest') bu.mood = Math.max(0, bu.mood - B.DRAIN * 2 * dt);       // 飢えて渇くと、疲れが速い
+    if ((J === 'fish' && s.dur.rod <= 0) || (J === 'net' && s.dur.net <= 0)) { S.setJob(s, null); s.events.push({ e: 'bjobbroke', k: J === 'fish' ? 'rod' : 'net' }); return; }
     if (J !== 'rest' && bu.mood < B.TIRED) { S.setJob(s, 'rest'); s.events.push({ e: 'btired' }); return; }
     if (J === 'water') {
       const o = s.objects.find(x => x.k === 'filter') || s.objects.find(x => x.k === 'tank');
@@ -230,7 +244,7 @@
     if (J === 'fish') {
       if (!bu.line) {
         if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
-        bu.line = { x: bu.x + f[0] * 2.4, z: bu.z + f[1] * 2.4, t: 0, wait: rr(B.FISH_WAIT) }; bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'bcast' });
+        s.dur.rod = Math.max(0, s.dur.rod - D.DUR.rod.use); bu.line = { x: bu.x + f[0] * 2.4, z: bu.z + f[1] * 2.4, t: 0, wait: rr(B.FISH_WAIT) }; bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'bcast' });
       } else {
         bu.line.t += dt * eff;
         if (bu.line.t >= bu.line.wait) {
@@ -244,7 +258,7 @@
     if (J === 'net') {
       if (s.net.cast) return;
       if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
-      const nl = netNow(s), dist = D.NET_MIN + (nl.range - D.NET_MIN) * B.NET_POWER;
+      const nl = netNow(s), dist = D.NET_MIN + (nl.range * (S.weak(s) ? D.DIFF.weak : 1) - D.NET_MIN) * B.NET_POWER; s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use);
       s.net.cast = { phase: 'fly', sx: bu.x, sz: bu.z, tx: bu.x + f[0] * dist, tz: bu.z + f[1] * dist, x: bu.x, z: bu.z, t: 0, held: [], by: 'buddy' };
       bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'throw' });
     }
@@ -258,8 +272,10 @@
     return list[0];
   }
   function nextWeather(s) {
-    const ids = Object.keys(D.WEATHER).filter(k => k !== s.weather.id); let tot = 0; ids.forEach(k => tot += D.WEATHER[k].w);
-    let r = S.rand() * tot, id = ids[0]; for (const k of ids) { r -= D.WEATHER[k].w; if (r <= 0) { id = k; break; } }
+    const ids = Object.keys(D.WEATHER).filter(k => k !== s.weather.id), df = D.DIFF, d = s.clock.day - 1;
+    const wt = k => k === 'storm' ? Math.min(df.stormMax, df.stormBase + d * df.stormPerDay) : k === 'sunny' ? Math.max(df.sunnyMin, df.sunnyBase - d * 0.4) : D.WEATHER[k].w;
+    let tot = 0; ids.forEach(k => tot += wt(k));
+    let r = S.rand() * tot, id = ids[0]; for (const k of ids) { r -= wt(k); if (r <= 0) { id = k; break; } }
     s.weather = { id, left: 60 + S.rand() * 60 };
     s.events.push({ e: 'weather', id });
   }
@@ -271,8 +287,9 @@
     s.current.ang = Math.sin(s.clock.day * 1.7 + s.clock.t * 6.28) * 0.35;
     const W = D.WEATHER[s.weather.id];
     // おなか・のどのかわき（0で止まる。死なない）
-    s.needs.hunger = Math.max(0, s.needs.hunger - D.NEEDS.hunger * dt);
-    s.needs.thirst = Math.max(0, s.needs.thirst - D.NEEDS.thirst * W.thirst * dt);
+    const dn = diffNeed(s); s.needs.hunger = Math.max(0, s.needs.hunger - D.NEEDS.hunger * dn * dt);
+    s.needs.thirst = Math.max(0, s.needs.thirst - D.NEEDS.thirst * dn * W.thirst * dt);
+    const wk = S.weak(s); if (wk !== !!s.flags.weak) { s.flags.weak = wk; if (wk) s.events.push({ e: 'weak' }); }
     const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
     const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
@@ -316,7 +333,7 @@
     const f = S.flow(s), bb = S.bbox(s), cx = (bb.x0 + bb.x1 + 1) / 2, cz = (bb.z0 + bb.z1 + 1) / 2, R = s.view.r;
     s.spawnT -= dt;
     if (s.spawnT <= 0) {
-      s.spawnT = (2.2 + S.rand() * 1.8) / W.rate;
+      s.spawnT = (3 + S.rand() * 2.5) / W.rate;
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
@@ -337,6 +354,10 @@
     }
     const rd = s.rod;
     if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
+    if (cast && cast.phase !== 'fly' && s.weather.id === 'storm' && cast.held && !cast.torn) {
+      const df = D.DIFF, p = Math.min(df.tearMax, df.tearBase + (s.clock.day - 1) * df.tearPerDay);
+      if (S.rand() < p * dt) { cast.torn = true; cast.held.length = 0; cast.phase = 'back'; s.dur.net = Math.max(0, s.dur.net - df.tearDmg); s.events.push({ e: 'tear' }); }
+    }
     const ct = s.net.cast, rest = ct && (ct.phase === 'rest' || ct.phase === 'back') ? ct : null;   // 広げているとき・引きずっているときは、通りかかった物がかかる
     const inRaft = (x, z) => S.has(s, Math.floor(x), Math.floor(z));
     for (let i = s.drift.length - 1; i >= 0; i--) {
