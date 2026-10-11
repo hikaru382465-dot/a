@@ -166,3 +166,6 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 `python gen_items_hd.py [名前]` → assets/items/hd/（rope, stone_round, stone_rock, cloth, bottle, bag, coconut, coconut_cut, rod の各PNGと _x8.png, hd_sheet.png）。
 通常版（gen_items.py）の約2倍。ロープ=3本よりと巻き糸、石=割れ面ごとのかげ、布=ひだのかげ・ぬい目・穴、ボトル=リブ・ラベル・水位、袋=しわ・赤い印字、ヤシ=繊維・3つの目、竿=節・リール・ガイド・うき・はり。
 弱点：袋としみの見え方、ロープの縄目が点描ぽい。
+
+## 漂流物を海にうかべる（gen_items_float.py）
+`python gen_items_float.py` → assets/items/float/<名前>_float.gif（8コマ）, items_float_hd.gif（全部ならべ）。細かい版を水面で切り、水ぎわのあわ・波・波紋・水中のうっすら透けを付ける。水面の位置は ITEMS の表で調整。

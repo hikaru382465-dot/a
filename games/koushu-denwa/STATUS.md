@@ -150,3 +150,4 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 2026-10-08 farmhouse：キャラを金髪ボブのちびキャラ（gen_blonde_chibi.py）に変更。網の一連もこのキャラ。赤髪版は残してある。
 - 2026-10-09 farmhouse：釣竿と漂流物（ロープ・石2・布・ボトル・ビニール袋・ヤシの実2）を gen_items.py で追加。次：釣りのアニメ、拾うときの演出。
 - 2026-10-09 farmhouse：釣竿と漂流物の細かい版（gen_items_hd.py、9点）。次：袋・布の直し、釣りのアニメ。
+- 2026-10-11 farmhouse：袋を描き直し、漂流物8点の「海にうかぶ」絵（gen_items_float.py）を追加。次：16×16に縮めた版、釣りのアニメ。
