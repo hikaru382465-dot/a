@@ -20,10 +20,10 @@ window.RAFT.parts.water = function (c) {
   rebuild();
   const col = h => new THREE.Color(h);
   const u = { uTime: { value: 0 }, uShore: { value: tex }, uSize: { value: SIZE }, uMin: { value: MIN },
-    uShallow: { value: col('#46909c') }, uDeep: { value: col('#1f4e6b') }, uFoam: { value: col('#e6efe0') }, uHi: { value: col('#8fc3bd') }, uTint: { value: new THREE.Color(1, 1, 1) } };
+    uShallow: { value: col('#46909c') }, uDeep: { value: col('#1f4e6b') }, uFoam: { value: col('#e6efe0') }, uHi: { value: col('#8fc3bd') }, uTint: { value: new THREE.Color(1, 1, 1) }, uRefl: { value: new THREE.Vector2(0.3, 0.3) } };
   const mat = new THREE.ShaderMaterial({ uniforms: u,
     vertexShader: 'varying vec2 vXZ;void main(){vec4 w=modelMatrix*vec4(position,1.);vXZ=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
-    fragmentShader: `uniform float uTime,uSize,uMin;uniform sampler2D uShore;uniform vec3 uShallow,uDeep,uFoam,uHi,uTint;varying vec2 vXZ;
+    fragmentShader: `uniform float uTime,uSize,uMin;uniform sampler2D uShore;uniform vec3 uShallow,uDeep,uFoam,uHi,uTint;uniform vec2 uRefl;varying vec2 vXZ;
 void main(){
   vec2 q=floor(vXZ*16.)/16.;
   float d=texture2D(uShore,clamp((q-uMin)/uSize,0.,1.)).r*3.;
@@ -34,8 +34,20 @@ void main(){
   col*=1.-.08*step(a,-2.0);
   float ring=sin(d*7.-uTime*1.6);
   col=mix(col,uHi,step(.93,ring)*step(d,2.2)*.35*(1.-k));
+  vec2 wob=vec2(sin(q.y*7.+uTime*1.4),sin(q.x*7.+uTime*1.1))*.035;
+  float r1=1.-step(.004,texture2D(uShore,clamp((q-uRefl+wob-uMin)/uSize,0.,1.)).r*3.);
+  float r2=1.-step(.004,texture2D(uShore,clamp((q-uRefl*1.9+wob*1.6-uMin)/uSize,0.,1.)).r*3.);
+  float own=step(.03,d);
+  float band=.8+.2*step(0.,sin(q.y*28.+uTime*2.));
+  vec3 woodR=vec3(.40,.26,.17)*band;
+  col=mix(col,woodR,own*(r1*.62+r2*(1.-r1)*.3));
   float f=.2+.07*sin(uTime*1.5-d*6.)+.04*sin(q.x*5.+uTime);
   col=mix(col,uFoam,step(d,f));
+  // 海っぽさ：大きなうねり・きらきら・イカダの映りこみ
+  col*=1.+.07*sin(q.x*.35+uTime*.3)*sin(q.y*.3-uTime*.25);
+  float tw=floor(uTime*2.5);
+  float sp=step(.9972,fract(sin(dot(floor(q*16.)+tw*3.1,vec2(12.9898,78.233)))*43758.5453));
+  col=mix(col,vec3(.95,1.,1.),sp*.5*smoothstep(.6,1.6,d));
   gl_FragColor=vec4(col*uTint,1.);
   #include <colorspace_fragment>
 }` });

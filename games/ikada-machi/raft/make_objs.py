@@ -84,11 +84,19 @@ def drip(img, on):
     return Image.fromarray(a, 'RGBA')
 
 # インベントリ・漂流物に使う小さな絵（3分の1の大きさ）。ppu＝ゲームの中での大きさ（いちばん長い辺が0.5マスぶん）
-def icon(box, shrink=3):
-    im = cutout(box, shrink=shrink); e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
+def clay_tint(im):     # 灰色の石の絵を、粘土色（赤茶）にぬりかえる
+    a = np.array(im).astype(float); L = a[..., :3].mean(axis=2) / 255.0
+    lo, hi = np.array([70, 36, 24.0]), np.array([226, 140, 92.0]); t = np.clip((L - 0.12) / 0.7, 0, 1)[..., None]
+    a[..., :3] = lo * (1 - t) + hi * t; return Image.fromarray(a.astype(np.uint8), 'RGBA')
+
+def icon(box, shrink=3, tint=None):
+    im = cutout(box, shrink=shrink)
+    if tint: im = tint(im)
+    e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
 icons = {'wood': [icon((38, 28, 142, 118))], 'floor': [icon((142, 28, 246, 118))], 'cloth': [icon((712, 36, 790, 118))],
-         'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))], 'rod': [icon((410, 232, 500, 344), shrink=2)]}
-for n, e in icons.items():
+         'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))], 'rod': [icon((410, 232, 500, 344), shrink=2)],
+         'iron': [icon((628, 30, 700, 112))], 'clay': [icon((438, 32, 524, 118), tint=clay_tint)]}
+for n, e in list(icons.items()):
     im = Image.open(io.BytesIO(base64.b64decode(e[0]['src'].split(',')[1]))).convert('RGBA'); print(n, im.size, e[0]['ppu'])
     bg = Image.new('RGBA', (im.width * 5, im.height * 5), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 5, im.height * 5), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{n}.png')
 out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
