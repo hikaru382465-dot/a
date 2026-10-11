@@ -502,13 +502,22 @@ def s_sounds():
 
 
 GLASS_OPACITY_SCALE = 0.3             # ガラスのくもりの強さ（小さいほど外がよく見える）。kd_game.py の GLASS_DIRT でも変えられる
-REPLACE_GLASS_MATERIAL = True          # True: 買ったガラスの材質を、くもりを弱めた材質（M_KDGlass）に替える
+REPLACE_GLASS_MATERIAL = False         # True: 買ったガラスの材質を、くもりを弱めた材質（M_KDGlass）に替える。False: 買ったままの材質（前の版で替えていたら、元に戻す）
 
 
 def s_glass_material():
     """買ったガラスはくもりが強くて外が見えないので、くもり（汚れ）を弱められるガラスの材質に替える"""
     if not REPLACE_GLASS_MATERIAL:
-        log("ガラスの材質は、買ったままにします")
+        n = 0
+        for c in STATE["booth"].get_components_by_class(unreal.StaticMeshComponent):
+            mesh = c.get_editor_property("static_mesh")
+            if mesh is not None and "glass" in mesh.get_name().lower():
+                try:
+                    c.set_material(0, mesh.get_material(0))          # 部品につけていた別の材質を外して、買ったときの材質（アセットの初期の材質）に戻す
+                    n += 1
+                except Exception as ex:  # noqa
+                    log("  (ガラスの材質を戻せません) %s" % ex)
+        log("ガラスの材質を、買ったときのものに戻しました: %d 部品" % n)
         return
     d = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "tex")
     names = [f for f in ("glass_color.png", "glass_rough.png") if os.path.exists(os.path.join(d, f))]

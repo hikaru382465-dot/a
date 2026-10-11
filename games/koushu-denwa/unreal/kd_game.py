@@ -52,9 +52,12 @@ PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この�
 FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
+FLASH_INSIDE = 0.12          # 閉じ込められたあと、懐中電灯の明るさを、外にいたときの何倍にするか（中は狭くてまぶしいので小さく）
+TUBE_SCALE = 0.45            # 蛍光灯の光の強さの倍率（明るすぎるときは小さくする）
+TUBE_GLOW = 0.5              # 蛍光灯の「光る見た目」の強さの倍率
 GLASS_DIRT = 0.25            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
-FLICKER_BLACK = 0.6          # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
-DARK_BLACK = 0.9             # 暗転のあいだ、画面をこの割合だけ黒くする（どの光が残っていても、ちゃんと暗くなる）。1.0=真っ黒
+FLICKER_BLACK = 0.88         # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
+DARK_BLACK = 1.0             # 暗転のあいだ、画面をこの割合だけ黒くする（どの光が残っていても、ちゃんと暗くなる）。1.0=真っ黒
 DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
 # ----------------------------------------------------
 
@@ -141,7 +144,7 @@ class Game:
                 continue
             c = a.get_component_by_class(unreal.RectLightComponent)
             base = c.get_editor_property("intensity")
-            self.tubes.append((c, base))
+            self.tubes.append((c, base * TUBE_SCALE))
         # レベルの中の光は、ぜんぶ、いっしょに点滅・暗転させる（電話ボックスの中の光だけでなく、街灯・月・空など）。懐中電灯と蛍光灯は別あつかい
         self.extra = []
         for a in all_actors:
@@ -172,7 +175,7 @@ class Game:
                 try:
                     if "Tube" in mn:
                         self.tube_mats.append(comp.create_dynamic_material_instance(i, mat))
-                    elif "Glass" in mn:
+                    elif "KDGlass" in mn:
                         mid = comp.create_dynamic_material_instance(i, mat)
                         mid.set_scalar_parameter_value("Dirt", GLASS_DIRT)
                 except Exception as e:  # noqa
@@ -214,7 +217,12 @@ class Game:
                 mv.set_editor_property("deceleration", WALK_SPEED * 8)
             except Exception as e:  # noqa
                 log("  (歩く速さを設定できません) %s" % e)
+        self.flash_base = None
         if self.flash is not None:
+            try:
+                self.flash_base = self.flash.get_component_by_class(unreal.SpotLightComponent).get_editor_property("intensity")
+            except Exception:  # noqa
+                pass
             self.set_flash(False)
         self.half_t, self.half_n = 70.0, 70.0
         if marker is not None:
@@ -240,6 +248,13 @@ class Game:
         screen(self.world, "WASD：歩く / マウス：見る / F：懐中電灯", (200, 255, 200), 6.0)
 
     # ---- 部品 ----
+    def set_flash_scale(self, k):
+        if self.flash is not None and getattr(self, "flash_base", None) is not None:
+            try:
+                self.flash.get_component_by_class(unreal.SpotLightComponent).set_editor_property("intensity", self.flash_base * k)
+            except Exception as e:  # noqa
+                log("  (懐中電灯の明るさを変えられません) %s" % e)
+
     def set_flash(self, on):
         self.flash_on = on
         try:
@@ -252,7 +267,7 @@ class Game:
         for c, base in self.tubes:
             c.set_editor_property("intensity", base * mult)
         for mid in self.tube_mats:
-            mid.set_scalar_parameter_value("Flicker", mult)          # 蛍光灯の見た目も、光といっしょにちらつく
+            mid.set_scalar_parameter_value("Flicker", mult * TUBE_GLOW)          # 蛍光灯の見た目も、光といっしょにちらつく
         part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
         for kind, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if kind == "world" else mult))
@@ -447,6 +462,7 @@ class Game:
     # 謎が進むほど強い札を使い、使った札は二度と出さない（あとで出せる演出がなくならないよう、1回の謎で出すのは1つだけ）。
     # 謎が進まないまま時間がたつと、持ち札を使わずに「幽霊がじわじわ近づく」圧力だけが増える。
     def start_trapped(self):
+        self.set_flash_scale(FLASH_INSIDE)
         self.steps = []
         self.step_i = 0
         self.pending = []
