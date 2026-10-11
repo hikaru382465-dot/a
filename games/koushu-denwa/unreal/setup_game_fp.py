@@ -254,7 +254,7 @@ def spawn(cls, loc, rot=(0, 0, 0)):
 
 
 KEEP_POSE = {}                       # ひかるが手で動かした、掲示板・張り紙の位置と向き（作り直しても、そのまま使う）
-KEEP_PREFIX = ("Board_", "Paper_News", "Poster_")
+KEEP_PREFIX = ("Board_", "Paper_News", "Poster_", "Coin_")
 
 
 def tag_actor(a, label):
@@ -836,7 +836,7 @@ def s_posters():
 
 
 # ---------------- 掲示板（外）と、手に取って読める新聞 ----------------
-BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "wood_color", "wood_normal", "wood_rough"]
+BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "book_news", "wood_color", "wood_normal", "wood_rough"]
 
 
 def s_board_textures():
@@ -992,6 +992,23 @@ def s_board_materials():
     mel.recompile_material(mm)
     unreal.EditorAssetLibrary.save_loaded_asset(mm)
     STATE["M_KDMetal"] = mm
+    rb = new_material("M_KDReadBook")                                               # 本の古い新聞を、目の前に出す用
+    setp(rb, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    tb = tex_param(rb, "Tex", ld(T + "book_news"), -800, 0)
+    mel.connect_material_property(mulx(rb, tb, scalar_param(rb, "Brightness", 0.9, -800, -150), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.recompile_material(rb)
+    unreal.EditorAssetLibrary.save_loaded_asset(rb)
+    STATE["M_KDReadBook"] = rb
+    cm = new_material("M_KDCoin")                                                  # 10円玉：銅色の金属
+    cc = xx(cm, unreal.MaterialExpressionConstant3Vector, -600, 0)
+    cc.set_editor_property("constant", unreal.LinearColor(0.62, 0.30, 0.14, 1.0))
+    mel.connect_material_property(cc, "", MP.MP_BASE_COLOR)
+    mel.connect_material_property(mulx(cm, cc, cst(cm, 0.25, 100), 100), "", MP.MP_EMISSIVE_COLOR)       # 暗い夜でも、ほんのり見える
+    mel.connect_material_property(cst(cm, 0.9, 150), "", MP.MP_METALLIC)
+    mel.connect_material_property(cst(cm, 0.35, 250), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(cm)
+    unreal.EditorAssetLibrary.save_loaded_asset(cm)
+    STATE["M_KDCoin"] = cm
     pin = new_material("M_KDPin")
     pc_ = xx(pin, unreal.MaterialExpressionConstant3Vector, -600, 0)
     pc_.set_editor_property("constant", unreal.LinearColor(0.55, 0.04, 0.03, 1.0))
@@ -1121,6 +1138,41 @@ def s_board():
     log("掲示板を立てました: 位置=(%.0f,%.0f) 向き=%.0f度（入口の前 %.0fcm・横 %.0fcm）" % (px, py, yaw, BOARD_DIST, BOARD_SIDE))
 
 
+COIN_DIST = 300.0                      # 10円①を、入口の前から何cm の所に落とすか
+COIN_SIDE = -220.0                     # 入口の正面から横へ何cm（＋は入口に向かって左）
+
+
+def s_coin():
+    """道ばたの10円①（Coin_10yen）。ほんのり光る小さな点の明かり（Coin_Light）つき"""
+    g = STATE["geo"]
+    half_n, _ht = front_half()
+    n = g["n"]
+    cx, cy, _ = g["center"]
+    x = cx + n[0] * (half_n + COIN_DIST) + g["t"][0] * COIN_SIDE
+    y = cy + n[1] * (half_n + COIN_DIST) + g["t"][1] * COIN_SIDE
+    gz = g["zmin"]
+    cyl = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
+    a = spawn(unreal.StaticMeshActor, (x, y, gz + 1.0), (0, 0, 0))
+    c = a.get_component_by_class(unreal.StaticMeshComponent)
+    c.set_static_mesh(cyl)
+    c.set_material(0, STATE["M_KDCoin"])
+    setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+    try:
+        c.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    except Exception:  # noqa
+        pass
+    a.set_actor_scale3d(unreal.Vector(0.07, 0.07, 0.004))             # 直径7cm・厚さ8mm（見つけやすいよう、本物より大きめ）
+    tag_actor(a, "Coin_10yen")
+    pl = spawn(unreal.PointLight, (x, y, gz + 35.0), (0, 0, 0))
+    lc = pl.get_component_by_class(unreal.PointLightComponent)
+    setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
+    setp(lc, "intensity", 120.0)
+    setp(lc, "attenuation_radius", 150.0)
+    setp(lc, "light_color", unreal.Color(255, 190, 120, 255))
+    tag_actor(pl, "Coin_Light")
+    log("10円①を置きました: (%.0f,%.0f)（入口の前 %.0fcm・横 %.0fcm）" % (x, y, COIN_DIST, COIN_SIDE))
+
+
 def main():
     log("=== ゲームのしくみ 準備（買った電話ボックス用） ===")
     apply_settings(SETUP_SETTING_NAMES, log)
@@ -1141,6 +1193,7 @@ def main():
     step("掲示板の画像", s_board_textures, ["環境確認"])
     step("掲示板の材質", s_board_materials, ["掲示板の画像"])
     step("掲示板", s_board, ["掲示板の材質", "張り紙の板", "前回の生成物を消す"])
+    step("10円", s_coin, ["掲示板の材質", "前回の生成物を消す"])
     if NIGHT_MODE:
         step("夜にする", s_night, ["前回の生成物を消す"])
     step("保存", s_save, ["環境確認"])

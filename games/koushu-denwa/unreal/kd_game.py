@@ -39,6 +39,9 @@ FLASH_KEY = "F"
 ENTER_KEY = "E"                # 電話ボックスに入るキー（買った電話ボックス用：入口のドアは動かさず、暗転と音で入る）
 SWAY_DEG = 3.0                 # 掲示板の紙が風でゆれる角度（度）。0 でゆれない。上の画びょうを軸に、下がゆれる
 SWAY_SPEED = 0.35              # ゆれる速さ（1秒に何回）
+BOOK_LABEL = "book"            # 本の名前（アウトライナーの名前に入っている言葉）。違うときは kd_settings.json で直す
+SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
+ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
 READ_DIST = 45.0               # 新聞を、目からこの距離（cm）に出す
@@ -54,7 +57,7 @@ POSTER_FRAC = [0.3, 0.55, 0.8, 1.0]        # 1〜4回目の「張り紙の演出
 GHOST_HOLD = (11.0, 11.0, 10.0, 9.0)       # 幽霊が外に見えている時間（秒）。この間は張り紙は出ない
 POSTER_HOLD = (6.0, 7.0, 8.0, 9.0)         # 張り紙が貼られている時間（秒）。この間は幽霊は出ない。終わると全部はがれる
 POSTER_STEP = 0.35                         # 張り紙が1枚ずつ貼られていく間隔（秒）
-PUZZLE_COUNT = 7                           # 謎の数（この数だけ解くと、演出の強さが最後の段階まで進む）
+PUZZLE_COUNT = 8                           # 謎の数（この数だけ解くと、演出の強さが最後の段階まで進む）
 PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この時間（秒）たつと、幽霊が1段階ずつ近づく（演出の予備は使わない）
 FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
@@ -104,6 +107,9 @@ SETTINGS_DESCR = {
     "ENTER_BLACK": "暗いまま待つ秒数（この間にドアの音が鳴る）",
     "SWAY_DEG": "掲示板の紙が風でゆれる角度（度）。0 でゆれない",
     "SWAY_SPEED": "紙がゆれる速さ（1秒に何回）",
+    "BOOK_LABEL": "本の名前に入っている言葉（アウトライナーで確認）",
+    "SAFE_LABEL": "金庫の名前に入っている言葉（アウトライナーで確認）",
+    "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
     "READ_DIST": "手に取った新聞を、目からどれだけ離すか（cm）",
@@ -208,7 +214,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -322,6 +328,14 @@ class Game:
         self.hint = found.get("Poster_Hint")
         self.news = found.get("Paper_News")                  # 掲示板の新聞（手に取って読める）
         self.read_plane = found.get("KD_ReadPlane")
+        self.coin = found.get("Coin_10yen")
+        self.coin_light = found.get("Coin_Light")
+        self.coins = 0                                       # 持っている10円
+        self.read_mat = None
+        low = [(k.lower(), v) for k, v in found.items()]
+        self.book = next((v for k, v in low if BOOK_LABEL.lower() in k and "KD" not in label_of(v)), None)
+        self.safe = next((v for k, v in low if SAFE_LABEL.lower() in k and "KD" not in label_of(v)), None)
+        log("触れる物: 10円=%s 本=%s 金庫=%s" % (label_of(self.coin) if self.coin else "なし", label_of(self.book) if self.book else "なし（BOOK_LABEL を直す）", label_of(self.safe) if self.safe else "なし（SAFE_LABEL を直す）"))
         self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
         for i, nm in enumerate(("Board_Egetsunai", "Paper_News", "Board_Camera")):
             a = found.get(nm)
@@ -511,11 +525,13 @@ class Game:
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, EYE_HEIGHT), False, False)
         self.update_flashlight()
         self.tick_sway()
+        self.tick_hud()
         if self.state == "READING":
             self.tick_reading()
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
+            self.tick_items(loc)
         elif self.state == "ENTERING":
             self.tick_entering(dt)
         elif self.state == "WALK":
@@ -536,6 +552,7 @@ class Game:
                 self.fade(False, 0.8)
         elif self.state == "TRAPPED":
             self.tick_trapped(dt)
+            self.tick_items(loc)
         elif self.state == "DEAD":
             if self.state_t > RESTART_AFTER:
                 self.state = "RESTART"
@@ -590,6 +607,63 @@ class Game:
                 self.sway = []
                 return
 
+    def tick_hud(self):
+        """持ち物（10円）を、画面のすみに出す"""
+        if int(self.t * 2) == getattr(self, "_hud_k", -1):
+            return
+        self._hud_k = int(self.t * 2)
+        try:
+            unreal.SystemLibrary.print_string(self.world, "10円: %d枚" % self.coins, True, False, unreal.LinearColor(1, 0.85, 0.5, 1), 0.6, "KD_HUD")
+        except Exception:  # noqa
+            pass
+
+    def looking_at(self, actor, rng):
+        """目の前（まっすぐ見ている向き）に、この物があるか（3次元）"""
+        eye, rot = self.eye_info()
+        p = actor.get_actor_location()
+        d = unreal.Vector(p.x - eye.x, p.y - eye.y, p.z - eye.z)
+        dist = math.sqrt(d.x * d.x + d.y * d.y + d.z * d.z) or 1.0
+        if dist > rng:
+            return False
+        f = unreal.MathLibrary.get_forward_vector(rot)
+        return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > 0.93
+
+    def prompt_item(self, text, key):
+        if int(self.t * 4) == getattr(self, "_p_" + key, -1):
+            return
+        setattr(self, "_p_" + key, int(self.t * 4))
+        try:
+            unreal.SystemLibrary.print_string(self.world, text, True, False, unreal.LinearColor(1, 1, 0.6, 1), 0.4, "KD_" + key)
+        except Exception:  # noqa
+            pass
+
+    def tick_items(self, loc):
+        """10円を拾う（外）／本を開く（中）"""
+        try:
+            pressed = self.pc.was_input_key_just_pressed(self.key_e)
+        except Exception:  # noqa
+            pressed = False
+        if self.coin is not None and self.state == "WALK" and self.looking_at(self.coin, ITEM_RANGE):
+            self.prompt_item("[%s] 10円を拾う" % ENTER_KEY, "COIN")
+            if pressed:
+                self.coin.set_actor_hidden_in_game(True)
+                self.coin.set_actor_location(unreal.Vector(0, 0, -50000), False, False)           # 当たり判定ごと遠くへ
+                if self.coin_light is not None:
+                    self.coin_light.set_actor_hidden_in_game(True)
+                self.coin = None
+                self.coins += 1
+                screen(self.world, "10円を拾った（%d枚）" % self.coins, (255, 220, 150), 3.0)
+                log("10円を拾いました: %d枚" % self.coins)
+                return
+        if self.book is not None and self.state == "TRAPPED" and self.looking_at(self.book, ITEM_RANGE):
+            self.prompt_item("[%s] 本を開く" % ENTER_KEY, "BOOK")
+            if pressed:
+                self.begin_read("M_KDReadBook", 0.8)
+                if not getattr(self, "book_done", False):
+                    self.book_done = True
+                    self.after_read = lambda: self.on_flag("本")
+                log("本を開きました")
+
     def eye_info(self):
         """目の位置と、いま見ている向き（まっすぐ水平にした向き）"""
         rot = self.pc.get_control_rotation()
@@ -623,8 +697,16 @@ class Game:
         except Exception as e:  # noqa
             log("  (Eキーを読めません) %s" % e)
 
-    def begin_read(self):
-        """新聞を目の前に出す。歩く・見回すを止めて、Eでとじる"""
+    def begin_read(self, mat_name="M_KDRead", aspect=1.0):
+        """新聞・本を目の前に出す。歩く・見回すを止めて、Eでとじる"""
+        self.read_return = self.state
+        self.after_read = getattr(self, "after_read", None) if mat_name != "M_KDRead" else None
+        try:
+            m = unreal.EditorAssetLibrary.load_asset("/Game/KoushuDenwa/Materials/" + mat_name)
+            if m is not None:
+                self.read_plane.get_component_by_class(unreal.StaticMeshComponent).set_material(0, m)
+        except Exception as e:  # noqa
+            log("  (読む絵を入れ替えられません) %s" % e)
         eye, rot = self.eye_info()
         yaw = rot.yaw
         try:
@@ -635,7 +717,7 @@ class Game:
         loc = unreal.Vector(eye.x + math.cos(th) * READ_DIST, eye.y + math.sin(th) * READ_DIST, eye.z)
         self.read_plane.set_actor_location(loc, False, False)
         self.read_plane.set_actor_rotation(unreal.Rotator(0, 0, yaw + 90.0), False)
-        self.read_plane.set_actor_scale3d(unreal.Vector(READ_SIZE / 50.0, 1.0, READ_SIZE / 70.0))
+        self.read_plane.set_actor_scale3d(unreal.Vector(READ_SIZE * aspect / 50.0, 1.0, READ_SIZE / 70.0))
         self.read_plane.set_actor_hidden_in_game(False)
         for fn in ("set_ignore_move_input", "set_ignore_look_input"):
             try:
@@ -655,8 +737,11 @@ class Game:
                         getattr(self.pc, fn)(False)
                     except Exception:  # noqa
                         pass
-                self.state, self.state_t = "WALK", 0.0
-                log("新聞をもとに戻しました")
+                self.state, self.state_t = getattr(self, "read_return", "WALK"), 0.0
+                log("閉じました")
+                cb, self.after_read = getattr(self, "after_read", None), None
+                if cb is not None:
+                    cb()
         except Exception as e:  # noqa
             log("  (Eキーを読めません) %s" % e)
 
