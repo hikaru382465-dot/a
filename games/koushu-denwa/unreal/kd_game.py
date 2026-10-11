@@ -52,8 +52,9 @@ PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この�
 FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
-GLASS_DIRT = 0.35            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
+GLASS_DIRT = 0.25            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
 FLICKER_BLACK = 0.6          # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
+DARK_BLACK = 0.9             # 暗転のあいだ、画面をこの割合だけ黒くする（どの光が残っていても、ちゃんと暗くなる）。1.0=真っ黒
 DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
 # ----------------------------------------------------
 
@@ -125,7 +126,8 @@ class Game:
     # ---- Play のはじめに1回だけ：参照を集める ----
     def setup(self):
         found = {}
-        for a in unreal.GameplayStatics.get_all_actors_of_class(self.world, unreal.Actor):
+        all_actors = list(unreal.GameplayStatics.get_all_actors_of_class(self.world, unreal.Actor))
+        for a in all_actors:
             found[label_of(a)] = a
         self.hinge = found.get("DoorHinge")
         if self.hinge is not None:
@@ -140,19 +142,26 @@ class Game:
             c = a.get_component_by_class(unreal.RectLightComponent)
             base = c.get_editor_property("intensity")
             self.tubes.append((c, base))
-        # 電話機にあててある SpotLight、月、空も、いっしょに暗くする
+        # レベルの中の光は、ぜんぶ、いっしょに点滅・暗転させる（電話ボックスの中の光だけでなく、街灯・月・空など）。懐中電灯と蛍光灯は別あつかい
         self.extra = []
-        for nm, cls in (("SpotLight", unreal.SpotLightComponent), ("Moon", unreal.DirectionalLightComponent), ("DirectionalLight", unreal.DirectionalLightComponent), ("KD_Moon", unreal.DirectionalLightComponent), ("SkyLight", unreal.SkyLightComponent)):
-            a = found.get(nm)
-            if a is None:
+        for a in all_actors:
+            lab = label_of(a)
+            if lab == "Flashlight" or lab.startswith("TubeLight"):
                 continue
-            c = a.get_component_by_class(cls)
-            if c is not None:
-                self.extra.append((nm, c, c.get_editor_property("intensity")))
+            try:
+                comps = a.get_components_by_class(unreal.LightComponent)
+            except Exception:  # noqa
+                continue
+            for c in comps:
+                try:
+                    kind = "world" if isinstance(c, (unreal.DirectionalLightComponent, unreal.SkyLightComponent)) else "local"
+                    self.extra.append((kind, c, c.get_editor_property("intensity")))
+                except Exception:  # noqa
+                    pass
         # 蛍光灯の光る部分（材質 M_Tube の Flicker）とガラス（M_Glass の Dirt）を、動かせる材質にする
         self.tube_mats = []
         for nm, a in found.items():
-            if not (nm.startswith("Booth_") or nm.startswith("KD_Tube")):
+            if not (nm.startswith("Booth_") or nm.startswith("KD_Tube") or "phone_box" in nm.lower()):
                 continue
             comp = a.get_component_by_class(unreal.StaticMeshComponent)
             if comp is None:
@@ -226,8 +235,8 @@ class Game:
         self.key = unreal.Key()
         self.key.set_editor_property("key_name", FLASH_KEY)
         log("Play 開始: 入口方式=%s 効果音=%s" % ("Eキー" if self.hinge is None else "ドアが閉まる", [k for k, v in self.snd.items() if v is not None]))
-        log("Play 開始: ドアの軸=%s 懐中電灯=%s 蛍光灯の光=%d 光る材質=%d 他の光=%s プレイヤー=%s ボックス中心=(%.0f,%.0f)" % (
-            self.hinge is not None, self.flash is not None, len(self.tubes), len(self.tube_mats), [e[0] for e in self.extra], self.pawn is not None, self.cx, self.cy))
+        log("Play 開始: ドアの軸=%s 懐中電灯=%s 蛍光灯の光=%d 光る材質=%d 他の光=%d個 プレイヤー=%s ボックス中心=(%.0f,%.0f)" % (
+            self.hinge is not None, self.flash is not None, len(self.tubes), len(self.tube_mats), len(self.extra), self.pawn is not None, self.cx, self.cy))
         screen(self.world, "WASD：歩く / マウス：見る / F：懐中電灯", (200, 255, 200), 6.0)
 
     # ---- 部品 ----
@@ -245,8 +254,8 @@ class Game:
         for mid in self.tube_mats:
             mid.set_scalar_parameter_value("Flicker", mult)          # 蛍光灯の見た目も、光といっしょにちらつく
         part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
-        for nm, c, base in self.extra:
-            c.set_editor_property("intensity", base * (part if nm != "SpotLight" else mult))
+        for kind, c, base in self.extra:
+            c.set_editor_property("intensity", base * (part if kind == "world" else mult))
 
     def reveal(self, stage):
         frac = POSTER_FRAC[min(stage, len(POSTER_FRAC)) - 1]
@@ -535,6 +544,12 @@ class Game:
         self.poster_shown = 0
         self.poster_round = r
         screen(self.world, "（紙が……貼られていく）", (255, 160, 160), 3.0)
+        try:
+            a0 = self.posters[0][1]
+            o, e = a0.get_actor_bounds(False)
+            log("  張り紙の確認: %s 位置=(%.0f,%.0f,%.0f) 大きさ=(%.0f,%.0f,%.0f)cm ボックス中心=(%.0f,%.0f)" % (self.posters[0][0], o.x, o.y, o.z, e.x * 2, e.y * 2, e.z * 2, self.cx, self.cy))
+        except Exception as ex:  # noqa
+            log("  (張り紙の確認ができません) %s" % ex)
         log("張り紙の場面 %d（%d枚）" % (r + 1, self.poster_target))
 
     def posters_hide(self):
@@ -572,7 +587,7 @@ class Game:
         self.flicker_next = 0.0
         if typ == "dark":
             self.set_lights(0.0)
-            self.blackout(0.0)
+            self.blackout(DARK_BLACK)
         if enter_fn is not None:
             enter_fn()
 
@@ -606,6 +621,7 @@ class Game:
                 self.blackout(0.0)
             if typ == "dark":
                 self.set_lights(1.0)
+                self.blackout(0.0)
             self.next_step()
 
 

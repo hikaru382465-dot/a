@@ -199,10 +199,7 @@ def s_poster_textures():
     log("張り紙の画像を取り込みました: %d 枚" % len(names))
 
 
-def s_poster_mesh():
-    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "Poster.fbx")
-    if not os.path.exists(fbx):
-        raise RuntimeError("Poster.fbx がありません: %s" % fbx)
+def import_poster(fbx, scale):
     ui = unreal.FbxImportUI()
     setp(ui, "import_mesh", True)
     setp(ui, "import_as_skeletal", False)
@@ -214,7 +211,7 @@ def s_poster_mesh():
     setp(d, "combine_meshes", True)
     setp(d, "auto_generate_collision", False)
     setp(d, "transform_vertex_to_absolute", True)
-    setp(d, "import_uniform_scale", 100.0)          # 電話ボックスと同じ：メートル → cm
+    setp(d, "import_uniform_scale", float(scale))
     import_tasks([mk_task(fbx, GAME_DIR + "/Game", fbx_ui=ui)])
     mesh = None
     for p in unreal.EditorAssetLibrary.list_assets(GAME_DIR + "/Game", recursive=True, include_folder=False):
@@ -224,7 +221,23 @@ def s_poster_mesh():
     if mesh is None:
         raise RuntimeError("Poster のメッシュが見つかりません")
     e = mesh.get_bounds().box_extent
-    log("ポスター板の大きさ（cm の半分）: %.1f × %.1f × %.1f（25×35 前後が正常）" % (e.x, e.y, e.z))
+    return mesh, e
+
+
+def s_poster_mesh():
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "Poster.fbx")
+    if not os.path.exists(fbx):
+        raise RuntimeError("Poster.fbx がありません: %s" % fbx)
+    scale = 100.0                                    # 電話ボックスと同じ：メートル → cm
+    mesh, e = import_poster(fbx, scale)
+    big = max(e.x, e.y, e.z) * 2.0
+    log("ポスター板の大きさ（取り込み直後）: 長い辺=%.1fcm（70 が正常）" % big)
+    if abs(big - 70.0) > 6.0 and big > 0.0:            # 大きさがずれていたら、70cm になるように取り込み直す
+        scale = scale * 70.0 / big
+        mesh, e = import_poster(fbx, scale)
+        big = max(e.x, e.y, e.z) * 2.0
+        log("ポスター板を、倍率 %.2f で取り込み直しました: 長い辺=%.1fcm" % (scale, big))
+    log("ポスター板の大きさ: %.1f × %.1f × %.1f cm（50×1以下×70 前後が正常）" % (e.x * 2, e.y * 2, e.z * 2))
     STATE["poster_mesh"] = mesh
 
 
@@ -488,6 +501,54 @@ def s_sounds():
     log("効果音を取り込みました: %s" % ", ".join(files))
 
 
+GLASS_OPACITY_SCALE = 0.3             # ガラスのくもりの強さ（小さいほど外がよく見える）。kd_game.py の GLASS_DIRT でも変えられる
+REPLACE_GLASS_MATERIAL = True          # True: 買ったガラスの材質を、くもりを弱めた材質（M_KDGlass）に替える
+
+
+def s_glass_material():
+    """買ったガラスはくもりが強くて外が見えないので、くもり（汚れ）を弱められるガラスの材質に替える"""
+    if not REPLACE_GLASS_MATERIAL:
+        log("ガラスの材質は、買ったままにします")
+        return
+    d = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "tex")
+    names = [f for f in ("glass_color.png", "glass_rough.png") if os.path.exists(os.path.join(d, f))]
+    if not names:
+        raise RuntimeError("ガラスの画像がありません: %s" % d)
+    import_tasks([mk_task(os.path.join(d, f), GAME_DIR + "/Textures/KDGlass") for f in names])
+    col = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/KDGlass/glass_color")
+    rgh = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/KDGlass/glass_rough")
+    m = new_material("M_KDGlass")
+    setp(m, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    setp(m, "translucency_lighting_mode", unreal.TranslucencyLightingMode.TLM_SURFACE_PER_PIXEL_LIGHTING)
+    setp(m, "two_sided", True)
+    gc = xx(m, unreal.MaterialExpressionTextureSample, -800, -200)
+    gc.set_editor_property("texture", col)
+    mel.connect_material_property(mulx(m, gc, cst(m, 0.45, -250), -200), "", MP.MP_BASE_COLOR)
+    dirt = xx(m, unreal.MaterialExpressionScalarParameter, -600, 300)
+    setp(dirt, "parameter_name", "Dirt")
+    setp(dirt, "default_value", GLASS_OPACITY_SCALE)
+    op = xx(m, unreal.MaterialExpressionMultiply, -400, 150)
+    mel.connect_material_expressions(gc, "A", op, "A")
+    mel.connect_material_expressions(dirt, "", op, "B")
+    mel.connect_material_property(op, "", MP.MP_OPACITY)
+    if rgh is not None:
+        rt = xx(m, unreal.MaterialExpressionTextureSample, -800, 0)
+        rt.set_editor_property("texture", rgh)
+        mel.connect_material_property(rt, "R", MP.MP_ROUGHNESS)
+    else:
+        mel.connect_material_property(cst(m, 0.1, 0), "", MP.MP_ROUGHNESS)
+    mel.connect_material_property(cst(m, 0.6, 100), "", MP.MP_SPECULAR)
+    mel.recompile_material(m)
+    unreal.EditorAssetLibrary.save_loaded_asset(m)
+    n = 0
+    for c in STATE["booth"].get_components_by_class(unreal.StaticMeshComponent):
+        mesh = c.get_editor_property("static_mesh")
+        if mesh is not None and "glass" in mesh.get_name().lower():
+            c.set_material(0, m)
+            n += 1
+    log("ガラスの材質を M_KDGlass に替えました: %d 部品（くもり=%.2f）" % (n, GLASS_OPACITY_SCALE))
+
+
 def s_lights():
     """天井に蛍光灯：RectLight 2本（TubeLight_L/R）＋ 光る見た目の棒（KD_Tube_L/R。材質 M_KDTube の Flicker で明るさを変える）"""
     g = STATE["geo"]
@@ -608,6 +669,7 @@ def main():
     step("中心の印", s_center_marker, ["前回の生成物を消す"])
     step("当たり判定", s_collision, ["環境確認"])
     step("効果音", s_sounds, ["環境確認"])
+    step("ガラスの材質", s_glass_material, ["環境確認"])
     step("蛍光灯", s_lights, ["前回の生成物を消す"])
     step("プレイヤーの開始位置", s_player_start, ["環境確認"])
     step("懐中電灯", s_flashlight, ["中心の印"])
