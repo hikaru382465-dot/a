@@ -172,3 +172,8 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 
 ## 漂流物が流れてくる場面（gen_items_drift.py）
 `python gen_items_drift.py` → assets/items/float/drift_scene.gif。8つの漂流物が右から左へ流れ、上下にゆれて（3回/周）、底のたびに水しぶき。うしろに波紋とあわ。ちびキャラが桟橋で待つ。細かい版は半分に縮めて、パレットの一番近い色にそろえて使う。
+
+## 水がはねる（斜め上45度）（gen_splash.py）
+`python gen_splash.py` → assets/effects/splash45_sheet.png（透明・20コマ）, splash45.gif, splash45_big.png。
+しぶきを3Dの点で計算し、45度（水面の奥ゆき・高さとも0.707倍）で投影。王冠（奥の内がわ→手前の外がわの順に描く）・中央の水柱・水玉（放物線、着水で小さな輪）・広がる波紋・白いあわ。
+弱点：王冠が小さく、水玉が細かい。
