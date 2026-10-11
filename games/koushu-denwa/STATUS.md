@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **新プロジェクト（ひかるが別に作った `kousyuudennwa`、UE 5.8、First Personテンプレート）**：Landscape・草・街灯・買った公衆電話（Unityアセットストアの「Japanese Street Prop Models」、1メッシュ・2116三角・ドアなし・当たり判定1つ）が置いてある。ゲームのしくみをここに移す計画。まず `unreal/kd_probe.py`（下見：大きさ・部品・入口の向きを調べる）をひかるが実行 → 結果を見て、ドア用の板・蛍光灯・当たり判定・テンプレのキャラに合わせた `kd_game.py` を作る。買った素材はGitHubに上げない
+
 - **段階2 作成済み（未確認）**：`setup_game.py` に張り紙14枚（ガラスの内側。血の目含む）・幽霊（仮：黒い体＋白い頭）を追加、`kd_game.py` に「暗転ごとに張り紙が増える／幽霊が近づく／段階5で失敗（目の前に出て赤く暗転→6秒後に最初から）」を追加。`blender/make_poster_mesh.py`→`assets/unreal/Poster.fbx`。ひかるが `setup_game.py` と `kd_game.py` を再実行して Play → 張り紙の向き・見え方・幽霊の見え方を報告
 
 - **段階1 実機の結果（ひかる）**：歩ける・懐中電灯OK・すり抜けなし。直した点：①電話機のSpotLightが点滅しない→点滅/暗転に連動 ②暗転しても暗くならない→月・空も暗転で下げる ③蛍光灯の「物」が光らない→M_Tube の Flicker を動かす ④ガラスのくもりで外が見えない→M_Glass に Dirt（くもりの強さ）を足す。再実行して確認してもらう
