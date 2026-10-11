@@ -295,6 +295,8 @@ def s_clear():
         try:
             if a.get_actor_label() in ("TubeLight_L", "TubeLight_R"):
                 KEEP_TUBE[a.get_actor_label()] = a.get_component_by_class(unreal.RectLightComponent).get_editor_property("intensity")
+            elif a.get_actor_label() == "Coin_Light":
+                KEEP_TUBE["Coin_Light"] = a.get_component_by_class(unreal.PointLightComponent).get_editor_property("intensity")
         except Exception:  # noqa
             pass
         try:
@@ -1290,7 +1292,7 @@ def s_coin():
     pl = spawn(unreal.PointLight, (x, y, gz + 35.0), (0, 0, 0))
     lc = pl.get_component_by_class(unreal.PointLightComponent)
     setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
-    setp(lc, "intensity", 120.0)
+    setp(lc, "intensity", KEEP_TUBE.get("Coin_Light", 1.2))               # ひかるが決めた明るさ（cd）を引き継ぐ。初期値 1.2
     setp(lc, "attenuation_radius", 150.0)
     setp(lc, "light_color", unreal.Color(255, 190, 120, 255))
     tag_actor(pl, "Coin_Light")

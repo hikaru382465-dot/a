@@ -530,9 +530,16 @@ class Game:
             self.pawn = unreal.GameplayStatics.get_player_pawn(self.world, 0)
             return
         loc = self.pawn.get_actor_location()
-        # 歩く高さを目の高さに固定（飛ばない）
-        if not self.is_char and abs(loc.z - EYE_HEIGHT) > 0.5:
-            self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, EYE_HEIGHT), False, False)
+        if getattr(self, "eye_z", None) is None:                 # 最初に見えたとき：歩く人の種類と、立っている高さを覚える
+            try:
+                self.is_char = self.pawn.get_component_by_class(unreal.CharacterMovementComponent) is not None
+            except Exception:  # noqa
+                pass
+            self.eye_z = loc.z
+            log("プレイヤー: %s・最初の高さ z=%.0f" % ("歩く人（地面に立つ）" if self.is_char else "ういている人（高さ固定）", loc.z))
+        # 歩く高さを固定（飛ばない）。地面に立つ人（Character）は、固定しない。固定する高さは、最初に立った高さ（地面の下に入らない）
+        if not self.is_char and abs(loc.z - self.eye_z) > 0.5:
+            self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, self.eye_z), False, False)
         self.update_flashlight()
         self.tick_sway()
         self.tick_hud()
