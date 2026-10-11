@@ -133,3 +133,7 @@ FBXから来る材質は簡単なものなので、次の3つだけ手で直す�
 - `kd_game.py` の値（明るさ・点滅・時間など）：Play のたびに読み直す。コードの書き直し・ZIPの取り直しは不要
 - `setup_game_fp.py` の値（`POSTER_SCALE`・`FLASH_INTENSITY`・`NIGHT_MODE` など）：保存後に `setup_game_fp.py` をもう一度実行
 - 「説明」の欄に、それぞれの意味が書いてある。壊れたファイルは上書きされず、初期値で動く
+
+## 掲示板と新聞（setup_game_fp.py の「掲示板」の手順）
+
+入口の前に木の掲示板（`Board_*`）が立ち、張り紙2枚と新聞（`Paper_News`）が貼ってある。`kd_game.py` を動かして Play し、新聞のほうを向いて近づくと「[E] 新聞を手に取る」が出る。読んでいる間は歩けない。E でとじる。位置は `kd_settings.json` の `BOARD_DIST` / `BOARD_SIDE` / `BOARD_TURN`（変えたら `setup_game_fp.py` を再実行）、読む大きさは `READ_SIZE` / `READ_DIST`（再実行は不要）。

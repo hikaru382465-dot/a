@@ -36,6 +36,9 @@ FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
+BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
+BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
+BOARD_TURN = 25.0                    # 掲示板を、入口の向きから何度まわして、道のほうへ向けるか
 TUBE_Z_FROM_TOP = 40.0               # 蛍光灯を、天井の上端から何cm 下に付けるか
 # --------------------------------------------------
 
@@ -84,6 +87,9 @@ SETTINGS_DESCR = {
     "FLASH_OUTER": "懐中電灯の、外側の角度",
     "FLASH_RADIUS": "懐中電灯の光が届く距離（cm）",
     "TUBE_Z_FROM_TOP": "蛍光灯を、天井の上端から何cm下に付けるか",
+    "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
+    "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
+    "BOARD_TURN": "掲示板を、道の方へ何度まわして向けるか",
     "REPLACE_GLASS_MATERIAL": "null=さわらない（初期値）。true で、買ったガラスの材質を M_KDGlass に替える。false で買ったまま",
 }
 
@@ -159,7 +165,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -802,6 +808,182 @@ def s_posters():
     log("張り紙を貼りました: %d 枚（最初は見えません）" % n)
 
 
+# ---------------- 掲示板（外）と、手に取って読める新聞 ----------------
+BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "wood_color", "wood_normal", "wood_rough"]
+
+
+def s_board_textures():
+    d = tex_game_dir()
+    tasks = []
+    for b in BOARD_FILES:
+        f = os.path.join(d, b + ".png")
+        if not os.path.exists(f):
+            raise RuntimeError("画像がありません: %s" % f)
+        tasks.append(mk_task(f, GAME_DIR + "/Textures/Game"))
+    import_tasks(tasks)
+    tn = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/wood_normal")
+    setp(tn, "compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+    setp(tn, "srgb", False)
+    unreal.EditorAssetLibrary.save_loaded_asset(tn)
+    tr = unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/wood_rough")
+    setp(tr, "srgb", False)
+    unreal.EditorAssetLibrary.save_loaded_asset(tr)
+    log("掲示板の画像を取り込みました: %d 枚（凹凸は法線マップ、粗さは線形）" % len(BOARD_FILES))
+
+
+def tex_param(m, name, asset, x, y, uv=None, normal=False):
+    t = xx(m, unreal.MaterialExpressionTextureSampleParameter2D, x, y)
+    setp(t, "parameter_name", name)
+    setp(t, "texture", asset)
+    if normal:
+        setp(t, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+    elif name == "Rough":
+        try:
+            setp(t, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+        except Exception:  # noqa
+            pass
+    if uv is not None:
+        mel.connect_material_expressions(uv, "", t, "UVs")
+    return t
+
+
+def scalar_param(m, name, v, x, y):
+    e = xx(m, unreal.MaterialExpressionScalarParameter, x, y)
+    setp(e, "parameter_name", name)
+    setp(e, "default_value", float(v))
+    return e
+
+
+def s_board_materials():
+    """木：色・法線（凹凸）・粗さを別々の画像から。つまみ（パラメータ）: Brightness / NormalStrength / Tiling / RoughMul"""
+    T = GAME_DIR + "/Textures/Game/"
+    ld = unreal.EditorAssetLibrary.load_asset
+    m = new_material("M_KDWood")
+    uv = xx(m, unreal.MaterialExpressionTextureCoordinate, -1100, 0)
+    mulu = xx(m, unreal.MaterialExpressionMultiply, -950, 0)
+    mel.connect_material_expressions(uv, "", mulu, "A")
+    mel.connect_material_expressions(scalar_param(m, "Tiling", 2.0, -1150, 120), "", mulu, "B")
+    col = tex_param(m, "Color", ld(T + "wood_color"), -800, -200, mulu)
+    nrm = tex_param(m, "Normal", ld(T + "wood_normal"), -800, 100, mulu, normal=True)
+    rgh = tex_param(m, "Rough", ld(T + "wood_rough"), -800, 400, mulu)
+    mel.connect_material_property(mulx(m, col, scalar_param(m, "Brightness", 1.0, -800, -350), -100), "", MP.MP_BASE_COLOR)
+    flat = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 250)
+    flat.set_editor_property("constant", unreal.LinearColor(0.0, 0.0, 1.0, 1.0))
+    lerp = xx(m, unreal.MaterialExpressionLinearInterpolate, -400, 250)
+    mel.connect_material_expressions(flat, "", lerp, "A")
+    mel.connect_material_expressions(nrm, "", lerp, "B")
+    mel.connect_material_expressions(scalar_param(m, "NormalStrength", 1.0, -650, 400), "", lerp, "Alpha")
+    mel.connect_material_property(lerp, "", MP.MP_NORMAL)
+    mel.connect_material_property(mulx(m, rgh, scalar_param(m, "RoughMul", 1.0, -800, 550), 450), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(m)
+    unreal.EditorAssetLibrary.save_loaded_asset(m)
+    STATE["wood"] = m
+    # 紙：Brightness / Glow（暗い所でも読める弱い自己発光）/ Rough
+    for nm, tx in (("M_BoardEgetsunai", "board_egetsunai"), ("M_BoardCamera", "board_camera"), ("M_PaperKamigari", "paper_kamigari")):
+        pm = new_material(nm)
+        setp(pm, "two_sided", True)
+        t = tex_param(pm, "Tex", ld(T + tx), -800, 0)
+        mel.connect_material_property(mulx(pm, t, scalar_param(pm, "Brightness", 0.8, -800, -150), 0), "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(mulx(pm, t, scalar_param(pm, "Glow", POSTER_GLOW, -800, 200), 150), "", MP.MP_EMISSIVE_COLOR)
+        mel.connect_material_property(scalar_param(pm, "Rough", 0.9, -600, 350), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(pm)
+        unreal.EditorAssetLibrary.save_loaded_asset(pm)
+        STATE[nm] = pm
+    # 読むとき用：光らない設定の、見やすい明るさ
+    rm = new_material("M_KDRead")
+    setp(rm, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    t = tex_param(rm, "Tex", ld(T + "paper_kamigari"), -800, 0)
+    mel.connect_material_property(mulx(rm, t, scalar_param(rm, "Brightness", 0.9, -800, -150), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.recompile_material(rm)
+    unreal.EditorAssetLibrary.save_loaded_asset(rm)
+    STATE["M_KDRead"] = rm
+    pin = new_material("M_KDPin")
+    pc_ = xx(pin, unreal.MaterialExpressionConstant3Vector, -600, 0)
+    pc_.set_editor_property("constant", unreal.LinearColor(0.55, 0.04, 0.03, 1.0))
+    mel.connect_material_property(pc_, "", MP.MP_BASE_COLOR)
+    mel.connect_material_property(cst(pin, 0.35, 150), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(pin)
+    unreal.EditorAssetLibrary.save_loaded_asset(pin)
+    STATE["M_KDPin"] = pin
+    log("掲示板の材質を作りました（木・張り紙3種・読む用・画びょう）")
+
+
+def s_board():
+    """入口の前の道ばたに、木の掲示板を立てる。張り紙2枚と、手に取れる新聞（Paper_News）を貼る"""
+    g = STATE["geo"]
+    half_n, _ht = front_half()
+    n = g["n"]
+    th = math.radians(BOARD_TURN)
+    f = (n[0] * math.cos(th) - n[1] * math.sin(th), n[0] * math.sin(th) + n[1] * math.cos(th))       # 掲示板の正面の向き
+    tf = (f[1], -f[0])                                       # 正面を向いたとき、左へ向かう向き
+    cx, cy, _ = g["center"]
+    px = cx + n[0] * (half_n + BOARD_DIST) + g["t"][0] * BOARD_SIDE
+    py = cy + n[1] * (half_n + BOARD_DIST) + g["t"][1] * BOARD_SIDE
+    gz = g["zmin"]
+    yaw = math.degrees(math.atan2(f[1], f[0]))
+    cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
+    sphere = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Sphere")
+    wood = STATE["wood"]
+
+    def at(a, b, z):
+        return (px + f[0] * a + tf[0] * b, py + f[1] * a + tf[1] * b, gz + z)
+
+    def block(label, a, b, z, size, pitch=0.0):
+        act = spawn(unreal.StaticMeshActor, at(a, b, z), (0, pitch, yaw))
+        c = act.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(cube)
+        c.set_material(0, wood)
+        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+        act.set_actor_scale3d(unreal.Vector(size[0] / 100.0, size[1] / 100.0, size[2] / 100.0))
+        tag_actor(act, label)
+        return act
+
+    block("Board_Panel", 0, 0, 130, (4, 220, 120))
+    block("Board_Post_L", -3, 105, 100, (10, 10, 205))
+    block("Board_Post_R", -3, -105, 100, (10, 10, 205))
+    block("Board_Frame_Top", 1, 0, 192, (7, 232, 8))
+    block("Board_Frame_Bottom", 1, 0, 68, (7, 232, 8))
+    block("Board_Frame_L", 1, 112, 130, (7, 8, 128))
+    block("Board_Frame_R", 1, -112, 130, (7, 8, 128))
+    block("Board_Roof", 12, 0, 214, (46, 252, 5), pitch=-9.0)
+    mesh = STATE["poster_mesh"]
+    face = 2.0 + 0.8                                            # 板の表面から少しだけ浮かせる
+    pin = STATE["M_KDPin"]
+    # 板に向かって「右」が -b、「左」が +b
+    items = [("Board_Egetsunai", "M_BoardEgetsunai", 65.0, (0.9, 1.0, 0.9), 2.5),
+             ("Paper_News", "M_PaperKamigari", 0.0, (0.9, 1.0, 0.64), -1.5),
+             ("Board_Camera", "M_BoardCamera", -65.0, (0.9, 1.0, 0.9), -2.0)]
+    for label, mn, b, sc, tilt in items:
+        a = spawn(unreal.StaticMeshActor, at(face, b, 130), (0, tilt, yaw - 90.0))
+        c = a.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(mesh)
+        c.set_material(0, STATE[mn])
+        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+        a.set_actor_scale3d(unreal.Vector(sc[0], sc[1], sc[2]))
+        tag_actor(a, label)
+        top = 130.0 + (35.0 * sc[2] if label != "Paper_News" else 22.0) - 3.0
+        pn = spawn(unreal.StaticMeshActor, at(face + 1.2, b, top), (0, 0, yaw))
+        pc2 = pn.get_component_by_class(unreal.StaticMeshComponent)
+        pc2.set_static_mesh(sphere)
+        pc2.set_material(0, pin)
+        setp(pc2, "mobility", unreal.ComponentMobility.MOVABLE)
+        pn.set_actor_scale3d(unreal.Vector(0.035, 0.035, 0.035))
+        tag_actor(pn, "Board_Pin_" + label)
+    # 読むとき用の板（最初は隠しておく。kd_game.py が目の前に出す）
+    rp = spawn(unreal.StaticMeshActor, g["center"], (0, 0, 0))
+    rc = rp.get_component_by_class(unreal.StaticMeshComponent)
+    rc.set_static_mesh(mesh)
+    rc.set_material(0, STATE["M_KDRead"])
+    setp(rc, "mobility", unreal.ComponentMobility.MOVABLE)
+    try:
+        rc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    except Exception:  # noqa
+        pass
+    tag_actor(rp, "KD_ReadPlane")
+    rp.set_actor_hidden_in_game(True)
+    log("掲示板を立てました: 位置=(%.0f,%.0f) 向き=%.0f度（入口の前 %.0fcm・横 %.0fcm）" % (px, py, yaw, BOARD_DIST, BOARD_SIDE))
+
+
 def main():
     log("=== ゲームのしくみ 準備（買った電話ボックス用） ===")
     apply_settings(SETUP_SETTING_NAMES, log)
@@ -819,6 +1001,9 @@ def main():
     step("張り紙の材質", s_poster_materials, ["張り紙の画像"])
     step("張り紙を貼る", s_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("幽霊（仮）", s_ghost, ["前回の生成物を消す"])
+    step("掲示板の画像", s_board_textures, ["環境確認"])
+    step("掲示板の材質", s_board_materials, ["掲示板の画像"])
+    step("掲示板", s_board, ["掲示板の材質", "張り紙の板", "前回の生成物を消す"])
     if NIGHT_MODE:
         step("夜にする", s_night, ["前回の生成物を消す"])
     step("保存", s_save, ["環境確認"])

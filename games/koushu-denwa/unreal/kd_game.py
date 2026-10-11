@@ -37,6 +37,9 @@ DARK_TIME = 1.4              # 暗転の長さ
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
 ENTER_KEY = "E"                # 電話ボックスに入るキー（買った電話ボックス用：入口のドアは動かさず、暗転と音で入る）
+READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
+READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
+READ_DIST = 45.0               # 新聞を、目からこの距離（cm）に出す
 ENTER_RANGE = 260.0            # 入口の前のこの距離（cm）まで近づくと「Eで入る」が出る
 ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
 ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
@@ -95,6 +98,9 @@ SETTINGS_DESCR = {
     "ENTER_RANGE": "入口の前の、E で入れる距離（cm）",
     "ENTER_FADE_OUT": "E を押してから暗くなるまでの秒数",
     "ENTER_BLACK": "暗いまま待つ秒数（この間にドアの音が鳴る）",
+    "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
+    "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
+    "READ_DIST": "手に取った新聞を、目からどれだけ離すか（cm）",
     "ENTER_FADE_IN": "明るくなるまでの秒数",
     "FLICKER_TIME": "点滅の長さ（秒）",
     "DARK_TIME": "暗転の長さ（秒）",
@@ -196,7 +202,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -308,6 +314,9 @@ class Game:
                     log("  (材質を動かせません) %s[%d]: %s" % (nm, i, e))
         self.posters = sorted([(k, v) for k, v in found.items() if k.startswith("Poster_") and k not in ("Poster_Hint", "Poster_Eye")], key=lambda kv: kv[0])
         self.hint = found.get("Poster_Hint")
+        self.news = found.get("Paper_News")                  # 掲示板の新聞（手に取って読める）
+        self.read_plane = found.get("KD_ReadPlane")
+        self.reading = False
         self.eye = found.get("Poster_Eye")
         for _k, a in self.posters + [("e", self.eye)]:
             if a is not None:
@@ -478,8 +487,11 @@ class Game:
         if not self.is_char and abs(loc.z - EYE_HEIGHT) > 0.5:
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, EYE_HEIGHT), False, False)
         self.update_flashlight()
-        if self.state == "WALK" and self.hinge is None:
+        if self.state == "READING":
+            self.tick_reading()
+        elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
+            self.tick_news(loc)
         elif self.state == "ENTERING":
             self.tick_entering(dt)
         elif self.state == "WALK":
@@ -537,6 +549,76 @@ class Game:
                     self.begin_enter()
             except Exception as e:  # noqa
                 log("  (Eキーを読めません) %s" % e)
+
+    def eye_info(self):
+        """目の位置と、いま見ている向き（まっすぐ水平にした向き）"""
+        rot = self.pc.get_control_rotation()
+        try:
+            eye = self.pc.player_camera_manager.get_camera_location()
+        except Exception:  # noqa
+            eye = self.pawn.get_actor_location()
+        return eye, rot
+
+    def tick_news(self, loc):
+        if self.news is None or self.read_plane is None:
+            return
+        np_ = self.news.get_actor_location()
+        dx, dy = np_.x - loc.x, np_.y - loc.y
+        dist = math.hypot(dx, dy)
+        if dist > READ_RANGE:
+            return
+        fwd = unreal.MathLibrary.get_forward_vector(self.pc.get_control_rotation())
+        fl = math.hypot(fwd.x, fwd.y) or 1.0
+        if (fwd.x * dx + fwd.y * dy) / (fl * (dist or 1.0)) < 0.8:          # だいたい新聞のほうを向いているときだけ
+            return
+        if int(self.t * 4) != getattr(self, "_prompt_k2", -1):
+            self._prompt_k2 = int(self.t * 4)
+            try:
+                unreal.SystemLibrary.print_string(self.world, "[%s] 新聞を手に取る" % ENTER_KEY, True, False, unreal.LinearColor(1, 1, 0.6, 1), 0.4, "KD_PROMPT2")
+            except Exception:  # noqa
+                pass
+        try:
+            if self.pc.was_input_key_just_pressed(self.key_e):
+                self.begin_read()
+        except Exception as e:  # noqa
+            log("  (Eキーを読めません) %s" % e)
+
+    def begin_read(self):
+        """新聞を目の前に出す。歩く・見回すを止めて、Eでとじる"""
+        eye, rot = self.eye_info()
+        yaw = rot.yaw
+        try:
+            self.pc.set_control_rotation(unreal.Rotator(0, 0, yaw))                 # 見る向きを水平にして、紙が正面に見えるように
+        except Exception:  # noqa
+            pass
+        th = math.radians(yaw)
+        loc = unreal.Vector(eye.x + math.cos(th) * READ_DIST, eye.y + math.sin(th) * READ_DIST, eye.z)
+        self.read_plane.set_actor_location(loc, False, False)
+        self.read_plane.set_actor_rotation(unreal.Rotator(0, 0, yaw + 90.0), False)
+        self.read_plane.set_actor_scale3d(unreal.Vector(READ_SIZE / 50.0, 1.0, READ_SIZE / 70.0))
+        self.read_plane.set_actor_hidden_in_game(False)
+        for fn in ("set_ignore_move_input", "set_ignore_look_input"):
+            try:
+                getattr(self.pc, fn)(True)
+            except Exception as e:  # noqa
+                log("  (%s できません) %s" % (fn, e))
+        self.state, self.state_t = "READING", 0.0
+        screen(self.world, "[%s] とじる" % ENTER_KEY, (255, 255, 200), 3.0)
+        log("新聞を手に取りました（目の前 %.0fcm・大きさ %.0fcm）" % (READ_DIST, READ_SIZE))
+
+    def tick_reading(self):
+        try:
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_e):
+                self.read_plane.set_actor_hidden_in_game(True)
+                for fn in ("set_ignore_move_input", "set_ignore_look_input"):
+                    try:
+                        getattr(self.pc, fn)(False)
+                    except Exception:  # noqa
+                        pass
+                self.state, self.state_t = "WALK", 0.0
+                log("新聞をもとに戻しました")
+        except Exception as e:  # noqa
+            log("  (Eキーを読めません) %s" % e)
 
     def begin_enter(self):
         self.state, self.state_t = "ENTERING", 0.0
