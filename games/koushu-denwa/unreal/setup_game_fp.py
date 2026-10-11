@@ -36,6 +36,7 @@ FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
+KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
 BOARD_TURN = 25.0                    # 掲示板を、入口の向きから何度まわして、道のほうへ向けるか
@@ -90,6 +91,7 @@ SETTINGS_DESCR = {
     "FLASH_OUTER": "懐中電灯の、外側の角度",
     "FLASH_RADIUS": "懐中電灯の光が届く距離（cm）",
     "TUBE_Z_FROM_TOP": "蛍光灯を、天井の上端から何cm下に付けるか",
+    "KEEP_HAND_PLACEMENT": "true: 掲示板・張り紙を手で動かした位置を、準備をやり直しても残す。false: 数字の位置に作り直す",
     "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
     "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
     "BOARD_TURN": "掲示板を、道の方へ何度まわして向けるか",
@@ -171,7 +173,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "KEEP_HAND_PLACEMENT", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -249,12 +251,22 @@ def spawn(cls, loc, rot=(0, 0, 0)):
     return eas().spawn_actor_from_class(cls, unreal.Vector(*loc), unreal.Rotator(*rot))
 
 
+KEEP_POSE = {}                       # ひかるが手で動かした、掲示板・張り紙の位置と向き（作り直しても、そのまま使う）
+KEEP_PREFIX = ("Board_", "Paper_News", "Poster_")
+
+
 def tag_actor(a, label):
     try:
         a.set_editor_property("tags", [unreal.Name(TAG)])
     except Exception as e:  # noqa
         log("  (タグ設定不可) %s" % e)
     a.set_actor_label(label)
+    if KEEP_HAND_PLACEMENT and label in KEEP_POSE:
+        try:
+            loc, rot = KEEP_POSE[label]
+            a.set_actor_location_and_rotation(loc, rot, False, False)
+        except Exception as e:  # noqa
+            log("  (手で動かした位置を戻せません) %s: %s" % (label, e))
 
 
 KEEP_TUBE = {}
@@ -263,6 +275,12 @@ KEEP_TUBE = {}
 def s_clear():
     n = 0
     for a in eas().get_all_level_actors():
+        try:
+            lab = a.get_actor_label()
+            if lab.startswith(KEEP_PREFIX) and TAG in [str(t) for t in a.get_editor_property("tags")]:
+                KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
+        except Exception:  # noqa
+            pass
         try:
             if a.get_actor_label() in ("TubeLight_L", "TubeLight_R"):
                 KEEP_TUBE[a.get_actor_label()] = a.get_component_by_class(unreal.RectLightComponent).get_editor_property("intensity")
