@@ -40,6 +40,7 @@ BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の�
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
 BOARD_TURN = 25.0                    # 掲示板を、入口の向きから何度まわして、道のほうへ向けるか
 PAPER_WIND_AMP = 1.6                 # 紙が風でゆれる大きさ（cm）。0 でゆれない。下のふちほど大きくゆれる
+PAPER_WIND_MATERIAL = False          # True: 紙の材質に、頂点をゆらす仕組みを付ける（まだ実験中。材質が壊れて市松もようになったら False に）
 PAPER_WIND_SPEED = 0.35              # ゆれる速さ（1秒に何回ゆれるか）
 TUBE_Z_FROM_TOP = 40.0               # 蛍光灯を、天井の上端から何cm 下に付けるか
 # --------------------------------------------------
@@ -92,6 +93,7 @@ SETTINGS_DESCR = {
     "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
     "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
     "BOARD_TURN": "掲示板を、道の方へ何度まわして向けるか",
+    "PAPER_WIND_MATERIAL": "実験中。true で紙の材質の頂点をゆらす（壊れることがある）。ふだんは false（紙のゆれは kd_game.py が付ける）",
     "PAPER_WIND_AMP": "掲示板の紙が風でゆれる大きさ（cm）。0 でゆれない",
     "PAPER_WIND_SPEED": "紙がゆれる速さ（1秒に何回）",
     "REPLACE_GLASS_MATERIAL": "null=さわらない（初期値）。true で、買ったガラスの材質を M_KDGlass に替える。false で買ったまま",
@@ -169,7 +171,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -896,6 +898,8 @@ def add_wind(m, amp, speed, x0=-1500, y0=700):
 
 
 def safe_wind(m, amp, speed):
+    if not PAPER_WIND_MATERIAL:
+        return
     try:
         add_wind(m, amp, speed)
     except Exception as ex:  # noqa
@@ -941,6 +945,10 @@ def s_board_materials():
         safe_wind(pm, PAPER_WIND_AMP, PAPER_WIND_SPEED)
         mel.recompile_material(pm)
         unreal.EditorAssetLibrary.save_loaded_asset(pm)
+        try:
+            log("  材質 %s: 画像=%s" % (nm, t.get_editor_property("texture").get_name()))
+        except Exception as ex:  # noqa
+            log("  材質 %s: 画像が入っていません！ %s" % (nm, ex))
         STATE[nm] = pm
     # 読むとき用：光らない設定の、見やすい明るさ
     rm = new_material("M_KDRead")

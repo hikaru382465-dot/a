@@ -37,6 +37,8 @@ DARK_TIME = 1.4              # 暗転の長さ
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
 ENTER_KEY = "E"                # 電話ボックスに入るキー（買った電話ボックス用：入口のドアは動かさず、暗転と音で入る）
+SWAY_DEG = 3.0                 # 掲示板の紙が風でゆれる角度（度）。0 でゆれない。上の画びょうを軸に、下がゆれる
+SWAY_SPEED = 0.35              # ゆれる速さ（1秒に何回）
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
 READ_DIST = 45.0               # 新聞を、目からこの距離（cm）に出す
@@ -98,6 +100,8 @@ SETTINGS_DESCR = {
     "ENTER_RANGE": "入口の前の、E で入れる距離（cm）",
     "ENTER_FADE_OUT": "E を押してから暗くなるまでの秒数",
     "ENTER_BLACK": "暗いまま待つ秒数（この間にドアの音が鳴る）",
+    "SWAY_DEG": "掲示板の紙が風でゆれる角度（度）。0 でゆれない",
+    "SWAY_SPEED": "紙がゆれる速さ（1秒に何回）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
     "READ_DIST": "手に取った新聞を、目からどれだけ離すか（cm）",
@@ -202,7 +206,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -316,6 +320,17 @@ class Game:
         self.hint = found.get("Poster_Hint")
         self.news = found.get("Paper_News")                  # 掲示板の新聞（手に取って読める）
         self.read_plane = found.get("KD_ReadPlane")
+        self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
+        for i, nm in enumerate(("Board_Egetsunai", "Paper_News", "Board_Camera")):
+            a = found.get(nm)
+            if a is None:
+                continue
+            try:
+                loc, rot = a.get_actor_location(), a.get_actor_rotation()
+                top0 = unreal.MathLibrary.transform_location(unreal.Transform(loc, rot, a.get_actor_scale3d()), unreal.Vector(0, 0, 35.0))
+                self.sway.append((a, loc, rot, top0, i * 2.1))
+            except Exception as e:  # noqa
+                log("  (紙のゆれを準備できません) %s: %s" % (nm, e))
         self.reading = False
         self.eye = found.get("Poster_Eye")
         for _k, a in self.posters + [("e", self.eye)]:
@@ -487,6 +502,7 @@ class Game:
         if not self.is_char and abs(loc.z - EYE_HEIGHT) > 0.5:
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, EYE_HEIGHT), False, False)
         self.update_flashlight()
+        self.tick_sway()
         if self.state == "READING":
             self.tick_reading()
         elif self.state == "WALK" and self.hinge is None:
@@ -549,6 +565,22 @@ class Game:
                     self.begin_enter()
             except Exception as e:  # noqa
                 log("  (Eキーを読めません) %s" % e)
+
+    def tick_sway(self):
+        if SWAY_DEG <= 0.0 or not self.sway:
+            return
+        for a, loc, rot, top0, ph in self.sway:
+            w = 2.0 * math.pi * SWAY_SPEED * self.t + ph
+            th = SWAY_DEG * (math.sin(w) + 0.4 * math.sin(2.3 * w + 0.7))
+            try:
+                nr = unreal.Rotator(rot.roll + th, rot.pitch, rot.yaw)
+                top1 = unreal.MathLibrary.transform_location(unreal.Transform(loc, nr, a.get_actor_scale3d()), unreal.Vector(0, 0, 35.0))
+                nl = unreal.Vector(loc.x + top0.x - top1.x, loc.y + top0.y - top1.y, loc.z + top0.z - top1.z)     # 上のふちが動かないように、位置を直す
+                a.set_actor_location_and_rotation(nl, nr, False, False)
+            except Exception as e:  # noqa
+                log("  (紙のゆれを止めます) %s" % e)
+                self.sway = []
+                return
 
     def eye_info(self):
         """目の位置と、いま見ている向き（まっすぐ水平にした向き）"""
