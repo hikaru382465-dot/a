@@ -25,7 +25,7 @@ window.RAFT.parts.drift = function (c) {
     g.putImageData(new ImageData(o, 12, 12), 0, 0); return cv; };
   // ひかるの漂流物の絵（items.js）。読み込めるまでは、プログラムで描いた小さい絵を使う
   const IA = R.itemArt, OAr = R.objArt, artCv = {}, cache = {};
-  const load = (k, list) => { artCv[k] = list.map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; cv.ppu = f.ppu || 90; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; }); };
+  const load = (k, list) => { artCv[k] = list.map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; cv.ppu = f.ppu || 90; cv.tip = f.tip; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; }); };
   if (IA) for (const k in IA.art) load(k, IA.art[k]);
   if (OAr) { for (const k in OAr.icons) load(k, OAr.icons[k]); load('bench', OAr.bench); load('tank', [OAr.tank[3]]); load('filter', [OAr.filter[0]]); }   // 新しい絵で、前のをおきかえる
   const artOf = (k, v) => { const a = artCv[k]; if (!a) return null; const cv = a[(v || 0) % a.length]; return cv.ok ? cv : null; };
@@ -72,7 +72,7 @@ window.RAFT.parts.drift = function (c) {
   // 釣りの動き：ざおをふる／ひいたら「！」／釣れた物がとんでくる／水しぶき
   const bangCv = (() => { const [cv, g] = I.canvas(7, 13); I.rect(g, 0, 0, 7, 13, '#fff1e0'); I.rect(g, 1, 1, 5, 7, '#ff2020'); I.rect(g, 1, 10, 5, 2, '#ff2020'); return cv; })();
   const bang = c.sprite(bangCv, { x: 0, y: 0, z: 0, ppu: 50 }); bang.visible = false; group.add(bang);
-  let rodM = null, rodMk = false, fxLast = s.reelFx ? s.reelFx.id : 0, flyFx = null, wasRod = null, castT = 9, reelT = 9;
+  let bobY = 0, rodM = null, rodB = null, rodTip = null, fxLast = s.reelFx ? s.reelFx.id : 0, flyFx = null, wasRod = null, castT = 9, reelT = 9;
   const splashRing = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, color: new THREE.Color(1.3, 1.5, 1.7) })); splashRing.visible = false; scene.add(splashRing);
   const beatM = new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, depthTest: false, color: new THREE.Color(2, 0.5, 0.4) });
   const beat = new THREE.Mesh(flat, beatM); beat.visible = false; beat.renderOrder = 4; scene.add(beat);
@@ -122,12 +122,15 @@ window.RAFT.parts.drift = function (c) {
     if (rd) {
       const dip = rd.phase === 'bite' ? -0.1 - Math.abs(Math.sin(t * 20)) * 0.05 : Math.sin(t * 2.4) * 0.02;
       bob.position.set(rd.x, 0.08 + dip, rd.z);
-      setLine(lineRod, b.x, 0.7, b.z, rd.x, 0.12 + dip, rd.z);
+      bobY = 0.12 + dip;
     }
     // ざお（手にもっている間）
-    if (!rodM && artOf('rod', 0)) { rodM = c.sprite(artOf('rod', 0), { x: 0, y: 0, z: 0, ppu: artOf('rod', 0).ppu * 0.5 }); rodM.rotation.order = 'YXZ'; rodM.rotation.y = c.cam.yaw; group.add(rodM); }
+    if (!rodM && artOf('rod', 0) && artOf('rodBody', 0)) {
+      const mkr = k => { const cv = artOf(k, 0), m = c.sprite(cv, { x: 0, y: 0, z: 0, ppu: cv.ppu }); m.rotation.order = 'YXZ'; m.rotation.y = c.cam.yaw; m.visible = false; group.add(m); return m; };
+      rodM = mkr('rod'); rodB = mkr('rodBody');
+    }
     if (rodM) {
-      rodM.visible = s.hand === 'rod';
+      rodM.visible = s.hand === 'rod' && !rd; rodB.visible = s.hand === 'rod' && !!rd;
       if (rd && !wasRod) { castT = 0; splashT = 0; splashAt = [rd.x, rd.z]; }
       if (!rd && wasRod) { reelT = 0; splashT = 0; splashAt = [wasRod.x, wasRod.z]; }
       wasRod = rd ? { x: rd.x, z: rd.z } : null; castT += dt; reelT += dt;
@@ -135,8 +138,15 @@ window.RAFT.parts.drift = function (c) {
       if (castT < 0.45) ang = -0.1 + Math.sin(Math.min(1, castT / 0.45) * Math.PI) * 1.2 - (castT / 0.45) * 0.5;   // 後ろにふりかぶって、前へ投げる
       else if (reelT < 0.5) ang = -0.1 + Math.sin(Math.min(1, reelT / 0.5) * Math.PI) * 0.9;                      // 引き上げる
       else if (rd) ang = -0.25 + (rd.phase === 'bite' ? Math.sin(t * 40) * 0.14 : Math.sin(t * 1.5) * 0.03);
-      rodM.rotation.z = -ang; rodM.position.set(b.x + 0.28, 0.4, b.z + 0.1);
+      rodM.rotation.z = rodB.rotation.z = -ang; rodM.position.set(b.x + 0.4, 0.4, b.z - 0.05); rodB.position.copy(rodM.position);
+      rodTip = null;
+      if (rodB.visible) {      // 糸は、ざおの先から出す
+        const cv = artOf('rodBody', 0), pc = Math.cos(c.cam.pitch), lx = (cv.tip[0] - cv.width / 2) / cv.ppu, ly = (cv.height - cv.tip[1]) / cv.ppu / pc, rz = -ang;
+        const px = lx * Math.cos(rz) - ly * Math.sin(rz), py = lx * Math.sin(rz) + ly * Math.cos(rz);
+        rodTip = [rodB.position.x + camRight.x * px, rodB.position.y + py, rodB.position.z + camRight.z * px];
+      }
     }
+    if (rd) { const tp = rodTip || [b.x, 0.7, b.z]; setLine(lineRod, tp[0], tp[1], tp[2], rd.x, bobY, rd.z); }
     beat.visible = beatT.visible = !!rd && rd.phase === 'bite';
     if (beat.visible) { const k = rd.t / R.data.ROD.bite; beat.position.set(rd.x, 0.1, rd.z); beatT.position.set(rd.x, 0.1, rd.z); const sc = 0.5 + Math.max(0, R.data.ROD.great[0] - k) * 3.2 + Math.max(0, k - R.data.ROD.great[0]) * 1.2; beat.scale.set(sc, 1, sc); }
     bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.material.depthTest = false; bang.renderOrder = 5; bang.position.set(b.x, 1.4 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);

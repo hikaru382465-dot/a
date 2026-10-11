@@ -95,3 +95,54 @@ out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_l
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
     bg = Image.new('RGBA', (im.width * 6, im.height * 6), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 6, im.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/o_{n}.png')
+
+# ---- 新しい釣りざお（ひかるの絵：糸とウキつき）。art/items/rod2.png から切り出す ----
+def make_rod():
+    src = here.parent / 'art' / 'items' / 'rod2.png'
+    if not src.exists(): return
+    im = Image.open(src).convert('RGB'); a = np.array(im).astype(int); luma = a.sum(axis=2) / 3
+    X0, Y0, X1, Y1 = 365, 80, 605, 430
+    fg = (luma < 205)[Y0:Y1, X0:X1]; h, w = fg.shape
+    def grow(m, n=1):
+        for _ in range(n): m = m | np.roll(m, 1, 0) | np.roll(m, -1, 0) | np.roll(m, 1, 1) | np.roll(m, -1, 1)
+        return m
+    def shrink_(m, n=1):
+        for _ in range(n): m = m & np.roll(m, 1, 0) & np.roll(m, -1, 0) & np.roll(m, 1, 1) & np.roll(m, -1, 1)
+        return m
+    d = grow(fg, 2); lab = np.zeros((h, w), int); best = (0, 0); n = 0
+    for y in range(h):
+        for x in range(w):
+            if d[y, x] and not lab[y, x] and y < 330 - 0:
+                n += 1; lab[y, x] = n; q = deque([(y, x)]); cnt = 0
+                while q:
+                    cy, cx = q.popleft(); cnt += 1
+                    for dy in (-1, 0, 1):
+                        for dx in (-1, 0, 1):
+                            Y, X = cy + dy, cx + dx
+                            if 0 <= Y < h and 0 <= X < w and d[Y, X] and not lab[Y, X]: lab[Y, X] = n; q.append((Y, X))
+                if cnt > best[0]: best = (cnt, n)
+    full = fg & (lab == best[1]); full = shrink_(grow(full, 3), 3)        # すきまをうめる
+    full = grow(full & grow(full, 0), 0)
+    body = full.copy()
+    rgb = np.array(im)[Y0:Y1, X0:X1]
+    def pack(mask, th):
+        rgba = np.dstack([rgb, (mask * 255).astype(np.uint8)]); img = Image.fromarray(rgba, 'RGBA'); bb = img.getchannel('A').getbbox()
+        return img, bb
+    imf, bb = pack(full, 0); imb, _ = pack(body, 0)
+    imf = imf.crop(bb); imb = imb.crop(bb)
+    H = 52; sc = H / imf.height
+    def fin(img):
+        img = img.resize((max(1, round(img.width * sc)), H), Image.BOX); al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 90) * 255).astype(np.uint8)))
+        q = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q.putalpha(img.getchannel('A')); return q
+    ff, fb = fin(imf), fin(imb)
+    ab = np.array(fb); ab[14:, 21:, 3] = 0; ab[9:14, 29:, 3] = 0; fb = Image.fromarray(ab, 'RGBA')      # ウキと糸だけ消す（投げたあとは、水の中のウキを使う）
+    # ざおの先（いちばん上の、いちばん右）を、絵の中の位置で出す
+    aa = np.array(fb.getchannel('A')); ys, xs = np.nonzero(aa); top = int(ys.min()); tx = int(xs[ys <= top + 1].max())
+    for nme, img in (('rod', ff), ('rodBody', fb)):
+        bg = Image.new('RGBA', (img.width * 6, img.height * 6), (40, 90, 120, 255)); bg.alpha_composite(img.resize((img.width * 6, img.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/rod_{nme}.png')
+    ea, eb = entry(ff), entry(fb); ea['ppu'] = eb['ppu'] = 72; eb['tip'] = [tx + 0.5, top]
+    return {'rod': [ea], 'rodBody': [eb]}, (ff.size, fb.size, tx, top)
+r = make_rod()
+if r:
+    out['icons'].update(r[0]); print('rod', r[1])
+    (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
