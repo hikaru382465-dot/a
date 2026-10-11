@@ -37,6 +37,7 @@ POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の�
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
+BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
 BOARD_TURN = 25.0                    # 掲示板を、入口の向きから何度まわして、道のほうへ向けるか
@@ -92,6 +93,7 @@ SETTINGS_DESCR = {
     "FLASH_RADIUS": "懐中電灯の光が届く距離（cm）",
     "TUBE_Z_FROM_TOP": "蛍光灯を、天井の上端から何cm下に付けるか",
     "KEEP_HAND_PLACEMENT": "true: 掲示板・張り紙を手で動かした位置を、準備をやり直しても残す。false: 数字の位置に作り直す",
+    "BOARD_SCALE": "掲示板の大きさの倍率（1.0 で横264×高さ245cm）。大きいと感じたら小さく",
     "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
     "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
     "BOARD_TURN": "掲示板を、道の方へ何度まわして向けるか",
@@ -173,7 +175,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "KEEP_HAND_PLACEMENT", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -1056,6 +1058,7 @@ def s_board():
     bm = spawn(unreal.StaticMeshActor, (px, py, gz), (0, 0, yaw - 90.0))
     bc = bm.get_component_by_class(unreal.StaticMeshComponent)
     bc.set_static_mesh(board_mesh)
+    bm.set_actor_scale3d(unreal.Vector(BOARD_SCALE, BOARD_SCALE, BOARD_SCALE))
     bc.set_material(0, STATE["wood"])
     bc.set_material(1, STATE["M_KDMetal"])
     setp(bc, "mobility", unreal.ComponentMobility.MOVABLE)
@@ -1065,27 +1068,28 @@ def s_board():
         return (px + f[0] * a + tf[0] * b, py + f[1] * a + tf[1] * b, gz + z)
 
     mesh = STATE["poster_mesh"]
-    face = 2.0 + 0.8                                            # 板の表面から少しだけ浮かせる
+    S = BOARD_SCALE
+    face = (2.0 + 0.8) * S                                      # 板の表面から少しだけ浮かせる
     pin = STATE["M_KDPin"]
     # 板に向かって「右」が -b、「左」が +b
-    items = [("Board_Egetsunai", "M_BoardEgetsunai", 65.0, (0.9, 1.0, 0.9), 2.5),
-             ("Paper_News", "M_PaperKamigari", 0.0, (0.9, 1.0, 0.64), -1.5),
-             ("Board_Camera", "M_BoardCamera", -65.0, (0.9, 1.0, 0.9), -2.0)]
+    items = [("Board_Egetsunai", "M_BoardEgetsunai", 65.0 * S, (0.9 * S, 1.0, 0.9 * S), 2.5),
+             ("Paper_News", "M_PaperKamigari", 0.0, (0.9 * S, 1.0, 0.64 * S), -1.5),
+             ("Board_Camera", "M_BoardCamera", -65.0 * S, (0.9 * S, 1.0, 0.9 * S), -2.0)]
     for label, mn, b, sc, tilt in items:
-        a = spawn(unreal.StaticMeshActor, at(face, b, 130), (0, tilt, yaw - 90.0))
+        a = spawn(unreal.StaticMeshActor, at(face, b, 130.0 * S), (0, tilt, yaw - 90.0))
         c = a.get_component_by_class(unreal.StaticMeshComponent)
         c.set_static_mesh(mesh)
         c.set_material(0, STATE[mn])
         setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
         a.set_actor_scale3d(unreal.Vector(sc[0], sc[1], sc[2]))
         tag_actor(a, label)
-        top = 130.0 + (35.0 * sc[2] if label != "Paper_News" else 22.0) - 3.0
-        pn = spawn(unreal.StaticMeshActor, at(face + 1.2, b, top), (0, 0, yaw))
+        top = 130.0 * S + 35.0 * sc[2] - 3.0 * S
+        pn = spawn(unreal.StaticMeshActor, at(face + 1.2 * S, b, top), (0, 0, yaw))
         pc2 = pn.get_component_by_class(unreal.StaticMeshComponent)
         pc2.set_static_mesh(sphere)
         pc2.set_material(0, pin)
         setp(pc2, "mobility", unreal.ComponentMobility.MOVABLE)
-        pn.set_actor_scale3d(unreal.Vector(0.035, 0.035, 0.035))
+        pn.set_actor_scale3d(unreal.Vector(0.035 * S, 0.035 * S, 0.035 * S))
         tag_actor(pn, "Board_Pin_" + label)
     # 読むとき用の板（最初は隠しておく。kd_game.py が目の前に出す）
     rp = spawn(unreal.StaticMeshActor, g["center"], (0, 0, 0))
