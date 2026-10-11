@@ -56,6 +56,7 @@ DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の�
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 FLASH_INSIDE = 0.12          # 閉じ込められたあと、懐中電灯の明るさを、外にいたときの何倍にするか（中は狭くてまぶしいので小さく）
 TUBE_SCALE = 1.0             # 蛍光灯の光の強さの倍率（明るすぎるときは小さくする）
+IDLE_DIP = 1.0              # 静かな間に、ときどき光がゆれるときの弱さ（1.0 でゆれない）
 TUBE_GLOW = 0.5              # 蛍光灯の「光る見た目」の強さの倍率
 GLASS_DIRT = 0.25            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
 FLICKER_BLACK = 0.88         # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
@@ -84,6 +85,7 @@ def screen(world, msg, color=(255, 255, 255), t=3.0):
 SETTINGS_DESCR = {
     "FLASH_INSIDE": "閉じ込められたあとの懐中電灯の明るさ（外にいたときの何倍か）。明るすぎたら小さく",
     "TUBE_SCALE": "蛍光灯の光の強さの倍率。明るすぎたら小さく",
+    "IDLE_DIP": "静かな間（7秒に一度）光がゆれる弱さ。1.0 にするとゆれない",
     "TUBE_GLOW": "蛍光灯の「光る見た目」の倍率",
     "FLICKER_BLACK": "点滅の「消えた」瞬間に画面を黒くする割合（0〜1）。点滅が暗くならないなら大きく",
     "DARK_BLACK": "暗転のあいだに画面を黒くする割合（0〜1）",
@@ -194,7 +196,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -286,6 +288,7 @@ class Game:
                     pass
         # 蛍光灯の光る部分（材質 M_Tube の Flicker）とガラス（M_Glass の Dirt）を、動かせる材質にする
         self.tube_mats = []
+        self.tube_bars = [found.get(n) for n in ("KD_Tube_L", "KD_Tube_R") if found.get(n) is not None]
         for nm, a in found.items():
             if not (nm.startswith("Booth_") or nm.startswith("KD_Tube") or "phone_box" in nm.lower()):
                 continue
@@ -391,6 +394,11 @@ class Game:
             c.set_editor_property("intensity", base * mult)
         for mid in self.tube_mats:
             mid.set_scalar_parameter_value("Flicker", mult * TUBE_GLOW)          # 蛍光灯の見た目も、光といっしょにちらつく
+        for bar in self.tube_bars:                                              # 消えたときは、光る棒そのものも隠す（材質が残り光るのを防ぐ）
+            try:
+                bar.set_actor_hidden_in_game(mult < 0.05)
+            except Exception:  # noqa
+                pass
         part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
         for kind, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if kind == "world" else mult))
@@ -737,7 +745,7 @@ class Game:
         except Exception:  # noqa
             pass
         if self.step_i >= len(self.steps):                    # 演出がない間：静か（ときどき光がゆれる）
-            self.set_lights(1.0 if self.t % 7.0 > 0.3 else 0.35)
+            self.set_lights(1.0 if self.t % 7.0 > 0.3 else IDLE_DIP)
             self.pressure_t += dt
             if self.pressure_t >= PRESSURE_INTERVAL:
                 self.pressure_t = 0.0
@@ -746,7 +754,7 @@ class Game:
         self.step_t += dt
         typ, ln, _en, _ex = self.steps[self.step_i]
         if typ in ("idle", "posters"):
-            self.set_lights(1.0 if self.t % 7.0 > 0.3 else 0.35)     # ときどきすこし弱まる
+            self.set_lights(1.0 if self.t % 7.0 > 0.3 else IDLE_DIP)     # ときどきすこし弱まる
             if typ == "posters":
                 self.poster_progress(self.step_t)
         elif typ == "flicker":
