@@ -1002,11 +1002,7 @@ def s_board_materials():
     log("掲示板の材質を作りました（木・張り紙3種・読む用・画びょう）")
 
 
-def import_board():
-    """掲示板のモデル（Blender で作った BulletinBoard.fbx）を取り込む。メートル→cm のため 100 倍"""
-    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "BulletinBoard.fbx")
-    if not os.path.exists(fbx):
-        raise RuntimeError("BulletinBoard.fbx がありません: %s" % fbx)
+def import_board_once(fbx, scale):
     ui = unreal.FbxImportUI()
     setp(ui, "import_mesh", True)
     setp(ui, "import_as_skeletal", False)
@@ -1018,7 +1014,7 @@ def import_board():
     setp(d, "combine_meshes", True)
     setp(d, "auto_generate_collision", True)
     setp(d, "transform_vertex_to_absolute", True)
-    setp(d, "import_uniform_scale", 100.0)
+    setp(d, "import_uniform_scale", float(scale))
     import_tasks([mk_task(fbx, GAME_DIR + "/Board", fbx_ui=ui)])
     mesh = None
     for p in unreal.EditorAssetLibrary.list_assets(GAME_DIR + "/Board", recursive=True, include_folder=False):
@@ -1027,8 +1023,22 @@ def import_board():
             mesh = a
     if mesh is None:
         raise RuntimeError("掲示板のメッシュが見つかりません")
-    e = mesh.get_bounds().box_extent
-    log("掲示板モデルの大きさ: %.0f × %.0f × %.0f cm（約 264 × 75 × 245 が正常）" % (e.x * 2, e.y * 2, e.z * 2))
+    return mesh, mesh.get_bounds().box_extent
+
+
+def import_board():
+    """掲示板のモデル（Blender で作った BulletinBoard.fbx）を取り込む。いちばん長い辺（横）が 264cm になるように、取り込み後の大きさを測って合わせる"""
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "BulletinBoard.fbx")
+    if not os.path.exists(fbx):
+        raise RuntimeError("BulletinBoard.fbx がありません: %s" % fbx)
+    scale = 100.0
+    mesh, e = import_board_once(fbx, scale)
+    big = max(e.x, e.y, e.z) * 2.0
+    log("掲示板モデルの大きさ（取り込み直後）: %.0f × %.0f × %.0f cm（最長 264 が正常）" % (e.x * 2, e.y * 2, e.z * 2))
+    if big > 0.0 and abs(big - 264.0) > 20.0:
+        scale = scale * 264.0 / big
+        mesh, e = import_board_once(fbx, scale)
+        log("掲示板モデルを、倍率 %.3f で取り込み直しました: %.0f × %.0f × %.0f cm" % (scale, e.x * 2, e.y * 2, e.z * 2))
     return mesh
 
 
