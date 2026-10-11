@@ -101,6 +101,8 @@ class Game:
         self.errors = 0
         self.mult = 1.0           # 蛍光灯の明るさの倍率
         self.door_yaw = DOOR_OPEN_YAW
+        self.door_base = 0.0
+        self.front_yaw = 0.0
         self.setup()
 
     # ---- Play のはじめに1回だけ：参照を集める ----
@@ -109,6 +111,8 @@ class Game:
         for a in unreal.GameplayStatics.get_all_actors_of_class(self.world, unreal.Actor):
             found[label_of(a)] = a
         self.hinge = found.get("DoorHinge")
+        if self.hinge is not None:
+            self.door_base = self.hinge.get_actor_rotation().yaw      # 閉じているときの向き（買った電話ボックスでは 0 ではない）
         self.flash = found.get("Flashlight")
         self.frame = found.get("PhoneBooth_Booth_Frame") or next((v for k, v in found.items() if k.endswith("Booth_Frame")), None)
         self.tubes = []
@@ -121,7 +125,7 @@ class Game:
             self.tubes.append((c, base))
         # 電話機にあててある SpotLight、月、空も、いっしょに暗くする
         self.extra = []
-        for nm, cls in (("SpotLight", unreal.SpotLightComponent), ("Moon", unreal.DirectionalLightComponent), ("SkyLight", unreal.SkyLightComponent)):
+        for nm, cls in (("SpotLight", unreal.SpotLightComponent), ("Moon", unreal.DirectionalLightComponent), ("DirectionalLight", unreal.DirectionalLightComponent), ("SkyLight", unreal.SkyLightComponent)):
             a = found.get(nm)
             if a is None:
                 continue
@@ -131,7 +135,7 @@ class Game:
         # 蛍光灯の光る部分（材質 M_Tube の Flicker）とガラス（M_Glass の Dirt）を、動かせる材質にする
         self.tube_mats = []
         for nm, a in found.items():
-            if not nm.startswith("Booth_"):
+            if not (nm.startswith("Booth_") or nm.startswith("KD_Tube")):
                 continue
             comp = a.get_component_by_class(unreal.StaticMeshComponent)
             if comp is None:
@@ -163,12 +167,20 @@ class Game:
         self.pc = unreal.GameplayStatics.get_player_controller(self.world, 0)
         self.pawn = unreal.GameplayStatics.get_player_pawn(self.world, 0)
         self.cx, self.cy = 0.0, 0.0
-        if self.frame is not None:
+        marker = found.get("KD_BoothCenter")
+        if marker is not None:                      # 買った電話ボックス用：中心と入口の向きは、印から読む
+            ml = marker.get_actor_location()
+            self.cx, self.cy = ml.x, ml.y
+            self.front_yaw = marker.get_actor_rotation().yaw
+        elif self.frame is not None:
             o, _e = self.frame.get_actor_bounds(False)
             self.cx, self.cy = o.x, o.y
         if self.hinge is not None:
-            self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_yaw), False)
+            self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
+        self.is_char = False
         if self.pawn is not None:
+            self.is_char = self.pawn.get_component_by_class(unreal.CharacterMovementComponent) is not None
+        if self.pawn is not None and not self.is_char:
             try:
                 mv = self.pawn.get_component_by_class(unreal.FloatingPawnMovement)
                 mv.set_editor_property("max_speed", WALK_SPEED)
@@ -272,7 +284,7 @@ class Game:
             return
         loc = self.pawn.get_actor_location()
         # 歩く高さを目の高さに固定（飛ばない）
-        if abs(loc.z - EYE_HEIGHT) > 0.5:
+        if not self.is_char and abs(loc.z - EYE_HEIGHT) > 0.5:
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, EYE_HEIGHT), False, False)
         self.update_flashlight()
         if self.state == "WALK":
@@ -285,7 +297,7 @@ class Game:
             k = 1 - (1 - k) * (1 - k)                      # 最初に勢いよく、最後にゆっくり
             self.door_yaw = DOOR_OPEN_YAW * (1 - k)
             if self.hinge is not None:
-                self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_yaw), False)
+                self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
             if self.state_t >= CLOSE_TIME:
                 self.state, self.state_t = "TRAPPED", 0.0
                 self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_FIRST
@@ -348,7 +360,8 @@ class Game:
                     self.begin_dead()
                     return
                 gx, gy = GHOST_SPOTS[min(self.stage, len(GHOST_SPOTS)) - 1]
-                self.ghost_show(self.cx + gx, self.cy + gy)
+                th = math.radians(self.front_yaw)               # 入口の向きに合わせて回す（入口が +Y のとき 0 度）
+                self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th))
                 screen(self.world, GHOST_SUBS[min(self.stage, len(GHOST_SUBS)) - 1], (200, 220, 255), 4.0)
                 idx = min(self.stage - 1, len(IDLE_LATER) - 1)
                 self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_LATER[idx]
