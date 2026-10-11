@@ -72,7 +72,7 @@ window.RAFT.parts.drift = function (c) {
   // 釣りの動き：ざおをふる／ひいたら「！」／釣れた物がとんでくる／水しぶき
   const bangCv = (() => { const [cv, g] = I.canvas(7, 13); I.rect(g, 0, 0, 7, 13, '#fff1e0'); I.rect(g, 1, 1, 5, 7, '#ff2020'); I.rect(g, 1, 10, 5, 2, '#ff2020'); return cv; })();
   const bang = c.sprite(bangCv, { x: 0, y: 0, z: 0, ppu: 50 }); bang.visible = false; group.add(bang);
-  let bobY = 0, rodM = null, rodB = null, rodTip = null, fxLast = s.reelFx ? s.reelFx.id : 0, flyFx = null, wasRod = null, castT = 9, reelT = 9;
+  let bobY = 0, rodM = null, rodB = null, rodM2 = null, rodB2 = null, rodTip = null, bTip = null, fxLast = s.reelFx ? s.reelFx.id : 0, flyFx = null, wasRod = null, castT = 9, reelT = 9;
   const splashRing = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, color: new THREE.Color(1.3, 1.5, 1.7) })); splashRing.visible = false; scene.add(splashRing);
   const beatM = new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, depthTest: false, color: new THREE.Color(2, 0.5, 0.4) });
   const beat = new THREE.Mesh(flat, beatM); beat.visible = false; beat.renderOrder = 4; scene.add(beat);
@@ -146,9 +146,15 @@ window.RAFT.parts.drift = function (c) {
       bobY = 0.12 + dip;
     }
     // ざお（手にもっている間）
-    if (!rodM && artOf('rod', 0) && artOf('rodBody', 0)) {
-      const mkr = k => { const cv = artOf(k, 0), m = c.sprite(cv, { x: 0, y: 0, z: 0, ppu: cv.ppu }); m.rotation.order = 'YXZ'; m.rotation.y = c.cam.yaw; m.visible = false; group.add(m); return m; };
-      rodM = mkr('rod'); rodB = mkr('rodBody');
+    const mkr = k => { const cv = artOf(k, 0), m = c.sprite(cv, { x: 0, y: 0, z: 0, ppu: cv.ppu }); m.rotation.order = 'YXZ'; m.rotation.y = c.cam.yaw; m.visible = false; group.add(m); return m; };
+    const tipOf = (m, ang) => { const cv = artOf('rodBody', 0), pc = Math.cos(c.cam.pitch), lx = (cv.tip[0] - cv.width / 2) / cv.ppu, ly = (cv.height - cv.tip[1]) / cv.ppu / pc, rz = -ang;
+      const px = lx * Math.cos(rz) - ly * Math.sin(rz), py = lx * Math.sin(rz) + ly * Math.cos(rz); return [m.position.x + camRight.x * px, m.position.y + py, m.position.z + camRight.z * px]; };
+    if (!rodM && artOf('rod', 0) && artOf('rodBody', 0)) { rodM = mkr('rod'); rodB = mkr('rodBody'); rodM2 = mkr('rod'); rodB2 = mkr('rodBody'); }
+    if (rodM2) {      // 相棒の釣りざお
+      const bu = s.buddy, on = bu.job === 'fish', bl = bu.line; rodM2.visible = on && !bl; rodB2.visible = on && !!bl;
+      let ang2 = -0.1; if (bu.act && bu.act.type === 'throw') ang2 = -0.1 + Math.sin(Math.min(1, 1 - bu.act.t / 0.5) * Math.PI) * 1.1; else if (bl) ang2 = -0.25 + Math.sin(t * 1.5) * 0.03;
+      [rodM2, rodB2].forEach(m => { m.rotation.z = -ang2; m.position.set(bu.x + 0.4, 0.4, bu.z - 0.05); });
+      bTip = bl ? tipOf(rodB2, ang2) : null;
     }
     if (rodM) {
       rodM.visible = s.hand === 'rod' && !rd; rodB.visible = s.hand === 'rod' && !!rd;
@@ -161,18 +167,14 @@ window.RAFT.parts.drift = function (c) {
       else if (rd) ang = -0.25 + (rd.phase === 'bite' ? Math.sin(t * 40) * 0.14 : Math.sin(t * 1.5) * 0.03);
       rodM.rotation.z = rodB.rotation.z = -ang; rodM.position.set(b.x + 0.4, 0.4, b.z - 0.05); rodB.position.copy(rodM.position);
       rodTip = null;
-      if (rodB.visible) {      // 糸は、ざおの先から出す
-        const cv = artOf('rodBody', 0), pc = Math.cos(c.cam.pitch), lx = (cv.tip[0] - cv.width / 2) / cv.ppu, ly = (cv.height - cv.tip[1]) / cv.ppu / pc, rz = -ang;
-        const px = lx * Math.cos(rz) - ly * Math.sin(rz), py = lx * Math.sin(rz) + ly * Math.cos(rz);
-        rodTip = [rodB.position.x + camRight.x * px, rodB.position.y + py, rodB.position.z + camRight.z * px];
-      }
+      if (rodB.visible) rodTip = tipOf(rodB, ang);      // 糸は、ざおの先から出す
     }
     if (rd) { const tp = rodTip || [b.x, 0.7, b.z]; setLine(lineRod, tp[0], tp[1], tp[2], rd.x, bobY, rd.z); }
     beat.visible = beatT.visible = !!rd && rd.phase === 'bite';
     if (beat.visible) { const k = rd.t / R.data.ROD.bite; beat.position.set(rd.x, 0.1, rd.z); beatT.position.set(rd.x, 0.1, rd.z); const sc = 0.5 + Math.max(0, R.data.ROD.great[0] - k) * 3.2 + Math.max(0, k - R.data.ROD.great[0]) * 1.2; beat.scale.set(sc, 1, sc); }
     bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.material.depthTest = false; bang.renderOrder = 5; bang.position.set(b.x, 1.4 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);
     const bl = s.buddy.line; bobB.visible = lineB.visible = !!bl;
-    if (bl) { const by = 0.08 + Math.sin(t * 2.2) * 0.02; bobB.position.set(bl.x, by, bl.z); setLine(lineB, s.buddy.x, 0.7, s.buddy.z, bl.x, by + 0.04, bl.z); }
+    if (bl) { const by = 0.08 + Math.sin(t * 2.2) * 0.02; bobB.position.set(bl.x, by, bl.z); const tp = bTip || [s.buddy.x, 0.7, s.buddy.z]; setLine(lineB, tp[0], tp[1], tp[2], bl.x, by + 0.04, bl.z); }
     if (!!bl !== bLine) { if (bl) playFx(bl.x, bl.z, 0, 20, 22, 0.8); bLine = !!bl; }
     if (s.buddy.fx && s.buddy.fx.id !== bFxLast) { bFxLast = s.buddy.fx.id; playFx(s.buddy.fx.x, s.buddy.fx.z, 0, 20, 24, 0.9); const ac = artOf(s.buddy.fx.k, 0); bFly = { m: c.sprite(ac || mk(s.buddy.fx.k), { x: 0, y: 0, z: 0, ppu: ac ? ac.ppu : 30 }), x: s.buddy.fx.x, z: s.buddy.fx.z, t: 0 }; group.add(bFly.m); }
     if (bFly) { bFly.t += dt / 0.6; const k = Math.min(1, bFly.t), bu = s.buddy; bFly.m.position.set(bFly.x + (bu.x - bFly.x) * k, 0.1 + Math.sin(Math.PI * k) * 1.1 + 0.5 * k, bFly.z + (bu.z - bFly.z) * k); if (k >= 1) { group.remove(bFly.m); bFly = null; } }
