@@ -450,7 +450,11 @@ def s_collision():
             c.set_collision_enabled(unreal.CollisionEnabled.QUERY_AND_PHYSICS)
         except Exception as ex:  # noqa
             log("  %s: collision_enabled を設定できず : %s" % (mesh.get_name(), str(ex).splitlines()[0]))
-    log("当たり判定をつけた数: %d" % n)
+        try:
+            c.set_visibility(True, False)            # 前の版でガラスを「非表示」にしていたら、表示に戻す
+        except Exception as ex:  # noqa
+            log("  %s: 表示を戻せず : %s" % (mesh.get_name(), str(ex).splitlines()[0]))
+    log("当たり判定をつけた数: %d（ガラスも表示に戻しました）" % n)
 
 
 def s_player_start():
