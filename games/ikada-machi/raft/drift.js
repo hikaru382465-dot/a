@@ -82,6 +82,9 @@ window.RAFT.parts.drift = function (c) {
   const SA = R.splashArt, spTex = [], fxPool = [];
   if (SA) SA.frames.forEach((src, i) => { const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; spTex[i] = tx; }; im.src = src; });
   const spGeo = new THREE.PlaneGeometry(1, 1);
+  const halfGeo = top => { const fT = SA ? SA.ay / SA.h : 0.67, f = top ? fT : 1 - fT, g = new THREE.PlaneGeometry(1, f); g.translate(0, top ? 0.5 - f / 2 : -0.5 + f / 2, 0);
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, top ? 1 - f + uv.getY(i) * f : uv.getY(i) * f); return g; };
+  const geoBack = SA ? halfGeo(true) : null, geoFront = SA ? halfGeo(false) : null;
   const spMesh = () => { const m = new THREE.Mesh(spGeo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 3; m.visible = false; scene.add(m); return m; };
   const spPlace = (m, x, z, sc, yb) => {      // 絵の中の水面の中心（ax, ay）を (x, z) に合わせる
     const pc = Math.cos(c.cam.pitch), u = sc / SA.ppu; m.scale.set(SA.w * u, SA.h * u / pc, 1);
@@ -98,15 +101,17 @@ window.RAFT.parts.drift = function (c) {
     s.drift.forEach(it => {
       live.add(it.id);
       let m = meshes.get(it.id);
-      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); const rg = SA ? spMesh() : new THREE.Mesh(flat, ringM.clone()); if (!SA) { rg.material.opacity = 0; scene.add(rg); } m.userData.rg = rg; }
+      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); const rg = SA ? spMesh() : new THREE.Mesh(flat, ringM.clone()); if (!SA) { rg.material.opacity = 0; scene.add(rg); }
+        else { rg.geometry = geoBack; rg.renderOrder = -1; const rf = new THREE.Mesh(geoFront, rg.material); rf.rotation.y = c.cam.yaw; rf.renderOrder = 3; rf.visible = false; scene.add(rf); m.userData.rf = rf; }   // うしろ半分は物のうしろ、手前半分は物の前
+        m.userData.rg = rg; }
       const ph = t * 2.4 + it.id, hop = Math.sin(ph);
       m.position.set(it.x, -0.07 + hop * 0.06, it.z);   // 下半分は水の中にしずむ m.rotation.z = Math.sin(ph * 0.7) * 0.12;
       const rg = m.userData.rg, rk = ((ph / 6.283 + 0.75) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
-      if (SA) { const tx = spTex[14 + Math.min(5, Math.floor(rk * 6))]; rg.visible = !!tx && it.born > 0.3; if (tx) { rg.material.map = tx; rg.material.needsUpdate = true; spPlace(rg, it.x, it.z, 0.5, m.position.y + m.scale.y * 0.5); } }
+      if (SA) { const tx = spTex[14 + Math.min(5, Math.floor(rk * 6))]; const rf = m.userData.rf; rg.visible = rf.visible = !!tx && it.born > 0.3; if (tx) { rg.material.map = tx; rg.material.needsUpdate = true; const yb = m.position.y + m.scale.y * 0.5; spPlace(rg, it.x, it.z, 0.5, yb); spPlace(rf, it.x, it.z, 0.5, yb); } }
       else { rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff); }
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
-    for (const [id, m] of meshes) if (!live.has(id)) { scene.remove(m.userData.rg); if (m.userData.rg.material) m.userData.rg.material.dispose(); group.remove(m); meshes.delete(id); }
+    for (const [id, m] of meshes) if (!live.has(id)) { scene.remove(m.userData.rg); if (m.userData.rf) scene.remove(m.userData.rf); if (m.userData.rg.material) m.userData.rg.material.dispose(); group.remove(m); meshes.delete(id); }
     // ねらい（押している間、ゲージの強さで落ちる場所が動く）
     const a = c.aim, b = s.player, nl = R.data.NET_LV[s.net.lv - 1];
     ring.visible = aimLine.visible = !!a.active && !s.net.cast;
