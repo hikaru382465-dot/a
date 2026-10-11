@@ -26,12 +26,15 @@ window.RAFT.data = {
     { id: 'floor',  out: 'floor',  cost: { wood: 4 },                   need: null,    tip: 'イカダを広げる' },
     { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
     { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
+    { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）
-  TOOLS: { net: { name: '網', tip: '海を押し続けて、離すと投げる' } },
+  TOOLS: { net: { name: '網', tip: '海を押し続けて、離すと投げる' }, rod: { name: '釣りざお', tip: '海をタップして、糸をたらす。ウキがしずんだら、すぐタップ' } },
+  // 釣り：range＝糸が届くマス、wait＝魚が来るまでの秒（最小〜最大）、bite＝ウキがしずんでいる秒（この間にタップ）
+  ROD: { range: 4.5, min: 1.5, wait: [3, 8], bite: 1.3, fishP: 0.8 },
   // 網（投げる）：range＝ゲージ満タンで飛ぶ距離（マス）、r＝網がとる広さ（半径・マス）、cap＝1回で入る数
   NET_LV: [
     { lv: 1, range: 4,   r: 0.9, cap: 3 },

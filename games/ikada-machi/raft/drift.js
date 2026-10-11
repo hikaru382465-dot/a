@@ -63,6 +63,10 @@ window.RAFT.parts.drift = function (c) {
     artMesh.position.set(x - camRight.x * dx, y + dy, z - camRight.z * dx);
     artMesh.visible = true;
   }
+  // 釣りのウキと糸
+  const bobCv = (() => { const [cv, g] = I.canvas(5, 7); I.rect(g, 1, 0, 3, 3, P.red1); I.rect(g, 1, 3, 3, 2, P.cream); I.rect(g, 2, 5, 1, 2, P.night1); return cv; })();
+  const bob = c.sprite(bobCv, { x: 0, y: 0, z: 0, ppu: 40 }); bob.visible = false; group.add(bob);
+  const lineRod = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: 0xf1ead8 })); lineRod.visible = false; scene.add(lineRod);
   const held = [];
   let t = 0;
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
@@ -99,6 +103,12 @@ window.RAFT.parts.drift = function (c) {
         showArt(f, u, cast.x, y + 0.02, cast.z);
       } else { net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
       setLine(ropeLine, b.x, 0.55, b.z, cast.x, y, cast.z);
+    }
+    const rd = s.rod; bob.visible = lineRod.visible = !!rd;
+    if (rd) {
+      const dip = rd.phase === 'bite' ? -0.1 - Math.abs(Math.sin(t * 20)) * 0.05 : Math.sin(t * 2.4) * 0.02;
+      bob.position.set(rd.x, 0.08 + dip, rd.z);
+      setLine(lineRod, b.x, 0.7, b.z, rd.x, 0.12 + dip, rd.z);
     }
     const showHeld = !!cast;
     while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());

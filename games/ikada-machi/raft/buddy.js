@@ -39,6 +39,8 @@ window.RAFT.parts.buddy = function (c) {
     if (c.ui && c.ui.open) return;
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
     if (!p || c.mode.place) return;
+    if (s.rod) { R.sim.reelRod(s); down = null; return; }
+    if (s.hand === 'rod' && !R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) { R.sim.castRod(s, p.x, p.z); down = null; return; }
     if (s.net.cast) { R.sim.recallNet(s); down.recall = true; return; }
     if (R.sim.has(s, Math.floor(p.x), Math.floor(p.z))) return;
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); down = null; return; }

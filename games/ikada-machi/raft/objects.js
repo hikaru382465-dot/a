@@ -41,6 +41,9 @@ window.RAFT.parts.objects = function (c) {
   }
   const mk = (cv, ppu) => ({ cv, ppu });
   const art = { bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
+  // ひかるの絵（objs_art.js）。読み込めたら、コードで描いた仮の絵のかわりに使う
+  const OA = R.objArt; let oaLeft = 0;
+  if (OA) ['bench', 'tank', 'filter'].forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ['bench', 'tank', 'filter'].forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], 34)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
   const group = new THREE.Group(); scene.add(group);
   const items = new Map(); let rev = -1, t = 0;
   function build() {
@@ -55,7 +58,7 @@ window.RAFT.parts.objects = function (c) {
   }
   build();
   return { update(tt, dt) {
-    if (s.objRev !== rev) build();
+    if (s.objRev !== rev || rev === -1) build();
     t += dt;
     items.forEach(it => {
       let idx = 0;

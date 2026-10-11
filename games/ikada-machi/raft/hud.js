@@ -18,7 +18,7 @@ window.RAFT.parts.hud = function (c) {
   // ---- 本の形のメニュー：左のページ＝枠の一覧、右のページ＝くわしい説明と使うボタン ----
   function slots() {
     const a = [];
-    s.tools.forEach(k => a.push({ key: k, t: 'tool', k, name: D.TOOLS[k].name, n: 'Lv' + s.net.lv, tip: D.TOOLS[k].tip, hand: s.hand === k }));
+    s.tools.forEach(k => a.push({ key: k, t: 'tool', k, name: D.TOOLS[k].name, n: k === 'net' ? 'Lv' + s.net.lv : '', tip: D.TOOLS[k].tip, hand: s.hand === k }));
     Object.keys(D.ITEMS).forEach(k => {
       if ((s.inv[k] || 0) <= 0) return; const it = D.ITEMS[k];
       a.push({ key: k, t: it.place ? 'place' : (it.food || it.drink) ? 'food' : 'mat', k, name: it.name, n: s.inv[k], tip: it.tip });
@@ -28,9 +28,10 @@ window.RAFT.parts.hud = function (c) {
   function recipes() {
     return D.RECIPES.map(r => {
       const net = r.special === 'net', nx = net ? sim.nextNet(s) : null, ck = sim.canCraft(s, r);
-      return { key: r.id, t: 'recipe', r, net, nx, ck, k: net ? 'net' : r.out, name: net ? (nx ? '網を強く' : '網（最大）') : D.ITEMS[r.out].name, n: '' };
+      return { key: r.id, t: 'recipe', r, net, nx, ck, k: net ? 'net' : (r.special === 'rod' ? 'rod' : r.out), name: net ? (nx ? '網を強く' : '網（最大）') : (r.special === 'rod' ? D.TOOLS.rod.name : D.ITEMS[r.out].name), n: '' };
     });
   }
+  const r_have = o => o.r.special === 'rod' ? 'もう持っている' : 'もう持っている（イカダに1つ）';
   function renderBook() {
     const list = tab === 'inv' ? slots() : recipes();
     if (!list.some(o => o.key === sel)) sel = list.length ? list[0].key : null;
@@ -45,7 +46,7 @@ window.RAFT.parts.hud = function (c) {
     if (o.t === 'recipe') {
       const cost = o.net ? (o.nx ? o.nx.cost : null) : o.r.cost, tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.r.tip;
       html += `<p>${tip}</p>` + (cost ? '<ul class="cost">' + Object.keys(cost).map(k => `<li class="${(s.inv[k] || 0) >= cost[k] ? '' : 'no'}">${nameOf(k)}　${s.inv[k] || 0} / ${cost[k]}</li>`).join('') + '</ul>' : '');
-      const why = { locked: '作業台を置くと作れる', have: 'もう持っている（イカダに1つ）', max: 'これ以上は強くできない', short: '材料がたりない' }[o.ck.why];
+      const why = { locked: '作業台を置くと作れる', have: r_have(o), max: 'これ以上は強くできない', short: '材料がたりない' }[o.ck.why];
       if (why) html += `<p class="why">${why}</p>`;
       btn = '作る'; onclick = () => { sim.craft(s, o.r.id); refresh(); };
       html += `<button id="act" ${o.ck.ok ? '' : 'disabled'}>${btn}</button>`;
@@ -107,11 +108,11 @@ window.RAFT.parts.hud = function (c) {
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
-    short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, placed: () => '置いた',
+    short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => `釣れた：${nameOf(e.k)}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
     miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった',
-    netlv: e => `網が Lv${e.lv} になった`, noequip: () => '右下の「持ち物」から、網を手に持とう',
+    netlv: e => `網が Lv${e.lv} になった`, noequip: () => '右下の「持ち物」から、網か釣りざおを手に持とう',
     weather: e => `天気：${D.WEATHER[e.id].name}`, tankinfo: e => `貯水槽 ${e.w}/${e.cap}`, tankempty: () => '貯水槽が空（雨をためる／ろ過器を置く）',
-    filterinfo: e => `ろ過器：あと${e.left}秒で水が1入る`, equip: e => e.id ? '網を持った：海を押し続けて、離すと投げる' : '網をしまった'
+    filterinfo: e => `ろ過器：あと${e.left}秒で水が1入る`, equip: e => e.id === 'rod' ? '釣りざおを持った：海をタップして糸をたらす' : e.id ? '網を持った：海を押し続けて、離すと投げる' : '手に何も持っていない'
   };
   let acc = 0;
   return { update(t, dt) {
@@ -119,7 +120,7 @@ window.RAFT.parts.hud = function (c) {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
       const f = msgs[e.e]; if (f) toast(f(e));
-      if (['caught', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);

@@ -17,7 +17,7 @@
       clock: { day: 1, t: 0.16 },
       weather: { id: 'sunny', left: 80 },
       current: { ang: 0 },
-      net: { lv: 1, cast: null }, tools: ['net'], hand: 'net',
+      net: { lv: 1, cast: null }, tools: ['net'], hand: 'net', rod: null,
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3 },
@@ -93,7 +93,7 @@
     s.net.cast = null;
   }
   // 手に持つ（道具の切りかえ）
-  S.hold = function (s, id) { if (!s.tools.includes(id)) return false; s.hand = s.hand === id ? null : id; s.events.push({ e: 'equip', id: s.hand }); return true; };
+  S.hold = function (s, id) { if (!s.tools.includes(id)) return false; s.rod = null; s.hand = s.hand === id ? null : id; s.events.push({ e: 'equip', id: s.hand }); return true; };
   // 食べ物・飲み物を使う
   S.use = function (s, k, a) {
     a = a || s.player; const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0 || (!it.food && !it.drink)) return false;
@@ -111,6 +111,7 @@
     const cost = costOf(s, r);
     if (r.special === 'net' && !cost) return { ok: false, why: 'max' };
     if (r.need === 'bench' && !S.hasBench(s)) return { ok: false, why: 'locked' };
+    if (r.special === 'rod' && s.tools.includes('rod')) return { ok: false, why: 'have' };
     if (r.out === 'bench' && (S.hasBench(s) || (s.inv.bench || 0) > 0)) return { ok: false, why: 'have' };
     if (!S.canPay(s, cost)) return { ok: false, why: 'short' };
     return { ok: true };
@@ -120,6 +121,7 @@
     const c = S.canCraft(s, r); if (!c.ok) { s.events.push({ e: c.why === 'locked' ? 'locked' : 'short' }); return false; }
     S.pay(s, costOf(s, r));
     if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
+    else if (r.special === 'rod') { s.tools.push('rod'); s.events.push({ e: 'crafted', k: 'rod' }); }
     else { s.inv[r.out] = (s.inv[r.out] || 0) + 1; s.events.push({ e: 'crafted', k: r.out }); }
     return true;
   };
@@ -162,6 +164,24 @@
     if (o.k === 'tank') s.events.push({ e: 'tankinfo', w: o.w, cap: D.ITEMS.tank.cap });
     if (o.k === 'filter') s.events.push({ e: 'filterinfo', left: Math.max(0, Math.ceil(D.ITEMS.filter.sec - o.p)) });
     return S.walkNear(s, o.x, o.z, { type: o.k, id });
+  };
+  // 釣り：海をタップすると糸をたらす（手前のマスから ROD.range まで）。ウキがしずんだ間にタップすると釣れる
+  S.castRod = function (s, tx, tz) {
+    if (s.hand !== 'rod' || s.rod) return false;
+    const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, dist = clamp(d, D.ROD.min, D.ROD.range);
+    const x = b.x + dx / d * dist, z = b.z + dz / d * dist;
+    if (S.has(s, Math.floor(x), Math.floor(z))) return false;
+    b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(dx, dz);
+    const w = D.ROD.wait; s.rod = { x, z, phase: 'wait', t: 0, wait: w[0] + S.rand() * (w[1] - w[0]) };
+    s.events.push({ e: 'rodcast' }); return true;
+  };
+  S.reelRod = function (s) {
+    const r = s.rod; if (!r) return false;
+    s.rod = null; s.player.act = { type: 'throw', t: 0.4 };
+    if (r.phase !== 'bite') { s.events.push({ e: 'rodempty' }); return true; }
+    let k = 'fish';
+    if (S.rand() > D.ROD.fishP) { const o = ['wood', 'coconut', 'cloth', 'rope']; k = o[Math.floor(S.rand() * o.length)]; }
+    s.inv[k] = (s.inv[k] || 0) + 1; s.events.push({ e: 'fished', k }); return true;
   };
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
@@ -247,6 +267,8 @@
         if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
       }
     }
+    const rd = s.rod;
+    if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
     const ct = s.net.cast, rest = ct && (ct.phase === 'rest' || ct.phase === 'back') ? ct : null;   // 広げているとき・引きずっているときは、通りかかった物がかかる
     const inRaft = (x, z) => S.has(s, Math.floor(x), Math.floor(z));
     for (let i = s.drift.length - 1; i >= 0; i--) {
