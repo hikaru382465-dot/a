@@ -169,3 +169,6 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 
 ## 漂流物を海にうかべる（gen_items_float.py）
 `python gen_items_float.py` → assets/items/float/<名前>_float.gif（8コマ）, items_float_hd.gif（全部ならべ）。細かい版を水面で切り、水ぎわのあわ・波・波紋・水中のうっすら透けを付ける。水面の位置は ITEMS の表で調整。
+
+## 漂流物が流れてくる場面（gen_items_drift.py）
+`python gen_items_drift.py` → assets/items/float/drift_scene.gif。8つの漂流物が右から左へ流れ、上下にゆれて（3回/周）、底のたびに水しぶき。うしろに波紋とあわ。ちびキャラが桟橋で待つ。細かい版は半分に縮めて、パレットの一番近い色にそろえて使う。
