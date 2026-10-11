@@ -27,6 +27,7 @@ NIGHT_MODE = True                    # True: 夕方の空を夜にする（本�
 SUN_INTENSITY = 0.0                  # 太陽の明るさ（夜は 0）
 MOON_INTENSITY = 0.35                # 月の光
 SKY_INTENSITY = 0.25                 # 空の光
+REPLACE_ASSET_GLASS = True            # True: 買ったガラス（入口もふさいでいる）を隠して、同じ材質の板で作り直す（ドアもそろう）。False: 買ったガラスのまま
 PROTECT_LEVELS = ("FirstPersonMap",)  # このレベル（スタート画面用）では実行しない。本編用にコピーしたレベルで実行する
 START_DIST = 1800.0                  # プレイヤーを、入口の正面から何cm 離して立たせるか
 FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ）
@@ -34,7 +35,7 @@ FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
 WALL_INSET = 7.0                     # 張り紙を、ボックスの外形から内側へ何cm 入れた所に貼るか
-DOOR_THICK = 4.0                     # ドアの厚さ（cm）
+DOOR_THICK = 3.0                     # ドアの厚さ（cm）
 POST = 10.0                          # 柱の太さのめやす（ドアの幅から引く）
 TUBE_Z_FROM_TOP = 40.0               # 蛍光灯を、天井の上端から何cm 下に付けるか
 # --------------------------------------------------
@@ -437,10 +438,13 @@ def s_collision():
         mesh = c.get_editor_property("static_mesh")
         if mesh is None:
             continue
-        if "glass" in mesh.get_name().lower():       # ガラスは通り抜けられるようにする（入口をふさぐため）。壁は s_walls の見えない壁で作る
+        if "glass" in mesh.get_name().lower():       # 買ったガラスは入口もふさぐので、当たり判定を消す。壁とドアは、同じ材質の板（s_walls / s_door）で作る
             try:
+                STATE["glass_mat"] = c.get_material(0)
                 c.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
-                log("  %s: 当たり判定なし（ガラス）" % mesh.get_name())
+                if REPLACE_ASSET_GLASS:
+                    c.set_visibility(False, False)
+                log("  %s: 当たり判定なし（ガラス）%s 材質=%s" % (mesh.get_name(), "・非表示" if REPLACE_ASSET_GLASS else "", STATE["glass_mat"].get_name() if STATE.get("glass_mat") else None))
             except Exception as ex:  # noqa
                 log("  %s: ガラスの当たり判定を消せず : %s" % (mesh.get_name(), str(ex).splitlines()[0]))
             continue
@@ -482,30 +486,33 @@ def s_player_start():
 
 
 def s_walls():
-    """見えない壁：左右と奥に、ぶつかる板を置く（入口はふさがない）。ガラスの当たり判定を消した代わり"""
+    """左右と奥に、ガラスの板を置く（買ったガラスと同じ材質。ぶつかる）。入口はふさがない"""
     g = STATE["geo"]
     half_n, half_t = front_half()
     zmin, zmax = g["zmin"], g["zmax"]
-    h = zmax - zmin
+    h = (zmax - zmin) - 40.0
     cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
     n = g["n"]
     yaw0 = math.degrees(math.atan2(n[1], n[0])) - 90.0
-    th = 6.0
-    walls = [("Back", -(half_n - th / 2), 0.0, yaw0, 2 * half_t),
-             ("Left", 0.0, -(half_t - th / 2), yaw0 + 90.0, 2 * half_n),
-             ("Right", 0.0, (half_t - th / 2), yaw0 + 90.0, 2 * half_n)]
+    th = 3.0
+    gm = STATE.get("glass_mat")
+    walls = [("Back", -(half_n - th / 2), 0.0, yaw0, 2 * half_t - 2 * POST),
+             ("Left", 0.0, -(half_t - th / 2), yaw0 + 90.0, 2 * half_n - 2 * POST),
+             ("Right", 0.0, (half_t - th / 2), yaw0 + 90.0, 2 * half_n - 2 * POST)]
     for nm, d, s_, yaw, length in walls:
-        a = spawn(unreal.StaticMeshActor, world(d, s_, zmin + h / 2), (0, 0, yaw))
+        a = spawn(unreal.StaticMeshActor, world(d, s_, zmin + 5.0 + h / 2), (0, 0, yaw))
         c = a.get_component_by_class(unreal.StaticMeshComponent)
         c.set_static_mesh(cube)
+        if REPLACE_ASSET_GLASS and gm is not None:
+            c.set_material(0, gm)
         a.set_actor_scale3d(unreal.Vector(length / 100.0, th / 100.0, h / 100.0))
         tag_actor(a, "KD_Wall_" + nm)
         try:
-            c.set_visibility(False, False)
+            c.set_visibility(bool(REPLACE_ASSET_GLASS and gm is not None), False)
             c.set_collision_enabled(unreal.CollisionEnabled.QUERY_AND_PHYSICS)
         except Exception as ex:  # noqa
-            log("  (見えない壁の設定に失敗) %s" % ex)
-    log("見えない壁を置きました（奥・左・右）")
+            log("  (壁の設定に失敗) %s" % ex)
+    log("壁（ガラスの板）を置きました（奥・左・右）材質=%s" % (gm.get_name() if gm is not None else "なし→見えない壁"))
 
 
 def s_door():
@@ -536,7 +543,8 @@ def s_door():
     door = spawn(unreal.StaticMeshActor, (cxw, cyw, czw), (0, 0, yaw0))
     c = door.get_component_by_class(unreal.StaticMeshComponent)
     c.set_static_mesh(cube)
-    c.set_material(0, mat)
+    gm = STATE.get("glass_mat")
+    c.set_material(0, gm if (REPLACE_ASSET_GLASS and gm is not None) else mat)    # 買ったガラスと同じ見た目にそろえる
     setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
     door.set_actor_scale3d(unreal.Vector(width / 100.0, DOOR_THICK / 100.0, height / 100.0))
     tag_actor(door, "KD_Door")
