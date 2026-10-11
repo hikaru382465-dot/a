@@ -279,7 +279,8 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and TAG in [str(t) for t in a.get_editor_property("tags")]:
+            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera") and not lab.startswith("Board_Pin_") \
+                    and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
             pass
@@ -1056,8 +1057,12 @@ def s_board():
     gz = g["zmin"]
     yaw = math.degrees(math.atan2(f[1], f[0]))
     sphere = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Sphere")
-    if KEEP_HAND_PLACEMENT and "Board_Model" in KEEP_POSE:
-        pass                                                       # 前回の位置は tag_actor が戻す
+    if KEEP_HAND_PLACEMENT and "Board_Model" in KEEP_POSE:         # 手で動かした掲示板の位置を基準に、紙などを置く
+        pl, pr = KEEP_POSE["Board_Model"]
+        px, py, gz, yaw = pl.x, pl.y, pl.z, pr.yaw + 90.0
+        f = (math.cos(math.radians(yaw)), math.sin(math.radians(yaw)))
+        tf = (f[1], -f[0])
+        log("  手で動かした掲示板の位置を使います: (%.0f,%.0f,%.0f) 向き=%.0f度" % (px, py, gz, yaw))
     elif KEEP_HAND_PLACEMENT and "Board_Panel" in KEEP_POSE:       # 古い版（箱を組んだ掲示板）を手で動かしてあれば、その位置に合わせる
         pl, pr = KEEP_POSE["Board_Panel"]
         px, py, gz, yaw = pl.x, pl.y, pl.z - 130.0, pr.yaw
