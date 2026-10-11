@@ -78,6 +78,17 @@ window.RAFT.parts.drift = function (c) {
   const beat = new THREE.Mesh(flat, beatM); beat.visible = false; beat.renderOrder = 4; scene.add(beat);
   const beatT = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, depthTest: false, color: new THREE.Color(2, 2, 2) })); beatT.visible = false; beatT.renderOrder = 4; beatT.scale.set(0.5, 1, 0.5); scene.add(beatT);
   let splashT = 9, splashAt = [0, 0];
+  // 水しぶき（ひかるのアニメ splash_art.js）。大きいしぶき＝0〜9コマ、弱いしぶき・波紋＝10〜19コマ
+  const SA = R.splashArt, spTex = [], fxPool = [];
+  if (SA) SA.frames.forEach((src, i) => { const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; spTex[i] = tx; }; im.src = src; });
+  const spGeo = new THREE.PlaneGeometry(1, 1);
+  const spMesh = () => { const m = new THREE.Mesh(spGeo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 3; m.visible = false; scene.add(m); return m; };
+  const spPlace = (m, x, z, sc) => {      // 絵の中の水面の中心（ax, ay）を (x, z) に合わせる
+    const pc = Math.cos(c.cam.pitch), u = sc / SA.ppu; m.scale.set(SA.w * u, SA.h * u / pc, 1);
+    m.position.set(x, 0.06 + (SA.h / 2 - SA.ay) * u / pc, z);
+  };
+  const playFx = (x, z, from, n, fps, sc) => { if (!SA) return; let f = fxPool.find(q => !q.on); if (!f) { f = { m: spMesh(), on: false }; fxPool.push(f); } f.on = true; f.t = 0; f.x = x; f.z = z; f.from = from; f.n = n; f.fps = fps; f.sc = sc; };
+  let lastPh = null;
   const held = [];
   let t = 0;
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
@@ -87,14 +98,15 @@ window.RAFT.parts.drift = function (c) {
     s.drift.forEach(it => {
       live.add(it.id);
       let m = meshes.get(it.id);
-      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); const rm = ringM.clone(); rm.opacity = 0; const rg = new THREE.Mesh(flat, rm); scene.add(rg); m.userData.rg = rg; }
+      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); const rg = SA ? spMesh() : new THREE.Mesh(flat, ringM.clone()); if (!SA) { rg.material.opacity = 0; scene.add(rg); } m.userData.rg = rg; }
       const ph = t * 2.4 + it.id, hop = Math.sin(ph);
       m.position.set(it.x, -0.07 + hop * 0.06, it.z);   // 下半分は水の中にしずむ m.rotation.z = Math.sin(ph * 0.7) * 0.12;
       const rg = m.userData.rg, rk = ((ph / 6.283 + 0.75) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
-      rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff);
+      if (SA) { const tx = spTex[10 + Math.min(9, Math.floor(rk * 10))]; rg.visible = !!tx && it.born > 0.3; if (tx) { rg.material.map = tx; rg.material.needsUpdate = true; spPlace(rg, it.x, it.z, 0.5); } }
+      else { rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff); }
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
-    for (const [id, m] of meshes) if (!live.has(id)) { scene.remove(m.userData.rg); group.remove(m); meshes.delete(id); }
+    for (const [id, m] of meshes) if (!live.has(id)) { scene.remove(m.userData.rg); if (m.userData.rg.material) m.userData.rg.material.dispose(); group.remove(m); meshes.delete(id); }
     // ねらい（押している間、ゲージの強さで落ちる場所が動く）
     const a = c.aim, b = s.player, nl = R.data.NET_LV[s.net.lv - 1];
     ring.visible = aimLine.visible = !!a.active && !s.net.cast;
@@ -131,8 +143,8 @@ window.RAFT.parts.drift = function (c) {
     }
     if (rodM) {
       rodM.visible = s.hand === 'rod' && !rd; rodB.visible = s.hand === 'rod' && !!rd;
-      if (rd && !wasRod) { castT = 0; splashT = 0; splashAt = [rd.x, rd.z]; }
-      if (!rd && wasRod) { reelT = 0; splashT = 0; splashAt = [wasRod.x, wasRod.z]; }
+      if (rd && !wasRod) { castT = 0; playFx(rd.x, rd.z, 0, 20, 22, 0.9); }
+      if (!rd && wasRod) { reelT = 0; playFx(wasRod.x, wasRod.z, 0, 20, 24, 1.0); }
       wasRod = rd ? { x: rd.x, z: rd.z } : null; castT += dt; reelT += dt;
       let ang = -0.1;                                                 // 立てた角度（絵がもともと右にかたむいているので、ほぼ0）
       if (castT < 0.45) ang = -0.1 + Math.sin(Math.min(1, castT / 0.45) * Math.PI) * 1.2 - (castT / 0.45) * 0.5;   // 後ろにふりかぶって、前へ投げる
@@ -150,8 +162,8 @@ window.RAFT.parts.drift = function (c) {
     beat.visible = beatT.visible = !!rd && rd.phase === 'bite';
     if (beat.visible) { const k = rd.t / R.data.ROD.bite; beat.position.set(rd.x, 0.1, rd.z); beatT.position.set(rd.x, 0.1, rd.z); const sc = 0.5 + Math.max(0, R.data.ROD.great[0] - k) * 3.2 + Math.max(0, k - R.data.ROD.great[0]) * 1.2; beat.scale.set(sc, 1, sc); }
     bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.material.depthTest = false; bang.renderOrder = 5; bang.position.set(b.x, 1.4 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);
-    splashT += dt; splashRing.visible = splashT < 0.7;
-    if (splashRing.visible) { const k = splashT / 0.7; splashRing.position.set(splashAt[0], 0.07, splashAt[1]); splashRing.scale.set(0.2 + k * 1.1, 1, 0.2 + k * 1.1); splashRing.material.opacity = 1 - k; }
+    const ph2 = rd ? rd.phase : null; if (ph2 === 'bite' && lastPh !== 'bite') playFx(rd.x, rd.z, 2, 10, 20, 0.6); lastPh = ph2;
+    fxPool.forEach(f => { if (!f.on) return; f.t += dt; const i = Math.floor(f.t * f.fps); if (i >= f.n) { f.on = false; f.m.visible = false; return; } const tx = spTex[f.from + i]; f.m.visible = !!tx; if (tx) { f.m.material.map = tx; f.m.material.needsUpdate = true; spPlace(f.m, f.x, f.z, f.sc); } });
     // 釣れた物が、水面からとんでくる
     if (s.reelFx && s.reelFx.id !== fxLast) {
       fxLast = s.reelFx.id; const fk = s.reelFx.k;
