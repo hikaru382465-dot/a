@@ -932,7 +932,7 @@ def s_board_materials():
     uv = xx(m, unreal.MaterialExpressionTextureCoordinate, -1100, 0)
     mulu = xx(m, unreal.MaterialExpressionMultiply, -950, 0)
     mel.connect_material_expressions(uv, "", mulu, "A")
-    mel.connect_material_expressions(scalar_param(m, "Tiling", 2.0, -1150, 120), "", mulu, "B")
+    mel.connect_material_expressions(scalar_param(m, "Tiling", 1.0, -1150, 120), "", mulu, "B")
     col = tex_param(m, "Color", ld(T + "wood_color"), -800, -200, mulu)
     nrm = tex_param(m, "Normal", ld(T + "wood_normal"), -800, 100, mulu, normal=True)
     rgh = tex_param(m, "Rough", ld(T + "wood_rough"), -800, 400, mulu)
@@ -980,6 +980,15 @@ def s_board_materials():
     mel.recompile_material(rm)
     unreal.EditorAssetLibrary.save_loaded_asset(rm)
     STATE["M_KDRead"] = rm
+    mm = new_material("M_KDMetal")
+    mc = xx(mm, unreal.MaterialExpressionConstant3Vector, -600, 0)
+    mc.set_editor_property("constant", unreal.LinearColor(0.16, 0.16, 0.18, 1.0))
+    mel.connect_material_property(mc, "", MP.MP_BASE_COLOR)
+    mel.connect_material_property(cst(mm, 0.85, 120), "", MP.MP_METALLIC)
+    mel.connect_material_property(cst(mm, 0.5, 240), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(mm)
+    unreal.EditorAssetLibrary.save_loaded_asset(mm)
+    STATE["M_KDMetal"] = mm
     pin = new_material("M_KDPin")
     pc_ = xx(pin, unreal.MaterialExpressionConstant3Vector, -600, 0)
     pc_.set_editor_property("constant", unreal.LinearColor(0.55, 0.04, 0.03, 1.0))
@@ -989,6 +998,36 @@ def s_board_materials():
     unreal.EditorAssetLibrary.save_loaded_asset(pin)
     STATE["M_KDPin"] = pin
     log("掲示板の材質を作りました（木・張り紙3種・読む用・画びょう）")
+
+
+def import_board():
+    """掲示板のモデル（Blender で作った BulletinBoard.fbx）を取り込む。メートル→cm のため 100 倍"""
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "BulletinBoard.fbx")
+    if not os.path.exists(fbx):
+        raise RuntimeError("BulletinBoard.fbx がありません: %s" % fbx)
+    ui = unreal.FbxImportUI()
+    setp(ui, "import_mesh", True)
+    setp(ui, "import_as_skeletal", False)
+    setp(ui, "import_materials", False)
+    setp(ui, "import_textures", False)
+    setp(ui, "automated_import_should_detect_type", False)
+    setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_STATIC_MESH)
+    d = ui.get_editor_property("static_mesh_import_data")
+    setp(d, "combine_meshes", True)
+    setp(d, "auto_generate_collision", True)
+    setp(d, "transform_vertex_to_absolute", True)
+    setp(d, "import_uniform_scale", 100.0)
+    import_tasks([mk_task(fbx, GAME_DIR + "/Board", fbx_ui=ui)])
+    mesh = None
+    for p in unreal.EditorAssetLibrary.list_assets(GAME_DIR + "/Board", recursive=True, include_folder=False):
+        a = unreal.EditorAssetLibrary.load_asset(p)
+        if isinstance(a, unreal.StaticMesh):
+            mesh = a
+    if mesh is None:
+        raise RuntimeError("掲示板のメッシュが見つかりません")
+    e = mesh.get_bounds().box_extent
+    log("掲示板モデルの大きさ: %.0f × %.0f × %.0f cm（約 264 × 75 × 245 が正常）" % (e.x * 2, e.y * 2, e.z * 2))
+    return mesh
 
 
 def s_board():
@@ -1004,31 +1043,27 @@ def s_board():
     py = cy + n[1] * (half_n + BOARD_DIST) + g["t"][1] * BOARD_SIDE
     gz = g["zmin"]
     yaw = math.degrees(math.atan2(f[1], f[0]))
-    cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
     sphere = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Sphere")
-    wood = STATE["wood"]
+    if KEEP_HAND_PLACEMENT and "Board_Model" in KEEP_POSE:
+        pass                                                       # 前回の位置は tag_actor が戻す
+    elif KEEP_HAND_PLACEMENT and "Board_Panel" in KEEP_POSE:       # 古い版（箱を組んだ掲示板）を手で動かしてあれば、その位置に合わせる
+        pl, pr = KEEP_POSE["Board_Panel"]
+        px, py, gz, yaw = pl.x, pl.y, pl.z - 130.0, pr.yaw
+        f = (math.cos(math.radians(yaw)), math.sin(math.radians(yaw)))
+        tf = (f[1], -f[0])
+        log("  古い掲示板の位置に合わせました")
+    board_mesh = import_board()
+    bm = spawn(unreal.StaticMeshActor, (px, py, gz), (0, 0, yaw - 90.0))
+    bc = bm.get_component_by_class(unreal.StaticMeshComponent)
+    bc.set_static_mesh(board_mesh)
+    bc.set_material(0, STATE["wood"])
+    bc.set_material(1, STATE["M_KDMetal"])
+    setp(bc, "mobility", unreal.ComponentMobility.MOVABLE)
+    tag_actor(bm, "Board_Model")
 
     def at(a, b, z):
         return (px + f[0] * a + tf[0] * b, py + f[1] * a + tf[1] * b, gz + z)
 
-    def block(label, a, b, z, size, pitch=0.0):
-        act = spawn(unreal.StaticMeshActor, at(a, b, z), (0, pitch, yaw))
-        c = act.get_component_by_class(unreal.StaticMeshComponent)
-        c.set_static_mesh(cube)
-        c.set_material(0, wood)
-        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
-        act.set_actor_scale3d(unreal.Vector(size[0] / 100.0, size[1] / 100.0, size[2] / 100.0))
-        tag_actor(act, label)
-        return act
-
-    block("Board_Panel", 0, 0, 130, (4, 220, 120))
-    block("Board_Post_L", -3, 105, 100, (10, 10, 205))
-    block("Board_Post_R", -3, -105, 100, (10, 10, 205))
-    block("Board_Frame_Top", 1, 0, 192, (7, 232, 8))
-    block("Board_Frame_Bottom", 1, 0, 68, (7, 232, 8))
-    block("Board_Frame_L", 1, 112, 130, (7, 8, 128))
-    block("Board_Frame_R", 1, -112, 130, (7, 8, 128))
-    block("Board_Roof", 12, 0, 214, (46, 252, 5), pitch=-9.0)
     mesh = STATE["poster_mesh"]
     face = 2.0 + 0.8                                            # 板の表面から少しだけ浮かせる
     pin = STATE["M_KDPin"]
