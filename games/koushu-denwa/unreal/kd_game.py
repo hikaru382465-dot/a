@@ -35,6 +35,12 @@ DARK_TIME = 1.4              # 暗転の長さ
 IDLE_LATER = (13.0, 13.0, 9.0, 9.0)   # 段階1〜4が終わったあとの静かな時間（最後の段階はそのまま）
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
+ENTER_KEY = "E"                # 電話ボックスに入るキー（買った電話ボックス用：入口のドアは動かさず、暗転と音で入る）
+ENTER_RANGE = 260.0            # 入口の前のこの距離（cm）まで近づくと「Eで入る」が出る
+ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
+ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
+ENTER_FADE_IN = 1.4            # 明るくなるまでの時間（秒）
+SOUND_DIR = "/Game/KoushuDenwa/Sounds"
 # 幽霊が出る場所（ボックス中心からの位置 cm。正面＝+Y）。段階1〜4で、だんだん近づく
 GHOST_SPOTS = [(0.0, 1300.0), (-240.0, 750.0), (270.0, 360.0), (115.0, 25.0)]
 GHOST_SUBS = ["（外に、誰か立っている……）", "（さっきより、近い）", "（ガラスに、何か貼られている）", "（すぐそこにいる）"]
@@ -190,8 +196,23 @@ class Game:
                 log("  (歩く速さを設定できません) %s" % e)
         if self.flash is not None:
             self.set_flash(False)
+        self.half_t, self.half_n = 70.0, 70.0
+        if marker is not None:
+            msc = marker.get_actor_scale3d()
+            if msc.x > 5.0 and msc.y > 5.0:           # setup_game_fp.py が印の大きさに入れた、ボックスの半分の幅・奥行き(cm)
+                self.half_t, self.half_n = msc.x, msc.y
+        self.snd = {}
+        for nm in ("door_open", "door_close", "latch"):
+            try:
+                self.snd[nm] = unreal.EditorAssetLibrary.load_asset("%s/%s" % (SOUND_DIR, nm))
+            except Exception:  # noqa
+                self.snd[nm] = None
+        self.enter_t = -1.0
+        self.key_e = unreal.Key()
+        self.key_e.set_editor_property("key_name", ENTER_KEY)
         self.key = unreal.Key()
         self.key.set_editor_property("key_name", FLASH_KEY)
+        log("Play 開始: 入口方式=%s 効果音=%s" % ("Eキー" if self.hinge is None else "ドアが閉まる", [k for k, v in self.snd.items() if v is not None]))
         log("Play 開始: ドアの軸=%s 懐中電灯=%s 蛍光灯の光=%d 光る材質=%d 他の光=%s プレイヤー=%s ボックス中心=(%.0f,%.0f)" % (
             self.hinge is not None, self.flash is not None, len(self.tubes), len(self.tube_mats), [e[0] for e in self.extra], self.pawn is not None, self.cx, self.cy))
         screen(self.world, "WASD：歩く / マウス：見る / F：懐中電灯", (200, 255, 200), 6.0)
@@ -287,7 +308,11 @@ class Game:
         if not self.is_char and abs(loc.z - EYE_HEIGHT) > 0.5:
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, EYE_HEIGHT), False, False)
         self.update_flashlight()
-        if self.state == "WALK":
+        if self.state == "WALK" and self.hinge is None:
+            self.tick_walk_e(loc)
+        elif self.state == "ENTERING":
+            self.tick_entering(dt)
+        elif self.state == "WALK":
             inside = abs(loc.x - self.cx) < ENTER_HALF and abs(loc.y - self.cy) < ENTER_HALF
             self.inside_t = self.inside_t + dt if inside else 0.0
             if self.inside_t > CLOSE_DELAY:
@@ -310,6 +335,71 @@ class Game:
                 self.state = "RESTART"
                 log("最初に戻ります（RestartLevel）")
                 unreal.SystemLibrary.execute_console_command(self.world, "RestartLevel")
+
+    # ---- 買った電話ボックス用：Eキーで入る ----
+    def door_point(self):
+        """入口の前（ボックスの外）の点。入口の向き front_yaw の +Y 側に half_n だけ出た所"""
+        th = math.radians(self.front_yaw)
+        # 入口の向き n = (+Y を front_yaw だけ回した向き)
+        nx, ny = -math.sin(th), math.cos(th)
+        return self.cx + nx * (self.half_n + 40.0), self.cy + ny * (self.half_n + 40.0), (nx, ny)
+
+    def play(self, name):
+        snd = self.snd.get(name)
+        if snd is not None:
+            try:
+                unreal.GameplayStatics.play_sound_2d(self.world, snd, 1.0, 1.0, 0.0)
+            except Exception as e:  # noqa
+                log("  (音を鳴らせません) %s: %s" % (name, e))
+
+    def tick_walk_e(self, loc):
+        px, py, _n = self.door_point()
+        near = math.hypot(loc.x - px, loc.y - py) < ENTER_RANGE
+        if near:
+            if int(self.t * 4) != getattr(self, "_prompt_k", -1):            # 0.25秒ごとに案内を出し直す
+                self._prompt_k = int(self.t * 4)
+                try:
+                    unreal.SystemLibrary.print_string(self.world, "[%s] 電話ボックスに入る" % ENTER_KEY, True, False, unreal.LinearColor(1, 1, 0.6, 1), 0.4, "KD_PROMPT")
+                except Exception:  # noqa
+                    screen(self.world, "[%s] 電話ボックスに入る" % ENTER_KEY, (255, 255, 160), 0.4)
+            try:
+                if self.pc.was_input_key_just_pressed(self.key_e):
+                    self.begin_enter()
+            except Exception as e:  # noqa
+                log("  (Eキーを読めません) %s" % e)
+
+    def begin_enter(self):
+        self.state, self.state_t = "ENTERING", 0.0
+        self.enter_stage = 0
+        self.play("door_open")
+        self.fade(True, ENTER_FADE_OUT)
+        log("入ります（暗転＋ドアの音）")
+
+    def tick_entering(self, dt):
+        t = self.state_t
+        if self.enter_stage == 0 and t >= ENTER_FADE_OUT + 0.4:             # 真っ暗になってから、中へ移す
+            self.enter_stage = 1
+            th = math.radians(self.front_yaw)
+            nx, ny = -math.sin(th), math.cos(th)
+            loc = self.pawn.get_actor_location()
+            self.pawn.set_actor_location(unreal.Vector(self.cx - nx * 8.0, self.cy - ny * 8.0, loc.z), False, False)
+            # 奥の壁（電話機）の方を向く：入口の反対向き
+            yaw = math.degrees(math.atan2(-ny, -nx))
+            try:
+                self.pc.set_control_rotation(unreal.Rotator(0, 0, yaw))
+            except Exception as e:  # noqa
+                log("  (向きを変えられません) %s" % e)
+        elif self.enter_stage == 1 and t >= ENTER_FADE_OUT + 1.3:
+            self.enter_stage = 2
+            self.play("door_close")
+        elif self.enter_stage == 2 and t >= ENTER_FADE_OUT + ENTER_BLACK:
+            self.enter_stage = 3
+            self.fade(False, ENTER_FADE_IN)
+            screen(self.world, "（とじこめられた）", (255, 120, 120), 4.0)
+        elif self.enter_stage == 3 and t >= ENTER_FADE_OUT + ENTER_BLACK + ENTER_FADE_IN:
+            self.state, self.state_t = "TRAPPED", 0.0
+            self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_FIRST
+            log("閉じ込め開始")
 
     def begin_close(self):
         self.state, self.state_t = "CLOSING", 0.0

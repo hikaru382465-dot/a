@@ -5,7 +5,7 @@
 やること：
   1) 買った公衆電話を探して、大きさ・中心・入口の向きを求める
   2) 当たり判定を「形そのもの」にして、中に入れるようにする
-  3) 入口にドア（動く板）を付ける ／ 天井に蛍光灯2本（光＋光る見た目）を付ける
+  3) 天井に蛍光灯2本（光＋光る見た目）を付ける ／ 効果音（ドア）を取り込む。入口は E キーで「暗転→ドアの音→中に入る」にする（ドアは動かさない）
   4) プレイヤーの開始位置を、入口の正面の遠くに動かす（既存の PlayerStart を使う）
   5) 懐中電灯、張り紙（14枚）、幽霊（仮）を置く
 入口の向きは、下の FRONT で決める（+X / -X / +Y / -Y のどちらが「開いている側」か）。
@@ -27,7 +27,6 @@ NIGHT_MODE = True                    # True: 夕方の空を夜にする（本�
 SUN_INTENSITY = 0.0                  # 太陽の明るさ（夜は 0）
 MOON_INTENSITY = 0.35                # 月の光
 SKY_INTENSITY = 0.25                 # 空の光
-REPLACE_ASSET_GLASS = True            # True: 買ったガラス（入口もふさいでいる）を隠して、同じ材質の板で作り直す（ドアもそろう）。False: 買ったガラスのまま
 PROTECT_LEVELS = ("FirstPersonMap",)  # このレベル（スタート画面用）では実行しない。本編用にコピーしたレベルで実行する
 START_DIST = 1800.0                  # プレイヤーを、入口の正面から何cm 離して立たせるか
 FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ）
@@ -35,8 +34,6 @@ FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
 WALL_INSET = 7.0                     # 張り紙を、ボックスの外形から内側へ何cm 入れた所に貼るか
-DOOR_THICK = 3.0                     # ドアの厚さ（cm）
-POST = 10.0                          # 柱の太さのめやす（ドアの幅から引く）
 TUBE_Z_FROM_TOP = 40.0               # 蛍光灯を、天井の上端から何cm 下に付けるか
 # --------------------------------------------------
 
@@ -424,7 +421,9 @@ def s_center_marker():
     g = STATE["geo"]
     n = g["n"]
     yaw0 = math.degrees(math.atan2(n[1], n[0])) - 90.0     # kd_game.py が「入口の向き」を知るための印（+Y 向きを yaw0 だけ回した向き）
+    half_n, half_t = front_half()
     a = spawn(unreal.StaticMeshActor, g["center"], (0, 0, yaw0))
+    a.set_actor_scale3d(unreal.Vector(half_t, half_n, 1.0))          # 印の「大きさ」に、横の半分(x)と奥行きの半分(y)をcmで入れておく（kd_game.py が読む）
     tag_actor(a, "KD_BoothCenter")
     setp(a.get_component_by_class(unreal.StaticMeshComponent), "mobility", unreal.ComponentMobility.MOVABLE)
     a.set_actor_hidden_in_game(True)
@@ -437,16 +436,6 @@ def s_collision():
     for c in b.get_components_by_class(unreal.StaticMeshComponent):
         mesh = c.get_editor_property("static_mesh")
         if mesh is None:
-            continue
-        if "glass" in mesh.get_name().lower():       # 買ったガラスは入口もふさぐので、当たり判定を消す。壁とドアは、同じ材質の板（s_walls / s_door）で作る
-            try:
-                STATE["glass_mat"] = c.get_material(0)
-                c.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
-                if REPLACE_ASSET_GLASS:
-                    c.set_visibility(False, False)
-                log("  %s: 当たり判定なし（ガラス）%s 材質=%s" % (mesh.get_name(), "・非表示" if REPLACE_ASSET_GLASS else "", STATE["glass_mat"].get_name() if STATE.get("glass_mat") else None))
-            except Exception as ex:  # noqa
-                log("  %s: ガラスの当たり判定を消せず : %s" % (mesh.get_name(), str(ex).splitlines()[0]))
             continue
         try:
             bs = mesh.get_editor_property("body_setup")
@@ -485,72 +474,13 @@ def s_player_start():
         log("既存の PlayerStart を動かしました: (%.0f, %.0f, %.0f) 向き=%.0f" % (x, y, z, yaw))
 
 
-def s_walls():
-    """左右と奥に、ガラスの板を置く（買ったガラスと同じ材質。ぶつかる）。入口はふさがない"""
-    g = STATE["geo"]
-    half_n, half_t = front_half()
-    zmin, zmax = g["zmin"], g["zmax"]
-    h = (zmax - zmin) - 40.0
-    cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
-    n = g["n"]
-    yaw0 = math.degrees(math.atan2(n[1], n[0])) - 90.0
-    th = 3.0
-    gm = STATE.get("glass_mat")
-    walls = [("Back", -(half_n - th / 2), 0.0, yaw0, 2 * half_t - 2 * POST),
-             ("Left", 0.0, -(half_t - th / 2), yaw0 + 90.0, 2 * half_n - 2 * POST),
-             ("Right", 0.0, (half_t - th / 2), yaw0 + 90.0, 2 * half_n - 2 * POST)]
-    for nm, d, s_, yaw, length in walls:
-        a = spawn(unreal.StaticMeshActor, world(d, s_, zmin + 5.0 + h / 2), (0, 0, yaw))
-        c = a.get_component_by_class(unreal.StaticMeshComponent)
-        c.set_static_mesh(cube)
-        if REPLACE_ASSET_GLASS and gm is not None:
-            c.set_material(0, gm)
-        a.set_actor_scale3d(unreal.Vector(length / 100.0, th / 100.0, h / 100.0))
-        tag_actor(a, "KD_Wall_" + nm)
-        try:
-            c.set_visibility(bool(REPLACE_ASSET_GLASS and gm is not None), False)
-            c.set_collision_enabled(unreal.CollisionEnabled.QUERY_AND_PHYSICS)
-        except Exception as ex:  # noqa
-            log("  (壁の設定に失敗) %s" % ex)
-    log("壁（ガラスの板）を置きました（奥・左・右）材質=%s" % (gm.get_name() if gm is not None else "なし→見えない壁"))
-
-
-def s_door():
-    """入口にドア（板）と蝶番（DoorHinge）を付ける。kd_game.py が DoorHinge の向きを回して開け閉めする"""
-    g = STATE["geo"]
-    half_n, half_t = front_half()
-    zmin, zmax = g["zmin"], g["zmax"]
-    height = (zmax - zmin) - 40.0
-    width = 2 * half_t - 2 * POST
-    cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
-    mat = new_material("M_KDDoor")
-    setp(mat, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
-    mel.connect_material_property(cst(mat, 0.02, 0), "", MP.MP_BASE_COLOR)
-    mel.connect_material_property(cst(mat, 0.3, 100), "", MP.MP_OPACITY)
-    mel.connect_material_property(cst(mat, 0.15, 200), "", MP.MP_ROUGHNESS)
-    mel.recompile_material(mat)
-    unreal.EditorAssetLibrary.save_loaded_asset(mat)
-    # 蝶番は、入口の面の「t の負の側」の端（そこから +t 方向にドアが伸びる）
-    hx, hy, hz = world(half_n - DOOR_THICK / 2, -half_t + POST, zmin + 5.0)
-    n = g["n"]
-    yaw0 = math.degrees(math.atan2(n[1], n[0])) - 90.0    # 入口が +Y のとき 0 度になる（ドアは +t 方向に伸びる）
-    hinge = spawn(unreal.StaticMeshActor, (hx, hy, hz), (0, 0, yaw0))
-    tag_actor(hinge, "DoorHinge")
-    setp(hinge.get_component_by_class(unreal.StaticMeshComponent), "mobility", unreal.ComponentMobility.MOVABLE)
-    hinge.set_actor_hidden_in_game(False)
-    # ドア本体：Cube（100cm角）を、幅×厚さ×高さにのばす。t 方向に伸びるので、向きは n が +Y なら 0 度
-    cxw, cyw, czw = world(half_n - DOOR_THICK / 2, -half_t + POST + width / 2, zmin + 5.0 + height / 2)
-    door = spawn(unreal.StaticMeshActor, (cxw, cyw, czw), (0, 0, yaw0))
-    c = door.get_component_by_class(unreal.StaticMeshComponent)
-    c.set_static_mesh(cube)
-    gm = STATE.get("glass_mat")
-    c.set_material(0, gm if (REPLACE_ASSET_GLASS and gm is not None) else mat)    # 買ったガラスと同じ見た目にそろえる
-    setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
-    door.set_actor_scale3d(unreal.Vector(width / 100.0, DOOR_THICK / 100.0, height / 100.0))
-    tag_actor(door, "KD_Door")
-    door.attach_to_actor(hinge, "", unreal.AttachmentRule.KEEP_WORLD, unreal.AttachmentRule.KEEP_WORLD, unreal.AttachmentRule.KEEP_WORLD, False)
-    STATE["door_yaw0"] = yaw0
-    log("ドアを付けました: 幅%.0f 高さ%.0f 厚さ%.0f / 蝶番の基準の向き=%.0f" % (width, height, DOOR_THICK, yaw0))
+def s_sounds():
+    d = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "sounds")
+    files = sorted(f for f in os.listdir(d) if f.lower().endswith(".wav"))
+    if not files:
+        raise RuntimeError("効果音がありません: %s" % d)
+    import_tasks([mk_task(os.path.join(d, f), GAME_DIR + "/Sounds") for f in files])
+    log("効果音を取り込みました: %s" % ", ".join(files))
 
 
 def s_lights():
@@ -620,7 +550,7 @@ def wall_pose_rel(wall, u, z):
     if wall == "B":
         d, s, inward = -(half_n - WALL_INSET), u, (n[0], n[1])            # 奥の壁：面は入口側（+n）を向く
     elif wall == "F":
-        d, s, inward = (half_n - WALL_INSET - DOOR_THICK), -u, (-n[0], -n[1])
+        d, s, inward = (half_n - WALL_INSET - 3.0), -u, (-n[0], -n[1])
     elif wall == "R":
         t = g["t"]
         d, s, inward = u, half_t - WALL_INSET, (-t[0], -t[1])
@@ -671,8 +601,7 @@ def main():
     step("前回の生成物を消す", s_clear, ["環境確認"])
     step("中心の印", s_center_marker, ["前回の生成物を消す"])
     step("当たり判定", s_collision, ["環境確認"])
-    step("見えない壁", s_walls, ["前回の生成物を消す"])
-    step("ドア", s_door, ["前回の生成物を消す"])
+    step("効果音", s_sounds, ["環境確認"])
     step("蛍光灯", s_lights, ["前回の生成物を消す"])
     step("プレイヤーの開始位置", s_player_start, ["環境確認"])
     step("懐中電灯", s_flashlight, ["中心の印"])
