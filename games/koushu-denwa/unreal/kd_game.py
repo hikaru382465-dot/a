@@ -47,7 +47,9 @@ POSTER_FRAC = [0.3, 0.55, 0.8, 1.0]        # 1〜4回目の「張り紙の演出
 GHOST_HOLD = (11.0, 11.0, 10.0, 9.0)       # 幽霊が外に見えている時間（秒）。この間は張り紙は出ない
 POSTER_HOLD = (6.0, 7.0, 8.0, 9.0)         # 張り紙が貼られている時間（秒）。この間は幽霊は出ない。終わると全部はがれる
 POSTER_STEP = 0.35                         # 張り紙が1枚ずつ貼られていく間隔（秒）
-IDLE_BETWEEN = 4.0                         # 2回目以降、演出と演出のあいだの静かな時間（秒）
+PUZZLE_COUNT = 7                           # 謎の数（この数だけ解くと、演出の強さが最後の段階まで進む）
+PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この時間（秒）たつと、幽霊が1段階ずつ近づく（演出の予備は使わない）
+FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 GLASS_DIRT = 0.35            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
@@ -219,6 +221,8 @@ class Game:
         self.enter_t = -1.0
         self.key_e = unreal.Key()
         self.key_e.set_editor_property("key_name", ENTER_KEY)
+        self.key_flag = unreal.Key()
+        self.key_flag.set_editor_property("key_name", FLAG_KEY)
         self.key = unreal.Key()
         self.key.set_editor_property("key_name", FLASH_KEY)
         log("Play 開始: 入口方式=%s 効果音=%s" % ("Eキー" if self.hinge is None else "ドアが閉まる", [k for k, v in self.snd.items() if v is not None]))
@@ -429,31 +433,88 @@ class Game:
             if self.errors < 3:
                 log("  (懐中電灯の更新に失敗) %s" % e)
 
-    # ---- 閉じ込められてから：「幽霊が近づく」と「張り紙が貼られる」を、別々の場面にして、交互にくりかえす ----
+    # ---- 閉じ込められてから：謎を1つ解く（フラグがたつ）たびに、演出を1つだけ出す ----
+    # 演出の持ち札：強さ 0〜3 のそれぞれに「幽霊が近づく」「張り紙が貼られる」の2種類（合計8つ）。
+    # 謎が進むほど強い札を使い、使った札は二度と出さない（あとで出せる演出がなくならないよう、1回の謎で出すのは1つだけ）。
+    # 謎が進まないまま時間がたつと、持ち札を使わずに「幽霊がじわじわ近づく」圧力だけが増える。
     def start_trapped(self):
         self.steps = []
-        for r in range(len(GHOST_SPOTS)):
-            self.steps += self.round_steps(r)
-        self.steps += [("idle", IDLE_BETWEEN, None, None), ("flicker", FLICKER_TIME, None, None),
-                       ("dark", DARK_TIME, self.ghost_hide, self.begin_dead)]
+        self.step_i = 0
+        self.pending = []
+        self.used = set()
+        self.last_type = None
+        self.solved = 0
+        self.hint_done = False
+        self.pressure_t = 0.0
+        self.pressure_n = 0
+        self.level_now = 0
+        if self.hint is not None:
+            self.hint.set_actor_hidden_in_game(False)            # 手がかりの張り紙（電話機の上の小さな1枚）は、最初から貼ってある。はがさない
+        screen(self.world, "謎 0/%d（%s キーで、解いたことにできます）" % (PUZZLE_COUNT, FLAG_KEY), (200, 255, 200), 6.0)
+
+    def event_steps(self, typ, level, spot=None):
+        n_hold = min(level, len(GHOST_HOLD) - 1)
+        if typ == "ghost":
+            sp = level if spot is None else spot
+            return [("flicker", FLICKER_TIME, None, None),
+                    ("dark", DARK_TIME, self.hide_all, lambda sp=sp: self.ghost_scene(sp)),
+                    ("idle", GHOST_HOLD[n_hold], None, None),
+                    ("flicker", FLICKER_TIME, None, None),
+                    ("dark", DARK_TIME, self.ghost_hide, None)]
+        return [("flicker", FLICKER_TIME, None, None),
+                ("dark", DARK_TIME, self.hide_all, lambda: self.poster_scene_begin(level)),
+                ("posters", POSTER_HOLD[n_hold], None, None),
+                ("flicker", FLICKER_TIME, None, None),
+                ("dark", DARK_TIME, self.posters_hide, None)]
+
+    def run_steps(self, steps):
+        if self.step_i < len(self.steps):                 # 演出の最中なら、終わってから
+            self.pending.append(steps)
+            return
+        self.steps = steps
         self.step_i = -1
-        self.stage = 0
         self.next_step()
 
-    def round_steps(self, r):
-        first = IDLE_FIRST if r == 0 else IDLE_BETWEEN
-        n_hold = min(r, len(GHOST_HOLD) - 1)
-        return [
-            ("idle", first, None, None),
-            ("flicker", FLICKER_TIME, None, None),
-            ("dark", DARK_TIME, self.hide_all, lambda r=r: self.ghost_scene(r)),            # 暗転のあいだに幽霊を動かす → 外に見える
-            ("idle", GHOST_HOLD[n_hold], None, None),
-            ("flicker", FLICKER_TIME, None, None),
-            ("dark", DARK_TIME, self.ghost_hide, lambda r=r: self.poster_scene_begin(r)),    # 幽霊は消す → 張り紙が貼られはじめる
-            ("posters", POSTER_HOLD[n_hold], None, None),
-            ("flicker", FLICKER_TIME, None, None),
-            ("dark", DARK_TIME, self.posters_hide, None),                                    # 張り紙は、ぜんぶはがす（貼りっぱなしにしない）
-        ]
+    def on_flag(self, name="?"):
+        """謎を1つ解いた（フラグがたった）。演出を1つ選んで出す"""
+        if self.state != "TRAPPED":
+            log("(閉じ込められていないので、フラグは無視) %s" % name)
+            return
+        self.solved += 1
+        self.pressure_t = 0.0
+        n_lv = len(GHOST_SPOTS)
+        level = min(n_lv - 1, (self.solved - 1) * n_lv // max(1, PUZZLE_COUNT))
+        self.level_now = level
+        choice = None
+        for lv in range(level, n_lv):                      # 今の強さの札から探す。なければ、1つ強い札へ
+            order = ["ghost", "poster"]
+            if self.last_type == "ghost":
+                order = ["poster", "ghost"]
+            elif self.last_type is None:
+                random.shuffle(order)
+            for t in order:
+                if (t, lv) not in self.used:
+                    choice = (t, lv)
+                    break
+            if choice:
+                break
+        log("謎 %d/%d（%s）→ 演出: %s" % (self.solved, PUZZLE_COUNT, name, choice))
+        screen(self.world, "謎 %d/%d" % (self.solved, PUZZLE_COUNT), (200, 255, 200), 3.0)
+        if choice is None:
+            return
+        self.used.add(choice)
+        self.last_type = choice[0]
+        self.run_steps(self.event_steps(choice[0], choice[1]))
+
+    def pressure(self):
+        """謎が進まないまま時間がたった：持ち札は使わず、幽霊が1段階ずつ近づく。近づききったら失敗"""
+        self.pressure_n += 1
+        spot = min(len(GHOST_SPOTS) - 1, self.level_now + self.pressure_n)
+        log("圧力 %d（幽霊の位置 %d）" % (self.pressure_n, spot))
+        if self.level_now + self.pressure_n > len(GHOST_SPOTS):
+            self.run_steps([("flicker", FLICKER_TIME, None, None), ("dark", DARK_TIME, self.ghost_hide, self.begin_dead)])
+            return
+        self.run_steps(self.event_steps("ghost", self.level_now, spot))
 
     def hide_all(self):
         self.ghost_hide()
@@ -479,9 +540,9 @@ class Game:
     def posters_hide(self):
         for _k, a in self.posters:
             a.set_actor_hidden_in_game(True)
-        for a in (self.hint, self.eye):
-            if a is not None:
-                a.set_actor_hidden_in_game(True)
+        if self.eye is not None:
+            a = self.eye
+            a.set_actor_hidden_in_game(True)
         self.poster_shown = 0
         self.poster_target = 0
 
@@ -490,18 +551,21 @@ class Game:
         while self.poster_shown < want:
             self.posters[self.poster_shown][1].set_actor_hidden_in_game(False)
             self.poster_shown += 1
-            if self.poster_shown == 1 and self.hint is not None and self.poster_round == 0:
-                self.hint.set_actor_hidden_in_game(False)
         if self.eye is not None and self.poster_round >= 2 and self.poster_shown >= self.poster_target:
             self.eye.set_actor_hidden_in_game(False)
 
     def next_step(self):
-        if self.step_i >= 0:
+        if self.step_i >= 0 and self.step_i < len(self.steps):
             exit_fn = self.steps[self.step_i][3]
             if exit_fn is not None:
                 exit_fn()
         self.step_i += 1
         if self.step_i >= len(self.steps):
+            if self.pending and self.state == "TRAPPED":          # 待っていた演出があれば、つづけて出す
+                nxt = self.pending.pop(0)
+                self.steps = nxt
+                self.step_i = -1
+                self.next_step()
             return
         typ, ln, enter_fn, _ex = self.steps[self.step_i]
         self.step_t = 0.0
@@ -513,7 +577,17 @@ class Game:
             enter_fn()
 
     def tick_trapped(self, dt):
-        if self.step_i >= len(self.steps):
+        try:
+            if self.pc.was_input_key_just_pressed(self.key_flag):
+                self.on_flag("テストキー")
+        except Exception:  # noqa
+            pass
+        if self.step_i >= len(self.steps):                    # 演出がない間：静か（ときどき光がゆれる）
+            self.set_lights(1.0 if self.t % 7.0 > 0.3 else 0.35)
+            self.pressure_t += dt
+            if self.pressure_t >= PRESSURE_INTERVAL:
+                self.pressure_t = 0.0
+                self.pressure()
             return
         self.step_t += dt
         typ, ln, _en, _ex = self.steps[self.step_i]
@@ -557,7 +631,17 @@ def on_tick(dt):
         _STATE["game"] = None
 
 
+def solve(name="謎"):
+    """謎を1つ解いたことにする。本物の謎のしくみから呼ぶ（Cmd から:  py import unreal; unreal._kd_solve('本') ）"""
+    g = _STATE.get("game")
+    if g is None:
+        unreal.log_warning(LOG_PREFIX + "ゲームが動いていません（Playを押してから）")
+        return
+    g.on_flag(name)
+
+
 def main():
+    unreal._kd_solve = solve
     old = getattr(unreal, "_kd_tick_handle", None)
     if old is not None:
         try:
