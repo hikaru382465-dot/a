@@ -309,9 +309,11 @@ class Game:
         self.posters = sorted([(k, v) for k, v in found.items() if k.startswith("Poster_") and k not in ("Poster_Hint", "Poster_Eye")], key=lambda kv: kv[0])
         self.hint = found.get("Poster_Hint")
         self.eye = found.get("Poster_Eye")
-        for _k, a in self.posters + [("h", self.hint), ("e", self.eye)]:
+        for _k, a in self.posters + [("e", self.eye)]:
             if a is not None:
                 a.set_actor_hidden_in_game(True)
+        if self.hint is not None:
+            self.hint.set_actor_hidden_in_game(False)             # 手がかりの張り紙は、はじめから貼ってある（入った瞬間に現れない）
         self.ghost = found.get("Ghost")
         if self.ghost is not None:
             self.ghost.set_actor_hidden_in_game(True)
@@ -604,8 +606,8 @@ class Game:
         self.pressure_t = 0.0
         self.pressure_n = 0
         self.level_now = 0
-        if self.hint is not None:
-            self.hint.set_actor_hidden_in_game(False)            # 手がかりの張り紙（電話機の上の小さな1枚）は、最初から貼ってある。はがさない
+        self.posters_hide()                                      # 手がかり以外の張り紙は、入った時点では1枚も出さない
+        log("張り紙: 手がかり=%s / 隠した枚数=%d" % ("あり" if self.hint is not None else "なし", len(self.posters) + (1 if self.eye is not None else 0)))
         screen(self.world, "謎 0/%d（%s キーで、解いたことにできます）" % (PUZZLE_COUNT, FLAG_KEY), (200, 255, 200), 6.0)
 
     def event_steps(self, typ, level, spot=None):
