@@ -178,10 +178,10 @@
   S.reelRod = function (s) {
     const r = s.rod; if (!r) return false;
     s.rod = null; s.player.act = { type: 'throw', t: 0.4 };
-    if (r.phase !== 'bite') { s.events.push({ e: 'rodempty' }); return true; }
+    if (r.phase !== 'bite') { s.events.push({ e: 'rodempty' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return true; }
     let k = 'fish';
     if (S.rand() > D.ROD.fishP) { const o = ['wood', 'coconut', 'cloth', 'rope']; k = o[Math.floor(S.rand() * o.length)]; }
-    s.inv[k] = (s.inv[k] || 0) + 1; s.events.push({ e: 'fished', k }); return true;
+    s.inv[k] = (s.inv[k] || 0) + 1; s.reelFx = { id: s.uid++, k, x: r.x, z: r.z }; s.events.push({ e: 'fished', k }); return true;
   };
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 

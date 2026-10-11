@@ -24,8 +24,10 @@ window.RAFT.parts.drift = function (c) {
     for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) if (!on(x, y) && (on(x + 1, y) || on(x - 1, y) || on(x, y + 1) || on(x, y - 1))) { const i = (y * 12 + x) * 4; o[i] = 0x37; o[i + 1] = 1; o[i + 2] = 0x27; o[i + 3] = 255; }
     g.putImageData(new ImageData(o, 12, 12), 0, 0); return cv; };
   // ひかるの漂流物の絵（items.js）。読み込めるまでは、プログラムで描いた小さい絵を使う
-  const IA = R.itemArt, artCv = {}, cache = {};
-  if (IA) for (const k in IA.art) artCv[k] = IA.art[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; });
+  const IA = R.itemArt, OAr = R.objArt, artCv = {}, cache = {};
+  const load = (k, list) => { artCv[k] = list.map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; cv.ppu = f.ppu || 90; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; }); };
+  if (IA) for (const k in IA.art) load(k, IA.art[k]);
+  if (OAr) { for (const k in OAr.icons) load(k, OAr.icons[k]); load('bench', OAr.bench); load('tank', [OAr.tank[3]]); load('filter', [OAr.filter[0]]); }   // 新しい絵で、前のをおきかえる
   const artOf = (k, v) => { const a = artCv[k]; if (!a) return null; const cv = a[(v || 0) % a.length]; return cv.ok ? cv : null; };
   const mk = (k, v) => artOf(k, v) || cache[k] || (cache[k] = icon(k));
   c.itemIcon = k => mk(k, 0);
@@ -67,6 +69,12 @@ window.RAFT.parts.drift = function (c) {
   const bobCv = (() => { const [cv, g] = I.canvas(5, 7); I.rect(g, 1, 0, 3, 3, P.red1); I.rect(g, 1, 3, 3, 2, P.cream); I.rect(g, 2, 5, 1, 2, P.night1); return cv; })();
   const bob = c.sprite(bobCv, { x: 0, y: 0, z: 0, ppu: 40 }); bob.visible = false; group.add(bob);
   const lineRod = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: 0xf1ead8 })); lineRod.visible = false; scene.add(lineRod);
+  // 釣りの動き：ざおをふる／ひいたら「！」／釣れた物がとんでくる／水しぶき
+  const bangCv = (() => { const [cv, g] = I.canvas(7, 11); I.rect(g, 2, 0, 3, 7, P.red1); I.rect(g, 2, 8, 3, 3, P.red1); I.rect(g, 3, 1, 1, 5, '#ffd0c0'); return cv; })();
+  const bang = c.sprite(bangCv, { x: 0, y: 0, z: 0, ppu: 34 }); bang.visible = false; group.add(bang);
+  let rodM = null, rodMk = false, fxLast = s.reelFx ? s.reelFx.id : 0, flyFx = null, wasRod = null, castT = 9, reelT = 9;
+  const splashRing = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, color: new THREE.Color(1.3, 1.5, 1.7) })); splashRing.visible = false; scene.add(splashRing);
+  let splashT = 9, splashAt = [0, 0];
   const held = [];
   let t = 0;
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
@@ -76,7 +84,7 @@ window.RAFT.parts.drift = function (c) {
     s.drift.forEach(it => {
       live.add(it.id);
       let m = meshes.get(it.id);
-      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? 90 : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); }
+      if (!m) { const ac = artOf(it.k, it.id); m = c.sprite(ac || mk(it.k), { x: it.x, y: 0.05, z: it.z, ppu: ac ? ac.ppu : 30 }); group.add(m); meshes.set(it.id, m); m.userData.s = m.scale.clone(); }
       m.position.set(it.x, 0.03 + Math.sin(t * 2.2 + it.id) * 0.03, it.z);
       m.scale.copy(m.userData.s).multiplyScalar(Math.min(1, it.born * 2) * 0.9);
     });
@@ -110,10 +118,36 @@ window.RAFT.parts.drift = function (c) {
       bob.position.set(rd.x, 0.08 + dip, rd.z);
       setLine(lineRod, b.x, 0.7, b.z, rd.x, 0.12 + dip, rd.z);
     }
+    // ざお（手にもっている間）
+    if (!rodM && artOf('rod', 0)) { rodM = c.sprite(artOf('rod', 0), { x: 0, y: 0, z: 0, ppu: 62 }); rodM.rotation.order = 'YXZ'; rodM.rotation.y = c.cam.yaw; group.add(rodM); }
+    if (rodM) {
+      rodM.visible = s.hand === 'rod';
+      if (rd && !wasRod) { castT = 0; splashT = 0; splashAt = [rd.x, rd.z]; }
+      if (!rd && wasRod) { reelT = 0; splashT = 0; splashAt = [wasRod.x, wasRod.z]; }
+      wasRod = rd ? { x: rd.x, z: rd.z } : null; castT += dt; reelT += dt;
+      let ang = 0.5;                                                  // 立てた角度（ラジアン）
+      if (castT < 0.45) ang = 0.5 - Math.sin(Math.min(1, castT / 0.45) * Math.PI) * 1.1 + (castT / 0.45) * 0.6;   // ふりかぶって投げる
+      else if (reelT < 0.5) ang = 0.5 - Math.sin(Math.min(1, reelT / 0.5) * Math.PI) * 0.9;                       // 引き上げる
+      else if (rd) ang = 1.0 + (rd.phase === 'bite' ? Math.sin(t * 40) * 0.14 : Math.sin(t * 1.5) * 0.03);
+      rodM.rotation.z = -ang; rodM.position.set(b.x + 0.28, 0.4, b.z + 0.1);
+    }
+    bang.visible = !!rd && rd.phase === 'bite'; if (bang.visible) bang.position.set(b.x, 1.25 + Math.abs(Math.sin(t * 12)) * 0.08, b.z);
+    splashT += dt; splashRing.visible = splashT < 0.7;
+    if (splashRing.visible) { const k = splashT / 0.7; splashRing.position.set(splashAt[0], 0.07, splashAt[1]); splashRing.scale.set(0.2 + k * 1.1, 1, 0.2 + k * 1.1); splashRing.material.opacity = 1 - k; }
+    // 釣れた物が、水面からとんでくる
+    if (s.reelFx && s.reelFx.id !== fxLast) {
+      fxLast = s.reelFx.id; const fk = s.reelFx.k;
+      if (fk) { const ac = artOf(fk, 0); flyFx = { m: c.sprite(ac || mk(fk), { x: 0, y: 0, z: 0, ppu: ac ? ac.ppu : 30 }), x: s.reelFx.x, z: s.reelFx.z, t: 0 }; group.add(flyFx.m); }
+    }
+    if (flyFx) {
+      flyFx.t += dt / 0.6; const k = Math.min(1, flyFx.t);
+      flyFx.m.position.set(flyFx.x + (b.x - flyFx.x) * k, 0.1 + Math.sin(Math.PI * k) * 1.1 + (0.5 * k), flyFx.z + (b.z - flyFx.z) * k);
+      if (k >= 1) { group.remove(flyFx.m); flyFx = null; }
+    }
     const showHeld = !!cast;
     while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());
     if (showHeld) cast.held.forEach((k, i) => {
-      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); const ac = artOf(k, 0); held[i] = c.sprite(ac || mk(k), { x: 0, y: 0, z: 0, ppu: ac ? 110 : 36 }); group.add(held[i]); held[i].userData.k = k; }
+      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); const ac = artOf(k, 0); held[i] = c.sprite(ac || mk(k), { x: 0, y: 0, z: 0, ppu: ac ? ac.ppu * 1.2 : 36 }); group.add(held[i]); held[i].userData.k = k; }
       const ang = i * 2.4, rr = Math.min(nl.r * 0.55, 0.15 + i * 0.1);
       held[i].position.set(cast.x + Math.cos(ang) * rr, net.position.y + 0.03 + Math.sin(t * 2 + i) * 0.015, cast.z + Math.sin(ang) * rr);
     });

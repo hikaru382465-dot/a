@@ -13,7 +13,7 @@ SHRINK = 4
 def png(img):
     buf = io.BytesIO(); img.save(buf, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
-def cutout(box, dark=48):
+def cutout(box, dark=48, shrink=None):
     x0, y0, x1, y1 = box; sub = cat.crop(box); a = np.array(sub).astype(int); h, w = a.shape[:2]
     luma = a.sum(axis=2) / 3
     wall0 = luma < dark                     # 黒い線
@@ -38,13 +38,25 @@ def cutout(box, dark=48):
         core = core & np.roll(core, 1, 0) & np.roll(core, -1, 0) & np.roll(core, 1, 1) & np.roll(core, -1, 1)
     inside = core | (wall0 & inside)
     wall = wall0
+    lab = np.zeros((h, w), int); n = 0; best = (0, 0)       # いちばん大きい1つだけ残す（となりの絵を消す）
+    for y0_ in range(h):
+        for x0_ in range(w):
+            if inside[y0_, x0_] and not lab[y0_, x0_]:
+                n += 1; lab[y0_, x0_] = n; qq = deque([(y0_, x0_)]); cnt = 0
+                while qq:
+                    cy, cx = qq.popleft(); cnt += 1
+                    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)):
+                        Y, X = cy + dy, cx + dx
+                        if 0 <= Y < h and 0 <= X < w and inside[Y, X] and not lab[Y, X]: lab[Y, X] = n; qq.append((Y, X))
+                if cnt > best[0]: best = (cnt, n)
+    inside = lab == best[1]
     # 線のすぐ外側の1ぶんも、物のふちとして残す（線の色をそのまま使う）
     grown = inside.copy()
     for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
         grown |= np.roll(np.roll(inside, dy, 0), dx, 1) & wall
     rgba = np.dstack([a.astype(np.uint8), (grown * 255).astype(np.uint8)])
     img = Image.fromarray(rgba, 'RGBA'); bb = img.getchannel('A').getbbox(); img = img.crop(bb)
-    img = img.resize((max(1, round(img.width / SHRINK)), max(1, round(img.height / SHRINK))), Image.BOX)
+    img = img.resize((max(1, round(img.width / (shrink or SHRINK))), max(1, round(img.height / (shrink or SHRINK)))), Image.BOX)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     # 色数をへらして、ドット絵っぽくそろえる
     rgb = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); rgb.putalpha(img.getchannel('A'))
@@ -71,7 +83,15 @@ def drip(img, on):
         for dy, c in ((1, (120, 190, 240)), (3, (160, 215, 250))): a[h - 1 - dy, x] = (*c, 255)
     return Image.fromarray(a, 'RGBA')
 
-out = {'ppu': 40, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
+# インベントリ・漂流物に使う小さな絵（3分の1の大きさ）。ppu＝ゲームの中での大きさ（いちばん長い辺が0.5マスぶん）
+def icon(box):
+    im = cutout(box, shrink=3); e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
+icons = {'wood': [icon((38, 28, 142, 118))], 'floor': [icon((142, 28, 246, 118))], 'cloth': [icon((712, 36, 790, 118))],
+         'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))]}
+for n, e in icons.items():
+    im = Image.open(io.BytesIO(base64.b64decode(e[0]['src'].split(',')[1]))).convert('RGBA'); print(n, im.size, e[0]['ppu'])
+    bg = Image.new('RGBA', (im.width * 5, im.height * 5), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 5, im.height * 5), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{n}.png')
+out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
     bg = Image.new('RGBA', (im.width * 6, im.height * 6), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 6, im.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/o_{n}.png')
