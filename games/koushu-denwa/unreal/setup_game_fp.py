@@ -39,6 +39,8 @@ POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×�
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
 BOARD_TURN = 25.0                    # 掲示板を、入口の向きから何度まわして、道のほうへ向けるか
+PAPER_WIND_AMP = 1.6                 # 紙が風でゆれる大きさ（cm）。0 でゆれない。下のふちほど大きくゆれる
+PAPER_WIND_SPEED = 0.35              # ゆれる速さ（1秒に何回ゆれるか）
 TUBE_Z_FROM_TOP = 40.0               # 蛍光灯を、天井の上端から何cm 下に付けるか
 # --------------------------------------------------
 
@@ -90,6 +92,8 @@ SETTINGS_DESCR = {
     "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
     "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
     "BOARD_TURN": "掲示板を、道の方へ何度まわして向けるか",
+    "PAPER_WIND_AMP": "掲示板の紙が風でゆれる大きさ（cm）。0 でゆれない",
+    "PAPER_WIND_SPEED": "紙がゆれる速さ（1秒に何回）",
     "REPLACE_GLASS_MATERIAL": "null=さわらない（初期値）。true で、買ったガラスの材質を M_KDGlass に替える。false で買ったまま",
 }
 
@@ -165,7 +169,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -854,6 +858,50 @@ def scalar_param(m, name, v, x, y):
     return e
 
 
+def add_wind(m, amp, speed, x0=-1500, y0=700):
+    """紙の下のふちほど、風でひらひらゆれる（頂点を動かす。上のふちは画びょうでとまっている）。つまみ: WindAmp（cm） / WindSpeed"""
+    tm = xx(m, unreal.MaterialExpressionTime, x0, y0)
+    wp = xx(m, unreal.MaterialExpressionWorldPosition, x0, y0 + 120)
+    dirv = xx(m, unreal.MaterialExpressionConstant3Vector, x0, y0 + 240)
+    dirv.set_editor_property("constant", unreal.LinearColor(0.021, 0.013, 0.0, 1.0))
+    dot = xx(m, unreal.MaterialExpressionDotProduct, x0 + 150, y0 + 180)
+    mel.connect_material_expressions(wp, "", dot, "A")
+    mel.connect_material_expressions(dirv, "", dot, "B")                # 紙ごとに、ゆれのタイミングをずらす
+    tsp = mulx(m, tm, scalar_param(m, "WindSpeed", speed, x0, y0 + 360), y0 + 20)
+    ph = xx(m, unreal.MaterialExpressionAdd, x0 + 300, y0)
+    mel.connect_material_expressions(tsp, "", ph, "A")
+    mel.connect_material_expressions(dot, "", ph, "B")
+    s1 = xx(m, unreal.MaterialExpressionSine, x0 + 450, y0)
+    setp(s1, "period", 1.0)
+    mel.connect_material_expressions(ph, "", s1, "Input")
+    ph2 = mulx(m, ph, cst(m, 2.3, y0 + 480), y0 + 200)
+    s2 = xx(m, unreal.MaterialExpressionSine, x0 + 450, y0 + 200)
+    setp(s2, "period", 1.0)
+    mel.connect_material_expressions(ph2, "", s2, "Input")
+    wave = xx(m, unreal.MaterialExpressionAdd, x0 + 600, y0)
+    mel.connect_material_expressions(s1, "", wave, "A")
+    mel.connect_material_expressions(mulx(m, s2, cst(m, 0.4, y0 + 520), y0 + 250), "", wave, "B")     # 速いゆれを少し足して、風のむらにする
+    uvv = xx(m, unreal.MaterialExpressionTextureCoordinate, x0 + 450, y0 + 380)
+    vmask = xx(m, unreal.MaterialExpressionComponentMask, x0 + 600, y0 + 380)
+    setp(vmask, "r", False)
+    setp(vmask, "g", True)
+    mel.connect_material_expressions(uvv, "", vmask, "Input")
+    weight = mulx(m, vmask, vmask, y0 + 400)                               # 上(0)は動かず、下(1)ほど大きく
+    amount = mulx(m, mulx(m, wave, weight, y0 + 100), scalar_param(m, "WindAmp", amp, x0 + 600, y0 + 520), y0 + 150)
+    vn = xx(m, unreal.MaterialExpressionVertexNormalWS, x0 + 750, y0 + 100)
+    off = xx(m, unreal.MaterialExpressionMultiply, x0 + 900, y0 + 100)
+    mel.connect_material_expressions(vn, "", off, "A")
+    mel.connect_material_expressions(amount, "", off, "B")
+    mel.connect_material_property(off, "", MP.MP_WORLD_POSITION_OFFSET)
+
+
+def safe_wind(m, amp, speed):
+    try:
+        add_wind(m, amp, speed)
+    except Exception as ex:  # noqa
+        log("  (紙のゆれを付けられません。ゆれなしで続けます) %s" % ex)
+
+
 def s_board_materials():
     """木：色・法線（凹凸）・粗さを別々の画像から。つまみ（パラメータ）: Brightness / NormalStrength / Tiling / RoughMul"""
     T = GAME_DIR + "/Textures/Game/"
@@ -882,10 +930,15 @@ def s_board_materials():
     for nm, tx in (("M_BoardEgetsunai", "board_egetsunai"), ("M_BoardCamera", "board_camera"), ("M_PaperKamigari", "paper_kamigari")):
         pm = new_material(nm)
         setp(pm, "two_sided", True)
+        if nm == "M_PaperKamigari":                              # 新聞は、切り抜いた形（ふちのやぶれ）のとおりに表示する
+            setp(pm, "blend_mode", unreal.BlendMode.BLEND_MASKED)
         t = tex_param(pm, "Tex", ld(T + tx), -800, 0)
         mel.connect_material_property(mulx(pm, t, scalar_param(pm, "Brightness", 0.8, -800, -150), 0), "", MP.MP_BASE_COLOR)
         mel.connect_material_property(mulx(pm, t, scalar_param(pm, "Glow", POSTER_GLOW, -800, 200), 150), "", MP.MP_EMISSIVE_COLOR)
         mel.connect_material_property(scalar_param(pm, "Rough", 0.9, -600, 350), "", MP.MP_ROUGHNESS)
+        if nm == "M_PaperKamigari":
+            mel.connect_material_property(t, "A", MP.MP_OPACITY_MASK)
+        safe_wind(pm, PAPER_WIND_AMP, PAPER_WIND_SPEED)
         mel.recompile_material(pm)
         unreal.EditorAssetLibrary.save_loaded_asset(pm)
         STATE[nm] = pm
@@ -893,7 +946,11 @@ def s_board_materials():
     rm = new_material("M_KDRead")
     setp(rm, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
     t = tex_param(rm, "Tex", ld(T + "paper_kamigari"), -800, 0)
+    setp(rm, "blend_mode", unreal.BlendMode.BLEND_MASKED)
+    setp(rm, "two_sided", True)
     mel.connect_material_property(mulx(rm, t, scalar_param(rm, "Brightness", 0.9, -800, -150), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.connect_material_property(t, "A", MP.MP_OPACITY_MASK)
+    safe_wind(rm, PAPER_WIND_AMP * 0.3, PAPER_WIND_SPEED * 0.8)                          # 手に持った新聞は、すこしだけゆれる
     mel.recompile_material(rm)
     unreal.EditorAssetLibrary.save_loaded_asset(rm)
     STATE["M_KDRead"] = rm

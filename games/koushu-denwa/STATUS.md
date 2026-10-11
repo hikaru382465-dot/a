@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **新聞の切り抜き＋紙のゆれ（未確認）**：新聞の画像の、右のやぶれの外側と左下の色のちがう部分を透明に切り抜いた（`paper_kamigari.png` はアルファつき。材質は `BLEND_MASKED`）。掲示板の紙は、風でひらひらゆれる（材質の頂点を動かす。上は画びょうでとまり、下ほど大きくゆれる。`PAPER_WIND_AMP`＝大きさcm・`PAPER_WIND_SPEED`＝速さ）。ゆれるように `Poster.fbx` を細かく分けた板（12×16）に作り直した
+
 - **掲示板＋手に取れる新聞（未確認）**：`setup_game_fp.py` が、入口の前の道ばたに木の掲示板を立てる（`BOARD_DIST` / `BOARD_SIDE` / `BOARD_TURN` で位置を調整）。貼るもの：ひかるの画像3枚（えげつない1997／撮りまくルンです／神狩村の新聞）。新聞に近づいて見ると「[E] 新聞を手に取る」→目の前に大きく出て、もう一度 E でとじる（`READ_SIZE`・`READ_DIST`）。木は色・法線（凹凸）・粗さの3画像で作った材質 `M_KDWood`（つまみ：Tiling / NormalStrength / RoughMul / Brightness）。画像は `assets/tex/game/board_*.png`・`paper_kamigari.png`・`wood_*.png`。次：本物の謎（新聞の暗号 19-3-8 2-15-4-9 の使い道を決める）、金庫・本・10円
 
 - **消えたときも蛍光灯の棒が光って暗くならない件（未確認）**：消えたとき光る棒そのもの（KD_Tube）を隠すようにした。静かな間の「7秒に一度のゆれ」を `IDLE_DIP`（初期値1.0＝ゆれない）で調整できる。ひかるの設定：TubeLight_L=0、R=8
