@@ -41,6 +41,9 @@ SWAY_DEG = 3.0                 # 掲示板の紙が風でゆれる角度（度�
 SWAY_SPEED = 0.35              # ゆれる速さ（1秒に何回）
 BOOK_LABEL = "book"            # 本の名前（アウトライナーの名前に入っている言葉）。違うときは kd_settings.json で直す
 SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
+SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=左へ回して止める／R=右）。新聞の「19-3-8」と、液晶の「ヒダリ ミギ ヒダリ」
+DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
+DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
 ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
@@ -109,6 +112,9 @@ SETTINGS_DESCR = {
     "SWAY_SPEED": "紙がゆれる速さ（1秒に何回）",
     "BOOK_LABEL": "本の名前に入っている言葉（アウトライナーで確認）",
     "SAFE_LABEL": "金庫の名前に入っている言葉（アウトライナーで確認）",
+    "SAFE_CODE": "金庫の番号。[[\"L\",19],[\"R\",3],[\"L\",8]] のように、向き（L左・R右）と数字",
+    "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
+    "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
@@ -214,7 +220,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -334,7 +340,11 @@ class Game:
         self.read_mat = None
         low = [(k.lower(), v) for k, v in found.items()]
         self.book = next((v for k, v in low if BOOK_LABEL.lower() in k and "KD" not in label_of(v)), None)
-        self.safe = next((v for k, v in low if SAFE_LABEL.lower() in k and "KD" not in label_of(v)), None)
+        self.safe = next((v for k, v in low if SAFE_LABEL.lower() in k and "KD" not in label_of(v) and not k.startswith("dialsafe")), None)
+        self.dial_body = found.get("DialSafe_Body")                  # ダイヤル式の金庫（本体と、回るつまみ）
+        self.dial_knob = found.get("DialSafe_Knob")
+        self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
+        self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
         log("触れる物: 10円=%s 本=%s 金庫=%s" % (label_of(self.coin) if self.coin else "なし", label_of(self.book) if self.book else "なし（BOOK_LABEL を直す）", label_of(self.safe) if self.safe else "なし（SAFE_LABEL を直す）"))
         self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
         for i, nm in enumerate(("Board_Egetsunai", "Paper_News", "Board_Camera")):
@@ -528,6 +538,8 @@ class Game:
         self.tick_hud()
         if self.state == "READING":
             self.tick_reading()
+        elif self.state == "SAFE":
+            self.tick_safe(dt)
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
@@ -607,6 +619,93 @@ class Game:
                 self.sway = []
                 return
 
+    def lock_input(self, on):
+        for fn in ("set_ignore_move_input", "set_ignore_look_input"):
+            try:
+                getattr(self.pc, fn)(on)
+            except Exception as e:  # noqa
+                log("  (%s できません) %s" % (fn, e))
+
+    def begin_safe(self):
+        """金庫のダイヤルを回す場面。歩く・見回すを止めて、ダイヤルのほうを向く"""
+        eye, _rot = self.eye_info()
+        try:
+            tgt = (self.dial_knob or self.dial_body).get_actor_location()
+            self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, tgt))
+        except Exception as e:  # noqa
+            log("  (ダイヤルのほうを向けません) %s" % e)
+        self.lock_input(True)
+        self.state, self.state_t = "SAFE", 0.0
+        self.dial_dir, self.dial_entries, self.dial_acc = None, [], 0.0
+        self.key_left, self.key_right, self.key_quit = unreal.Key(), unreal.Key(), unreal.Key()
+        self.key_left.set_editor_property("key_name", "Left")
+        self.key_right.set_editor_property("key_name", "Right")
+        self.key_quit.set_editor_property("key_name", "Q")
+        log("金庫のダイヤルを回し始めました")
+
+    def end_safe(self):
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def set_dial(self, v):
+        self.dial_value = v % 100
+        if self.dial_knob is not None and self.dial_knob_rot is not None:
+            r = self.dial_knob_rot
+            try:
+                self.dial_knob.set_actor_rotation(unreal.Rotator(r.roll, r.pitch + DIAL_SIGN * self.dial_value * 3.6, r.yaw), False)
+            except Exception as e:  # noqa
+                log("  (ダイヤルを回せません) %s" % e)
+
+    def tick_safe(self, dt):
+        try:
+            down_l = self.pc.is_input_key_down(self.key_left)
+            down_r = self.pc.is_input_key_down(self.key_right)
+            if down_l != down_r:
+                self.dial_acc += dt
+                if self.dial_acc >= DIAL_STEP_TIME:
+                    self.dial_acc = 0.0
+                    self.dial_dir = "L" if down_l else "R"
+                    self.set_dial(self.dial_value + (1 if down_l else -1))
+            else:
+                self.dial_acc = DIAL_STEP_TIME
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_quit):
+                self.end_safe()
+                return
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_e):
+                self.safe_enter()
+        except Exception as e:  # noqa
+            log("  (金庫の操作を読めません) %s" % e)
+        if int(self.t * 8) != getattr(self, "_safe_k", -1):
+            self._safe_k = int(self.t * 8)
+            done = " → ".join("%s%d" % (("左" if d == "L" else "右"), v) for d, v in self.dial_entries) or "なし"
+            txt = "金庫  数字 %02d（%s）   [←→] 回す  [%s] 決める  [Q] やめる   決めた: %s" % (self.dial_value, {"L": "左", "R": "右"}.get(self.dial_dir, "-"), ENTER_KEY, done)
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(0.8, 1, 0.8, 1), 0.3, "KD_SAFE_UI")
+            except Exception:  # noqa
+                pass
+
+    def safe_enter(self):
+        if self.dial_dir is None:
+            screen(self.world, "先にダイヤルを回してから、決めてください", (255, 200, 150), 2.0)
+            return
+        self.dial_entries.append((self.dial_dir, self.dial_value))
+        k = len(self.dial_entries)
+        want = [tuple(c) for c in SAFE_CODE]
+        if tuple(self.dial_entries[-1]) != want[k - 1]:
+            screen(self.world, "カチ…（はずれ。最初から）", (255, 120, 120), 2.5)
+            log("金庫：はずれ %s" % (self.dial_entries,))
+            self.dial_entries = []
+            return
+        screen(self.world, "カチッ（%d/%d）" % (k, len(want)), (200, 255, 200), 1.5)
+        if k == len(want):
+            self.safe_open = True
+            self.has_key = True
+            self.coins += 1
+            self.end_safe()
+            screen(self.world, "ガチャン。金庫が開いた！ 小さな鍵と10円を手に入れた（10円 %d枚）" % self.coins, (255, 240, 160), 6.0)
+            log("金庫が開きました（鍵・10円②）")
+            self.on_flag("金庫")
+
     def tick_hud(self):
         """持ち物（10円）を、画面のすみに出す"""
         if int(self.t * 2) == getattr(self, "_hud_k", -1):
@@ -654,6 +753,11 @@ class Game:
                 self.coins += 1
                 screen(self.world, "10円を拾った（%d枚）" % self.coins, (255, 220, 150), 3.0)
                 log("10円を拾いました: %d枚" % self.coins)
+                return
+        if self.dial_body is not None and not self.safe_open and self.state == "TRAPPED" and self.looking_at(self.dial_knob or self.dial_body, ITEM_RANGE):
+            self.prompt_item("[%s] 金庫のダイヤルを回す" % ENTER_KEY, "SAFE")
+            if pressed:
+                self.begin_safe()
                 return
         if self.book is not None and self.state == "TRAPPED" and self.looking_at(self.book, ITEM_RANGE):
             self.prompt_item("[%s] 本を開く" % ENTER_KEY, "BOOK")

@@ -38,6 +38,9 @@ WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（�
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
+SAFE_BACK = -28.0                    # ダイヤル式の金庫を、ボックスの中心から奥（入口の反対）へ何cm（－が奥）
+SAFE_SIDE = 22.0                     # 金庫を、中心から横へ何cm（＋は入口に向かって左）
+SAFE_TURN = 0.0                      # 金庫の向き（入口の向きから何度まわすか）
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
 BOARD_TURN = 25.0                    # 掲示板を、入口の向きから何度まわして、道のほうへ向けるか
@@ -94,6 +97,9 @@ SETTINGS_DESCR = {
     "TUBE_Z_FROM_TOP": "蛍光灯を、天井の上端から何cm下に付けるか",
     "KEEP_HAND_PLACEMENT": "true: 掲示板・張り紙を手で動かした位置を、準備をやり直しても残す。false: 数字の位置に作り直す",
     "BOARD_SCALE": "掲示板の大きさの倍率（1.0 で横264×高さ245cm）。大きいと感じたら小さく",
+    "SAFE_BACK": "ダイヤル式の金庫を、ボックスの中心から奥へ何cm（マイナスが奥）",
+    "SAFE_SIDE": "金庫を、中心から横へ何cm（プラスは入口に向かって左）",
+    "SAFE_TURN": "金庫の向き（度）",
     "BOARD_DIST": "掲示板を、入口の前から何cm 離して立てるか",
     "BOARD_SIDE": "掲示板を、入口の正面から横に何cm ずらすか（＋は入口に向かって左）",
     "BOARD_TURN": "掲示板を、道の方へ何度まわして向けるか",
@@ -175,7 +181,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -254,7 +260,7 @@ def spawn(cls, loc, rot=(0, 0, 0)):
 
 
 KEEP_POSE = {}                       # ひかるが手で動かした、掲示板・張り紙の位置と向き（作り直しても、そのまま使う）
-KEEP_PREFIX = ("Board_", "Paper_News", "Poster_", "Coin_")
+KEEP_PREFIX = ("Board_", "Paper_News", "Poster_", "Coin_", "DialSafe_")
 
 
 def tag_actor(a, label):
@@ -279,7 +285,7 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera") and not lab.startswith("Board_Pin_") \
+            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob") and not lab.startswith("Board_Pin_") \
                     and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
@@ -1020,7 +1026,7 @@ def s_board_materials():
     log("掲示板の材質を作りました（木・張り紙3種・読む用・画びょう）")
 
 
-def import_board_once(fbx, scale):
+def import_fbx_once(fbx, scale, dest, collision=True):
     ui = unreal.FbxImportUI()
     setp(ui, "import_mesh", True)
     setp(ui, "import_as_skeletal", False)
@@ -1030,34 +1036,39 @@ def import_board_once(fbx, scale):
     setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_STATIC_MESH)
     d = ui.get_editor_property("static_mesh_import_data")
     setp(d, "combine_meshes", True)
-    setp(d, "auto_generate_collision", True)
+    setp(d, "auto_generate_collision", collision)
     setp(d, "transform_vertex_to_absolute", True)
     setp(d, "import_uniform_scale", float(scale))
-    import_tasks([mk_task(fbx, GAME_DIR + "/Board", fbx_ui=ui)])
+    import_tasks([mk_task(fbx, dest, fbx_ui=ui)])
     mesh = None
-    for p in unreal.EditorAssetLibrary.list_assets(GAME_DIR + "/Board", recursive=True, include_folder=False):
+    for p in unreal.EditorAssetLibrary.list_assets(dest, recursive=True, include_folder=False):
         a = unreal.EditorAssetLibrary.load_asset(p)
         if isinstance(a, unreal.StaticMesh):
             mesh = a
     if mesh is None:
-        raise RuntimeError("掲示板のメッシュが見つかりません")
+        raise RuntimeError("メッシュが見つかりません: " + dest)
     return mesh, mesh.get_bounds().box_extent
 
 
-def import_board():
-    """掲示板のモデル（Blender で作った BulletinBoard.fbx）を取り込む。いちばん長い辺（横）が 264cm になるように、取り込み後の大きさを測って合わせる"""
-    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "BulletinBoard.fbx")
+def import_fit(fname, sub, longest_cm, collision=True):
+    """assets/unreal/<fname> を取り込み、いちばん長い辺が longest_cm になるように、取り込み後の大きさを測って合わせる"""
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", fname)
     if not os.path.exists(fbx):
-        raise RuntimeError("BulletinBoard.fbx がありません: %s" % fbx)
+        raise RuntimeError("%s がありません: %s" % (fname, fbx))
+    dest = GAME_DIR + "/" + sub
     scale = 100.0
-    mesh, e = import_board_once(fbx, scale)
+    mesh, e = import_fbx_once(fbx, scale, dest, collision)
     big = max(e.x, e.y, e.z) * 2.0
-    log("掲示板モデルの大きさ（取り込み直後）: %.0f × %.0f × %.0f cm（最長 264 が正常）" % (e.x * 2, e.y * 2, e.z * 2))
-    if big > 0.0 and abs(big - 264.0) > 20.0:
-        scale = scale * 264.0 / big
-        mesh, e = import_board_once(fbx, scale)
-        log("掲示板モデルを、倍率 %.3f で取り込み直しました: %.0f × %.0f × %.0f cm" % (scale, e.x * 2, e.y * 2, e.z * 2))
+    log("%s の大きさ（取り込み直後）: %.1f × %.1f × %.1f cm（最長 %.0f が正常）" % (fname, e.x * 2, e.y * 2, e.z * 2, longest_cm))
+    if big > 0.0 and abs(big - longest_cm) > longest_cm * 0.08:
+        scale = scale * longest_cm / big
+        mesh, e = import_fbx_once(fbx, scale, dest, collision)
+        log("%s を、倍率 %.3f で取り込み直しました: %.1f × %.1f × %.1f cm" % (fname, scale, e.x * 2, e.y * 2, e.z * 2))
     return mesh
+
+
+def import_board():
+    return import_fit("BulletinBoard.fbx", "Board", 264.0)
 
 
 def s_board():
@@ -1142,6 +1153,56 @@ COIN_DIST = 300.0                      # 10円①を、入口の前から何cm �
 COIN_SIDE = -220.0                     # 入口の正面から横へ何cm（＋は入口に向かって左）
 
 
+def s_safe_materials():
+    def pbr(name, col, metal, rough):
+        m = new_material(name)
+        c = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 0)
+        c.set_editor_property("constant", unreal.LinearColor(col[0], col[1], col[2], 1.0))
+        mel.connect_material_property(c, "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(cst(m, metal, 120), "", MP.MP_METALLIC)
+        mel.connect_material_property(cst(m, rough, 240), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(m)
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+        return m
+    STATE["M_KDSafe"] = pbr("M_KDSafe", (0.10, 0.17, 0.13), 0.55, 0.5)         # 濃い緑の塗装の鉄
+    STATE["M_KDBrass"] = pbr("M_KDBrass", (0.75, 0.55, 0.20), 1.0, 0.3)         # 真ちゅう
+    STATE["M_KDBlack"] = pbr("M_KDBlack", (0.02, 0.02, 0.02), 0.0, 0.5)
+    log("金庫の材質を作りました（M_KDSafe / M_KDBrass / M_KDBlack）")
+
+
+def s_safe():
+    """ダイヤル式の金庫（本体 DialSafe_Body＋回るつまみ DialSafe_Knob）を、ボックスの中に置く"""
+    g = STATE["geo"]
+    n = g["n"]
+    gz = g["zmin"]
+    px, py, _z = world(SAFE_BACK, SAFE_SIDE, gz)
+    yaw = math.degrees(math.atan2(n[1], n[0])) + SAFE_TURN                      # 前（おもて面）が向く向き
+    if KEEP_HAND_PLACEMENT and "DialSafe_Body" in KEEP_POSE:
+        pl, pr = KEEP_POSE["DialSafe_Body"]
+        px, py, gz, yaw = pl.x, pl.y, pl.z, pr.yaw + 90.0
+        log("  手で動かした金庫の位置を使います: (%.0f,%.0f,%.0f) 向き=%.0f度" % (px, py, gz, yaw))
+    fx, fy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    body_mesh = import_fit("DialSafe.fbx", "Safe", 47.0)
+    body = spawn(unreal.StaticMeshActor, (px, py, gz), (0, 0, yaw - 90.0))
+    bc = body.get_component_by_class(unreal.StaticMeshComponent)
+    bc.set_static_mesh(body_mesh)
+    bc.set_material(0, STATE["M_KDSafe"])
+    bc.set_material(1, STATE["M_KDBrass"])
+    setp(bc, "mobility", unreal.ComponentMobility.MOVABLE)
+    tag_actor(body, "DialSafe_Body")
+    # つまみ：別のフォルダに取り込む（本体と同じフォルダだと、どちらか1つしか見つからないため）
+    kmesh = import_fit("SafeDial.fbx", "SafeKnob", 13.3, collision=False)
+    kx, ky, kz = px + fx * 21.8, py + fy * 21.8, gz + 27.6                       # 扉の前面の、ダイヤルの位置
+    kn = spawn(unreal.StaticMeshActor, (kx, ky, kz), (0, 0, yaw - 90.0))
+    kc = kn.get_component_by_class(unreal.StaticMeshComponent)
+    kc.set_static_mesh(kmesh)
+    kc.set_material(0, STATE["M_KDBrass"])
+    kc.set_material(1, STATE["M_KDBlack"])
+    setp(kc, "mobility", unreal.ComponentMobility.MOVABLE)
+    tag_actor(kn, "DialSafe_Knob")
+    log("ダイヤル式の金庫を置きました: (%.0f,%.0f) 向き=%.0f度（奥へ %.0fcm・横へ %.0fcm）" % (px, py, yaw, SAFE_BACK, SAFE_SIDE))
+
+
 def s_coin():
     """道ばたの10円①（Coin_10yen）。ほんのり光る小さな点の明かり（Coin_Light）つき"""
     g = STATE["geo"]
@@ -1194,6 +1255,8 @@ def main():
     step("掲示板の材質", s_board_materials, ["掲示板の画像"])
     step("掲示板", s_board, ["掲示板の材質", "張り紙の板", "前回の生成物を消す"])
     step("10円", s_coin, ["掲示板の材質", "前回の生成物を消す"])
+    step("金庫の材質", s_safe_materials, ["環境確認"])
+    step("ダイヤル式の金庫", s_safe, ["金庫の材質", "前回の生成物を消す"])
     if NIGHT_MODE:
         step("夜にする", s_night, ["前回の生成物を消す"])
     step("保存", s_save, ["環境確認"])
