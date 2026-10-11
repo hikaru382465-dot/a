@@ -437,6 +437,13 @@ def s_collision():
         mesh = c.get_editor_property("static_mesh")
         if mesh is None:
             continue
+        if "glass" in mesh.get_name().lower():       # ガラスは通り抜けられるようにする（入口をふさぐため）。壁は s_walls の見えない壁で作る
+            try:
+                c.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+                log("  %s: 当たり判定なし（ガラス）" % mesh.get_name())
+            except Exception as ex:  # noqa
+                log("  %s: ガラスの当たり判定を消せず : %s" % (mesh.get_name(), str(ex).splitlines()[0]))
+            continue
         try:
             bs = mesh.get_editor_property("body_setup")
             bs.set_editor_property("collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
@@ -474,6 +481,33 @@ def s_player_start():
         log("既存の PlayerStart を動かしました: (%.0f, %.0f, %.0f) 向き=%.0f" % (x, y, z, yaw))
 
 
+def s_walls():
+    """見えない壁：左右と奥に、ぶつかる板を置く（入口はふさがない）。ガラスの当たり判定を消した代わり"""
+    g = STATE["geo"]
+    half_n, half_t = front_half()
+    zmin, zmax = g["zmin"], g["zmax"]
+    h = zmax - zmin
+    cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
+    n = g["n"]
+    yaw0 = math.degrees(math.atan2(n[1], n[0])) - 90.0
+    th = 6.0
+    walls = [("Back", -(half_n - th / 2), 0.0, yaw0, 2 * half_t),
+             ("Left", 0.0, -(half_t - th / 2), yaw0 + 90.0, 2 * half_n),
+             ("Right", 0.0, (half_t - th / 2), yaw0 + 90.0, 2 * half_n)]
+    for nm, d, s_, yaw, length in walls:
+        a = spawn(unreal.StaticMeshActor, world(d, s_, zmin + h / 2), (0, 0, yaw))
+        c = a.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(cube)
+        a.set_actor_scale3d(unreal.Vector(length / 100.0, th / 100.0, h / 100.0))
+        tag_actor(a, "KD_Wall_" + nm)
+        try:
+            c.set_visibility(False, False)
+            c.set_collision_enabled(unreal.CollisionEnabled.QUERY_AND_PHYSICS)
+        except Exception as ex:  # noqa
+            log("  (見えない壁の設定に失敗) %s" % ex)
+    log("見えない壁を置きました（奥・左・右）")
+
+
 def s_door():
     """入口にドア（板）と蝶番（DoorHinge）を付ける。kd_game.py が DoorHinge の向きを回して開け閉めする"""
     g = STATE["geo"]
@@ -485,7 +519,7 @@ def s_door():
     mat = new_material("M_KDDoor")
     setp(mat, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
     mel.connect_material_property(cst(mat, 0.02, 0), "", MP.MP_BASE_COLOR)
-    mel.connect_material_property(cst(mat, 0.45, 100), "", MP.MP_OPACITY)
+    mel.connect_material_property(cst(mat, 0.3, 100), "", MP.MP_OPACITY)
     mel.connect_material_property(cst(mat, 0.15, 200), "", MP.MP_ROUGHNESS)
     mel.recompile_material(mat)
     unreal.EditorAssetLibrary.save_loaded_asset(mat)
@@ -629,6 +663,7 @@ def main():
     step("前回の生成物を消す", s_clear, ["環境確認"])
     step("中心の印", s_center_marker, ["前回の生成物を消す"])
     step("当たり判定", s_collision, ["環境確認"])
+    step("見えない壁", s_walls, ["前回の生成物を消す"])
     step("ドア", s_door, ["前回の生成物を消す"])
     step("蛍光灯", s_lights, ["前回の生成物を消す"])
     step("プレイヤーの開始位置", s_player_start, ["環境確認"])
