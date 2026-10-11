@@ -84,7 +84,7 @@ SETTINGS_DESCR = {
     "FLASH_OUTER": "懐中電灯の、外側の角度",
     "FLASH_RADIUS": "懐中電灯の光が届く距離（cm）",
     "TUBE_Z_FROM_TOP": "蛍光灯を、天井の上端から何cm下に付けるか",
-    "REPLACE_GLASS_MATERIAL": "true で、買ったガラスの材質を M_KDGlass に替える。false で買ったまま",
+    "REPLACE_GLASS_MATERIAL": "null=さわらない（初期値）。true で、買ったガラスの材質を M_KDGlass に替える。false で買ったまま",
 }
 
 
@@ -245,9 +245,17 @@ def tag_actor(a, label):
     a.set_actor_label(label)
 
 
+KEEP_TUBE = {}
+
+
 def s_clear():
     n = 0
     for a in eas().get_all_level_actors():
+        try:
+            if a.get_actor_label() in ("TubeLight_L", "TubeLight_R"):
+                KEEP_TUBE[a.get_actor_label()] = a.get_component_by_class(unreal.RectLightComponent).get_editor_property("intensity")
+        except Exception:  # noqa
+            pass
         try:
             if TAG in [str(t) for t in a.get_editor_property("tags")]:
                 eas().destroy_actor(a)
@@ -622,11 +630,14 @@ def s_sounds():
 
 
 GLASS_OPACITY_SCALE = 0.3             # ガラスのくもりの強さ（小さいほど外がよく見える）。kd_game.py の GLASS_DIRT でも変えられる
-REPLACE_GLASS_MATERIAL = False         # True: 買ったガラスの材質を、くもりを弱めた材質（M_KDGlass）に替える。False: 買ったままの材質（前の版で替えていたら、元に戻す）
+REPLACE_GLASS_MATERIAL = None          # True: 買ったガラスの材質を、くもりを弱めた材質（M_KDGlass）に替える。False: 買ったままの材質（前の版で替えていたら、元に戻す）
 
 
 def s_glass_material():
     """買ったガラスはくもりが強くて外が見えないので、くもり（汚れ）を弱められるガラスの材質に替える"""
+    if REPLACE_GLASS_MATERIAL is None:
+        log("ガラスの材質: さわりません（ひかるが直したものを残す）")
+        return
     if not REPLACE_GLASS_MATERIAL:
         n = 0
         for c in STATE["booth"].get_components_by_class(unreal.StaticMeshComponent):
@@ -705,7 +716,7 @@ def s_lights():
         lc = r.get_component_by_class(unreal.RectLightComponent)
         setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
         setp(lc, "intensity_units", unreal.LightUnits.LUMENS)
-        setp(lc, "intensity", 350.0 if nm == "R" else 1500.0)
+        setp(lc, "intensity", KEEP_TUBE.get("TubeLight_" + nm, 350.0 if nm == "R" else 1500.0))
         setp(lc, "use_temperature", True)
         setp(lc, "temperature", 5000.0)
         setp(lc, "source_width", 85.0)
