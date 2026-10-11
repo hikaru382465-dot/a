@@ -132,7 +132,8 @@ def make_rod():
     imf = imf.crop(bb); imb = imb.crop(bb)
     H = 52; sc = H / imf.height
     def fin(img):
-        img = img.resize((max(1, round(img.width * sc)), H), Image.BOX); al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 90) * 255).astype(np.uint8)))
+        img = img.resize((max(1, round(img.width * sc)), H), Image.BOX); al = np.array(img.getchannel('A')); px = np.array(img.convert('RGB')).astype(int); white = (px.min(axis=2) > 175)      # 背景の白っぽい色を消す
+        img.putalpha(Image.fromarray((((al > 90) & ~white) * 255).astype(np.uint8)))
         q = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q.putalpha(img.getchannel('A')); return q
     ff, fb = fin(imf), fin(imb)
     ab = np.array(fb); ab[14:, 21:, 3] = 0; ab[9:14, 29:, 3] = 0; fb = Image.fromarray(ab, 'RGBA')      # ウキと糸だけ消す（投げたあとは、水の中のウキを使う）
