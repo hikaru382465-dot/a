@@ -33,7 +33,8 @@ FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ�
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
-WALL_INSET = 7.0                     # 張り紙を、ボックスの外形から内側へ何cm 入れた所に貼るか
+WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
+POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 TUBE_Z_FROM_TOP = 40.0               # 蛍光灯を、天井の上端から何cm 下に付けるか
 # --------------------------------------------------
 
@@ -280,7 +281,7 @@ SLOTS = [("R", -40, 125, 1.0), ("R", 5, 160, 1.0), ("R", 45, 115, 1.0), ("R", -5
          ("F", -45, 130, 1.0), ("F", 40, 155, 1.0), ("F", 0, 195, 1.0),
          ("B", -46, 120, 1.0), ("B", 46, 150, 1.0)]
 HINT_SLOT = ("B", 0, 185, 1.0)        # 電話機の真上
-EYE_SLOT = ("L", 0, 140, 1.5)         # 左の壁の真ん中に、大きく
+EYE_SLOT = ("L", 0, 140, 1.6)         # 左の壁の真ん中に、少し大きく
 
 
 def s_ghost():
@@ -592,7 +593,8 @@ def s_posters():
         c.set_static_mesh(mesh)
         c.set_material(0, mats[key])
         setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
-        a.set_actor_scale3d(unreal.Vector(sc, sc, sc))
+        k = sc * POSTER_SCALE
+        a.set_actor_scale3d(unreal.Vector(k, k, k))
         tag_actor(a, label)
         a.set_actor_hidden_in_game(True)
         n += 1

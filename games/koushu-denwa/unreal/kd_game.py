@@ -32,7 +32,6 @@ CLOSE_TIME = 0.22            # 扉が閉まる速さ（秒）
 IDLE_FIRST = 5.0             # 閉じ込められてから最初の点滅までの時間（秒）
 FLICKER_TIME = 2.1           # 点滅の長さ
 DARK_TIME = 1.4              # 暗転の長さ
-IDLE_LATER = (13.0, 13.0, 9.0, 9.0)   # 段階1〜4が終わったあとの静かな時間（最後の段階はそのまま）
 LAST_STAGE = 5               # 段階5になったら失敗（段階2で作る）。今は表示だけ
 FLASH_KEY = "F"
 ENTER_KEY = "E"                # 電話ボックスに入るキー（買った電話ボックス用：入口のドアは動かさず、暗転と音で入る）
@@ -44,7 +43,11 @@ SOUND_DIR = "/Game/KoushuDenwa/Sounds"
 # 幽霊が出る場所（ボックス中心からの位置 cm。正面＝+Y）。段階1〜4で、だんだん近づく
 GHOST_SPOTS = [(0.0, 1300.0), (-240.0, 750.0), (270.0, 360.0), (115.0, 25.0)]
 GHOST_SUBS = ["（外に、誰か立っている……）", "（さっきより、近い）", "（ガラスに、何か貼られている）", "（すぐそこにいる）"]
-POSTER_FRAC = [0.35, 0.7, 1.0, 1.0]       # 段階1〜4で、張り紙が何割見えるか
+POSTER_FRAC = [0.3, 0.55, 0.8, 1.0]        # 1〜4回目の「張り紙の演出」で、張り紙が何割まで貼られるか
+GHOST_HOLD = (11.0, 11.0, 10.0, 9.0)       # 幽霊が外に見えている時間（秒）。この間は張り紙は出ない
+POSTER_HOLD = (6.0, 7.0, 8.0, 9.0)         # 張り紙が貼られている時間（秒）。この間は幽霊は出ない。終わると全部はがれる
+POSTER_STEP = 0.35                         # 張り紙が1枚ずつ貼られていく間隔（秒）
+IDLE_BETWEEN = 4.0                         # 2回目以降、演出と演出のあいだの静かな時間（秒）
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 GLASS_DIRT = 0.35            # ガラスのくもり具合（0=ほぼ透明 〜 1=いまのまま）。外が見えないときは小さくする
@@ -97,6 +100,12 @@ class Game:
         self.state_t = 0.0
         self.stage = 0
         self.sub = "IDLE"
+        self.poster_target = 0
+        self.poster_shown = 0
+        self.poster_round = 0
+        self.steps = []
+        self.step_i = 0
+        self.step_t = 0.0
         self.sub_t = 0.0
         self.sub_len = IDLE_FIRST
         self.flash_on = False
@@ -325,7 +334,7 @@ class Game:
                 self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
             if self.state_t >= CLOSE_TIME:
                 self.state, self.state_t = "TRAPPED", 0.0
-                self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_FIRST
+                self.start_trapped()
                 screen(self.world, "バタン！（とじこめられた）", (255, 120, 120), 4.0)
                 self.fade(False, 0.8)
         elif self.state == "TRAPPED":
@@ -398,7 +407,7 @@ class Game:
             screen(self.world, "（とじこめられた）", (255, 120, 120), 4.0)
         elif self.enter_stage == 3 and t >= ENTER_FADE_OUT + ENTER_BLACK + ENTER_FADE_IN:
             self.state, self.state_t = "TRAPPED", 0.0
-            self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_FIRST
+            self.start_trapped()
             log("閉じ込め開始")
 
     def begin_close(self):
@@ -420,42 +429,110 @@ class Game:
             if self.errors < 3:
                 log("  (懐中電灯の更新に失敗) %s" % e)
 
+    # ---- 閉じ込められてから：「幽霊が近づく」と「張り紙が貼られる」を、別々の場面にして、交互にくりかえす ----
+    def start_trapped(self):
+        self.steps = []
+        for r in range(len(GHOST_SPOTS)):
+            self.steps += self.round_steps(r)
+        self.steps += [("idle", IDLE_BETWEEN, None, None), ("flicker", FLICKER_TIME, None, None),
+                       ("dark", DARK_TIME, self.ghost_hide, self.begin_dead)]
+        self.step_i = -1
+        self.stage = 0
+        self.next_step()
+
+    def round_steps(self, r):
+        first = IDLE_FIRST if r == 0 else IDLE_BETWEEN
+        n_hold = min(r, len(GHOST_HOLD) - 1)
+        return [
+            ("idle", first, None, None),
+            ("flicker", FLICKER_TIME, None, None),
+            ("dark", DARK_TIME, self.hide_all, lambda r=r: self.ghost_scene(r)),            # 暗転のあいだに幽霊を動かす → 外に見える
+            ("idle", GHOST_HOLD[n_hold], None, None),
+            ("flicker", FLICKER_TIME, None, None),
+            ("dark", DARK_TIME, self.ghost_hide, lambda r=r: self.poster_scene_begin(r)),    # 幽霊は消す → 張り紙が貼られはじめる
+            ("posters", POSTER_HOLD[n_hold], None, None),
+            ("flicker", FLICKER_TIME, None, None),
+            ("dark", DARK_TIME, self.posters_hide, None),                                    # 張り紙は、ぜんぶはがす（貼りっぱなしにしない）
+        ]
+
+    def hide_all(self):
+        self.ghost_hide()
+        self.posters_hide()
+
+    def ghost_scene(self, r):
+        self.stage = r + 1
+        gx, gy = GHOST_SPOTS[min(r, len(GHOST_SPOTS) - 1)]
+        th = math.radians(self.front_yaw)               # 入口の向きに合わせて回す（入口が +Y のとき 0 度）
+        self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th))
+        screen(self.world, GHOST_SUBS[min(r, len(GHOST_SUBS) - 1)], (200, 220, 255), 4.0)
+        log("幽霊の場面 %d" % (r + 1))
+
+    def poster_scene_begin(self, r):
+        self.stage = r + 1
+        frac = POSTER_FRAC[min(r, len(POSTER_FRAC) - 1)]
+        self.poster_target = int(math.ceil(len(self.posters) * frac))
+        self.poster_shown = 0
+        self.poster_round = r
+        screen(self.world, "（紙が……貼られていく）", (255, 160, 160), 3.0)
+        log("張り紙の場面 %d（%d枚）" % (r + 1, self.poster_target))
+
+    def posters_hide(self):
+        for _k, a in self.posters:
+            a.set_actor_hidden_in_game(True)
+        for a in (self.hint, self.eye):
+            if a is not None:
+                a.set_actor_hidden_in_game(True)
+        self.poster_shown = 0
+        self.poster_target = 0
+
+    def poster_progress(self, step_t):
+        want = min(self.poster_target, int(step_t / POSTER_STEP) + 1)
+        while self.poster_shown < want:
+            self.posters[self.poster_shown][1].set_actor_hidden_in_game(False)
+            self.poster_shown += 1
+            if self.poster_shown == 1 and self.hint is not None and self.poster_round == 0:
+                self.hint.set_actor_hidden_in_game(False)
+        if self.eye is not None and self.poster_round >= 2 and self.poster_shown >= self.poster_target:
+            self.eye.set_actor_hidden_in_game(False)
+
+    def next_step(self):
+        if self.step_i >= 0:
+            exit_fn = self.steps[self.step_i][3]
+            if exit_fn is not None:
+                exit_fn()
+        self.step_i += 1
+        if self.step_i >= len(self.steps):
+            return
+        typ, ln, enter_fn, _ex = self.steps[self.step_i]
+        self.step_t = 0.0
+        self.flicker_next = 0.0
+        if typ == "dark":
+            self.set_lights(0.0)
+            self.blackout(0.0)
+        if enter_fn is not None:
+            enter_fn()
+
     def tick_trapped(self, dt):
-        self.sub_t += dt
-        if self.sub == "IDLE":
+        if self.step_i >= len(self.steps):
+            return
+        self.step_t += dt
+        typ, ln, _en, _ex = self.steps[self.step_i]
+        if typ in ("idle", "posters"):
             self.set_lights(1.0 if self.t % 7.0 > 0.3 else 0.35)     # ときどきすこし弱まる
-            if self.stage >= LAST_STAGE:
-                return
-            if self.sub_t >= self.sub_len:
-                self.sub, self.sub_t, self.sub_len = "FLICKER", 0.0, FLICKER_TIME
-                self.flicker_next = 0.0
-        elif self.sub == "FLICKER":
-            if self.sub_t >= self.flicker_next:
+            if typ == "posters":
+                self.poster_progress(self.step_t)
+        elif typ == "flicker":
+            if self.step_t >= self.flicker_next:
                 self.flicker_lit = not self.flicker_lit
-                self.flicker_next = self.sub_t + random.uniform(0.03, 0.22)
+                self.flicker_next = self.step_t + random.uniform(0.03, 0.22)
                 self.set_lights(0.9 if self.flicker_lit else 0.0)
                 self.blackout(0.0 if self.flicker_lit else FLICKER_BLACK)
-            if self.sub_t >= self.sub_len:
-                self.sub, self.sub_t, self.sub_len = "DARK", 0.0, DARK_TIME
-                self.set_lights(0.0)
+        if self.step_t >= ln:
+            if typ == "flicker":
                 self.blackout(0.0)
-                self.stage += 1
-                self.ghost_hide()
-                if self.stage <= len(POSTER_FRAC):
-                    self.reveal(self.stage)
-                log("段階 %d" % self.stage)
-        elif self.sub == "DARK":
-            if self.sub_t >= self.sub_len:
-                if self.stage >= LAST_STAGE:
-                    self.begin_dead()
-                    return
-                gx, gy = GHOST_SPOTS[min(self.stage, len(GHOST_SPOTS)) - 1]
-                th = math.radians(self.front_yaw)               # 入口の向きに合わせて回す（入口が +Y のとき 0 度）
-                self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th))
-                screen(self.world, GHOST_SUBS[min(self.stage, len(GHOST_SUBS)) - 1], (200, 220, 255), 4.0)
-                idx = min(self.stage - 1, len(IDLE_LATER) - 1)
-                self.sub, self.sub_t, self.sub_len = "IDLE", 0.0, IDLE_LATER[idx]
+            if typ == "dark":
                 self.set_lights(1.0)
+            self.next_step()
 
 
 # ---------------- 登録（Tick） ----------------
