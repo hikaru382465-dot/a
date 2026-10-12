@@ -141,3 +141,7 @@ FBXから来る材質は簡単なものなので、次の3つだけ手で直す�
 ## 設定ファイルの確認（kd_check_settings.py）
 
 `py "…/unreal/kd_check_settings.py"` を Cmd 欄で実行すると、`kd_settings.json` の、書き方のまちがい（カンマ・かっこ）、知らない項目、数字の種類のまちがいを、出力ログ（KD で絞る）に出す。
+
+## 木・岩の当たり判定（kd_trees_collision.py）
+
+Fab や自作の木・岩に当たり判定がないと、歩いて通りぬけてしまう。`py "…/unreal/kd_trees_collision.py"` で、名前に tree / pine / spruce / rock などが入ったメッシュのうち、当たり判定がないものに、幹だけの円柱（岩は箱）をつける。`TRUNK_FRAC`（幹の太さ）で調整。すでにある物は変えない。
