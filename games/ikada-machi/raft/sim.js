@@ -221,13 +221,14 @@
   function jobStep(s, dt) {
     const bu = s.buddy, B = D.BUDDY, J = bu.job, eff = 0.5 + 0.5 * bu.mood / 100;
     if (!J) { bu.mood = Math.min(100, bu.mood + B.IDLE * dt); return; }
-    if (J === 'rest') bu.mood = Math.min(100, bu.mood + B.REST * dt);
+    const isRest = J === 'rest' || J === 'sit' || J === 'sleep';
+    if (isRest) bu.mood = Math.min(100, bu.mood + B.REST_RATE[J] * dt);
     else bu.mood = Math.max(0, bu.mood - B.DRAIN * dt);
     const sea = J === 'fish' || J === 'net';
     if (sea && s.weather.id === 'storm') { bu.line = null; if (!bu.stormMsg) { bu.stormMsg = true; s.events.push({ e: 'bstorm' }); } return; }
     bu.stormMsg = false;
-    if (S.weak(s) && J !== 'rest') bu.mood = Math.max(0, bu.mood - B.DRAIN * 2 * dt);       // 飢えて渇くと、疲れが速い
-    if (J !== 'rest' && bu.mood < B.TIRED) { S.setJob(s, 'rest'); s.events.push({ e: 'btired' }); return; }
+    if (S.weak(s) && !isRest) bu.mood = Math.max(0, bu.mood - B.DRAIN * 2 * dt);       // 飢えて渇くと、疲れが速い
+    if (!isRest && bu.mood < B.TIRED) { S.setJob(s, 'sleep'); s.events.push({ e: 'btired' }); return; }
     if (J === 'water') {
       const o = s.objects.find(x => x.k === 'filter') || s.objects.find(x => x.k === 'tank');
       if (!o) { S.setJob(s, null); s.events.push({ e: 'jobfail' }); return; }
@@ -242,7 +243,7 @@
     }
     if (!goSpot(s, bu)) return;
     const f = bu.face || [0, 1];
-    if (J === 'rest') { bu.viewT += dt; if (bu.viewT >= B.VIEW_SEC) { bu.viewT = 0; s.events.push({ e: 'bview' }); } return; }
+    if (isRest) { bu.viewT += dt; if (bu.viewT >= B.VIEW_SEC) { bu.viewT = 0; if (J === 'rest') s.events.push({ e: 'bview' }); } return; }
     if (J === 'fish') {
       if (!bu.line) {
         if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }

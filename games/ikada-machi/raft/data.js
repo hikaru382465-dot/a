@@ -40,10 +40,12 @@ window.RAFT.data = {
       fish:  { name: '釣り番',     tip: '相棒がざおで魚を釣る（リズムなしなので、ゆっくり）' },
       net:   { name: '網番',       tip: '相棒が網を投げて、引き上げる（網のレベルしだい）' },
       water: { name: '水くみ番',   tip: 'ろ過器・貯水槽のそばで手伝う（ろ過と雨水ためが速くなる）' },
-      rest:  { name: '休む・眺める', tip: '景色を眺めて、機嫌をもどす' }
+      rest:  { name: 'くつろぐ',   tip: '景色を眺めて、機嫌をもどす' },
+      sit:   { name: '座る',       tip: '座って休む（ふつうに機嫌がもどる）' },
+      sleep: { name: '寝る',       tip: '眠って休む（いちばん早く機嫌がもどる）' }
     },
     ROD_COST: { wood: 4, rope: 2 },
-    MOOD0: 80, DRAIN: 0.12, REST: 0.9, IDLE: 0.15, TIRED: 12,
+    MOOD0: 80, DRAIN: 0.12, REST: 0.9, REST_RATE: { rest: 0.9, sit: 0.7, sleep: 1.6 }, IDLE: 0.15, TIRED: 12,
     FISH_WAIT: [5, 12], FISH_REST: [2, 5], NET_REST: 6, NET_POWER: 0.6, VIEW_SEC: 25
   },
   // 道具のいたみ：使うたびに減る。0になると「ぼろぼろ」（使えるが、遠くへ飛ばない・1個しか入らない・ウキの時間が短い）。「作る」で直す（作業台がいる）

@@ -84,7 +84,7 @@ window.RAFT.parts.buddy = function (c) {
         if (bu.act && bu.act.type === 'eat' && PA.anims[bu.act.kind || 'eat']) anim = bu.act.kind || 'eat';
         else if (cheerT > 0) pose = 'cheer';
         else if (bu.job === 'fish' && bu.line && !walking) pose = 'fish';
-        else if (bu.job === 'rest' && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) anim = bu.mood < 30 ? 'sleep' : bu.mood < 70 ? 'sit' : 'relax';
+        else if ((bu.job === 'rest' || bu.job === 'sit' || bu.job === 'sleep') && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) anim = bu.job === 'sleep' ? 'sleep' : bu.job === 'sit' ? 'sit' : 'relax';
         if (anim !== animName) { animName = anim; animT = 0; } animT += dt;
         c.buddyTip = null;
         let f0 = null, tx0 = null;
