@@ -104,6 +104,7 @@ clean(SRC / 'zzz.jpg', 'zzzClean', 26, 6)
 clean(SRC / 'note.png', 'noteClean', 16, 4)
 clean(SRC / 'sweat.jpg', 'sweatClean', 18, 6)
 clean(SRC / 'heart.png', 'heartClean', 16, 6)
+clean(SRC / 'anger.jpg', 'angerClean', 18, 5)
 (here / 'emotes_art.js').write_text('window.RAFT.emoteArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 6 + 10 for _, i in tiles); H = max(i.height * 6 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0
