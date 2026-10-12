@@ -44,6 +44,7 @@ SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
 SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=左へ回して止める／R=右）。新聞の「19-3-8」と、液晶の「ヒダリ ミギ ヒダリ」
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
 DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
+START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・地面の下）に、入口の正面から何cm 離して立たせるか
 ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
@@ -115,6 +116,7 @@ SETTINGS_DESCR = {
     "SAFE_CODE": "金庫の番号。[[\"L\",19],[\"R\",3],[\"L\",8]] のように、向き（L左・R右）と数字",
     "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
+    "START_DIST": "開始位置が変な所のとき、入口の正面から何cm 離して立たせるか",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
@@ -220,7 +222,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -382,6 +384,7 @@ class Game:
         marker = found.get("KD_BoothCenter")
         if marker is not None:                      # 買った電話ボックス用：中心と入口の向きは、印から読む
             ml = marker.get_actor_location()
+            self.cz = ml.z
             self.cx, self.cy = ml.x, ml.y
             self.front_yaw = marker.get_actor_rotation().yaw
         elif self.frame is not None:
@@ -536,6 +539,22 @@ class Game:
             except Exception:  # noqa
                 pass
             self.eye_z = loc.z
+            # 開始位置が、ボックスから遠い・地面の下のときは、入口の正面に立たせ直す（PlayerStart が別の所にある場合の救済）
+            try:
+                far = math.hypot(loc.x - self.cx, loc.y - self.cy) > self.half_n + START_DIST + 3000.0
+                cz = getattr(self, "cz", None)
+                low = cz is not None and loc.z < cz - 400.0
+                if (far or low) and getattr(self, "cz", None) is not None:
+                    th = math.radians(self.front_yaw)
+                    nx, ny = -math.sin(th), math.cos(th)
+                    px, py = self.cx + nx * (self.half_n + START_DIST), self.cy + ny * (self.half_n + START_DIST)
+                    self.pawn.set_actor_location(unreal.Vector(px, py, self.cz - 40.0), False, False)
+                    self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(-ny, -nx))))
+                    self.eye_z = self.cz - 40.0
+                    loc = self.pawn.get_actor_location()
+                    log("開始位置が遠い／低いので、入口の正面へ立たせ直しました: (%.0f, %.0f, %.0f)" % (px, py, self.cz - 40.0))
+            except Exception as e:  # noqa
+                log("  (開始位置を直せません) %s" % e)
             log("プレイヤー: %s・最初の高さ z=%.0f" % ("歩く人（地面に立つ）" if self.is_char else "ういている人（高さ固定）", loc.z))
         # 歩く高さを固定（飛ばない）。地面に立つ人（Character）は、固定しない。固定する高さは、最初に立った高さ（地面の下に入らない）
         if not self.is_char and abs(loc.z - self.eye_z) > 0.5:

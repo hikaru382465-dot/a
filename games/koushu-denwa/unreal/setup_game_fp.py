@@ -643,24 +643,24 @@ def s_collision():
 
 
 def s_player_start():
-    ps = None
-    for a in eas().get_all_level_actors():
-        if isinstance(a, unreal.PlayerStart):
-            ps = a
-            break
+    """PlayerStart を、入口の正面に置く。レベルに PlayerStart が何個あっても、ぜんぶ入口の正面に並べる（遠い所の1個から始まってしまうのを防ぐ）"""
+    starts = [a for a in eas().get_all_level_actors() if isinstance(a, unreal.PlayerStart)]
     g = STATE["geo"]
     half_n, _ = front_half()
     x, y, _z = world(half_n + START_DIST, 0, 0)
     z = g["zmin"] + 100.0
     n = g["n"]
     yaw = math.degrees(math.atan2(-n[1], -n[0]))           # ボックスの方を向く
-    if ps is None:
+    if not starts:
         ps = spawn(unreal.PlayerStart, (x, y, z), (0, 0, yaw))
         tag_actor(ps, "KD_PlayerStart")
-        log("PlayerStart を新しく置きました")
-    else:
-        ps.set_actor_location_and_rotation(unreal.Vector(x, y, z), unreal.Rotator(0, 0, yaw), False, False)
-        log("既存の PlayerStart を動かしました: (%.0f, %.0f, %.0f) 向き=%.0f" % (x, y, z, yaw))
+        log("PlayerStart を新しく置きました: (%.0f, %.0f, %.0f)" % (x, y, z))
+        return
+    t = g["t"]
+    for i, ps in enumerate(starts):
+        off = i * 150.0                                    # 2個目からは、横に 1.5m ずつずらす（重なって出られなくならないように）
+        ps.set_actor_location_and_rotation(unreal.Vector(x + t[0] * off, y + t[1] * off, z), unreal.Rotator(0, 0, yaw), False, False)
+    log("PlayerStart %d 個を、入口の正面へ動かしました: (%.0f, %.0f, %.0f) 向き=%.0f" % (len(starts), x, y, z, yaw))
 
 
 def s_sounds():
