@@ -49,7 +49,7 @@ window.RAFT.data = {
   DUR: { net: { use: 3 }, rod: { use: 5 }, worn: { range: 0.5, cap: 1, bite: 0.6 }, low: 25 },
   // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
   DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
-  COOK: { sec: 5, batch: 3, wood: 1, perWood: 3 },   // 1匹5秒・いちどに3匹まで・木くず1個で3匹ぶん
+  COOK: { sec: 12, batch: 3, wood: 1, perWood: 3 },   // 1匹12秒・いちどに3匹まで・木くず1個で3匹ぶん
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）
