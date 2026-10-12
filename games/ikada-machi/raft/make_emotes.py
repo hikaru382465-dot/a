@@ -70,6 +70,40 @@ for k, b in BOXES2.items():
     im = im.resize((max(1, round(im.width * SC)), max(1, round(im.height * SC))), Image.BOX)
     im = tidy(im)
     tiles.append((k, im)); out['emotes'][k] = {'src': png(im), 'w': im.width, 'h': im.height}; print(k, im.size)
+# ---- ひかるが見つけてきた、くっきりした吹き出し（art/buddy/emote_src/）。ドット絵の大きさに縮めて使う ----
+# ※ ネットで見つけた絵：商用（Steam販売）で使えるか、配布元の利用規約を確認してから公開すること
+def clean(path, name, h, ncol, crop=None):
+    im = Image.open(path); im = im.convert('RGBA')
+    if crop: im = im.crop(crop)
+    a = np.array(im); H, W = a.shape[:2]
+    if a[..., 3].min() < 250:       # もともと透明な背景
+        fg = a[..., 3] > 128
+    else:                            # 白い背景：外側から白をけずる
+        mx, mn = a[..., :3].max(axis=2), a[..., :3].min(axis=2); bg = (mn >= 226) & (mx - mn <= 22)
+        om = np.zeros((H, W), bool); q = deque()
+        for x in range(W):
+            for y in (0, H - 1):
+                if bg[y, x]: om[y, x] = True; q.append((y, x))
+        for y in range(H):
+            for x in (0, W - 1):
+                if bg[y, x] and not om[y, x]: om[y, x] = True; q.append((y, x))
+        while q:
+            cy, cx = q.popleft()
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                Y, X = cy + dy, cx + dx
+                if 0 <= Y < H and 0 <= X < W and bg[Y, X] and not om[Y, X]: om[Y, X] = True; q.append((Y, X))
+        fg = ~om
+    a[..., 3] = fg * 255; im = Image.fromarray(a, 'RGBA'); im = im.crop(im.getchannel('A').getbbox())
+    w = max(1, round(im.width * h / im.height)); im = im.resize((w, h), Image.BOX)
+    al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
+    q = im.convert('RGB').quantize(ncol, dither=Image.NONE).convert('RGB'); q.putalpha(im.getchannel('A'))
+    tiles.append((name, q)); out['emotes'][name] = {'src': png(q), 'w': q.width, 'h': q.height}; print(name, q.size)
+SRC = here.parent / 'art' / 'buddy' / 'emote_src'
+clean(SRC / 'exclaim.png', 'exclaim2', 24, 6, (320, 470, 845, 1220))
+clean(SRC / 'zzz.jpg', 'zzzClean', 26, 6)
+clean(SRC / 'note.png', 'noteClean', 16, 4)
+clean(SRC / 'sweat.jpg', 'sweatClean', 18, 6)
+clean(SRC / 'heart.png', 'heartClean', 16, 6)
 (here / 'emotes_art.js').write_text('window.RAFT.emoteArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 6 + 10 for _, i in tiles); H = max(i.height * 6 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0
