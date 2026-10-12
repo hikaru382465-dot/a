@@ -9,7 +9,7 @@
 | sweat.jpg | 汗のしずく | 不明 | 未確認 | ✕ |
 | heart.png | ハート | 不明 | 未確認 | ✕ |
 | anger.jpg | 怒りマーク | 不明 | 未確認 | ✕ |
-| gloom.jpg / burst.jpg | 縦線＋しずく／黄色いばくはつ | ニコニ・コモンズ nc291217（https://commons.nicovideo.jp/works/nc291217）※どの絵かは、ひかるに確認する | 未確認 | ✕ |
+| gloom.jpg / burst.jpg | 縦線＋しずく／黄色いばくはつ | ニコニ・コモンズ nc291217（https://commons.nicovideo.jp/works/nc291217）※どの絵のページかは、ひかるに確認する | ひかる確認：「任意OK」（クレジット表記は任意） | △（商用利用の欄も、念のためもう一度見る） |
 
 ## ひかる作・AI作成（ひかるが用意）
 - `buddy/poses.png` `anims.png` `loops.png` `emotes.png`、`items/`、`chars/`：ひかるが用意した絵（AIで作成したものを含む）。AI作成物の扱いは、使ったサービスの規約を確認する。
