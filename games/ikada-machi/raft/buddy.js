@@ -12,13 +12,17 @@ window.RAFT.parts.buddy = function (c) {
     let left = 0;
     DIRS.forEach(d => { ch.tex[d] = []; set[d].forEach((f, i) => { left++; const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; ch.tex[d][i] = tx; if (--left === 0) ch.ready = true; }; im.src = f.src; }); });
     const g = new THREE.PlaneGeometry(1, 1); g.translate(0, 0.5, 0);
-    ch.mat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.45 }); c.sprites.push(ch.mat);
+    ch.mat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.45, side: THREE.DoubleSide }); c.sprites.push(ch.mat);
     ch.mesh = new THREE.Mesh(g, ch.mat); ch.mesh.rotation.y = c.cam.yaw; ch.mesh.visible = false; group.add(ch.mesh);
     ch.sh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
     ch.sh.rotation.x = -Math.PI / 2; ch.sh.rotation.z = Math.PI / 4; group.add(ch.sh);
     ch.set = set; return ch;
   }
   const chars = [makeChar('boy', s.player), makeChar('girl', s.buddy)].filter(Boolean);
+  // 相棒のしぐさ（poses_art.js）：釣り・座る・寝る・水を飲む・やったー！ など。1枚絵なので、左向きは左右反転
+  const PA = R.poseArt, poseTex = {};
+  if (PA) Object.keys(PA.poses).forEach(k => { const f = PA.poses[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; poseTex[k] = tx; }; im.src = f.src; });
+  let cheerId = s.buddy.cheer || 0, cheerT = 0;
   c.chars = chars;
 
   // ---- 操作 ----
@@ -71,6 +75,22 @@ window.RAFT.parts.buddy = function (c) {
     if (down && down.aim && down.p) setAim(down.p, power());
     chars.forEach(ch => {
       if (!ch.ready) return; const a = ch.actor, walking = a.path.length > 0, dir = a.dir || 'down';
+      if (ch.actor === s.buddy && PA) {
+        const bu = s.buddy; if ((bu.cheer || 0) !== cheerId) { cheerId = bu.cheer || 0; cheerT = 1.1; } cheerT = Math.max(0, cheerT - dt);
+        let pose = null;
+        if (bu.act && bu.act.type === 'eat' && bu.job !== 'water') pose = 'drink';
+        else if (cheerT > 0) pose = 'cheer';
+        else if (bu.job === 'fish' && bu.line && !walking) pose = 'fish';
+        else if (bu.job === 'rest' && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) pose = bu.mood < 30 ? 'sleep' : bu.mood < 70 ? 'sit' : 'relax';
+        c.buddyTip = null;
+        if (pose && poseTex[pose]) {
+          const f = PA.poses[pose], mir = dir === 'left' ? -1 : 1;
+          ch.mat.map = poseTex[pose]; ch.mat.needsUpdate = false;
+          ch.mesh.scale.set(mir * f.w / PA.ppu, f.h / PA.ppu / Math.cos(c.cam.pitch), 1); ch.mesh.position.set(a.x, 0.2, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
+          if (pose === 'fish' && f.tip) c.buddyTip = [a.x + Math.cos(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / PA.ppu, 0.2 + (f.h - f.tip[1]) / PA.ppu / Math.cos(c.cam.pitch), a.z - Math.sin(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / PA.ppu];
+          return;
+        }
+      }
       const fr = walking ? Math.floor(t * 8) % 4 : (a.act ? Math.floor(t * 4) % 2 : 0), f = ch.set[dir][fr], tx = ch.tex[dir][fr];
       if (!tx) return;
       ch.mat.map = tx; ch.mat.needsUpdate = false;

@@ -97,7 +97,7 @@
   function collect(s, w) {
     const K = kit(s, w), c = K.net.cast; if (!c) return;
     c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; });
-    if (c.by === 'buddy') { s.buddy.jobT = D.BUDDY.NET_REST; if (c.held.length) s.events.push({ e: 'bhaul', n: c.held.length }); }
+    if (c.by === 'buddy') { s.buddy.jobT = D.BUDDY.NET_REST; if (c.held.length) { s.events.push({ e: 'bhaul', n: c.held.length }); s.buddy.cheer = s.uid++; } }
     else if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
     K.net.cast = null;
   }
@@ -251,7 +251,7 @@
         bu.line.t += dt * eff;
         if (bu.line.t >= bu.line.wait) {
           const o = ['wood', 'coconut', 'cloth', 'rope'], k = S.rand() < D.ROD.fishP ? 'fish' : o[Math.floor(S.rand() * o.length)];
-          s.inv[k] = (s.inv[k] || 0) + 1; bu.fx = { id: s.uid++, k, x: bu.line.x, z: bu.line.z }; s.events.push({ e: 'bfished', k });
+          s.inv[k] = (s.inv[k] || 0) + 1; bu.fx = { id: s.uid++, k, x: bu.line.x, z: bu.line.z }; s.events.push({ e: 'bfished', k }); bu.cheer = s.uid++;
           bu.line = null; bu.jobT = rr(B.FISH_REST); bu.act = { type: 'throw', t: 0.4 };
         }
       }
