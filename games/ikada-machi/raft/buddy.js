@@ -138,7 +138,7 @@ window.RAFT.parts.buddy = function (c) {
       else if (s.weather.id === 'storm' && (bu.job === 'fish' || bu.job === 'net')) key = 'exclaim';
       else if (bu.mood < 20 && bu.job !== 'rest' && bu.job !== 'sit' && bu.job !== 'sleep') key = 'anger';
       if (key !== emoKey) { emoKey = key; emoT = 0; } emoT += dt;
-      const VAR = { zz: ['zzzClean', 'zzA', 'zzB', 'zzC', 'zzE', 'bubble', 'zzD'], music: ['noteClean', 'noteB', 'noteC', 'noteD', 'noteE'], heart: ['heartClean'], sweat: ['sweatClean'], exclaim: ['exclaim2'], anger: ['angerClean'], gloom: ['gloom'], burst: ['burst'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
+      const VAR = { zz: ['zzzClean'], music: ['noteClean'], heart: ['heartClean'], sweat: ['sweatClean'], exclaim: ['exclaim2'], anger: ['angerClean'], gloom: ['gloom'], burst: ['burst'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
       const shown = key && VAR[key] && EA.emotes[VAR[key][0]] ? VAR[key][Math.floor(emoT * 0.5) % VAR[key].length] : key;
       const tx = shown && emoTex[shown];
       emoMesh.visible = !!tx;
