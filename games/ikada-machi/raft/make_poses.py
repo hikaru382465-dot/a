@@ -9,11 +9,11 @@ here = pathlib.Path(__file__).parent
 src = Image.open(here.parent / 'art' / 'buddy' / 'poses.png').convert('RGB'); A = np.array(src).astype(int)
 SC = 0.34 if False else 0.40      # 縮小の割合（どのポーズも同じ割合。歩く絵の高さ約110px→約44px）
 
-def cut(box, name, AA=None):
+def cut(box, name, AA=None, bgmin=212):
     AA = A if AA is None else AA
     x0, y0, x1, y1 = box; sub = AA[y0:y1, x0:x1]; h, w = sub.shape[:2]
     mx, mn = sub.max(axis=2), sub.min(axis=2)
-    bg = (mx - mn <= 14) & (mn >= 212)
+    bg = (mx - mn <= 14) & (mn >= bgmin)
     out = np.zeros((h, w), bool); q = deque()
     for x in range(w):
         for y in (0, h - 1):
@@ -85,8 +85,26 @@ for fr in sheet2:
     for i in fr: sh2.alpha_composite(i.resize((i.width * 3, i.height * 3), Image.NEAREST), (xx, yy + hh - i.height * 3)); xx += i.width * 3 + 6
     yy += hh + 6
 sh2.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/anims_sheet.png')
-# くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
-out['anims']['relax'].update({'loop': None, 'fps': 3, 'intro': [0, 1, 2], 'hold': 2, 'extra': [3, 4], 'every': 11, 'extraFps': 2.5})
+# ---- ループ用のアニメ（art/buddy/loops.png：4つ×8コマ）：寝てる・くつろぐ・座る（のんびり＝草の上は、いまは使わない）----
+LP = np.array(Image.open(here.parent / 'art' / 'buddy' / 'loops.png').convert('RGB')).astype(int)
+LCOLS = [22, 212, 400, 590, 778, 965, 1153, 1341]
+LROWS = {'sleep': (92, 238), 'relax': (358, 506), 'sit': (850, 975)}
+sheet3 = []
+for k, (y0, y1) in LROWS.items():
+    frames = []
+    out['anims'][k] = {'loop': 0, 'fps': 4, 'frames': []}
+    for x0 in LCOLS:
+        im = fin(cut((x0 + 10, y0, x0 + 168, y1), k, LP, 170), 0.32); frames.append(im)
+        out['anims'][k]['frames'].append({'src': png(im), 'w': im.width, 'h': im.height})
+    sheet3.append(frames)
+W3 = max(sum(i.width * 3 + 6 for i in fr) for fr in sheet3); H3 = sum(max(i.height for i in fr) * 3 + 6 for fr in sheet3)
+sh3 = Image.new('RGBA', (W3, H3), (40, 90, 120, 255)); yy = 0
+for fr in sheet3:
+    xx = 0; hh = max(i.height for i in fr) * 3
+    for i in fr: sh3.alpha_composite(i.resize((i.width * 3, i.height * 3), Image.NEAREST), (xx, yy + hh - i.height * 3)); xx += i.width * 3 + 6
+    yy += hh + 6
+sh3.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/loops_sheet.png')
+# （古い）くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
 (here / 'poses_art.js').write_text('window.RAFT.poseArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 4 + 10 for _, i in tiles); H = max(i.height * 4 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0
