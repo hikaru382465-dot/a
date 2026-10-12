@@ -179,3 +179,6 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 弱点：王冠が小さく、水玉が細かい。
 
 小さい水しぶき：`SPLASH_SCALE=.35 python gen_splash.py` → splash45_small.gif / splash45_sheet_small.png（12コマ、39×29）。漂流物のはね用。倍率は変えられる。
+
+## 音符マーク（gen_notes.py）
+`python gen_notes.py` → assets/ui/note_<♪eighth/♫beamed/♩quarter/♬double>_<white/pink/gold/aqua>.png（16×20、16個）, notes_sheet.png, notes_float.gif（ちびキャラの頭から上がって網点で消える。音符は0.6倍の小さい版）。

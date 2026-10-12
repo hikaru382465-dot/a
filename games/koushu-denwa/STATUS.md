@@ -153,3 +153,4 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 2026-10-11 farmhouse：袋を描き直し、漂流物8点の「海にうかぶ」絵（gen_items_float.py）を追加。次：16×16に縮めた版、釣りのアニメ。
 - 2026-10-11 farmhouse：漂流物が上下にゆれて水をはねながら流れてくる場面（gen_items_drift.py）。次：網・釣竿でひろう演出、16×16アイコン。
 - 2026-10-11 farmhouse：斜め上45度の水しぶきアニメ（gen_splash.py、20コマ）。次：着水（網・漂流物）に組みこむ。
+- 2026-10-12 farmhouse：音符マーク4種×4色（gen_notes.py）と、ちびキャラの頭から上がるアニメ。
