@@ -106,6 +106,18 @@ for fr in sheet3:
     yy += hh + 6
 # 寝る：座ったまま、こっくりこっくり（わすわる→うとうと）だけ
 out['anims']['sleep'] = {'loop': 0, 'fps': 2.2, 'frames': [OLD_SLEEP[0], OLD_SLEEP[0], OLD_SLEEP[0], OLD_SLEEP[1]]}
+# ---- やっぱり1枚絵だけ：各アニメを、代表の1コマにする（動きはコードでつける）----
+_A = out['anims']
+_pick = {'sleep': ('sleep', 0), 'sit': ('sit', 0), 'relax': ('relax', 1)}
+OLD = {}
+for k in ('drink', 'eat'): OLD[k] = _A[k]['frames']
+for k, (_, i) in _pick.items():
+    pass
+_A['sleep'] = {'loop': 0, 'fps': 1, 'frames': [OLD_SLEEP[1]]}
+_A['sit'] = {'loop': 0, 'fps': 1, 'frames': [_A['sit']['frames'][0]]}
+_A['relax'] = {'loop': 0, 'fps': 1, 'frames': [_A['relax']['frames'][1]]}
+_A['drink'] = {'loop': 0, 'fps': 1, 'frames': [OLD['drink'][3]]}
+_A['eat'] = {'loop': 0, 'fps': 1, 'frames': [OLD['eat'][3]]}
 sh3.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/loops_sheet.png')
 # （古い）くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
 (here / 'poses_art.js').write_text('window.RAFT.poseArt = ' + json.dumps(out) + ';\n')

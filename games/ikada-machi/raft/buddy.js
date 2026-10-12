@@ -25,6 +25,10 @@ window.RAFT.parts.buddy = function (c) {
   if (PA) Object.keys(PA.poses).forEach(k => { const f = PA.poses[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; poseTex[k] = tx; }; im.src = f.src; });
   const animTex = {}; let animName = null, animT = 0;
   if (PA && PA.anims) Object.keys(PA.anims).forEach(k => { animTex[k] = []; PA.anims[k].frames.forEach((f, i) => { const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; animTex[k][i] = tx; }; im.src = f.src; }); });
+  // 吹き出し（emotes_art.js）：状態にあわせて、キャラの頭の上に出す（ふわっと出て、浮かぶ）
+  const EA = R.emoteArt, emoTex = {}; let emoteTop = 1, emoKey = null, emoT = 0;
+  const emoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.05, depthTest: false })); emoMesh.rotation.y = c.cam.yaw; emoMesh.renderOrder = 6; emoMesh.visible = false; group.add(emoMesh);
+  if (EA) Object.keys(EA.emotes).forEach(k => { const f = EA.emotes[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; emoTex[k] = tx; }; im.src = f.src; });
   let cheerId = s.buddy.cheer || 0, cheerT = 0;
   c.chars = chars;
 
@@ -100,11 +104,18 @@ window.RAFT.parts.buddy = function (c) {
         if (f0 && tx0) {
           const f = f0, mir = dir === 'left' ? -1 : 1;
           ch.mat.map = tx0; ch.mat.needsUpdate = false;
-          ch.mesh.scale.set(mir * f.w / (PA.ppu / K), f.h / (PA.ppu / K) / Math.cos(c.cam.pitch), 1); ch.mesh.position.set(a.x, 0.2, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
+          let rz = 0, by = 0, sy = 1;      // 1枚絵に、コードで動きをつける
+          if (anim === 'sleep') { const w = Math.sin(animT * 1.6); rz = (w > 0 ? w * 0.12 : w * 0.03) * mir; sy = 1 - Math.max(0, w) * 0.025; }     // こっくり
+          else if (anim === 'sit' || anim === 'relax') sy = 1 + Math.sin(animT * 2) * 0.014;                                                   // 息づかい
+          else if (anim === 'drink' || anim === 'eat') by = Math.abs(Math.sin(animT * 7)) * 0.025;                                              // ごくごく・もぐもぐ
+          else if (pose === 'cheer') by = Math.abs(Math.sin(cheerT * 9)) * 0.05;
+          ch.mesh.rotation.z = rz; emoteTop = 0.2 + by + f.h * sy / (PA.ppu / K) / Math.cos(c.cam.pitch);
+          ch.mesh.scale.set(mir * f.w / (PA.ppu / K), f.h * sy / (PA.ppu / K) / Math.cos(c.cam.pitch), 1); ch.mesh.position.set(a.x, 0.2 + by, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
           if (pose === 'fish' && f.tip) c.buddyTip = [a.x + Math.cos(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / (PA.ppu / K), 0.2 + (f.h - f.tip[1]) / (PA.ppu / K) / Math.cos(c.cam.pitch), a.z - Math.sin(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / (PA.ppu / K)];
           return;
         }
       }
+      if (ch.actor === s.buddy) { ch.mesh.rotation.z = 0; emoteTop = 0.2 + (ch.set[dir][0].h) / (CA.ppu / K) / Math.cos(c.cam.pitch); }
       const fr = walking ? Math.floor(t * 8) % 4 : (a.act ? Math.floor(t * 4) % 2 : 0), f = ch.set[dir][fr], tx = ch.tex[dir][fr];
       if (!tx) return;
       ch.mat.map = tx; ch.mat.needsUpdate = false;
@@ -112,5 +123,24 @@ window.RAFT.parts.buddy = function (c) {
       ch.mesh.scale.set(f.w / (CA.ppu / K), f.h / (CA.ppu / K) / Math.cos(c.cam.pitch), 1);
       ch.mesh.position.set(a.x, 0.2 + bob, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
     });
+    if (EA) {      // 相棒の吹き出し：いちばん大事なものを1つ
+      const bu = s.buddy, D = R.data; let key = null;
+      if (cheerT > 0) key = 'heart';
+      else if (bu.job === 'sleep' && !bu.path.length) key = 'zz';
+      else if (bu.job === 'rest' && !bu.path.length) key = 'music';
+      else if (s.needs.hunger < D.NEEDS.low || s.needs.thirst < D.NEEDS.low) key = 'sweat';
+      else if (s.weather.id === 'storm' && (bu.job === 'fish' || bu.job === 'net')) key = 'exclaim';
+      else if (bu.mood < 20 && bu.job !== 'rest' && bu.job !== 'sit' && bu.job !== 'sleep') key = 'anger';
+      if (key !== emoKey) { emoKey = key; emoT = 0; } emoT += dt;
+      const tx = key && emoTex[key];
+      emoMesh.visible = !!tx;
+      if (tx) {
+        const f = EA.emotes[key], u = 1 / (EA.ppu / K) , pop = Math.min(1, emoT / 0.25), p = (emoT * 0.5) % 1, floatUp = (key === 'zz' || key === 'music') ? p * 0.22 : Math.sin(emoT * 4) * 0.02;
+        emoMesh.material.map = tx; emoMesh.material.opacity = (key === 'zz' || key === 'music') ? Math.min(1, (1 - p) * 2.2) : 1; emoMesh.material.transparent = true;
+        emoMesh.scale.set(f.w * u * pop * 1.4, f.h * u * pop * 1.4 / Math.cos(c.cam.pitch), 1);
+        const ox = Math.cos(c.cam.yaw) * 0.26, oz = -Math.sin(c.cam.yaw) * 0.26;
+        emoMesh.position.set(bu.x + ox, emoteTop + 0.06 + floatUp + f.h * u * 0.7 / Math.cos(c.cam.pitch), bu.z + oz);
+      }
+    }
   } };
 };
