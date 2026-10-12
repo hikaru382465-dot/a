@@ -179,6 +179,8 @@ def _kd_coerce(default, v):
     if isinstance(default, float):
         return float(v)
     if isinstance(default, (list, tuple)):
+        if len(default) == 0:                       # 空の初期値（例：START_POS）。入れた数字を、そのまま使う
+            return type(default)(tuple(x) if isinstance(x, (list, tuple)) else x for x in v)
         return type(default)(_kd_coerce(default[i] if i < len(default) else default[-1], x) if not isinstance(x, (list, tuple)) else tuple(x) for i, x in enumerate(v))
     return v
 
