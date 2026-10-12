@@ -109,22 +109,37 @@ window.RAFT.parts.hud = function (c) {
     if (html === lastTools) return; lastTools = html; $('buddyTools').innerHTML = html;
     $('buddyTools').querySelectorAll('button').forEach(b => b.onclick = () => { sim.buddyTool(s, b.dataset.t); lastTools = ''; toolsPanel(); });
   }
-  // ---- 焚き火（かまど）の画面 ----
-  let cfId = null;
+  // ---- 焚き火（かまど）の画面：枠＋持ち物。タップ＝1つ、ドラッグ＝全部 ----
+  let cfId = null; const ghost = $('dragGhost');
+  const slotEl = { fish: $('sFish'), wood: $('sWood'), out: $('sOut'), iFish: $('iFish'), iWood: $('iWood'), iGrilled: $('iGrilled') };
+  const setSlot = (el, k, n) => { el.classList.toggle('empty', !n); el.querySelector('i').textContent = n || ''; if (el.dataset.k !== k || el.dataset.n === undefined || (!!+el.dataset.n) !== !!n) paint(el.querySelector('canvas'), k); el.dataset.k = k; el.dataset.n = n; };
   function cfPanel() {
     const o = s.objects.find(x => x.id === cfId && x.k === 'campfire'); if (!o) { $('cfbox').style.display = 'none'; return; }
-    const C = D.COOK, left = Math.max(0, Math.ceil(C.sec - (o.p || 0)));
-    $('cfState').textContent = sim.cfBurning(o) ? `燃えている：次の1匹まで あと${left}秒` : (o.fi ? '燃料（木くず）を入れてください' : (o.go >= C.maxOut ? '焼き魚を取り出してください' : '魚と木くずを入れてください'));
-    $('cfFi').textContent = `焼く魚 ${o.fi || 0} / ${C.maxFish}　（持っている魚 ${s.inv.fish || 0}）`;
-    $('cfFw').textContent = `木くず ${o.fw || 0} / ${C.maxWood}　（燃え残り ${o.fl || 0}匹ぶん・持っている木くず ${s.inv.wood || 0}）`;
-    $('cfGo').textContent = `できた焼き魚 ${o.go || 0}`; $('cfBar').style.width = (sim.cfBurning(o) ? (o.p || 0) / C.sec * 100 : 0) + '%';
+    const C = D.COOK, left = Math.max(0, Math.ceil(C.sec - (o.p || 0))), burn = sim.cfBurning(o);
+    $('cfState').textContent = burn ? `燃えている：次の1匹まで あと${left}秒（木くず 燃え残り ${o.fl || 0}匹ぶん）` : (o.fi ? '燃料（木くず）を入れてください' : (o.go >= C.maxOut ? '焼き魚を取り出してください' : '魚と木くずを入れてください'));
+    setSlot(slotEl.fish, 'fish', o.fi || 0); setSlot(slotEl.wood, 'wood', o.fw || 0); setSlot(slotEl.out, 'grilled', o.go || 0);
+    setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
+    $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;
   }
   const openCf = id => { cfId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'block'; cfPanel(); };
-  document.querySelectorAll('#cfbox [data-cf]').forEach(b => b.onclick = () => {
-    const a = b.dataset.cf, id = cfId; if (a === 'putfish1') sim.cfPut(s, id, 'fish', 1); else if (a === 'putfishall') sim.cfPut(s, id, 'fish', 'all'); else if (a === 'takefish') sim.cfTake(s, id, 'fish');
-    else if (a === 'putwood1') sim.cfPut(s, id, 'wood', 1); else if (a === 'putwoodall') sim.cfPut(s, id, 'wood', 'all'); else if (a === 'takewood') sim.cfTake(s, id, 'wood'); else if (a === 'takeout') { if (sim.cfTake(s, id, 'out')) refresh(); }
-    cfPanel();
-  });
+  // 動かす：from='inv'（持ち物→焚き火）／'slot'（焚き火→持ち物）。n＝1 か 'all'
+  const cfMove = (what, from, n) => { const ok = from === 'inv' ? sim.cfPut(s, cfId, what, n) : sim.cfTake(s, cfId, what, n); if (ok) refresh(); cfPanel(); };
+  const dropAt = (x, y) => { const e = document.elementFromPoint(x, y); const t = e && e.closest('[data-drop]'); return t ? t.dataset.drop : null; };
+  const wire = (el, src) => {      // src：どの枠をつまむか。item＝持ち物の物／slot＝焚き火の枠
+    let st = null;
+    el.addEventListener('pointerdown', e => { const k = src.what; if (!k) return; st = { x: e.clientX, y: e.clientY, drag: false }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener('pointermove', e => { if (!st) return; if (!st.drag && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) { st.drag = true; paint(ghost, src.icon); ghost.style.display = 'block'; }
+      if (st.drag) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; const d = dropAt(e.clientX, e.clientY); document.querySelectorAll('[data-drop]').forEach(q => q.classList.toggle('over', q.dataset.drop === d)); } });
+    el.addEventListener('pointerup', e => { if (!st) return; const d = st; st = null; ghost.style.display = 'none'; document.querySelectorAll('[data-drop]').forEach(q => q.classList.remove('over'));
+      if (!d.drag) { src.tap(); return; } const to = dropAt(e.clientX, e.clientY); src.drop(to); });
+    el.addEventListener('pointercancel', () => { st = null; ghost.style.display = 'none'; });
+  };
+  wire(slotEl.iFish, { what: 'fish', icon: 'fish', tap: () => cfMove('fish', 'inv', 1), drop: to => { if (to === 'fish') cfMove('fish', 'inv', 'all'); } });
+  wire(slotEl.iWood, { what: 'wood', icon: 'wood', tap: () => cfMove('wood', 'inv', 1), drop: to => { if (to === 'wood') cfMove('wood', 'inv', 'all'); } });
+  wire(slotEl.iGrilled, { what: 'grilled', icon: 'grilled', tap: () => {}, drop: () => {} });
+  wire(slotEl.fish, { what: 'fish', icon: 'fish', tap: () => cfMove('fish', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('fish', 'slot', 'all'); } });
+  wire(slotEl.wood, { what: 'wood', icon: 'wood', tap: () => cfMove('wood', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('wood', 'slot', 'all'); } });
+  wire(slotEl.out, { what: 'out', icon: 'grilled', tap: () => cfMove('out', 'slot', 'all'), drop: to => { if (to === 'inv' || to === null) cfMove('out', 'slot', 'all'); } });
   $('bCfClose').onclick = () => { $('cfbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };

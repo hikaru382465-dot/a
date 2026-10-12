@@ -272,11 +272,12 @@
     const k = what === 'fish' ? 'fish' : 'wood', room = (what === 'fish' ? C.maxFish : C.maxWood) - o[key], m = Math.min(n === 'all' ? 99 : n, room, s.inv[k] || 0);
     if (m <= 0) return false; o[key] += m; s.inv[k] -= m; return true;
   };
-  S.cfTake = function (s, id, what) {          // 焚き火 → 持ち物（できた焼き魚を取る／入れた物を戻す）
+  S.cfTake = function (s, id, what, n) {          // 焚き火 → 持ち物（できた焼き魚を取る／入れた物を戻す）。n＝個数（省略で全部）
     const o = s.objects.find(x => x.id === id && x.k === 'campfire'); if (!o) return false;
-    if (what === 'out') { if (!o.go) return false; s.inv.grilled = (s.inv.grilled || 0) + o.go; o.go = 0; return true; }
+    const all = n === undefined || n === 'all';
+    if (what === 'out') { if (!o.go) return false; const m = all ? o.go : Math.min(n, o.go); s.inv.grilled = (s.inv.grilled || 0) + m; o.go -= m; return true; }
     const key = what === 'fish' ? 'fi' : 'fw', k = what === 'fish' ? 'fish' : 'wood'; if (!o[key]) return false;
-    s.inv[k] = (s.inv[k] || 0) + o[key]; o[key] = 0; if (what === 'fish') o.p = 0; return true;
+    const m = all ? o[key] : Math.min(n, o[key]); s.inv[k] = (s.inv[k] || 0) + m; o[key] -= m; if (what === 'fish' && !o.fi) o.p = 0; return true;
   };
   S.cfBurning = o => (o.fi || 0) > 0 && ((o.fl || 0) > 0 || (o.fw || 0) > 0) && (o.go || 0) < D.COOK.maxOut;
   // 相棒の道具（ひかるの道具とは別）：網を強く・釣りざおを作る・直す
