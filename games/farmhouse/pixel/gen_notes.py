@@ -55,10 +55,31 @@ def paint(shape, color, k=1.0):
     s_ = np.where(lam > .28, lo, np.where(lam > -.2, mid, dk))
     for v in (lo, mid, dk):
         mm = m & (s_ == v); c.a[mm, :3] = col(f, v); c.a[mm, 3] = 255
-    al = np.pad(c.alpha(), 1); e = np.zeros_like(al)
-    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)): e |= np.roll(np.roll(al, dy, 0), dx, 1)
-    e = (e & ~al)[1:-1, 1:-1]
-    c.a[e, :3] = col('K', 1) if color != "white" else col('K', 2); c.a[e, 3] = 255
+    if k >= 1.8:
+        # 面取り（ふちの明るさ）：左上のふちは明るく、右下のふちは暗い
+        d = max(1, int(round(k * .7)))
+        def sh(a_, dx, dy): return np.roll(np.roll(np.pad(a_, d + 1), dy, 0), dx, 1)[d + 1:-d - 1, d + 1:-d - 1]
+        hi = m & ~sh(m, d, d); lw = m & ~sh(m, -d, -d)
+        for mm, v in ((lw, max(1, dk - 1)), (hi, min(7, lo + 1))):
+            c.a[mm, :3] = col(f, v); c.a[mm, 3] = 255
+        # 頭のつや
+        centers = {"eighth": [(5.0, 15.0)], "beamed": [(4.0, 16.0), (11.4, 14.0)], "quarter": [(5.0, 15.5)], "double": [(4.0, 16.5), (11.4, 14.5)]}[shape]
+        for (cx, cy) in centers:
+            g = (((c.X + .5 - K(cx - 1.0)) / max(1.0, K(1.2))) ** 2 + ((c.Y + .5 - K(cy - 1.0)) / max(.8, K(.7))) ** 2) <= 1
+            c.a[g & m, :3] = col(f, 7); c.a[g & m, 3] = 255
+        # 軸のハイライト（細い線）
+        st_x = {"eighth": [7.0], "beamed": [6.1, 13.5], "quarter": [7.3], "double": [6.1, 13.5]}[shape]
+        for x_ in st_x:
+            hl = (np.abs(c.X + .5 - K(x_)) < .5) & (c.Y > K(6)) & (c.Y < K(13)) & m
+            c.a[hl, :3] = col(f, min(7, lo + 1)); c.a[hl, 3] = 255
+    th = max(1, int(round(k * .6)))
+    al = c.alpha()
+    for _ in range(th):
+        pa = np.pad(al, 1); e = np.zeros_like(pa)
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)): e |= np.roll(np.roll(pa, dy, 0), dx, 1)
+        e = (e & ~pa)[1:-1, 1:-1]
+        c.a[e, :3] = col('K', 1) if color != "white" else col('K', 2); c.a[e, 3] = 255
+        al = al | e
     return c
 
 SHAPES = ["eighth", "beamed", "quarter", "double"]
@@ -73,6 +94,15 @@ for r, sh in enumerate(SHAPES):
     for k, co in enumerate(COL): sheet.alpha_composite(Image.fromarray(items[(sh, co)].a), (k * cell + 4, r * cell + 2))
 sheet.resize((sheet.width * 8, sheet.height * 8), Image.NEAREST).convert("RGB").save(os.path.join(OUT, "notes_sheet.png"))
 
+# 高解像度版（2倍・3倍）
+for kk in (2, 3):
+    HR = os.path.join(OUT, f"x{kk}"); os.makedirs(HR, exist_ok=True)
+    cs = int(24 * kk); sh_ = Image.new("RGBA", (cs * len(COL), cs * len(SHAPES)), BG)
+    for r, shp in enumerate(SHAPES):
+        for q, co in enumerate(COL):
+            cc = paint(shp, co, kk); Image.fromarray(cc.a).save(os.path.join(HR, f"note_{shp}_{co}.png"))
+            sh_.alpha_composite(Image.fromarray(cc.a), (q * cs + 4 * kk, r * cs + 2 * kk))
+    sh_.resize((sh_.width * (8 // kk if kk <= 4 else 2), sh_.height * (8 // kk if kk <= 4 else 2)), Image.NEAREST).convert("RGB").save(os.path.join(OUT, f"notes_sheet_x{kk}.png"))
 # ふわっと上がるアニメ：ちびキャラの頭のうえから、3つの音符が順番に上がる（音符は半分の大きさ）
 import gen_blonde_chibi as CH
 ALLC = np.array([pal[f][k] for f in pal for k in range(8)], float)

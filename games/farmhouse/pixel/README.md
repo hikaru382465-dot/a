@@ -182,3 +182,5 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 
 ## 音符マーク（gen_notes.py）
 `python gen_notes.py` → assets/ui/note_<♪eighth/♫beamed/♩quarter/♬double>_<white/pink/gold/aqua>.png（16×20、16個）, notes_sheet.png, notes_float.gif（ちびキャラの頭から上がって網点で消える。音符は0.6倍の小さい版）。
+
+音符の高解像度版：assets/ui/x2/（32×40前後）, x3/（48×60前後）, notes_sheet_x2.png / _x3.png。ふちの面取り（左上が明るく右下が暗い）・頭のつや・軸のハイライトを追加。`paint(形, 色, 倍率)` の倍率で作る。
