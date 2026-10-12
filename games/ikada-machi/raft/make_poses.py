@@ -120,7 +120,7 @@ sh3.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratc
 # （古い）くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
 # ---- 釣りをしている間の絵：ひかるの新しい絵（art/buddy/fishing.png）----
 FS = np.array(Image.open(here.parent / 'art' / 'buddy' / 'fishing.png').convert('RGB')).astype(int)
-_f = fin(cut((370, 1680, 1070, 2270), 'fish', FS), 0.105)
+_f = fin(cut((370, 1680, 1070, 2270), 'fish', FS), 0.078)
 _a = np.array(_f); _al = _a[..., 3] > 0; _H, _W = _al.shape
 # ざおの先＝右がわで、いちばん上のところ
 _rx = int(_W * 0.5); _sub = _al[:, _rx:]; _ty = int(np.nonzero(_sub.any(axis=1))[0].min()); _tx = int(np.nonzero(_sub[_ty:_ty + 2].any(axis=0))[0].mean()) + _rx
