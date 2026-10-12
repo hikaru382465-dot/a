@@ -176,7 +176,8 @@ window.RAFT.parts.drift = function (c) {
       let ang2 = -0.1; if (bu.act && bu.act.type === 'throw') ang2 = -0.1 + Math.sin(Math.min(1, 1 - bu.act.t / 0.5) * Math.PI) * 1.1; else if (bl) ang2 = -0.25 + Math.sin(t * 1.5) * 0.03;
       [rodM2, rodB2].forEach(m => { m.rotation.z = -ang2; m.position.set(bu.x + 0.4, 0.4, bu.z - 0.05); });
       bTip = bl ? tipOf(rodB2, ang2) : null;
-      if (c.buddyTip && bl) { bTip = c.buddyTip; rodM2.visible = rodB2.visible = false; }      // しぐさの絵に、ざおが描いてあるとき
+      if (c.buddyTip && bl) { bTip = c.buddyTip; rodM2.visible = rodB2.visible = false; }
+      if (c.buddyOverride) rodM2.visible = rodB2.visible = false;       // 絵に竿がかいてあるポーズのときは、重ねない      // しぐさの絵に、ざおが描いてあるとき
     }
     if (rodM) {
       rodM.visible = s.hand === 'rod' && !rd; rodB.visible = s.hand === 'rod' && !!rd;

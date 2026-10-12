@@ -90,11 +90,11 @@ window.RAFT.parts.buddy = function (c) {
         let pose = null, anim = null;
         if (bu.act && bu.act.type === 'eat' && PA.anims[bu.act.kind || 'eat']) anim = bu.act.kind || 'eat';
         else if (burstT > 0) pose = 'surprise';                                  // 嵐になった：びっくり
-        else if (cheerT > 0) pose = 'cheer';
+        else if (cheerT > 0) pose = bu.cheerKind === 'fish' && PA.poses.catch ? 'catch' : 'cheer';
         else if (bu.job === 'fish' && bu.line && !walking) pose = 'fish';
         else if ((bu.job === 'rest' || bu.job === 'sit' || bu.job === 'sleep') && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) anim = bu.job === 'sleep' ? 'sleep' : bu.job === 'sit' ? 'sit' : 'relax';
         if (anim !== animName) { animName = anim; animT = 0; } animT += dt;
-        c.buddyTip = null;
+        c.buddyTip = null; c.buddyOverride = !!(pose || anim);
         let f0 = null, tx0 = null;
         if (anim) { const an = PA.anims[anim], n = an.frames.length; let i;
           if (bu.act && bu.act.dur) i = Math.min(n - 1, Math.floor((1 - bu.act.t / bu.act.dur) * n));       // 食べる・飲む：動作の長さにあわせて1回

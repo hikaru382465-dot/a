@@ -52,16 +52,14 @@ def fin(img, sc=None):
 def png(img):
     buf = io.BytesIO(); img.save(buf, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
-BOXES = {'fish': (840, 485, 965, 630), 'cheer': (18, 278, 142, 425), 'surprise': (632, 282, 748, 428)}
+BOXES = {'catch': (840, 485, 965, 630), 'cheer': (18, 278, 142, 425), 'surprise': (632, 282, 748, 428)}
 out = {'ppu': 46, 'poses': {}, 'anims': {}}
 tiles = []
 for k, b in BOXES.items():
     im = fin(cut(b, k), {'cheer': 0.31, 'surprise': 0.33}.get(k))      # 大きすぎた絵は、小さめに
-    if k == 'fish':      # 絵に描いてある、ぶら下がった糸と魚は消す（ゲームの糸を、ざおの先から出すため）
-        px = np.array(im); px[10:, 34:, 3] = 0; im = Image.fromarray(px, 'RGBA')
     tiles.append((k, im))
     e = {'src': png(im), 'w': im.width, 'h': im.height}
-    if k.startswith('fish'):      # ざおの先＝いちばん上の点
+    if False:
         al = np.array(im.getchannel('A')); ys, xs = np.nonzero(al); top = ys.min(); e['tip'] = [int(xs[ys <= top + 1].mean()) + 0.5, int(top)]
     out['poses'][k] = e
     print(k, im.size, e.get('tip'))
@@ -120,6 +118,18 @@ _A['drink'] = {'loop': 0, 'fps': 1, 'frames': [OLD['drink'][3]]}
 _A['eat'] = {'loop': 0, 'fps': 1, 'frames': [OLD['eat'][3]]}
 sh3.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/loops_sheet.png')
 # （古い）くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
+# ---- 釣りをしている間の絵：ひかるの新しい絵（art/buddy/fishing.png）----
+FS = np.array(Image.open(here.parent / 'art' / 'buddy' / 'fishing.png').convert('RGB')).astype(int)
+_f = fin(cut((370, 1680, 1070, 2270), 'fish', FS), 0.105)
+_a = np.array(_f); _al = _a[..., 3] > 0; _H, _W = _al.shape
+# ざおの先＝右がわで、いちばん上のところ
+_rx = int(_W * 0.5); _sub = _al[:, _rx:]; _ty = int(np.nonzero(_sub.any(axis=1))[0].min()); _tx = int(np.nonzero(_sub[_ty:_ty + 2].any(axis=0))[0].mean()) + _rx
+for _yy in range(_H):         # 絵にある、ぶら下がった糸と魚（ゲームの糸を、ざおの先から出すため）を消す
+    for _xx in range(_W):
+        if _yy > _ty + 3 and _xx >= _tx - 3: _a[_yy, _xx, 3] = 0
+_f = Image.fromarray(_a, 'RGBA'); _bb = _f.getchannel('A').getbbox(); print('釣り待ち', _f.size, 'tip', (_tx, _ty), _bb)
+out['poses']['fish'] = {'src': png(_f), 'w': _f.width, 'h': _f.height, 'tip': [_tx + 0.5, _ty]}
+tiles.append(('fish', _f))
 (here / 'poses_art.js').write_text('window.RAFT.poseArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 4 + 10 for _, i in tiles); H = max(i.height * 4 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0
