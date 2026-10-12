@@ -102,6 +102,24 @@ def clean(path, name, h, ncol, crop=None, bgmin=226):
 SRC = here.parent / 'art' / 'buddy' / 'emote_src'
 clean(SRC / 'exclaim.png', 'exclaim2', 48, 6, (320, 470, 845, 1220))
 clean(SRC / 'zzz2.png', 'zzzClean', 48, 5)
+# zzz を、小さいZ→2つ→3つ に分ける（同じ大きさの台紙に、位置をそろえて）
+_z = np.array(out_img := Image.open(io.BytesIO(base64.b64decode(out['emotes']['zzzClean']['src'].split(',')[1]))).convert('RGBA'))
+_al = _z[..., 3] > 0; _lab = np.zeros(_al.shape, int); _n = 0
+for _y in range(_al.shape[0]):
+    for _x in range(_al.shape[1]):
+        if _al[_y, _x] and not _lab[_y, _x]:
+            _n += 1; _q = deque([(_y, _x)]); _lab[_y, _x] = _n
+            while _q:
+                _cy, _cx = _q.popleft()
+                for _dy in (-1, 0, 1):
+                    for _dx in (-1, 0, 1):
+                        _Y, _X = _cy + _dy, _cx + _dx
+                        if 0 <= _Y < _al.shape[0] and 0 <= _X < _al.shape[1] and _al[_Y, _X] and not _lab[_Y, _X]: _lab[_Y, _X] = _n; _q.append((_Y, _X))
+_areas = sorted(range(1, _n + 1), key=lambda i: (_lab == i).sum())
+print('Zの数', _n)
+for _k in range(1, min(3, _n) + 1):
+    _m = np.isin(_lab, _areas[:_k]); _im = _z.copy(); _im[..., 3] = _m * 255
+    _img = Image.fromarray(_im, 'RGBA'); out['emotes'][f'zz{_k}'] = {'src': png(_img), 'w': _img.width, 'h': _img.height}; tiles.append((f'zz{_k}', _img))
 clean(SRC / 'sweat.jpg', 'sweatClean', 36, 6)
 clean(SRC / 'heart.png', 'heartClean', 32, 6)
 clean(SRC / 'anger.jpg', 'angerClean', 36, 5)
