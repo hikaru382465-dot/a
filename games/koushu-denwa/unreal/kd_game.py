@@ -780,6 +780,27 @@ class Game:
             log("金庫が開きました（鍵・10円②）")
             self.on_flag("金庫")
 
+    def free_from_big_colliders(self, loc):
+        """体が、大きすぎる物（取り込みの倍率ミスなど）の中に入っていると、歩けず、外へ押し出される。体を含む大きさの物を探して、ログに出す。このゲームで置いた物（掲示板・金庫・10円・張り紙）なら、当たり判定を切る"""
+        mine = ("Board_", "DialSafe_", "Coin_", "Poster_", "Paper_", "KD_", "TubeLight", "Ghost")
+        try:
+            for a in unreal.GameplayStatics.get_all_actors_of_class(self.world, unreal.Actor):
+                if a == self.pawn:
+                    continue
+                o, e = a.get_actor_bounds(False)
+                if abs(loc.x - o.x) < e.x and abs(loc.y - o.y) < e.y and abs(loc.z - o.z) < e.z:
+                    nm = label_of(a)
+                    big = max(e.x, e.y, e.z) * 2.0
+                    if nm.startswith(mine) and big > 400.0:
+                        a.set_actor_enable_collision(False)
+                        log("診断: 体が、大きすぎる物の中にいたので、当たり判定を切りました: %s（大きさ約%.0fcm・倍率を確かめてください）" % (nm, big))
+                    elif big > 3000.0:
+                        log("診断: 体を含む大きな物: %s（大きさ約%.0fcm）" % (nm, big))
+                    else:
+                        log("診断: 体を含む物: %s（大きさ約%.0fcm）" % (nm, big))
+        except Exception as e:  # noqa
+            log("  (大きな物の確認でエラー) %s" % e)
+
     def tick_arrows(self):
         """矢印キーで歩く（W A S D が使えないテンプレ用）。歩く場面（外・中）だけ"""
         if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED") or not self.is_char or getattr(self, "manual_on", False) or MANUAL_WALK == "on":
