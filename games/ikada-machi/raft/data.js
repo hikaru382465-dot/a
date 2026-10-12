@@ -19,7 +19,7 @@ window.RAFT.data = {
     floor:   { name: '床板',     lv: 0, w: 0, place: true, tip: '海に面したところに置くと、イカダが広がる' },
     bench:   { name: '作業台',   lv: 0, w: 0, place: true, tip: '置くと、いろいろ作れる（イカダに1つ）' },
     tank:    { name: '貯水槽',   lv: 0, w: 0, place: true, cap: 8, tip: '雨の水をためる。タップで飲む' },
-    campfire: { name: '焚き火',  lv: 0, w: 0, place: true, tip: '置いて、タップすると魚を焼く（木くずを使う）' },
+    campfire: { name: '焚き火',  lv: 0, w: 0, place: true, tip: '置いて、タップ。魚と木くずを入れると焼ける' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -42,14 +42,15 @@ window.RAFT.data = {
       water: { name: '水くみ番',   tip: 'ろ過器・貯水槽のそばで手伝う（ろ過と雨水ためが速くなる）' },
       rest:  { name: '休む・眺める', tip: '景色を眺めて、機嫌をもどす' }
     },
+    ROD_COST: { wood: 4, rope: 2 },
     MOOD0: 80, DRAIN: 0.12, REST: 0.9, IDLE: 0.15, TIRED: 12,
     FISH_WAIT: [5, 12], FISH_REST: [2, 5], NET_REST: 6, NET_POWER: 0.6, VIEW_SEC: 25
   },
   // 道具のいたみ：使うたびに減る。0になると「ぼろぼろ」（使えるが、遠くへ飛ばない・1個しか入らない・ウキの時間が短い）。「作る」で直す（作業台がいる）
-  DUR: { net: { use: 3 }, rod: { use: 5 }, worn: { range: 0.5, cap: 1, bite: 0.6 }, low: 25 },
+  DUR: { net: { use: 3 }, rod: { use: 5 }, fixCost: { wood: 2 }, worn: { range: 0.5, cap: 1, bite: 0.6 }, low: 25 },
   // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
   DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
-  COOK: { sec: 12, batch: 3, wood: 1, perWood: 3 },   // 1匹12秒・いちどに3匹まで・木くず1個で3匹ぶん
+  COOK: { sec: 12, perWood: 3, maxFish: 8, maxWood: 8, maxOut: 16 },   // 1匹12秒・木くず1個で3匹ぶん・各枠の上限
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）

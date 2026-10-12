@@ -57,8 +57,19 @@ window.RAFT.parts.drift = function (c) {
     let left = 0; const all = [].concat(NA.fly, NA.splash, NA.idle, NA.haul);
     all.forEach(f => { left++; const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; f.tex = tx; if (--left === 0) art.ready = true; }; im.src = f.src; });
   }
+  const V0 = { net, rope: ropeLine, artM, artMesh, held: [] };
+  const makeV = () => {      // 相棒の網（ひかるの網とは別）
+    const nm = new THREE.MeshBasicMaterial({ map: netT, transparent: true, opacity: 0.9, depthWrite: false, alphaTest: 0.1, side: THREE.DoubleSide }); c.sprites.push(nm);
+    const n2 = new THREE.Mesh(flat, nm); n2.visible = false; scene.add(n2);
+    const am = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false }); c.sprites.push(am);
+    const amesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), am); amesh.visible = false; amesh.rotation.y = c.cam.yaw; amesh.renderOrder = 2; scene.add(amesh);
+    const rl = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: new THREE.Color(P.wood5) })); rl.visible = false; scene.add(rl);
+    return { net: n2, rope: rl, artM: am, artMesh: amesh, held: [] };
+  };
+  const V1 = makeV();
   const camRight = new THREE.Vector3(Math.cos(c.cam.yaw), 0, -Math.sin(c.cam.yaw));
-  function showArt(f, u, x, y, z) {
+  function showArt(V, f, u, x, y, z) {
+    const artM = V.artM, artMesh = V.artMesh;
     artM.map = f.tex; artM.needsUpdate = true;
     artMesh.scale.set(f.w * u, f.h * u / Math.cos(c.cam.pitch), 1);
     const dx = (f.ax - f.w / 2) * u, dy = (f.ay - f.h / 2) * u / Math.cos(c.cam.pitch);
@@ -96,9 +107,32 @@ window.RAFT.parts.drift = function (c) {
   const lineB = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), new THREE.LineBasicMaterial({ color: 0xf1ead8 })); lineB.visible = false; scene.add(lineB);
   let bFxLast = s.buddy.fx ? s.buddy.fx.id : 0, bFly = null, bLine = false;
   let lastPh = null;
-  const held = [];
   let t = 0;
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
+  function netView(V, cast, owner, nl, dt) {
+    const useArt = art.ready && cast;
+    V.net.visible = !!cast && !useArt; V.rope.visible = !!cast; V.artMesh.visible = false;
+    if (cast) {
+      let y = 0.06 + Math.sin(t * 1.7) * 0.012, sc = nl.r * 2;
+      if (cast.phase === 'fly') { const k = Math.min(1, cast.t); y = 0.7 + Math.sin(Math.PI * k) * 1.3 - k * 0.64; sc *= 0.35 + 0.65 * k; }
+      else if (cast.phase === 'back') { y = 0.12; sc *= 0.85; }
+      if (useArt) {
+        let f, u;
+        if (cast.phase === 'fly') { f = NA.fly[Math.min(3, Math.floor(Math.min(1, cast.t) * 4))]; u = 2 * nl.r / NA.flyDiscW; }
+        else if (cast.phase === 'rest' && cast.t < 0.5) { f = NA.splash[Math.min(3, Math.floor(cast.t / 0.125))]; u = 2 * nl.r / NA.flyDiscW; }
+        else { f = NA.idle[Math.floor(t * (cast.phase === 'back' ? 10 : 5)) % 4]; u = 2 * nl.r / NA.idleDiscW; if (cast.phase === 'back') u *= 0.92; }
+        showArt(V, f, u, cast.x, y + 0.02, cast.z);
+      } else { V.net.position.set(cast.x, y, cast.z); V.net.scale.set(sc, 1, sc); V.net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
+      setLine(V.rope, owner.x, 0.55, owner.z, cast.x, y, cast.z); V.y = y;
+    }
+    const held = V.held, showHeld = !!cast;
+    while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());
+    if (showHeld) cast.held.forEach((k, i) => {
+      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); const ac = artOf(k, 0); held[i] = c.sprite(ac || mk(k), { x: 0, y: 0, z: 0, ppu: ac ? ac.ppu * 1.2 : 36 }); group.add(held[i]); held[i].userData.k = k; }
+      const ang = i * 2.4, rr = Math.min(nl.r * 0.55, 0.15 + i * 0.1);
+      held[i].position.set(cast.x + Math.cos(ang) * rr, (V.y || 0.06) + 0.03 + Math.sin(t * 2 + i) * 0.015, cast.z + Math.sin(ang) * rr);
+    });
+  }
   return { update(tt, dt) {
     t += dt;
     const live = new Set();
@@ -109,7 +143,7 @@ window.RAFT.parts.drift = function (c) {
         else { rg.geometry = geoBack; rg.renderOrder = -1; const rf = new THREE.Mesh(geoFront, rg.material); rf.rotation.y = c.cam.yaw; rf.renderOrder = 3; rf.visible = false; scene.add(rf); m.userData.rf = rf; }   // うしろ半分は物のうしろ、手前半分は物の前
         m.userData.rg = rg; }
       const ph = t * 2.4 + it.id, hop = Math.sin(ph);
-      m.position.set(it.x, -0.07 + hop * 0.06, it.z);   // 下半分は水の中にしずむ m.rotation.z = Math.sin(ph * 0.7) * 0.12;
+      m.position.set(it.x, -0.07 + hop * 0.06, it.z); m.rotation.z = Math.sin(ph * 0.7) * 0.12;   // 下半分は水の中にしずむ
       const rg = m.userData.rg, rk = ((ph / 6.283 + 0.75) % 1);    // さざ波が、広がって消える（ときどき小さなしぶき）
       if (SA) { const tx = spTex[14 + Math.min(5, Math.floor(rk * 6))]; const rf = m.userData.rf; rg.visible = rf.visible = !!tx && it.born > 0.3; if (tx) { rg.material.map = tx; rg.material.needsUpdate = true; const yb = m.position.y + m.scale.y * 0.5; spPlace(rg, it.x, it.z, 0.5, yb); spPlace(rf, it.x, it.z, 0.5, yb); } }
       else { rg.position.set(it.x, 0.06, it.z); rg.scale.set(0.25 + rk * 0.7, 1, 0.25 + rk * 0.7); rg.material.opacity = (1 - rk) * 0.7 * Math.min(1, it.born * 2); rg.material.color.set(0xd8f4ff); }
@@ -123,22 +157,9 @@ window.RAFT.parts.drift = function (c) {
       ring.position.set(a.x, 0.07, a.z); ring.scale.set(nl.r * 2, 1, nl.r * 2); ring.rotation.y = t * 0.6;
       setLine(aimLine, b.x, 0.5, b.z, a.x, 0.07, a.z);
     }
-    // 網
-    const cast = s.net.cast, useArt = art.ready && cast;
-    net.visible = !!cast && !useArt; ropeLine.visible = !!cast; artMesh.visible = false;
-    if (cast) {
-      let y = 0.06 + Math.sin(t * 1.7) * 0.012, sc = nl.r * 2;
-      if (cast.phase === 'fly') { const k = Math.min(1, cast.t); y = 0.7 + Math.sin(Math.PI * k) * 1.3 - k * 0.64; sc *= 0.35 + 0.65 * k; }
-      else if (cast.phase === 'back') { y = 0.12; sc *= 0.85; }
-      if (useArt) {
-        let f, u;
-        if (cast.phase === 'fly') { f = NA.fly[Math.min(3, Math.floor(Math.min(1, cast.t) * 4))]; u = 2 * nl.r / NA.flyDiscW; }
-        else if (cast.phase === 'rest' && cast.t < 0.5) { f = NA.splash[Math.min(3, Math.floor(cast.t / 0.125))]; u = 2 * nl.r / NA.flyDiscW; }
-        else { f = NA.idle[Math.floor(t * (cast.phase === 'back' ? 10 : 5)) % 4]; u = 2 * nl.r / NA.idleDiscW; if (cast.phase === 'back') u *= 0.92; }
-        showArt(f, u, cast.x, y + 0.02, cast.z);
-      } else { net.position.set(cast.x, y, cast.z); net.scale.set(sc, 1, sc); net.rotation.y = cast.phase === 'fly' ? t * 8 : 0; }
-      const ow = cast.by === 'buddy' ? s.buddy : b; setLine(ropeLine, ow.x, 0.55, ow.z, cast.x, y, cast.z);
-    }
+    // 網（ひかると相棒は、別々の網）
+    netView(V0, s.net.cast, s.player, nl, dt);
+    netView(V1, s.buddy.net.cast, s.buddy, R.data.NET_LV[s.buddy.net.lv - 1], dt);
     const rd = s.rod; bob.visible = lineRod.visible = !!rd;
     if (rd) {
       const dip = rd.phase === 'bite' ? -0.1 - Math.abs(Math.sin(t * 20)) * 0.05 : Math.sin(t * 2.4) * 0.02;
@@ -190,12 +211,5 @@ window.RAFT.parts.drift = function (c) {
       flyFx.m.position.set(flyFx.x + (b.x - flyFx.x) * k, 0.1 + Math.sin(Math.PI * k) * 1.1 + (0.5 * k), flyFx.z + (b.z - flyFx.z) * k);
       if (k >= 1) { group.remove(flyFx.m); flyFx = null; }
     }
-    const showHeld = !!cast;
-    while (held.length > (showHeld ? cast.held.length : 0)) group.remove(held.pop());
-    if (showHeld) cast.held.forEach((k, i) => {
-      if (!held[i] || held[i].userData.k !== k) { if (held[i]) group.remove(held[i]); const ac = artOf(k, 0); held[i] = c.sprite(ac || mk(k), { x: 0, y: 0, z: 0, ppu: ac ? ac.ppu * 1.2 : 36 }); group.add(held[i]); held[i].userData.k = k; }
-      const ang = i * 2.4, rr = Math.min(nl.r * 0.55, 0.15 + i * 0.1);
-      held[i].position.set(cast.x + Math.cos(ang) * rr, net.position.y + 0.03 + Math.sin(t * 2 + i) * 0.015, cast.z + Math.sin(ang) * rr);
-    });
   } };
 };

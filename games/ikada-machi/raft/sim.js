@@ -20,7 +20,7 @@
       net: { lv: 1, cast: null }, tools: ['net'], hand: 'net', rod: null, dur: { net: 100, rod: 100 }, flags: {},
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
-      buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0 },
+      buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
       drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
     };
   };
@@ -70,10 +70,12 @@
   };
   // 動いた向き → 絵の向き（画面で、+z＝手前（前）、-z＝奥（後ろ）、+x＝右、-x＝左）
   const dirOf = (dx, dz) => Math.abs(dz) > Math.abs(dx) ? (dz > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
-  const netNow = s => D.NET_LV[s.net.lv - 1];
-  S.worn = (s, k) => s.dur[k] <= 0;
-  const netRange = s => netNow(s).range * (S.weak(s) ? D.DIFF.weak : 1) * (S.worn(s, 'net') ? D.DUR.worn.range : 1);
-  const netCap = s => S.worn(s, 'net') ? D.DUR.worn.cap : netNow(s).cap;
+  // ひかるの道具と、相棒の道具は、別々（網のレベル・いたみ・ざお）
+  const kit = (s, w) => w === 'buddy' ? { net: s.buddy.net, dur: s.buddy.dur, actor: s.buddy } : { net: s.net, dur: s.dur, actor: s.player };
+  const netNow = (s, w) => D.NET_LV[kit(s, w).net.lv - 1];
+  S.worn = (s, k, w) => kit(s, w).dur[k] <= 0;
+  const netRange = (s, w) => netNow(s, w).range * (S.weak(s) ? D.DIFF.weak : 1) * (S.worn(s, 'net', w) ? D.DUR.worn.range : 1);
+  const netCap = (s, w) => S.worn(s, 'net', w) ? D.DUR.worn.cap : netNow(s, w).cap;
   S.weak = s => s.needs.hunger <= 0 || s.needs.thirst <= 0;
   const diffNeed = s => 1 + Math.min(D.DIFF.needMax, (s.clock.day - 1) * D.DIFF.needPerDay);
   // 網を投げる：(tx,tz) の向きへ、ゲージ power(0〜1) の強さで飛ばす。海に落ちたら、とる時間のあいだ水の上にただよう
@@ -92,12 +94,12 @@
     s.events.push({ e: 'throw' }); return true;
   };
   S.recallNet = function (s) { const c = s.net.cast; if (!c) return false; if (c.phase !== 'back') c.phase = 'back'; return true; };
-  function collect(s) {
-    const c = s.net.cast; if (!c) return;
+  function collect(s, w) {
+    const K = kit(s, w), c = K.net.cast; if (!c) return;
     c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; });
     if (c.by === 'buddy') { s.buddy.jobT = D.BUDDY.NET_REST; if (c.held.length) s.events.push({ e: 'bhaul', n: c.held.length }); }
     else if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
-    s.net.cast = null;
+    K.net.cast = null;
   }
   // 手に持つ（道具の切りかえ）
   S.hold = function (s, id) { if (!s.tools.includes(id)) return false; s.rod = null; s.hand = s.hand === id ? null : id; s.events.push({ e: 'equip', id: s.hand }); return true; };
@@ -140,7 +142,7 @@
     s.raft.cells.forEach(([x, z]) => N4.forEach(([dx, dz]) => {
       const X = x + dx, Z = z + dz, k = key(X, Z); if (seen.has(k) || S.has(s, X, Z)) return; seen.add(k);
       if (Math.max(bb.x1, X) - Math.min(bb.x0, X) + 1 > D.MAX_SIZE || Math.max(bb.z1, Z) - Math.min(bb.z0, Z) + 1 > D.MAX_SIZE) return;
-      if (s.net.cast && Math.floor(s.net.cast.x) === X && Math.floor(s.net.cast.z) === Z) return;
+      if ([s.net.cast, s.buddy.net.cast].some(q => q && Math.floor(q.x) === X && Math.floor(q.z) === Z)) return;
       out.push([X, Z, 0.06]);
     }));
     return out;
@@ -169,7 +171,6 @@
   // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
   S.useObj = function (s, id, a) {
     const o = s.objects.find(x => x.id === id); if (!o) return false;
-    if (o.k === 'campfire' && !a) { if (o.cook) s.events.push({ e: 'cooking', left: Math.ceil(o.cook.n * D.COOK.sec - o.cook.t) }); }
     if (a) return S.walkNear(s, o.x, o.z, { type: o.k, id }, a);
     if (o.k === 'tank') s.events.push({ e: 'tankinfo', w: o.w, cap: D.ITEMS.tank.cap });
     if (o.k === 'filter') s.events.push({ e: 'filterinfo', left: Math.max(0, Math.ceil(D.ITEMS.filter.sec - o.p)) });
@@ -200,7 +201,7 @@
   S.edgeCells = s => s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z) && N4.some(([dx, dz]) => !S.has(s, x + dx, z + dz)));
   S.setJob = function (s, job) {
     const bu = s.buddy; if (job && !D.BUDDY.JOBS[job]) return false;
-    if (job === 'fish' && !s.tools.includes('rod')) { s.events.push({ e: 'needrod' }); return false; }
+    if (job === 'fish' && !bu.hasRod) { s.events.push({ e: 'needrod' }); return false; }
     bu.job = job || null; bu.spot = null; bu.line = null; bu.jobT = 0; bu.working = false; bu.path = []; bu.task = null; bu.act = null;
     s.events.push({ e: 'job', job: bu.job }); return true;
   };
@@ -221,7 +222,7 @@
     const bu = s.buddy, B = D.BUDDY, J = bu.job, eff = 0.5 + 0.5 * bu.mood / 100;
     if (!J) { bu.mood = Math.min(100, bu.mood + B.IDLE * dt); return; }
     if (J === 'rest') bu.mood = Math.min(100, bu.mood + B.REST * dt);
-    else if (!(J === 'net' && s.net.cast && s.net.cast.by !== 'buddy')) bu.mood = Math.max(0, bu.mood - B.DRAIN * dt);
+    else bu.mood = Math.max(0, bu.mood - B.DRAIN * dt);
     const sea = J === 'fish' || J === 'net';
     if (sea && s.weather.id === 'storm') { bu.line = null; if (!bu.stormMsg) { bu.stormMsg = true; s.events.push({ e: 'bstorm' }); } return; }
     bu.stormMsg = false;
@@ -245,7 +246,7 @@
     if (J === 'fish') {
       if (!bu.line) {
         if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
-        s.dur.rod = Math.max(0, s.dur.rod - D.DUR.rod.use); bu.line = { x: bu.x + f[0] * 2.4, z: bu.z + f[1] * 2.4, t: 0, wait: rr(B.FISH_WAIT) }; bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'bcast' });
+        bu.dur.rod = Math.max(0, bu.dur.rod - D.DUR.rod.use); bu.line = { x: bu.x + f[0] * 2.4, z: bu.z + f[1] * 2.4, t: 0, wait: rr(B.FISH_WAIT) }; bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'bcast' });
       } else {
         bu.line.t += dt * eff;
         if (bu.line.t >= bu.line.wait) {
@@ -257,25 +258,45 @@
       return;
     }
     if (J === 'net') {
-      if (s.net.cast) return;
+      if (bu.net.cast) return;
       if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
-      const nl = netNow(s), dist = D.NET_MIN + (netRange(s) - D.NET_MIN) * B.NET_POWER; s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use);
-      s.net.cast = { phase: 'fly', sx: bu.x, sz: bu.z, tx: bu.x + f[0] * dist, tz: bu.z + f[1] * dist, x: bu.x, z: bu.z, t: 0, held: [], by: 'buddy' };
+      const dist = D.NET_MIN + (netRange(s, 'buddy') - D.NET_MIN) * B.NET_POWER; bu.dur.net = Math.max(0, bu.dur.net - D.DUR.net.use);
+      bu.net.cast = { phase: 'fly', sx: bu.x, sz: bu.z, tx: bu.x + f[0] * dist, tz: bu.z + f[1] * dist, x: bu.x, z: bu.z, t: 0, held: [], by: 'buddy' };
       bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'throw' });
     }
   }
-  // 焚き火で魚を焼く：最大3匹まで一度に。木くずは、3匹ぶんで1個
-  S.cook = function (s, o) {
-    if (o.cook) { s.events.push({ e: 'cooking', left: Math.ceil(o.cook.n * D.COOK.sec - o.cook.t) }); return false; }
-    const n = Math.min(s.inv.fish || 0, D.COOK.batch); if (n <= 0) { s.events.push({ e: 'nofish' }); return false; }
-    let fl = o.fl || 0, wood = 0; while (fl < n) { fl += D.COOK.perWood; wood += D.COOK.wood; }
-    if ((s.inv.wood || 0) < wood) { s.events.push({ e: 'nowood' }); return false; }
-    s.inv.wood -= wood; o.fl = fl - n; s.inv.fish -= n; o.cook = { n, t: 0 }; s.events.push({ e: 'cookstart', n, sec: n * D.COOK.sec }); return true;
+  // 焚き火（マイクラのかまどのように）：魚の枠・燃料の枠・できた焼き魚の枠。燃料は木くず（1個で3匹ぶん）
+  S.cfPut = function (s, id, what, n) {       // 持ち物 → 焚き火
+    const o = s.objects.find(x => x.id === id && x.k === 'campfire'); if (!o) return false;
+    const C = D.COOK, key = what === 'fish' ? 'fi' : 'fw'; o[key] = o[key] || 0;
+    const k = what === 'fish' ? 'fish' : 'wood', room = (what === 'fish' ? C.maxFish : C.maxWood) - o[key], m = Math.min(n === 'all' ? 99 : n, room, s.inv[k] || 0);
+    if (m <= 0) return false; o[key] += m; s.inv[k] -= m; return true;
+  };
+  S.cfTake = function (s, id, what) {          // 焚き火 → 持ち物（できた焼き魚を取る／入れた物を戻す）
+    const o = s.objects.find(x => x.id === id && x.k === 'campfire'); if (!o) return false;
+    if (what === 'out') { if (!o.go) return false; s.inv.grilled = (s.inv.grilled || 0) + o.go; o.go = 0; return true; }
+    const key = what === 'fish' ? 'fi' : 'fw', k = what === 'fish' ? 'fish' : 'wood'; if (!o[key]) return false;
+    s.inv[k] = (s.inv[k] || 0) + o[key]; o[key] = 0; if (what === 'fish') o.p = 0; return true;
+  };
+  S.cfBurning = o => (o.fi || 0) > 0 && ((o.fl || 0) > 0 || (o.fw || 0) > 0) && (o.go || 0) < D.COOK.maxOut;
+  // 相棒の道具（ひかるの道具とは別）：網を強く・釣りざおを作る・直す
+  S.buddyTool = function (s, act) {
+    const bu = s.buddy; let cost, ok = true;
+    if (!S.hasBench(s)) { s.events.push({ e: 'locked' }); return false; }
+    if (act === 'netup') { const nx = D.NET_LV[bu.net.lv]; if (!nx) { s.events.push({ e: 'bmax' }); return false; } cost = nx.cost; }
+    else if (act === 'rod') { if (bu.hasRod) return false; cost = D.BUDDY.ROD_COST; }
+    else if (act === 'fixnet') { if (bu.dur.net >= 95) return false; cost = D.DUR.fixCost; }
+    else if (act === 'fixrod') { if (!bu.hasRod || bu.dur.rod >= 95) return false; cost = D.DUR.fixCost; }
+    else return false;
+    if (!S.canPay(s, cost)) { s.events.push({ e: 'short' }); return false; }
+    S.pay(s, cost);
+    if (act === 'netup') bu.net.lv++; else if (act === 'rod') bu.hasRod = true; else if (act === 'fixnet') bu.dur.net = 100; else bu.dur.rod = 100;
+    s.events.push({ e: 'bcrafted', act }); return true;
   };
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
   function pickItem(s) {
-    const list = Object.keys(D.ITEMS).filter(k => D.ITEMS[k].w > 0 && D.ITEMS[k].lv <= s.net.lv);
+    const list = Object.keys(D.ITEMS).filter(k => D.ITEMS[k].w > 0 && D.ITEMS[k].lv <= Math.max(s.net.lv, s.buddy.net.lv));
     const wt = k => D.ITEMS[k].w * (k === 'wood' && (s.inv.wood || 0) < 3 ? 4 : 1);
     let tot = 0; list.forEach(k => tot += wt(k)); let r = S.rand() * tot;
     for (const k of list) { r -= wt(k); if (r <= 0) return k; }
@@ -303,7 +324,13 @@
     const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
     const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
-    s.objects.forEach(o => { if (o.k === 'campfire' && o.cook) { o.cook.t += dt; if (o.cook.t >= o.cook.n * D.COOK.sec) { s.inv.grilled = (s.inv.grilled || 0) + o.cook.n; s.events.push({ e: 'grilled', n: o.cook.n }); o.cook = null; } } });
+    s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
+      if (o.k !== 'campfire') return; delete o.cook;
+      if (!S.cfBurning(o)) { o.burn = false; return; }
+      if ((o.fl || 0) <= 0) { o.fw--; o.fl = D.COOK.perWood; }
+      o.burn = true; o.p = (o.p || 0) + dt;
+      if (o.p >= D.COOK.sec) { o.p = 0; o.fi--; o.fl--; o.go = (o.go || 0) + 1; s.events.push({ e: 'grilled', n: 1 }); }
+    });
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
       const t = tanks.filter(x => x.w < tcap).sort((a, c) => a.w - c.w)[0];
@@ -334,7 +361,7 @@
       } else if (a.task) {     // 着いたら、物を使う
         const t = a.task; a.task = null; const o = s.objects.find(x => x.id === t.id);
         if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
-        else if (o && o.k === 'campfire' && a === b) S.cook(s, o);
+        else if (o && o.k === 'campfire' && a === b) s.events.push({ e: 'campfire', id: o.id });
         else if (o && o.k === 'tank') {
           if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); a.act = { type: 'eat', t: 0.7 }; s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });
@@ -349,28 +376,28 @@
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
-    const v = W.speed, nl = netNow(s), cast = s.net.cast;
-    // 網の動き
-    if (cast) {
+    const v = W.speed, rests = [];
+    ['player', 'buddy'].forEach(w => {
+      const K = kit(s, w), cast = K.net.cast, nl = netNow(s, w), ow = K.actor; if (!cast) return;
       if (cast.phase === 'fly') {
         cast.t += dt / D.NET_FLY; const k = Math.min(1, cast.t);
         cast.x = cast.sx + (cast.tx - cast.sx) * k; cast.z = cast.sz + (cast.tz - cast.sz) * k;
-        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { s.net.cast = null; if (cast.by !== 'buddy') s.events.push({ e: 'miss' }); else s.buddy.jobT = 2; } else s.events.push({ e: 'splash' }); }
+        if (cast.t >= 1) { cast.phase = 'rest'; cast.t = 0; if (S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { K.net.cast = null; if (w === 'player') s.events.push({ e: 'miss' }); else s.buddy.jobT = 2; return; } else s.events.push({ e: 'splash' }); }
       } else if (cast.phase === 'rest') {
         cast.t += dt; cast.x += f.x * v * 0.5 * dt; cast.z += f.z * v * 0.5 * dt;
-        if (cast.t >= D.NET_REST || cast.held.length >= netCap(s)) cast.phase = 'back';
+        if (cast.t >= D.NET_REST || cast.held.length >= netCap(s, w)) cast.phase = 'back';
       } else {   // 引きずって引き寄せる：網が水の上を滑って、イカダの端に着いたら持ち物に入る
-        const ow = cast.by === 'buddy' ? s.buddy : b, dx = ow.x - cast.x, dz = ow.z - cast.z, d = Math.hypot(dx, dz), step = D.NET_DRAG * dt;
-        if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) collect(s); else { cast.x += dx / d * step; cast.z += dz / d * step; }
+        const dx = ow.x - cast.x, dz = ow.z - cast.z, d = Math.hypot(dx, dz), step = D.NET_DRAG * dt;
+        if (d <= step + 0.3 || S.has(s, Math.floor(cast.x), Math.floor(cast.z))) { collect(s, w); return; } else { cast.x += dx / d * step; cast.z += dz / d * step; }
       }
-    }
+      if (cast.phase !== 'fly' && s.weather.id === 'storm' && !cast.torn) {      // 嵐：網が破れる
+        const df = D.DIFF, p = Math.min(df.tearMax, df.tearBase + (s.clock.day - 1) * df.tearPerDay);
+        if (S.rand() < p * dt) { cast.torn = true; cast.held.length = 0; cast.phase = 'back'; K.dur.net = Math.max(0, K.dur.net - df.tearDmg); s.events.push({ e: 'tear', who: w }); }
+      }
+      if (cast.phase === 'rest' || cast.phase === 'back') rests.push({ cast, nl, w });
+    });
     const rd = s.rod;
     if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite * (S.worn(s, 'rod') ? D.DUR.worn.bite : 1)) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
-    if (cast && cast.phase !== 'fly' && s.weather.id === 'storm' && cast.held && !cast.torn) {
-      const df = D.DIFF, p = Math.min(df.tearMax, df.tearBase + (s.clock.day - 1) * df.tearPerDay);
-      if (S.rand() < p * dt) { cast.torn = true; cast.held.length = 0; cast.phase = 'back'; s.dur.net = Math.max(0, s.dur.net - df.tearDmg); s.events.push({ e: 'tear' }); }
-    }
-    const ct = s.net.cast, rest = ct && (ct.phase === 'rest' || ct.phase === 'back') ? ct : null;   // 広げているとき・引きずっているときは、通りかかった物がかかる
     const inRaft = (x, z) => S.has(s, Math.floor(x), Math.floor(z));
     for (let i = s.drift.length - 1; i >= 0; i--) {
       const it = s.drift[i], sp = v * dt; it.born += dt;
@@ -386,13 +413,12 @@
         const px = -f.z, pz = f.x, side = ((it.x - cx) * px + (it.z - cz) * pz) >= 0 ? 1 : -1;
         it.x += px * side * sp * 3; it.z += pz * side * sp * 3;
       }
-      if (rest && Math.hypot(it.x - rest.x, it.z - rest.z) < nl.r && rest.held.length < netCap(s)) {
-        rest.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue;
-      }
+      const hit = rests.find(q => Math.hypot(it.x - q.cast.x, it.z - q.cast.z) < q.nl.r && q.cast.held.length < netCap(s, q.w));
+      if (hit) { hit.cast.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue; }
       if ((it.x - cx) * f.x + (it.z - cz) * f.z > R + 3) s.drift.splice(i, 1);
     }
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); return s && s.v === 4 ? Object.assign(S.newState(), s, { events: [], view: { r: 9 } }) : null; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

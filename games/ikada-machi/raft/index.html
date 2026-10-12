@@ -67,6 +67,13 @@ button.on{background:#6b4231;color:#fff}
 #helpbox ul{margin:0;padding-left:1.2em}
 #jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #jobbox h2{margin:0 0 4px;font-size:15px}
+#cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#cfbox h2{margin:0 0 4px;font-size:15px}
+.cfrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin:6px 0;padding:6px 8px;background:#0003;border-radius:8px}
+.cfrow b{grid-column:1}.cfrow span{grid-column:1;font-size:12px;opacity:.85}.cfrow div{grid-column:2;grid-row:1/3;display:flex;gap:4px}
+.cfrow button{padding:4px 8px;min-height:34px;font-size:12px}
+.toolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:4px 0;padding:6px 8px;background:#0003;border-radius:8px;font-size:12px}
+.toolrow button{padding:4px 8px;min-height:32px;font-size:12px}
 #jobBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 #jobBtns button small{display:block;font-size:10px;opacity:.75;line-height:1.3}
 #log{position:fixed;left:10px;bottom:6px;font-size:11px;color:#ffb0a0;max-width:50vw}
@@ -85,7 +92,13 @@ button.on{background:#6b4231;color:#fff}
 <button id="bClose" aria-label="閉じる">×</button>
 <div id="pages"><div class="page" id="pageL"><div id="grid"></div></div><div class="page" id="pageR"><div id="detail"></div></div></div>
 </div></div>
-<div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
+<div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
+<div id="cfbox"><h2>焚き火</h2><div id="cfState"></div>
+<div class="cfrow"><b>魚</b><span id="cfFi"></span><div><button data-cf="putfish1">＋1</button><button data-cf="putfishall">全部</button><button data-cf="takefish">戻す</button></div></div>
+<div class="cfrow"><b>燃料（木くず）</b><span id="cfFw"></span><div><button data-cf="putwood1">＋1</button><button data-cf="putwoodall">全部</button><button data-cf="takewood">戻す</button></div></div>
+<div class="bar" style="width:100%;margin:6px 0"><i id="cfBar" style="width:0"></i></div>
+<div class="cfrow"><b>焼き魚</b><span id="cfGo"></span><div><button data-cf="takeout">取り出す</button></div></div>
+<div style="margin-top:8px;text-align:right"><button id="bCfClose">閉じる</button></div></div>
 <div id="helpbox"><h2>あそびかた</h2><ul>
 <li>右下の「持ち物」から、網を選んで手に持つ</li>
 <li>海を押し続ける → ゲージがたまる → 離すと網を投げる</li>

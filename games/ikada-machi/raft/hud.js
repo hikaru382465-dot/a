@@ -98,9 +98,37 @@ window.RAFT.parts.hud = function (c) {
     $('jobBtns').innerHTML = jobBtns.map(k => `<button data-j="${k || ''}" class="${(bu.job || null) === k ? 'on' : ''}">${k ? D.BUDDY.JOBS[k].name : 'おまかせ'}<small>${k ? D.BUDDY.JOBS[k].tip : '仕事をやめて、自由に歩き回る'}</small></button>`).join('');
     $('jobBtns').querySelectorAll('button').forEach(b => b.onclick = () => { sim.setJob(s, b.dataset.j || null); jobPanel(); });
   }
-  const openJobs = () => { cancelPlace(); closeSheet(); $('jobbox').style.display = 'block'; jobPanel(); };
+  let lastTools = '';
+  function toolsPanel() {
+    const bu = s.buddy, nx = D.NET_LV[bu.net.lv], cs = c => Object.keys(c).map(k => `${nameOf(k)}${c[k]}`).join('・'), ok = c => sim.canPay(s, c) && sim.hasBench(s);
+    const rows = [
+      `<div class="toolrow"><span>網 Lv${bu.net.lv}　じょうぶさ ${Math.round(bu.dur.net)}%</span><span>${nx ? `<button data-t="netup" ${ok(nx.cost) ? '' : 'disabled'}>強くする（${cs(nx.cost)}）</button>` : '最大'} <button data-t="fixnet" ${bu.dur.net >= 95 || !ok(D.DUR.fixCost) ? 'disabled' : ''}>直す</button></span></div>`,
+      bu.hasRod ? `<div class="toolrow"><span>釣りざお　じょうぶさ ${Math.round(bu.dur.rod)}%</span><button data-t="fixrod" ${bu.dur.rod >= 95 || !ok(D.DUR.fixCost) ? 'disabled' : ''}>直す（${cs(D.DUR.fixCost)}）</button></div>`
+        : `<div class="toolrow"><span>釣りざお：まだない</span><button data-t="rod" ${ok(D.BUDDY.ROD_COST) ? '' : 'disabled'}>作る（${cs(D.BUDDY.ROD_COST)}）</button></div>`];
+    const html = rows.join('') + (sim.hasBench(s) ? '' : '<div class="toolrow"><span>作業台を置くと、道具を作れる</span></div>');
+    if (html === lastTools) return; lastTools = html; $('buddyTools').innerHTML = html;
+    $('buddyTools').querySelectorAll('button').forEach(b => b.onclick = () => { sim.buddyTool(s, b.dataset.t); lastTools = ''; toolsPanel(); });
+  }
+  // ---- 焚き火（かまど）の画面 ----
+  let cfId = null;
+  function cfPanel() {
+    const o = s.objects.find(x => x.id === cfId && x.k === 'campfire'); if (!o) { $('cfbox').style.display = 'none'; return; }
+    const C = D.COOK, left = Math.max(0, Math.ceil(C.sec - (o.p || 0)));
+    $('cfState').textContent = sim.cfBurning(o) ? `燃えている：次の1匹まで あと${left}秒` : (o.fi ? '燃料（木くず）を入れてください' : (o.go >= C.maxOut ? '焼き魚を取り出してください' : '魚と木くずを入れてください'));
+    $('cfFi').textContent = `焼く魚 ${o.fi || 0} / ${C.maxFish}　（持っている魚 ${s.inv.fish || 0}）`;
+    $('cfFw').textContent = `木くず ${o.fw || 0} / ${C.maxWood}　（燃え残り ${o.fl || 0}匹ぶん・持っている木くず ${s.inv.wood || 0}）`;
+    $('cfGo').textContent = `できた焼き魚 ${o.go || 0}`; $('cfBar').style.width = (sim.cfBurning(o) ? (o.p || 0) / C.sec * 100 : 0) + '%';
+  }
+  const openCf = id => { cfId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'block'; cfPanel(); };
+  document.querySelectorAll('#cfbox [data-cf]').forEach(b => b.onclick = () => {
+    const a = b.dataset.cf, id = cfId; if (a === 'putfish1') sim.cfPut(s, id, 'fish', 1); else if (a === 'putfishall') sim.cfPut(s, id, 'fish', 'all'); else if (a === 'takefish') sim.cfTake(s, id, 'fish');
+    else if (a === 'putwood1') sim.cfPut(s, id, 'wood', 1); else if (a === 'putwoodall') sim.cfPut(s, id, 'wood', 'all'); else if (a === 'takewood') sim.cfTake(s, id, 'wood'); else if (a === 'takeout') { if (sim.cfTake(s, id, 'out')) refresh(); }
+    cfPanel();
+  });
+  $('bCfClose').onclick = () => { $('cfbox').style.display = 'none'; };
+  const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
-  c.hud = { refresh, toast, tryPlace, openJobs };
+  c.hud = { refresh, toast, tryPlace, openJobs, openCf };
   // ---- ボタン ----
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
@@ -130,8 +158,9 @@ window.RAFT.parts.hud = function (c) {
     s.events.splice(0).forEach(e => {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
+      if (e.e === 'campfire') { openCf(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'grilled', 'cookstart', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
@@ -147,7 +176,8 @@ window.RAFT.parts.hud = function (c) {
     rg.clearRect(0, 0, rain.width, rain.height);
     if (rainA > 0.02) { rg.strokeStyle = `rgba(200,220,255,${0.35 * rainA})`; rg.lineWidth = 1.5; rg.beginPath();
       drops.forEach(d => { d.y += dt * d.v * 1.6; d.x -= dt * 0.25; if (d.y > 1) { d.y = -0.05; d.x = Math.random() * 1.3; } const x = d.x * rain.width, y = d.y * rain.height; rg.moveTo(x, y); rg.lineTo(x - 5, y + 16); }); rg.stroke(); }
-    if ($('jobbox').style.display === 'block') { $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }
+    if ($('cfbox').style.display === 'block') cfPanel();
+    if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }
     acc += dt; if (acc > 10) { acc = 0; sim.save(s); }
     if (!update.first) { update.first = true; toast('右下の「持ち物」から、網を持って、海を押してみよう', 4000); }
   }, init: refresh };
