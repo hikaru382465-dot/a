@@ -847,7 +847,8 @@ class Game:
                 log("  (矢印キーで歩けません) %s" % e)
 
     def tick_manual(self, dt):
-        """キャラが動かないときの、自分で動かす歩き：WASD と矢印。向いている方向へ、WALK_SPEED で、当たり判定をよけながら進める"""
+        """キャラが動かないときの、自分で動かす歩き：WASD と矢印。向いている方向へ、WALK_SPEED で進める。
+        歩く人（Character）には、動きの部品（CharacterMovement）の速度を直接入れる（地面・坂をなめらかに進む）。それでも進まなければ、体を直接動かす"""
         if MANUAL_WALK == "off" or self.state not in ("WALK", "TRAPPED"):
             return
         if MANUAL_WALK == "auto" and not getattr(self, "manual_on", False):
@@ -855,21 +856,41 @@ class Game:
         try:
             kd = lambda n: self.pc.is_input_key_down(self._key(n))
             f = (1.0 if (kd("W") or kd("Up")) else 0.0) - (1.0 if (kd("S") or kd("Down")) else 0.0)
-            r = (1.0 if (kd("D") or kd("Right")) else 0.0) - (1.0 if (kd("A") or kd("Left")) else 0.0)
+            r = (1.0 if kd("D") or kd("Right") else 0.0) - (1.0 if kd("A") or kd("Left") else 0.0)
+            speed = max(WALK_SPEED, 300.0)
+            mvc = self.pawn.get_component_by_class(unreal.CharacterMovementComponent) if self.is_char and not getattr(self, "manual_offset", False) else None
             if f == 0.0 and r == 0.0:
+                if mvc is not None and getattr(self, "_manual_moving", False):
+                    v = mvc.get_editor_property("velocity")
+                    mvc.set_editor_property("velocity", unreal.Vector(0.0, 0.0, v.z))                 # キーを離したら、すっと止まる
+                self._manual_moving = False
                 return
             rot = unreal.Rotator(0, 0, self.pc.get_control_rotation().yaw)
             fw = unreal.MathLibrary.get_forward_vector(rot)
             rt = unreal.MathLibrary.get_right_vector(rot)
             dx, dy = fw.x * f + rt.x * r, fw.y * f + rt.y * r
             n = math.hypot(dx, dy) or 1.0
-            step = max(WALK_SPEED, 300.0) * dt
+            dx, dy = dx / n, dy / n
+            self._manual_moving = True
             p0 = self.pawn.get_actor_location()
-            delta = unreal.Vector(dx / n * step, dy / n * step, 0.0)
-            self.pawn.add_actor_world_offset(delta, True, False)                    # まず、当たり判定をよけながら
+            if mvc is not None:
+                v = mvc.get_editor_property("velocity")
+                mvc.set_editor_property("velocity", unreal.Vector(dx * speed, dy * speed, v.z))
+                self._man_t = getattr(self, "_man_t", 0.0) + dt
+                if self._man_t > 1.0:                                                  # 1秒たっても進まないなら、体を直接動かす方式に変える
+                    if math.hypot(p0.x - getattr(self, "_man_p", (p0.x, p0.y))[0], p0.y - getattr(self, "_man_p", (p0.x, p0.y))[1]) < 20.0:
+                        self.manual_offset = True
+                        log("速度を入れても進まないので、体を直接動かす方式に変えました")
+                    self._man_t, self._man_p = 0.0, (p0.x, p0.y)
+                elif not hasattr(self, "_man_p"):
+                    self._man_p = (p0.x, p0.y)
+                return
+            step = speed * dt
+            delta = unreal.Vector(dx * step, dy * step, 0.0)
+            self.pawn.add_actor_world_offset(delta, True, False)
             p1 = self.pawn.get_actor_location()
-            if math.hypot(p1.x - p0.x, p1.y - p0.y) < step * 0.3:                     # それでも進めない（坂・見えない壁）なら、当たり判定を無視して進める
-                self.pawn.add_actor_world_offset(unreal.Vector(delta.x, delta.y, 6.0), False, True)
+            if math.hypot(p1.x - p0.x, p1.y - p0.y) < step * 0.3:
+                self.pawn.add_actor_world_offset(unreal.Vector(delta.x, delta.y, 0.0), False, True)
         except Exception as e:  # noqa
             if not getattr(self, "_man_err", False):
                 self._man_err = True
@@ -877,7 +898,7 @@ class Game:
 
     def tick_unstuck(self, loc, dt):
         """歩くキーを押しているのに、ほとんど動かないとき（地面に埋まっている）は、すこし持ち上げる。さいしょの数秒だけ見る"""
-        if self.state != "WALK" or getattr(self, "lifts", 0) >= 8:
+        if self.state != "WALK" or getattr(self, "lifts", 0) >= 8 or getattr(self, "manual_on", False):
             return
         try:
             down = any(self.pc.is_input_key_down(self._key(k)) for k in ("W", "A", "S", "D", "Up", "Down", "Left", "Right"))
