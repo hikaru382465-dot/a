@@ -8,11 +8,11 @@ from PIL import Image
 here = pathlib.Path(__file__).parent
 A = np.array(Image.open(here.parent / 'art' / 'buddy' / 'emotes.png').convert('RGB')).astype(int)
 A2 = np.array(Image.open(here.parent / 'art' / 'buddy' / 'loops.png').convert('RGB')).astype(int)
-SC = 0.5
+SC = 1.0      # 元の絵の大きさのまま（前の2倍の細かさ）。ゲームでは、画面での大きさがかわらないように k=0.5 をかける
 
 def tidy(im):      # 半透明をなくして、色数をへらす（ドット絵っぽくそろえる）
     al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 100) * 255).astype(np.uint8)))
-    q = im.convert('RGB').quantize(10, dither=Image.NONE).convert('RGB'); q.putalpha(im.getchannel('A')); return q
+    q = im.convert('RGB').quantize(14, dither=Image.NONE).convert('RGB'); q.putalpha(im.getchannel('A')); return q
 
 def png(img):
     buf = io.BytesIO(); img.save(buf, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
@@ -57,7 +57,7 @@ BOXES = {'heart': (258, 48, 310, 122), 'exclaim': (548, 56, 596, 106), 'sweat': 
 # ループ用の絵（loops.png）にも、zzz・音符・ちょうちんがあった
 BOXES2 = {'zzA': (140, 92, 186, 140), 'zzB': (312, 90, 360, 140), 'bubble': (506, 92, 552, 140), 'zzC': (696, 92, 744, 140), 'zzD': (888, 104, 930, 144),
           'zzE': (1084, 100, 1132, 146), 'noteA': (700, 358, 745, 396), 'noteB': (1272, 372, 1308, 404), 'noteC': (1456, 360, 1494, 392), 'noteD': (1074, 624, 1112, 660), 'noteE': (1462, 856, 1496, 886)}
-out = {'ppu': 46, 'emotes': {}}; tiles = []
+out = {'ppu': 46, 'k': 0.5, 'emotes': {}}; tiles = []
 for k, b in BOXES.items():
     im = cut(b)
     if im is None: print('なし', k); continue
@@ -99,14 +99,14 @@ def clean(path, name, h, ncol, crop=None, bgmin=226):
     q = im.convert('RGB').quantize(ncol, dither=Image.NONE).convert('RGB'); q.putalpha(im.getchannel('A'))
     tiles.append((name, q)); out['emotes'][name] = {'src': png(q), 'w': q.width, 'h': q.height}; print(name, q.size)
 SRC = here.parent / 'art' / 'buddy' / 'emote_src'
-clean(SRC / 'exclaim.png', 'exclaim2', 24, 6, (320, 470, 845, 1220))
-clean(SRC / 'zzz2.png', 'zzzClean', 24, 5)
-clean(SRC / 'note.png', 'noteClean', 16, 4)
-clean(SRC / 'sweat.jpg', 'sweatClean', 18, 6)
-clean(SRC / 'heart.png', 'heartClean', 16, 6)
-clean(SRC / 'anger.jpg', 'angerClean', 18, 5)
-clean(SRC / 'gloom.jpg', 'gloom', 22, 5, None, 140)       # 市松もようの背景つきの絵
-clean(SRC / 'burst.jpg', 'burst', 20, 4, None, 140)
+clean(SRC / 'exclaim.png', 'exclaim2', 48, 6, (320, 470, 845, 1220))
+clean(SRC / 'zzz2.png', 'zzzClean', 48, 5)
+clean(SRC / 'note.png', 'noteClean', 32, 4)
+clean(SRC / 'sweat.jpg', 'sweatClean', 36, 6)
+clean(SRC / 'heart.png', 'heartClean', 32, 6)
+clean(SRC / 'anger.jpg', 'angerClean', 36, 5)
+clean(SRC / 'gloom.jpg', 'gloom', 44, 5, None, 140)       # 市松もようの背景つきの絵
+clean(SRC / 'burst.jpg', 'burst', 40, 4, None, 140)
 (here / 'emotes_art.js').write_text('window.RAFT.emoteArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 6 + 10 for _, i in tiles); H = max(i.height * 6 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0

@@ -171,6 +171,7 @@ window.RAFT.parts.hud = function (c) {
   $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
+  $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
   $('bHelp').onclick = () => { $('helpbox').style.display = 'block'; };
   $('bHelpClose').onclick = () => { $('helpbox').style.display = 'none'; };
   addEventListener('keydown', e => {

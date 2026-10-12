@@ -303,11 +303,13 @@
     S.pay(s, dl.want); Object.keys(dl.give).forEach(k => { s.inv[k] = (s.inv[k] || 0) + dl.give[k]; });
     b.done[i] = true; b.thanks = true; s.events.push({ e: 'traded' }); if (b.done.every(x => x)) b.left = Math.min(b.left, 5); return true;
   };
+  S.callBoat = function (s) { if (s.boat) { s.events.push({ e: 'boatalready' }); return false; } if (s.weather.id === 'storm') { s.events.push({ e: 'boatnostorm' }); return false; } s.boatForce = true; return true; };
   S.boatLeave = function (s) { const b = s.boat; if (b && b.phase !== 'leave') b.phase = 'leave'; };
   function boatStep(s, dt, f, bb) {
     const B = D.BOAT, cx = (bb.x0 + bb.x1 + 1) / 2, cz = (bb.z0 + bb.z1 + 1) / 2;
     let b = s.boat;
-    if (!b && s.boatDay !== s.clock.day && s.clock.t >= B.FROM && s.clock.t <= B.TO && s.weather.id !== 'storm') {
+    if (!b && s.weather.id !== 'storm' && (s.boatForce || (s.boatDay !== s.clock.day && s.clock.t >= B.FROM && s.clock.t <= B.TO))) {
+      s.boatForce = false;
       const ids = Object.keys(B.RES).filter(k => k !== s.lastRes), id = ids[Math.floor(S.rand() * ids.length)];
       const px = -f.z, pz = f.x, rad = Math.max(bb.w, bb.d) / 2 + B.OFFSET, R = 9;
       const tx = cx + px * rad, tz = cz + pz * rad;

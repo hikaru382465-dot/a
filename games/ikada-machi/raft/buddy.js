@@ -143,11 +143,11 @@ window.RAFT.parts.buddy = function (c) {
       const tx = shown && emoTex[shown];
       emoMesh.visible = !!tx;
       if (tx) {
-        const f = EA.emotes[shown], u = 1 / (EA.ppu / K) , pop = Math.min(1, emoT / 0.25), p = (emoT * 0.5) % 1, floatUp = (key === 'zz' || key === 'music') ? p * 0.22 : Math.sin(emoT * 4) * 0.02;
+        const f = EA.emotes[shown], u = 1 / (EA.ppu / K) , pop = Math.min(1, emoT / 0.25), p = (emoT * 0.5) % 1, floatUp = (key === 'zz' || key === 'music') ? p * 0.22 : Math.sin(emoT * 4) * 0.02, kh = (EA.k || 1);
         emoMesh.material.map = tx; emoMesh.material.opacity = (key === 'zz' || key === 'music') ? Math.min(1, (1 - p) * 2.2) : 1; emoMesh.material.transparent = true;
-        emoMesh.scale.set(f.w * u * pop * 1.4, f.h * u * pop * 1.4 / Math.cos(c.cam.pitch), 1);
+        const kk = (EA.k || 1) * 1.4; emoMesh.scale.set(f.w * u * pop * kk, f.h * u * pop * kk / Math.cos(c.cam.pitch), 1);
         const ox = Math.cos(c.cam.yaw) * 0.26, oz = -Math.sin(c.cam.yaw) * 0.26;
-        emoMesh.position.set(bu.x + ox, emoteTop + 0.06 + floatUp + f.h * u * 0.7 / Math.cos(c.cam.pitch), bu.z + oz);
+        emoMesh.position.set(bu.x + ox, emoteTop + 0.06 + floatUp + f.h * u * kh * 0.7 / Math.cos(c.cam.pitch), bu.z + oz);
       }
     }
   } };
