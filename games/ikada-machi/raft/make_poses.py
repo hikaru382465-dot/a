@@ -85,6 +85,8 @@ for fr in sheet2:
     for i in fr: sh2.alpha_composite(i.resize((i.width * 3, i.height * 3), Image.NEAREST), (xx, yy + hh - i.height * 3)); xx += i.width * 3 + 6
     yy += hh + 6
 sh2.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/anims_sheet.png')
+# くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
+out['anims']['relax'].update({'loop': None, 'fps': 3, 'intro': [0, 1, 2], 'hold': 2, 'extra': [3, 4], 'every': 11, 'extraFps': 2.5})
 (here / 'poses_art.js').write_text('window.RAFT.poseArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 4 + 10 for _, i in tiles); H = max(i.height * 4 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0

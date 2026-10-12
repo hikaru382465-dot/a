@@ -90,6 +90,10 @@ window.RAFT.parts.buddy = function (c) {
         let f0 = null, tx0 = null;
         if (anim) { const an = PA.anims[anim], n = an.frames.length; let i;
           if (bu.act && bu.act.dur) i = Math.min(n - 1, Math.floor((1 - bu.act.t / bu.act.dur) * n));       // 食べる・飲む：動作の長さにあわせて1回
+          else if (an.intro) {       // 落ち着くまで1回 → そのまま止まる。ときどきだけ別の動き
+            const dI = an.intro.length / an.fps;
+            if (animT < dI) i = an.intro[Math.floor(animT * an.fps)];
+            else { const eD = an.extra.length / an.extraFps, tt = (animT - dI) % an.every; i = tt < an.every - eD ? an.hold : an.extra[Math.min(an.extra.length - 1, Math.floor((tt - (an.every - eD)) * an.extraFps))]; } }
           else { i = Math.floor(animT * an.fps); if (an.loop !== null && i >= n) i = an.loop + ((i - an.loop) % (n - an.loop)); i = Math.min(i, n - 1); }
           f0 = an.frames[i]; tx0 = animTex[anim] && animTex[anim][i]; }
         else if (pose && poseTex[pose]) { f0 = PA.poses[pose]; tx0 = poseTex[pose]; }
