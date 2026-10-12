@@ -65,6 +65,8 @@ button.on{background:#6b4231;color:#fff}
 #helpbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(420px,86vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.7}
 #helpbox h2{margin:0 0 6px;font-size:15px}
 #helpbox ul{margin:0;padding-left:1.2em}
+#zoom{position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px}
+#zoom button{width:40px;height:40px;border-radius:50%;padding:0;font-size:18px;opacity:.85}
 #jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #jobbox h2{margin:0 0 4px;font-size:15px}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
@@ -96,6 +98,7 @@ button.on{background:#6b4231;color:#fff}
 <div id="tr"><button id="bHelp" title="あそびかた">？</button><button id="bSound">音 ON</button></div>
 <div id="placebar"><span id="placeTx"></span><button id="bPlaceEnd">やめる</button></div>
 <div id="gauge"><span id="gaugeTxt"></span><div class="g"><i id="gaugeFill"></i></div></div>
+<div id="zoom"><button id="zIn" aria-label="拡大">＋</button><button id="zOut" aria-label="縮小">－</button></div>
 <button id="pull">引き寄せる</button>
 <button id="fab" aria-label="持ち物"><canvas id="fabIcon" width="32" height="32"></canvas><small>持ち物</small><span id="fabBadge"></span></button>
 <div id="sheet"><div id="book">

@@ -41,6 +41,7 @@ window.RAFT.parts.buddy = function (c) {
   const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };
   el.addEventListener('pointerdown', e => {
     if (c.ui && c.ui.open) return;
+    if (c.pinching) { down = null; return; }
     if (!c.mode.place && !s.net.cast && !s.rod && hitBuddy(e)) { down = { x: e.clientX, y: e.clientY, buddy: true }; return; }     // 相棒をタップ：お願いの画面
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
     if (!p || c.mode.place) return;
@@ -54,7 +55,7 @@ window.RAFT.parts.buddy = function (c) {
   el.addEventListener('pointermove', e => { if (down && down.aim) { const p = world(e); if (p) down.p = p; } });
   el.addEventListener('pointerup', e => {
     const d = down; down = null; c.aim.active = false;
-    if (!d) return;
+    if (!d || c.pinching) return;
     if (d.buddy) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openJobs(); return; }
     if (d.aim) { const p = d.p; if (p) R.sim.throwNet(s, p.x, p.z, power()); return; }
     if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
