@@ -137,3 +137,7 @@ FBXから来る材質は簡単なものなので、次の3つだけ手で直す�
 ## 掲示板と新聞（setup_game_fp.py の「掲示板」の手順）
 
 入口の前に木の掲示板（`Board_*`）が立ち、張り紙2枚と新聞（`Paper_News`）が貼ってある。`kd_game.py` を動かして Play し、新聞のほうを向いて近づくと「[E] 新聞を手に取る」が出る。読んでいる間は歩けない。E でとじる。位置は `kd_settings.json` の `BOARD_DIST` / `BOARD_SIDE` / `BOARD_TURN`（変えたら `setup_game_fp.py` を再実行）、読む大きさは `READ_SIZE` / `READ_DIST`（再実行は不要）。
+
+## 設定ファイルの確認（kd_check_settings.py）
+
+`py "…/unreal/kd_check_settings.py"` を Cmd 欄で実行すると、`kd_settings.json` の、書き方のまちがい（カンマ・かっこ）、知らない項目、数字の種類のまちがいを、出力ログ（KD で絞る）に出す。
