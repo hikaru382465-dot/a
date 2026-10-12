@@ -10,42 +10,44 @@ A = np.array(Image.open(here.parent / 'art' / 'buddy' / 'emotes.png').convert('R
 A2 = np.array(Image.open(here.parent / 'art' / 'buddy' / 'loops.png').convert('RGB')).astype(int)
 SC = 0.5
 
+def tidy(im):      # 半透明をなくして、色数をへらす（ドット絵っぽくそろえる）
+    al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 100) * 255).astype(np.uint8)))
+    q = im.convert('RGB').quantize(10, dither=Image.NONE).convert('RGB'); q.putalpha(im.getchannel('A')); return q
+
 def png(img):
     buf = io.BytesIO(); img.save(buf, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
-def cut(box, minpx=7, src=None):
+def cut(box, minpx=9, src=None):
+    """吹き出しの色（青・ピンク・赤・紺）だけを取り出す。キャラの茶色・ベージュは入らない。"""
     AA = A if src is None else src
     x0, y0, x1, y1 = box; sub = AA[y0:y1, x0:x1]; h, w = sub.shape[:2]
+    r, g, bl = sub[..., 0], sub[..., 1], sub[..., 2]
     mx, mn = sub.max(axis=2), sub.min(axis=2)
-    bg = (mx - mn <= 14) & (mn >= 205)
-    out = np.zeros((h, w), bool); q = deque()
-    for x in range(w):
-        for y in (0, h - 1):
-            if bg[y, x]: out[y, x] = True; q.append((y, x))
-    for y in range(h):
-        for x in (0, w - 1):
-            if bg[y, x] and not out[y, x]: out[y, x] = True; q.append((y, x))
-    while q:
-        cy, cx = q.popleft()
-        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            Y, X = cy + dy, cx + dx
-            if 0 <= Y < h and 0 <= X < w and bg[Y, X] and not out[Y, X]: out[Y, X] = True; q.append((Y, X))
-    fg = ~out
+    blue = (bl > r + 22) & (bl > 60) & (mn < 235)             # 青・紺（zz・？・音符・汗・ちょうちん）
+    pink = (r > g + 45) & (r > 170)                           # ピンク・赤（ハート・！・怒り）
+    core = (blue | pink) & (mn < 238)
+    near = core.copy()
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)): near |= np.roll(np.roll(core, dy, 0), dx, 1)
+    dark = near & (mx < 120)                                  # 吹き出しのすぐそばの、こいふちだけ入れる
+    m = core | dark
+    # 小さなゴミを消す（つながり 8近傍・minpx 未満）
     lab = np.zeros((h, w), int); keep = np.zeros((h, w), bool); n = 0
     for y in range(h):
         for x in range(w):
-            if fg[y, x] and not lab[y, x]:
+            if m[y, x] and not lab[y, x]:
                 n += 1; lab[y, x] = n; qq = deque([(y, x)]); pts = []
                 while qq:
                     cy, cx = qq.popleft(); pts.append((cy, cx))
                     for dy in (-1, 0, 1):
                         for dx in (-1, 0, 1):
                             Y, X = cy + dy, cx + dx
-                            if 0 <= Y < h and 0 <= X < w and fg[Y, X] and not lab[Y, X]: lab[Y, X] = n; qq.append((Y, X))
-                edge = any(py in (0, h - 1) or px in (0, w - 1) for (py, px) in pts)
-                if minpx <= len(pts) <= 900 and not edge:
+                            if 0 <= Y < h and 0 <= X < w and m[Y, X] and not lab[Y, X]: lab[Y, X] = n; qq.append((Y, X))
+                if len(pts) >= minpx:
                     for (py, px) in pts: keep[py, px] = True
-    rgba = np.dstack([sub.astype(np.uint8), (keep * 255).astype(np.uint8)]); img = Image.fromarray(rgba, 'RGBA')
+    # 穴ふさぎ（すきまを1ドットぶん）
+    k2 = keep.copy()
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)): k2 |= np.roll(np.roll(keep, dy, 0), dx, 1) & m
+    rgba = np.dstack([sub.astype(np.uint8), (k2 * 255).astype(np.uint8)]); img = Image.fromarray(rgba, 'RGBA')
     bb = img.getchannel('A').getbbox()
     return img.crop(bb) if bb else None
 
@@ -60,13 +62,13 @@ for k, b in BOXES.items():
     im = cut(b)
     if im is None: print('なし', k); continue
     im = im.resize((max(1, round(im.width * SC)), max(1, round(im.height * SC))), Image.BOX)
-    al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 90) * 255).astype(np.uint8)))
+    im = tidy(im)
     tiles.append((k, im)); out['emotes'][k] = {'src': png(im), 'w': im.width, 'h': im.height}; print(k, im.size)
 for k, b in BOXES2.items():
-    im = cut(b, 6, A2)
+    im = cut(b, 8, A2)
     if im is None: print('なし', k); continue
     im = im.resize((max(1, round(im.width * SC)), max(1, round(im.height * SC))), Image.BOX)
-    al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 90) * 255).astype(np.uint8)))
+    im = tidy(im)
     tiles.append((k, im)); out['emotes'][k] = {'src': png(im), 'w': im.width, 'h': im.height}; print(k, im.size)
 (here / 'emotes_art.js').write_text('window.RAFT.emoteArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 6 + 10 for _, i in tiles); H = max(i.height * 6 for _, i in tiles)
