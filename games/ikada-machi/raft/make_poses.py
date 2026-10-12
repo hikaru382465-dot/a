@@ -56,7 +56,7 @@ BOXES = {'fish': (840, 485, 965, 630), 'cheer': (18, 278, 142, 425), 'surprise':
 out = {'ppu': 46, 'poses': {}, 'anims': {}}
 tiles = []
 for k, b in BOXES.items():
-    im = fin(cut(b, k))
+    im = fin(cut(b, k), {'cheer': 0.31, 'surprise': 0.33}.get(k))      # 大きすぎた絵は、小さめに
     if k == 'fish':      # 絵に描いてある、ぶら下がった糸と魚は消す（ゲームの糸を、ざおの先から出すため）
         px = np.array(im); px[10:, 34:, 3] = 0; im = Image.fromarray(px, 'RGBA')
     tiles.append((k, im))
