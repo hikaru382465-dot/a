@@ -46,6 +46,8 @@ DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キー�
 DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
 START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・地面の下）に、入口の正面から何cm 離して立たせるか
 ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩けるようにする（テンプレのキャラは W A S D だけ）。↑前 ↓後ろ ←左へ →右へ
+START_POS = []                 # 開始位置を決め打ちにする：[x, y, z]（cm）。[] なら使わない。PlayerStart を動かしても変わらないときに使う（アウトライナーで、置きたい場所の位置の数字をコピー）
+MANUAL_WALK = "auto"           # 歩けないときの、歩く仕組み。"auto"＝動かないときだけ自分で動かす／"on"＝いつも自分で動かす／"off"＝使わない
 ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
@@ -119,6 +121,8 @@ SETTINGS_DESCR = {
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
     "START_DIST": "開始位置が変な所のとき、入口の正面から何cm 離して立たせるか",
     "ARROW_MOVE": "true で、矢印キーでも歩けるようにする（↑前 ↓後ろ ←左 →右）",
+    "START_POS": "開始位置を決め打ち：[x, y, z]。空 [] なら使わない。PlayerStart を動かしても変わらないとき用",
+    "MANUAL_WALK": "歩く仕組み。auto＝キャラが動かないときだけ自分で動かす／on／off",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
@@ -224,7 +228,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "ARROW_MOVE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -541,6 +545,14 @@ class Game:
             except Exception:  # noqa
                 pass
             self.eye_z = loc.z
+            if len(START_POS) == 3:                                    # ひかるが決めた開始位置（PlayerStart より優先）
+                try:
+                    self.pawn.set_actor_location(unreal.Vector(float(START_POS[0]), float(START_POS[1]), float(START_POS[2])), False, True)
+                    loc = self.pawn.get_actor_location()
+                    self.eye_z = loc.z
+                    log("開始位置を、決め打ちの位置にしました: (%.0f, %.0f, %.0f)" % (loc.x, loc.y, loc.z))
+                except Exception as e:  # noqa
+                    log("  (START_POS で動かせません) %s" % e)
             # 開始位置が、ボックスから遠い・地面の下のときは、入口の正面に立たせ直す（PlayerStart が別の所にある場合の救済）
             try:
                 far = math.hypot(loc.x - self.cx, loc.y - self.cy) > self.half_n + START_DIST + 3000.0
@@ -593,6 +605,7 @@ class Game:
             except Exception as e:  # noqa
                 log("診断: まわりの確認でエラー %s" % e)
         self.tick_arrows()
+        self.tick_manual(dt)
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
@@ -769,7 +782,7 @@ class Game:
 
     def tick_arrows(self):
         """矢印キーで歩く（W A S D が使えないテンプレ用）。歩く場面（外・中）だけ"""
-        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED") or not self.is_char:
+        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED") or not self.is_char or getattr(self, "manual_on", False) or MANUAL_WALK == "on":
             return
         try:
             f = (1.0 if self.pc.is_input_key_down(self._key("Up")) else 0.0) - (1.0 if self.pc.is_input_key_down(self._key("Down")) else 0.0)
@@ -788,12 +801,36 @@ class Game:
                 self._arrow_err = True
                 log("  (矢印キーで歩けません) %s" % e)
 
+    def tick_manual(self, dt):
+        """キャラが動かないときの、自分で動かす歩き：WASD と矢印。向いている方向へ、WALK_SPEED で、当たり判定をよけながら進める"""
+        if MANUAL_WALK == "off" or self.state not in ("WALK", "TRAPPED"):
+            return
+        if MANUAL_WALK == "auto" and not getattr(self, "manual_on", False):
+            return
+        try:
+            kd = lambda n: self.pc.is_input_key_down(self._key(n))
+            f = (1.0 if (kd("W") or kd("Up")) else 0.0) - (1.0 if (kd("S") or kd("Down")) else 0.0)
+            r = (1.0 if (kd("D") or kd("Right")) else 0.0) - (1.0 if (kd("A") or kd("Left")) else 0.0)
+            if f == 0.0 and r == 0.0:
+                return
+            rot = unreal.Rotator(0, 0, self.pc.get_control_rotation().yaw)
+            fw = unreal.MathLibrary.get_forward_vector(rot)
+            rt = unreal.MathLibrary.get_right_vector(rot)
+            dx, dy = fw.x * f + rt.x * r, fw.y * f + rt.y * r
+            n = math.hypot(dx, dy) or 1.0
+            step = max(WALK_SPEED, 300.0) * dt
+            self.pawn.add_actor_world_offset(unreal.Vector(dx / n * step, dy / n * step, 0.0), True, False)
+        except Exception as e:  # noqa
+            if not getattr(self, "_man_err", False):
+                self._man_err = True
+                log("  (自分で動かす歩きが使えません) %s" % e)
+
     def tick_unstuck(self, loc, dt):
         """歩くキーを押しているのに、ほとんど動かないとき（地面に埋まっている）は、すこし持ち上げる。さいしょの数秒だけ見る"""
         if self.state != "WALK" or getattr(self, "lifts", 0) >= 8:
             return
         try:
-            down = any(self.pc.is_input_key_down(self._key(k)) for k in ("W", "A", "S", "D"))
+            down = any(self.pc.is_input_key_down(self._key(k)) for k in ("W", "A", "S", "D", "Up", "Down", "Left", "Right"))
         except Exception:  # noqa
             return
         if not down:
@@ -805,6 +842,10 @@ class Game:
         px, py = getattr(self, "_stuck_p", (loc.x, loc.y))
         moved = math.hypot(loc.x - px, loc.y - py)
         self._stuck_t, self._stuck_p = 0.0, (loc.x, loc.y)
+        if moved < 8.0 and MANUAL_WALK == "auto" and not getattr(self, "manual_on", False):
+            self.manual_on = True
+            log("歩くキーを押しても動かないので、自分で動かす歩きに切り替えました（MANUAL_WALK）")
+            return
         if moved < 8.0:
             self.lifts = getattr(self, "lifts", 0) + 1
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, loc.z + 120.0), False, True)
