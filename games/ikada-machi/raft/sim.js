@@ -169,6 +169,7 @@
   // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
   S.useObj = function (s, id, a) {
     const o = s.objects.find(x => x.id === id); if (!o) return false;
+    if (o.k === 'campfire' && !a) { if (o.cook) s.events.push({ e: 'cooking', left: Math.ceil(o.cook.n * D.COOK.sec - o.cook.t) }); }
     if (a) return S.walkNear(s, o.x, o.z, { type: o.k, id }, a);
     if (o.k === 'tank') s.events.push({ e: 'tankinfo', w: o.w, cap: D.ITEMS.tank.cap });
     if (o.k === 'filter') s.events.push({ e: 'filterinfo', left: Math.max(0, Math.ceil(D.ITEMS.filter.sec - o.p)) });
@@ -263,6 +264,14 @@
       bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'throw' });
     }
   }
+  // 焚き火で魚を焼く：最大3匹まで一度に。木くずは、3匹ぶんで1個
+  S.cook = function (s, o) {
+    if (o.cook) { s.events.push({ e: 'cooking', left: Math.ceil(o.cook.n * D.COOK.sec - o.cook.t) }); return false; }
+    const n = Math.min(s.inv.fish || 0, D.COOK.batch); if (n <= 0) { s.events.push({ e: 'nofish' }); return false; }
+    let fl = o.fl || 0, wood = 0; while (fl < n) { fl += D.COOK.perWood; wood += D.COOK.wood; }
+    if ((s.inv.wood || 0) < wood) { s.events.push({ e: 'nowood' }); return false; }
+    s.inv.wood -= wood; o.fl = fl - n; s.inv.fish -= n; o.cook = { n, t: 0 }; s.events.push({ e: 'cookstart', n, sec: n * D.COOK.sec }); return true;
+  };
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
   function pickItem(s) {
@@ -294,6 +303,7 @@
     const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
     const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
+    s.objects.forEach(o => { if (o.k === 'campfire' && o.cook) { o.cook.t += dt; if (o.cook.t >= o.cook.n * D.COOK.sec) { s.inv.grilled = (s.inv.grilled || 0) + o.cook.n; s.events.push({ e: 'grilled', n: o.cook.n }); o.cook = null; } } });
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
       const t = tanks.filter(x => x.w < tcap).sort((a, c) => a.w - c.w)[0];
@@ -303,7 +313,7 @@
     // 相棒（女の子）：おなか・のどが減ったら自分で食べる・飲む。ひまなときは、イカダの上を歩き回る
     const bu = s.buddy, b = s.player; bu.eatT -= dt; bu.wanderT -= dt;
     if (!bu.act && !bu.task && !bu.path.length && bu.eatT <= 0) {
-      if (s.needs.hunger < D.NEEDS.low && (s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
+      if (s.needs.hunger < D.NEEDS.low && (s.inv.grilled > 0 ? S.use(s, 'grilled', bu) : s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
       else if (s.needs.thirst < D.NEEDS.low) {
         const t = tanks.find(x => x.w > 0);
         if (t) { S.useObj(s, t.id, bu); bu.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut', bu)) bu.eatT = 3;
@@ -324,6 +334,7 @@
       } else if (a.task) {     // 着いたら、物を使う
         const t = a.task; a.task = null; const o = s.objects.find(x => x.id === t.id);
         if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
+        else if (o && o.k === 'campfire' && a === b) S.cook(s, o);
         else if (o && o.k === 'tank') {
           if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); a.act = { type: 'eat', t: 0.7 }; s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });

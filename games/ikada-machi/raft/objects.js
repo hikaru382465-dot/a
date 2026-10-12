@@ -43,7 +43,8 @@ window.RAFT.parts.objects = function (c) {
   const art = { bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
   // ひかるの絵（objs_art.js）。読み込めたら、コードで描いた仮の絵のかわりに使う
   const OA = R.objArt; let oaLeft = 0;
-  if (OA) ['bench', 'tank', 'filter'].forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ['bench', 'tank', 'filter'].forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], 34)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
+  if (OA) ['bench', 'tank', 'filter', 'campfire'].forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ['bench', 'tank', 'filter', 'campfire'].forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], kk === 'campfire' ? 44 : 34)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
+  const glowTex = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,190,100,1)'); gr.addColorStop(.4, 'rgba(255,130,50,.4)'); gr.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c.tex(cv); })();
   const group = new THREE.Group(); scene.add(group);
   const items = new Map(); let rev = -1, t = 0;
   function build() {
@@ -52,7 +53,9 @@ window.RAFT.parts.objects = function (c) {
       const a = art[o.k]; if (!a) return;
       const m = c.sprite(a[0].cv, { x: o.x + 0.5, y: TOP, z: o.z + 0.5, ppu: a[0].ppu }); group.add(m);
       const tex = a.map(f => c.tex(f.cv));
-      items.set(o.id, { m, tex, o, last: -1 });
+      const it = { m, tex, o, last: -1 };
+      if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
+      items.set(o.id, it);
     });
     rev = s.objRev;
   }
@@ -61,6 +64,7 @@ window.RAFT.parts.objects = function (c) {
     if (s.objRev !== rev || rev === -1) build();
     t += dt;
     items.forEach(it => {
+      if (it.gm) it.gm.opacity = (it.o.cook ? 0.5 : 0.28) + Math.sin(t * 9 + it.o.id) * 0.06 + Math.sin(t * 5.3) * 0.04;
       let idx = 0;
       if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / D.ITEMS.tank.cap * 3));
       else if (it.o.k === 'filter') idx = (it.o.p > 0 && Math.floor(t * 2) % 2) ? 1 : 0;

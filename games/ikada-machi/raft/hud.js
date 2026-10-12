@@ -131,7 +131,7 @@ window.RAFT.parts.hud = function (c) {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'grilled', 'cookstart', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
