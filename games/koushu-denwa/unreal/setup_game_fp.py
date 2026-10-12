@@ -29,6 +29,7 @@ SUN_INTENSITY = 0.0                  # 太陽の明るさ（夜は 0）
 MOON_INTENSITY = 0.35                # 月の光
 SKY_INTENSITY = 0.25                 # 空の光
 PROTECT_LEVELS = ("FirstPersonMap",)  # このレベル（スタート画面用）では実行しない。本編用にコピーしたレベルで実行する
+START_HEIGHT = 400.0                 # 開始位置の高さ（ボックスの足元から何cm 上）。高めに置いて、落ちて地面に立たせる（地面に埋まって歩けなくなるのを防ぐ）
 START_DIST = 1800.0                  # プレイヤーを、入口の正面から何cm 離して立たせるか
 FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ）
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
@@ -83,6 +84,7 @@ SETTINGS_DESCR = {
     "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
     "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
     "FRONT": "電話ボックスの入口の向き（+X / -X / +Y / -Y）",
+    "START_HEIGHT": "開始位置を、ボックスの足元から何cm 上に置くか（高いと、落ちて地面に立つ）",
     "START_DIST": "プレイヤーを入口の前から何cm離して立たせるか",
     "NIGHT_MODE": "true で、本編レベルを夜にする",
     "SUN_INTENSITY": "太陽の明るさ（夜は 0）",
@@ -183,7 +185,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -648,7 +650,7 @@ def s_player_start():
     g = STATE["geo"]
     half_n, _ = front_half()
     x, y, _z = world(half_n + START_DIST, 0, 0)
-    z = g["zmin"] + 100.0
+    z = g["zmin"] + START_HEIGHT
     n = g["n"]
     yaw = math.degrees(math.atan2(-n[1], -n[0]))           # ボックスの方を向く
     if not starts:

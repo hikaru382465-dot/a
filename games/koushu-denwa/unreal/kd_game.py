@@ -548,17 +548,25 @@ class Game:
                     th = math.radians(self.front_yaw)
                     nx, ny = -math.sin(th), math.cos(th)
                     px, py = self.cx + nx * (self.half_n + START_DIST), self.cy + ny * (self.half_n + START_DIST)
-                    self.pawn.set_actor_location(unreal.Vector(px, py, self.cz - 40.0), False, False)
+                    self.pawn.set_actor_location(unreal.Vector(px, py, self.cz + 250.0), False, False)
                     self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(-ny, -nx))))
-                    self.eye_z = self.cz - 40.0
+                    self.eye_z = self.cz + 250.0
                     loc = self.pawn.get_actor_location()
-                    log("開始位置が遠い／低いので、入口の正面へ立たせ直しました: (%.0f, %.0f, %.0f)" % (px, py, self.cz - 40.0))
+                    log("開始位置が遠い／低いので、入口の正面へ立たせ直しました: (%.0f, %.0f, %.0f)" % (px, py, self.cz + 250.0))
             except Exception as e:  # noqa
                 log("  (開始位置を直せません) %s" % e)
             log("プレイヤー: %s・最初の高さ z=%.0f" % ("歩く人（地面に立つ）" if self.is_char else "ういている人（高さ固定）", loc.z))
         # 歩く高さを固定（飛ばない）。地面に立つ人（Character）は、固定しない。固定する高さは、最初に立った高さ（地面の下に入らない）
         if not self.is_char and abs(loc.z - self.eye_z) > 0.5:
             self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, self.eye_z), False, False)
+        if self.t > 2.0 and not getattr(self, "_diag", False):
+            self._diag = True
+            try:
+                mv = self.pawn.get_component_by_class(unreal.CharacterMovementComponent)
+                log("診断: 位置=(%.0f,%.0f,%.0f) 歩く人=%s 動きかた=%s 最高速=%s" % (loc.x, loc.y, loc.z, self.is_char, mv.get_editor_property("movement_mode") if mv else "なし", mv.get_editor_property("max_walk_speed") if mv else "なし"))
+            except Exception as e:  # noqa
+                log("診断: 位置=(%.0f,%.0f,%.0f) 歩く人=%s (%s)" % (loc.x, loc.y, loc.z, self.is_char, e))
+        self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
         self.tick_hud()
@@ -731,6 +739,38 @@ class Game:
             screen(self.world, "ガチャン。金庫が開いた！ 小さな鍵と10円を手に入れた（10円 %d枚）" % self.coins, (255, 240, 160), 6.0)
             log("金庫が開きました（鍵・10円②）")
             self.on_flag("金庫")
+
+    def tick_unstuck(self, loc, dt):
+        """歩くキーを押しているのに、ほとんど動かないとき（地面に埋まっている）は、すこし持ち上げる。さいしょの数秒だけ見る"""
+        if self.state != "WALK" or getattr(self, "lifts", 0) >= 8:
+            return
+        try:
+            down = any(self.pc.is_input_key_down(self._key(k)) for k in ("W", "A", "S", "D", "Up", "Down"))
+        except Exception:  # noqa
+            return
+        if not down:
+            self._stuck_t, self._stuck_p = 0.0, (loc.x, loc.y)
+            return
+        self._stuck_t = getattr(self, "_stuck_t", 0.0) + dt
+        if self._stuck_t < 1.2:
+            return
+        px, py = getattr(self, "_stuck_p", (loc.x, loc.y))
+        moved = math.hypot(loc.x - px, loc.y - py)
+        self._stuck_t, self._stuck_p = 0.0, (loc.x, loc.y)
+        if moved < 8.0:
+            self.lifts = getattr(self, "lifts", 0) + 1
+            self.pawn.set_actor_location(unreal.Vector(loc.x, loc.y, loc.z + 120.0), False, True)
+            log("歩けない（埋まっている？）ので、持ち上げました %d 回目: z=%.0f → %.0f" % (self.lifts, loc.z, loc.z + 120.0))
+
+    def _key(self, name):
+        k = getattr(self, "_keys", None)
+        if k is None:
+            k = self._keys = {}
+        if name not in k:
+            kk = unreal.Key()
+            kk.set_editor_property("key_name", name)
+            k[name] = kk
+        return k[name]
 
     def tick_hud(self):
         """持ち物（10円）を、画面のすみに出す"""
