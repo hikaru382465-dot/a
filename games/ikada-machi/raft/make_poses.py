@@ -88,7 +88,8 @@ sh2.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratc
 # ---- ループ用のアニメ（art/buddy/loops.png：4つ×8コマ）：寝てる・くつろぐ・座る（のんびり＝草の上は、いまは使わない）----
 LP = np.array(Image.open(here.parent / 'art' / 'buddy' / 'loops.png').convert('RGB')).astype(int)
 LCOLS = [22, 212, 400, 590, 778, 965, 1153, 1341]
-LROWS = {'sleep': (92, 238), 'relax': (358, 506), 'sit': (850, 975)}
+OLD_SLEEP = out['anims']['sleep']['frames']      # 前の絵の「寝る」（わすわる・うとうと）
+LROWS = {'relax': (358, 506), 'sit': (850, 975)}
 sheet3 = []
 for k, (y0, y1) in LROWS.items():
     frames = []
@@ -103,6 +104,8 @@ for fr in sheet3:
     xx = 0; hh = max(i.height for i in fr) * 3
     for i in fr: sh3.alpha_composite(i.resize((i.width * 3, i.height * 3), Image.NEAREST), (xx, yy + hh - i.height * 3)); xx += i.width * 3 + 6
     yy += hh + 6
+# 寝る：座ったまま、こっくりこっくり（わすわる→うとうと）だけ
+out['anims']['sleep'] = {'loop': 0, 'fps': 2.2, 'frames': [OLD_SLEEP[0], OLD_SLEEP[0], OLD_SLEEP[0], OLD_SLEEP[1]]}
 sh3.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/loops_sheet.png')
 # （古い）くつろぐ：座る・もたれる（1,2）で落ち着いたら、そのまま。ときどきだけ「のびる」（4,5コマ目）
 (here / 'poses_art.js').write_text('window.RAFT.poseArt = ' + json.dumps(out) + ';\n')
