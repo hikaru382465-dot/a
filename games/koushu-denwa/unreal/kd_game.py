@@ -566,6 +566,30 @@ class Game:
                 log("診断: 位置=(%.0f,%.0f,%.0f) 歩く人=%s 動きかた=%s 最高速=%s" % (loc.x, loc.y, loc.z, self.is_char, mv.get_editor_property("movement_mode") if mv else "なし", mv.get_editor_property("max_walk_speed") if mv else "なし"))
             except Exception as e:  # noqa
                 log("診断: 位置=(%.0f,%.0f,%.0f) 歩く人=%s (%s)" % (loc.x, loc.y, loc.z, self.is_char, e))
+        if self.t > 2.5 and not getattr(self, "_diag2", False):
+            self._diag2 = True
+            try:                                                   # 体のまわり 4m 以内にある物を、ぜんぶ書き出す（動けない原因さがし）
+                near = []
+                for a in unreal.GameplayStatics.get_all_actors_of_class(self.world, unreal.Actor):
+                    if a == self.pawn:
+                        continue
+                    p = a.get_actor_location()
+                    d = math.sqrt((p.x - loc.x) ** 2 + (p.y - loc.y) ** 2 + (p.z - loc.z) ** 2)
+                    if d < 400.0:
+                        near.append((d, label_of(a), a.get_class().get_name()))
+                near.sort()
+                log("診断: 体から 4m 以内の物: %s" % ("、".join("%s(%s) %.0fcm" % (n, c, d) for d, n, c in near[:15]) or "なし"))
+                try:
+                    ov = self.pawn.get_overlapping_actors()
+                    log("診断: 体と重なっている物: %s" % ("、".join(label_of(a) for a in ov) or "なし"))
+                except Exception as e:  # noqa
+                    log("診断: 重なり確認不可 %s" % e)
+                try:
+                    log("診断: 移動入力が無視されている=%s 視点入力が無視されている=%s" % (self.pc.is_move_input_ignored(), self.pc.is_look_input_ignored()))
+                except Exception as e:  # noqa
+                    log("診断: 入力無視の確認不可 %s" % e)
+            except Exception as e:  # noqa
+                log("診断: まわりの確認でエラー %s" % e)
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
