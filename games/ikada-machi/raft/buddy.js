@@ -1,6 +1,7 @@
 // 2人のキャラ（ひかるが操作する男の子／自動で動く相棒の女の子）と、クリックの操作
 // 絵は art/chars/sheet.png から切り出した chars.js（歩く4コマ×4方向）。読み込めるまでは何も出さない
 window.RAFT.parts.buddy = function (c) {
+  const K = 1.3;      // キャラの大きさの倍率（表情やしぐさが見えるように、大きめ）
   const { THREE, scene, state: s, I, R } = c, CA = R.charArt;
   const group = new THREE.Group(); scene.add(group);
   const shadowCv = (() => { const [cv, g] = I.canvas(32, 16); g.fillStyle = 'rgba(20,10,40,.5)'; g.beginPath(); g.ellipse(16, 8, 15, 7, 0, 0, 6.3); g.fill(); return cv; })();
@@ -14,7 +15,7 @@ window.RAFT.parts.buddy = function (c) {
     const g = new THREE.PlaneGeometry(1, 1); g.translate(0, 0.5, 0);
     ch.mat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.45, side: THREE.DoubleSide }); c.sprites.push(ch.mat);
     ch.mesh = new THREE.Mesh(g, ch.mat); ch.mesh.rotation.y = c.cam.yaw; ch.mesh.visible = false; group.add(ch.mesh);
-    ch.sh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+    ch.sh = new THREE.Mesh(new THREE.PlaneGeometry(0.8 * K, 0.4 * K), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
     ch.sh.rotation.x = -Math.PI / 2; ch.sh.rotation.z = Math.PI / 4; group.add(ch.sh);
     ch.set = set; return ch;
   }
@@ -95,8 +96,8 @@ window.RAFT.parts.buddy = function (c) {
         if (f0 && tx0) {
           const f = f0, mir = dir === 'left' ? -1 : 1;
           ch.mat.map = tx0; ch.mat.needsUpdate = false;
-          ch.mesh.scale.set(mir * f.w / PA.ppu, f.h / PA.ppu / Math.cos(c.cam.pitch), 1); ch.mesh.position.set(a.x, 0.2, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
-          if (pose === 'fish' && f.tip) c.buddyTip = [a.x + Math.cos(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / PA.ppu, 0.2 + (f.h - f.tip[1]) / PA.ppu / Math.cos(c.cam.pitch), a.z - Math.sin(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / PA.ppu];
+          ch.mesh.scale.set(mir * f.w / (PA.ppu / K), f.h / (PA.ppu / K) / Math.cos(c.cam.pitch), 1); ch.mesh.position.set(a.x, 0.2, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
+          if (pose === 'fish' && f.tip) c.buddyTip = [a.x + Math.cos(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / (PA.ppu / K), 0.2 + (f.h - f.tip[1]) / (PA.ppu / K) / Math.cos(c.cam.pitch), a.z - Math.sin(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / (PA.ppu / K)];
           return;
         }
       }
@@ -104,7 +105,7 @@ window.RAFT.parts.buddy = function (c) {
       if (!tx) return;
       ch.mat.map = tx; ch.mat.needsUpdate = false;
       const bob = walking ? 0 : (a.act ? Math.abs(Math.sin(t * 14)) * 0.04 : 0);
-      ch.mesh.scale.set(f.w / CA.ppu, f.h / CA.ppu / Math.cos(c.cam.pitch), 1);
+      ch.mesh.scale.set(f.w / (CA.ppu / K), f.h / (CA.ppu / K) / Math.cos(c.cam.pitch), 1);
       ch.mesh.position.set(a.x, 0.2 + bob, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
     });
   } };
