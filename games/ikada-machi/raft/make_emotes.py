@@ -72,14 +72,14 @@ for k, b in BOXES2.items():
     tiles.append((k, im)); out['emotes'][k] = {'src': png(im), 'w': im.width, 'h': im.height}; print(k, im.size)
 # ---- ひかるが見つけてきた、くっきりした吹き出し（art/buddy/emote_src/）。ドット絵の大きさに縮めて使う ----
 # ※ ネットで見つけた絵：商用（Steam販売）で使えるか、配布元の利用規約を確認してから公開すること
-def clean(path, name, h, ncol, crop=None):
+def clean(path, name, h, ncol, crop=None, bgmin=226):
     im = Image.open(path); im = im.convert('RGBA')
     if crop: im = im.crop(crop)
     a = np.array(im); H, W = a.shape[:2]
     if a[..., 3].min() < 250:       # もともと透明な背景
         fg = a[..., 3] > 128
     else:                            # 白い背景：外側から白をけずる
-        mx, mn = a[..., :3].max(axis=2), a[..., :3].min(axis=2); bg = (mn >= 226) & (mx - mn <= 22)
+        mx, mn = a[..., :3].max(axis=2), a[..., :3].min(axis=2); bg = (mn >= bgmin) & (mx - mn <= 22)
         om = np.zeros((H, W), bool); q = deque()
         for x in range(W):
             for y in (0, H - 1):
@@ -105,6 +105,8 @@ clean(SRC / 'note.png', 'noteClean', 16, 4)
 clean(SRC / 'sweat.jpg', 'sweatClean', 18, 6)
 clean(SRC / 'heart.png', 'heartClean', 16, 6)
 clean(SRC / 'anger.jpg', 'angerClean', 18, 5)
+clean(SRC / 'gloom.jpg', 'gloom', 22, 5, None, 140)       # 市松もようの背景つきの絵
+clean(SRC / 'burst.jpg', 'burst', 20, 4, None, 140)
 (here / 'emotes_art.js').write_text('window.RAFT.emoteArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 6 + 10 for _, i in tiles); H = max(i.height * 6 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0

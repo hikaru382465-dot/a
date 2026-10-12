@@ -29,6 +29,7 @@ window.RAFT.parts.buddy = function (c) {
   const EA = R.emoteArt, emoTex = {}; let emoteTop = 1, emoKey = null, emoT = 0;
   const emoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.05, depthTest: false })); emoMesh.rotation.y = c.cam.yaw; emoMesh.renderOrder = 6; emoMesh.visible = false; group.add(emoMesh);
   if (EA) Object.keys(EA.emotes).forEach(k => { const f = EA.emotes[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; emoTex[k] = tx; }; im.src = f.src; });
+  let lastWeather = s.weather.id, burstT = 0;
   let cheerId = s.buddy.cheer || 0, cheerT = 0;
   c.chars = chars;
 
@@ -125,14 +126,17 @@ window.RAFT.parts.buddy = function (c) {
     });
     if (EA) {      // 相棒の吹き出し：いちばん大事なものを1つ
       const bu = s.buddy, D = R.data; let key = null;
+      if (s.weather.id !== lastWeather) { if (s.weather.id === 'storm') burstT = 2.6; lastWeather = s.weather.id; } burstT = Math.max(0, burstT - dt);
       if (cheerT > 0) key = 'heart';
+      else if (burstT > 0) key = 'burst';                                              // 嵐になった：びっくり
+      else if (R.sim.weak(s)) key = 'gloom';                                           // 飢えて渇いて、ふらふら
       else if (bu.job === 'sleep' && !bu.path.length) key = 'zz';
       else if (bu.job === 'rest' && !bu.path.length) key = 'music';
       else if (s.needs.hunger < D.NEEDS.low || s.needs.thirst < D.NEEDS.low) key = 'sweat';
       else if (s.weather.id === 'storm' && (bu.job === 'fish' || bu.job === 'net')) key = 'exclaim';
       else if (bu.mood < 20 && bu.job !== 'rest' && bu.job !== 'sit' && bu.job !== 'sleep') key = 'anger';
       if (key !== emoKey) { emoKey = key; emoT = 0; } emoT += dt;
-      const VAR = { zz: ['zzzClean', 'zzA', 'zzB', 'zzC', 'zzE', 'bubble', 'zzD'], music: ['noteClean', 'noteB', 'noteC', 'noteD', 'noteE'], heart: ['heartClean'], sweat: ['sweatClean'], exclaim: ['exclaim2'], anger: ['angerClean'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
+      const VAR = { zz: ['zzzClean', 'zzA', 'zzB', 'zzC', 'zzE', 'bubble', 'zzD'], music: ['noteClean', 'noteB', 'noteC', 'noteD', 'noteE'], heart: ['heartClean'], sweat: ['sweatClean'], exclaim: ['exclaim2'], anger: ['angerClean'], gloom: ['gloom'], burst: ['burst'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
       const shown = key && VAR[key] && EA.emotes[VAR[key][0]] ? VAR[key][Math.floor(emoT * 0.5) % VAR[key].length] : key;
       const tx = shown && emoTex[shown];
       emoMesh.visible = !!tx;
