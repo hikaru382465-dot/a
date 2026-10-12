@@ -45,6 +45,7 @@ SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
 DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
 START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・地面の下）に、入口の正面から何cm 離して立たせるか
+ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩けるようにする（テンプレのキャラは W A S D だけ）。↑前 ↓後ろ ←左へ →右へ
 ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
@@ -117,6 +118,7 @@ SETTINGS_DESCR = {
     "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
     "START_DIST": "開始位置が変な所のとき、入口の正面から何cm 離して立たせるか",
+    "ARROW_MOVE": "true で、矢印キーでも歩けるようにする（↑前 ↓後ろ ←左 →右）",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
@@ -222,7 +224,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "ARROW_MOVE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -590,6 +592,7 @@ class Game:
                     log("診断: 入力無視の確認不可 %s" % e)
             except Exception as e:  # noqa
                 log("診断: まわりの確認でエラー %s" % e)
+        self.tick_arrows()
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
@@ -764,12 +767,33 @@ class Game:
             log("金庫が開きました（鍵・10円②）")
             self.on_flag("金庫")
 
+    def tick_arrows(self):
+        """矢印キーで歩く（W A S D が使えないテンプレ用）。歩く場面（外・中）だけ"""
+        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED") or not self.is_char:
+            return
+        try:
+            f = (1.0 if self.pc.is_input_key_down(self._key("Up")) else 0.0) - (1.0 if self.pc.is_input_key_down(self._key("Down")) else 0.0)
+            r = (1.0 if self.pc.is_input_key_down(self._key("Right")) else 0.0) - (1.0 if self.pc.is_input_key_down(self._key("Left")) else 0.0)
+            if f == 0.0 and r == 0.0:
+                return
+            rot = unreal.Rotator(0, 0, self.pc.get_control_rotation().yaw)
+            fw = unreal.MathLibrary.get_forward_vector(rot)
+            rt = unreal.MathLibrary.get_right_vector(rot)
+            if f != 0.0:
+                self.pawn.add_movement_input(fw, f, False)
+            if r != 0.0:
+                self.pawn.add_movement_input(rt, r, False)
+        except Exception as e:  # noqa
+            if not getattr(self, "_arrow_err", False):
+                self._arrow_err = True
+                log("  (矢印キーで歩けません) %s" % e)
+
     def tick_unstuck(self, loc, dt):
         """歩くキーを押しているのに、ほとんど動かないとき（地面に埋まっている）は、すこし持ち上げる。さいしょの数秒だけ見る"""
         if self.state != "WALK" or getattr(self, "lifts", 0) >= 8:
             return
         try:
-            down = any(self.pc.is_input_key_down(self._key(k)) for k in ("W", "A", "S", "D", "Up", "Down"))
+            down = any(self.pc.is_input_key_down(self._key(k)) for k in ("W", "A", "S", "D"))
         except Exception:  # noqa
             return
         if not down:
