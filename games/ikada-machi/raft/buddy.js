@@ -89,6 +89,7 @@ window.RAFT.parts.buddy = function (c) {
         const bu = s.buddy; if ((bu.cheer || 0) !== cheerId) { cheerId = bu.cheer || 0; cheerT = 1.1; } cheerT = Math.max(0, cheerT - dt);
         let pose = null, anim = null;
         if (bu.act && bu.act.type === 'eat' && PA.anims[bu.act.kind || 'eat']) anim = bu.act.kind || 'eat';
+        else if (burstT > 0) pose = 'surprise';                                  // 嵐になった：びっくり
         else if (cheerT > 0) pose = 'cheer';
         else if (bu.job === 'fish' && bu.line && !walking) pose = 'fish';
         else if ((bu.job === 'rest' || bu.job === 'sit' || bu.job === 'sleep') && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) anim = bu.job === 'sleep' ? 'sleep' : bu.job === 'sit' ? 'sit' : 'relax';

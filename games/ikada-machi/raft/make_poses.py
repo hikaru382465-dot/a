@@ -52,7 +52,7 @@ def fin(img, sc=None):
 def png(img):
     buf = io.BytesIO(); img.save(buf, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
-BOXES = {'fish': (840, 485, 965, 630), 'cheer': (18, 278, 142, 425)}
+BOXES = {'fish': (840, 485, 965, 630), 'cheer': (18, 278, 142, 425), 'surprise': (632, 282, 748, 428)}
 out = {'ppu': 46, 'poses': {}, 'anims': {}}
 tiles = []
 for k, b in BOXES.items():
