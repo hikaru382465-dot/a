@@ -132,10 +132,12 @@ window.RAFT.parts.buddy = function (c) {
       else if (s.weather.id === 'storm' && (bu.job === 'fish' || bu.job === 'net')) key = 'exclaim';
       else if (bu.mood < 20 && bu.job !== 'rest' && bu.job !== 'sit' && bu.job !== 'sleep') key = 'anger';
       if (key !== emoKey) { emoKey = key; emoT = 0; } emoT += dt;
-      const tx = key && emoTex[key];
+      const VAR = { zz: ['zzA', 'zzB', 'zzC', 'zzE', 'bubble', 'zzD'], music: ['noteB', 'noteC', 'noteD', 'noteE'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
+      const shown = key && VAR[key] && EA.emotes[VAR[key][0]] ? VAR[key][Math.floor(emoT * 0.5) % VAR[key].length] : key;
+      const tx = shown && emoTex[shown];
       emoMesh.visible = !!tx;
       if (tx) {
-        const f = EA.emotes[key], u = 1 / (EA.ppu / K) , pop = Math.min(1, emoT / 0.25), p = (emoT * 0.5) % 1, floatUp = (key === 'zz' || key === 'music') ? p * 0.22 : Math.sin(emoT * 4) * 0.02;
+        const f = EA.emotes[shown], u = 1 / (EA.ppu / K) , pop = Math.min(1, emoT / 0.25), p = (emoT * 0.5) % 1, floatUp = (key === 'zz' || key === 'music') ? p * 0.22 : Math.sin(emoT * 4) * 0.02;
         emoMesh.material.map = tx; emoMesh.material.opacity = (key === 'zz' || key === 'music') ? Math.min(1, (1 - p) * 2.2) : 1; emoMesh.material.transparent = true;
         emoMesh.scale.set(f.w * u * pop * 1.4, f.h * u * pop * 1.4 / Math.cos(c.cam.pitch), 1);
         const ox = Math.cos(c.cam.yaw) * 0.26, oz = -Math.sin(c.cam.yaw) * 0.26;
