@@ -48,6 +48,7 @@ START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・�
 ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩けるようにする（テンプレのキャラは W A S D だけ）。↑前 ↓後ろ ←左へ →右へ
 START_POS = []                 # 開始位置を決め打ちにする：[x, y, z]（cm）。[] なら使わない。PlayerStart を動かしても変わらないときに使う（アウトライナーで、置きたい場所の位置の数字をコピー）
 MANUAL_WALK = "auto"           # 歩けないときの、歩く仕組み。"auto"＝動かないときだけ自分で動かす／"on"＝いつも自分で動かす／"off"＝使わない
+WALKABLE_ANGLE = 70.0          # 歩ける坂の角度（度）。テンプレは約45度。急な坂で歩けず、すべって落ちるときに大きくする。0 なら変えない
 ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
@@ -123,6 +124,7 @@ SETTINGS_DESCR = {
     "ARROW_MOVE": "true で、矢印キーでも歩けるようにする（↑前 ↓後ろ ←左 →右）",
     "START_POS": "開始位置を決め打ち：[x, y, z]。空 [] なら使わない。PlayerStart を動かしても変わらないとき用",
     "MANUAL_WALK": "歩く仕組み。auto＝キャラが動かないときだけ自分で動かす／on／off",
+    "WALKABLE_ANGLE": "歩ける坂の角度（度）。急な坂で歩けないとき大きく。0なら変えない",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
@@ -230,7 +232,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -606,6 +608,9 @@ class Game:
                     log("診断: 入力無視の確認不可 %s" % e)
             except Exception as e:  # noqa
                 log("診断: まわりの確認でエラー %s" % e)
+        if self.t > 3.0 and not getattr(self, "_diag3", False):
+            self._diag3 = True
+            self.diag_floor(loc)
         self.tick_arrows()
         self.tick_manual(dt)
         self.tick_unstuck(loc, dt)
@@ -782,6 +787,23 @@ class Game:
             log("金庫が開きました（鍵・10円②）")
             self.on_flag("金庫")
 
+    def diag_floor(self, loc):
+        """足元の地面を調べる：何の上に立っているか、坂の角度は何度か"""
+        try:
+            res = unreal.SystemLibrary.line_trace_single(self.world, unreal.Vector(loc.x, loc.y, loc.z), unreal.Vector(loc.x, loc.y, loc.z - 400.0),
+                                                         unreal.TraceTypeQuery.TRACE_TYPE_QUERY1, False, [self.pawn], unreal.DrawDebugTrace.NONE, True)
+            hit = res[1] if isinstance(res, tuple) and len(res) > 1 and not isinstance(res[1], (bool, float, int)) else res
+            if hit is None or isinstance(hit, bool):
+                log("診断: 足元に何もありません（地面なし？）")
+                return
+            nrm = hit.get_editor_property("impact_normal") if hasattr(hit, "get_editor_property") else hit.impact_normal
+            pt = hit.get_editor_property("impact_point") if hasattr(hit, "get_editor_property") else hit.impact_point
+            act = hit.get_editor_property("actor") if hasattr(hit, "get_editor_property") else None
+            ang = math.degrees(math.acos(max(-1.0, min(1.0, nrm.z))))
+            log("診断: 足元の地面: %s 高さ=%.0f 坂の角度=%.0f度（歩けるのは %.0f度まで）" % (label_of(act) if act else "?", pt.z, ang, WALKABLE_ANGLE if WALKABLE_ANGLE > 0 else 44.8))
+        except Exception as e:  # noqa
+            log("診断: 足元を調べられません: %s" % e)
+
     def free_from_big_colliders(self, loc):
         """体が、大きすぎる物（取り込みの倍率ミスなど）の中に入っていると、歩けず、外へ押し出される。体を含む大きさの物を探して、ログに出す。このゲームで置いた物（掲示板・金庫・10円・張り紙）なら、当たり判定を切る"""
         mine = ("Board_", "DialSafe_", "Coin_", "Poster_", "Paper_", "KD_", "TubeLight", "Ghost")
@@ -842,7 +864,12 @@ class Game:
             dx, dy = fw.x * f + rt.x * r, fw.y * f + rt.y * r
             n = math.hypot(dx, dy) or 1.0
             step = max(WALK_SPEED, 300.0) * dt
-            self.pawn.add_actor_world_offset(unreal.Vector(dx / n * step, dy / n * step, 0.0), True, False)
+            p0 = self.pawn.get_actor_location()
+            delta = unreal.Vector(dx / n * step, dy / n * step, 0.0)
+            self.pawn.add_actor_world_offset(delta, True, False)                    # まず、当たり判定をよけながら
+            p1 = self.pawn.get_actor_location()
+            if math.hypot(p1.x - p0.x, p1.y - p0.y) < step * 0.3:                     # それでも進めない（坂・見えない壁）なら、当たり判定を無視して進める
+                self.pawn.add_actor_world_offset(unreal.Vector(delta.x, delta.y, 6.0), False, True)
         except Exception as e:  # noqa
             if not getattr(self, "_man_err", False):
                 self._man_err = True
