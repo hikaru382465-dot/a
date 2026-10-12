@@ -73,6 +73,7 @@ button.on{background:#6b4231;color:#fff}
 #cfInv{display:flex;gap:8px;padding:8px;background:#0003;border-radius:10px;min-height:76px;align-items:center}
 .cslot{position:relative;width:64px;height:68px;background:#150a1c;border:2px solid #6b4231;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none}
 .cslot canvas{width:40px;height:40px;image-rendering:pixelated}
+.cwrap{position:relative;width:40px;height:40px;overflow:hidden}.cwrap canvas{display:block}.cwrap b{position:absolute;left:0;right:0;top:0;height:0;background:rgba(10,4,16,.78)}
 .cslot i{position:absolute;right:4px;top:2px;font-style:normal;font-size:12px;font-weight:700;text-shadow:0 1px 2px #000}
 .cslot small{font-size:10px;opacity:.8;line-height:1}
 .cslot.empty canvas{opacity:.18}
@@ -104,7 +105,7 @@ button.on{background:#6b4231;color:#fff}
 </div></div>
 <div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
 <div id="cfbox"><h2>焚き火</h2><div id="cfState"></div>
-<div id="cfRow"><div class="cslot" id="sFish" data-drop="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cplus">＋</div><div class="cslot" id="sWood" data-drop="wood"><canvas width="32" height="32"></canvas><i></i><small>燃料</small></div><div class="carrow"><div class="bar" style="width:70px;height:9px"><i id="cfBar" style="width:0"></i></div><span id="cfFire">🔥</span></div><div class="cslot out" id="sOut" data-drop="out"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
+<div id="cfRow"><div class="cslot" id="sFish" data-drop="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cplus">＋</div><div class="cslot" id="sWood" data-drop="wood"><div class="cwrap"><canvas width="32" height="32"></canvas><b id="woodDim"></b></div><i></i><small>燃料</small></div><div class="carrow"><div class="bar" style="width:70px;height:9px"><i id="cfBar" style="width:0"></i></div><span id="cfFire">🔥</span></div><div class="cslot out" id="sOut" data-drop="out"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div id="cfHint">タップ＝1つ　ドラッグ＝全部（持ち物の下の枠 ⇄ 焚き火の枠）</div>
 <div id="cfInv" data-drop="inv"><div class="cslot" id="iFish" data-item="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cslot" id="iWood" data-item="wood"><canvas width="32" height="32"></canvas><i></i><small>木くず</small></div><div class="cslot" id="iGrilled" data-item="grilled"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div style="margin-top:8px;text-align:right"><button id="bCfClose">閉じる</button></div></div>

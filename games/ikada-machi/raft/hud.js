@@ -115,8 +115,10 @@ window.RAFT.parts.hud = function (c) {
   const setSlot = (el, k, n) => { el.classList.toggle('empty', !n); el.querySelector('i').textContent = n || ''; if (el.dataset.k !== k || el.dataset.n === undefined || (!!+el.dataset.n) !== !!n) paint(el.querySelector('canvas'), k); el.dataset.k = k; el.dataset.n = n; };
   function cfPanel() {
     const o = s.objects.find(x => x.id === cfId && x.k === 'campfire'); if (!o) { $('cfbox').style.display = 'none'; return; }
-    const C = D.COOK, left = Math.max(0, Math.ceil(C.sec - (o.p || 0))), burn = sim.cfBurning(o);
-    $('cfState').textContent = burn ? `燃えている：次の1匹まで あと${left}秒（木くず 燃え残り ${o.fl || 0}匹ぶん）` : (o.fi ? '燃料（木くず）を入れてください' : (o.go >= C.maxOut ? '焼き魚を取り出してください' : '魚と木くずを入れてください'));
+    const C = D.COOK, burn = sim.cfBurning(o);
+    const noFuel = (o.fi || 0) > 0 && !(o.fl > 0) && !(o.fw > 0);
+    $('cfState').textContent = burn ? '燃えている：魚を焼いています' : noFuel ? '燃料（木くず）がないので、焼けません' : (o.go >= C.maxOut ? '焼き魚を取り出してください' : (o.fi ? '' : '魚と木くずを入れてください'));
+    $('woodDim').style.height = (o.fl > 0 ? (1 - o.fl / C.perWood) * 100 : (noFuel ? 100 : 0)) + '%';        // 木くずが燃えるほど、上から暗くなる
     setSlot(slotEl.fish, 'fish', o.fi || 0); setSlot(slotEl.wood, 'wood', o.fw || 0); setSlot(slotEl.out, 'grilled', o.go || 0);
     setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
     $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;

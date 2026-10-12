@@ -33,8 +33,10 @@ window.RAFT.parts.buddy = function (c) {
     const rc = el.getBoundingClientRect();
     ray.setFromCamera(new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1), c.camera); return ray.ray.intersectPlane(plane, pt) ? pt.clone() : null;
   };
-  const hitBuddy = e => { const ch = s.buddy, v = new THREE.Vector3(ch.x, 0.65, ch.z).project(c.camera), rc = el.getBoundingClientRect();
-    return Math.hypot(e.clientX - (rc.left + (v.x + 1) / 2 * rc.width), e.clientY - (rc.top + (1 - v.y) / 2 * rc.height)) < 36; };
+  // 相棒をタップしたか。置き物（焚き火など）のほうが近いときは、置き物を優先する（イカダがせまくても、まちがえない）
+  const scr = (x, y, z, e) => { const v = new THREE.Vector3(x, y, z).project(c.camera), rc = el.getBoundingClientRect(); return Math.hypot(e.clientX - (rc.left + (v.x + 1) / 2 * rc.width), e.clientY - (rc.top + (1 - v.y) / 2 * rc.height)); };
+  const hitBuddy = e => { const ch = s.buddy, d = scr(ch.x, 0.55, ch.z, e); if (d >= 30) return false;
+    return !s.objects.some(o => scr(o.x + 0.5, 0.4, o.z + 0.5, e) < d + 6); };
   const power = () => { const p = ((performance.now() - aimT0) / 1000 / GAUGE_SEC) % 2; return p < 1 ? p : 2 - p; };
   const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };
   el.addEventListener('pointerdown', e => {
