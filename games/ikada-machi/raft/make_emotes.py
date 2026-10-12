@@ -102,12 +102,20 @@ def clean(path, name, h, ncol, crop=None, bgmin=226):
 SRC = here.parent / 'art' / 'buddy' / 'emote_src'
 clean(SRC / 'exclaim.png', 'exclaim2', 48, 6, (320, 470, 845, 1220))
 clean(SRC / 'zzz2.png', 'zzzClean', 48, 5)
-clean(SRC / 'note.png', 'noteClean', 32, 4)
 clean(SRC / 'sweat.jpg', 'sweatClean', 36, 6)
 clean(SRC / 'heart.png', 'heartClean', 32, 6)
 clean(SRC / 'anger.jpg', 'angerClean', 36, 5)
 clean(SRC / 'gloom.jpg', 'gloom', 44, 5, None, 140)       # 市松もようの背景つきの絵
 clean(SRC / 'burst.jpg', 'burst', 40, 4, None, 140)
+# ---- 音符（ひかる提供のドット絵：4色×4種。もとの大きさのまま）----
+NS = np.array(Image.open(SRC / 'notes.png').convert('RGBA')); NH, NW = NS.shape[0] // 4, NS.shape[1] // 4
+for r_ in range(4):
+    for c_ in range(4):
+        cell = Image.fromarray(NS[r_ * NH:(r_ + 1) * NH, c_ * NW:(c_ + 1) * NW], 'RGBA'); bb = cell.getchannel('A').getbbox()
+        if not bb: continue
+        cell = cell.crop(bb); nm = f'note{r_}{c_}'
+        tiles.append((nm, cell)); out['emotes'][nm] = {'src': png(cell), 'w': cell.width, 'h': cell.height}
+print('音符 16種')
 (here / 'emotes_art.js').write_text('window.RAFT.emoteArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 6 + 10 for _, i in tiles); H = max(i.height * 6 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0

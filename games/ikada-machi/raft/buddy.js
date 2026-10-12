@@ -138,16 +138,16 @@ window.RAFT.parts.buddy = function (c) {
       else if (s.weather.id === 'storm' && (bu.job === 'fish' || bu.job === 'net')) key = 'exclaim';
       else if (bu.mood < 20 && bu.job !== 'rest' && bu.job !== 'sit' && bu.job !== 'sleep') key = 'anger';
       if (key !== emoKey) { emoKey = key; emoT = 0; } emoT += dt;
-      const VAR = { zz: ['zzzClean'], music: ['noteClean'], heart: ['heartClean'], sweat: ['sweatClean'], exclaim: ['exclaim2'], anger: ['angerClean'], gloom: ['gloom'], burst: ['burst'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
+      const VAR = { zz: ['zzzClean'], music: ['note01', 'note13', 'note22', 'note30', 'note03', 'note11', 'note20', 'note32', 'note02', 'note10', 'note23', 'note31', 'note00', 'note12', 'note21', 'note33'], heart: ['heartClean'], sweat: ['sweatClean'], exclaim: ['exclaim2'], anger: ['angerClean'], gloom: ['gloom'], burst: ['burst'] };       // 毎回ちがう形（zzz・ちょうちん・音符）
       const shown = key && VAR[key] && EA.emotes[VAR[key][0]] ? VAR[key][Math.floor(emoT * 0.5) % VAR[key].length] : key;
       const tx = shown && emoTex[shown];
       emoMesh.visible = !!tx;
       if (tx) {
         const f = EA.emotes[shown], u = 1 / (EA.ppu / K) , pop = Math.min(1, emoT / 0.25), p = (emoT * 0.5) % 1, floatUp = (key === 'zz' || key === 'music') ? p * 0.22 : Math.sin(emoT * 4) * 0.02, kh = (EA.k || 1);
         emoMesh.material.map = tx; emoMesh.material.opacity = (key === 'zz' || key === 'music') ? Math.min(1, (1 - p) * 2.2) : 1; emoMesh.material.transparent = true;
-        const kk = (EA.k || 1) * 1.4; emoMesh.scale.set(f.w * u * pop * kk, f.h * u * pop * kk / Math.cos(c.cam.pitch), 1);
+        const kk = (EA.k || 1) * 1.4 * (key === 'music' ? 0.7 : 1); emoMesh.scale.set(f.w * u * pop * kk, f.h * u * pop * kk / Math.cos(c.cam.pitch), 1);
         const ox = Math.cos(c.cam.yaw) * 0.26, oz = -Math.sin(c.cam.yaw) * 0.26;
-        emoMesh.position.set(bu.x + ox, emoteTop + 0.06 + floatUp + f.h * u * kh * 0.7 / Math.cos(c.cam.pitch), bu.z + oz);
+        emoMesh.position.set(bu.x + ox, emoteTop + 0.06 + floatUp + f.h * u * kh * (key === 'music' ? 0.5 : 0.7) / Math.cos(c.cam.pitch), bu.z + oz);
       }
     }
   } };
