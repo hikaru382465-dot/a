@@ -109,7 +109,7 @@
     s.inv[k]--;
     if (it.food) s.needs.hunger = clamp(s.needs.hunger + it.food, 0, 100);
     if (it.drink) s.needs.thirst = clamp(s.needs.thirst + it.drink, 0, 100);
-    a.act = { type: 'eat', t: 0.5 }; s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
+    { const d = a === s.buddy ? 1.6 : 0.5; a.act = { type: 'eat', kind: it.drink ? 'drink' : 'eat', t: d, dur: d }; } s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
   };
   S.canPay = (s, cost) => Object.keys(cost).every(k => (s.inv[k] || 0) >= cost[k]);
   S.pay = (s, cost) => Object.keys(cost).forEach(k => s.inv[k] -= cost[k]);
@@ -238,7 +238,7 @@
     if (J === 'water') {
       const o = s.objects.find(x => x.k === 'filter') || s.objects.find(x => x.k === 'tank');
       if (!bu.working) { S.walkNear(s, o.x, o.z, { type: 'work', id: null }, bu); return; }
-      bu.act = { type: 'eat', t: 0.7 }; return;
+      bu.act = { type: 'work', t: 0.7 }; return;
     }
     if (!goSpot(s, bu)) return;
     const f = bu.face || [0, 1];
@@ -364,7 +364,7 @@
         if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
         else if (o && o.k === 'campfire' && a === b) s.events.push({ e: 'campfire', id: o.id });
         else if (o && o.k === 'tank') {
-          if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); a.act = { type: 'eat', t: 0.7 }; s.events.push({ e: 'drink', k: 'tank' }); }
+          if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); { const d = a === s.buddy ? 1.6 : 0.7; a.act = { type: 'eat', kind: 'drink', t: d, dur: d }; } s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });
         }
       }

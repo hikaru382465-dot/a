@@ -7,10 +7,11 @@ from PIL import Image
 
 here = pathlib.Path(__file__).parent
 src = Image.open(here.parent / 'art' / 'buddy' / 'poses.png').convert('RGB'); A = np.array(src).astype(int)
-SC = 0.40      # 縮小の割合（どのポーズも同じ割合。歩く絵の高さ約110px→約44px）
+SC = 0.34 if False else 0.40      # 縮小の割合（どのポーズも同じ割合。歩く絵の高さ約110px→約44px）
 
-def cut(box, name):
-    x0, y0, x1, y1 = box; sub = A[y0:y1, x0:x1]; h, w = sub.shape[:2]
+def cut(box, name, AA=None):
+    AA = A if AA is None else AA
+    x0, y0, x1, y1 = box; sub = AA[y0:y1, x0:x1]; h, w = sub.shape[:2]
     mx, mn = sub.max(axis=2), sub.min(axis=2)
     bg = (mx - mn <= 14) & (mn >= 212)
     out = np.zeros((h, w), bool); q = deque()
@@ -42,18 +43,17 @@ def cut(box, name):
     rgba = np.dstack([sub.astype(np.uint8), (m * 255).astype(np.uint8)]); img = Image.fromarray(rgba, 'RGBA'); img = img.crop(img.getchannel('A').getbbox())
     return img
 
-def fin(img):
-    img = img.resize((max(1, round(img.width * SC)), max(1, round(img.height * SC))), Image.BOX)
+def fin(img, sc=None):
+    sc = sc or SC
+    img = img.resize((max(1, round(img.width * sc)), max(1, round(img.height * sc))), Image.BOX)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     q = img.convert('RGB').quantize(32, dither=Image.NONE).convert('RGB'); q.putalpha(img.getchannel('A')); return q
 
 def png(img):
     buf = io.BytesIO(); img.save(buf, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
-BOXES = {'fish': (840, 485, 965, 630), 'fish2': (250, 885, 370, 990), 'sit': (1085, 295, 1185, 425), 'drink': (1195, 295, 1300, 425),
-         'sleep': (1295, 300, 1415, 425), 'relax': (1418, 300, 1525, 425), 'cheer': (18, 278, 142, 425), 'carry': (990, 515, 1090, 635),
-         'walk': (135, 515, 220, 630)}
-out = {'ppu': 46, 'poses': {}}
+BOXES = {'fish': (840, 485, 965, 630), 'cheer': (18, 278, 142, 425)}
+out = {'ppu': 46, 'poses': {}, 'anims': {}}
 tiles = []
 for k, b in BOXES.items():
     im = fin(cut(b, k))
@@ -65,6 +65,26 @@ for k, b in BOXES.items():
         al = np.array(im.getchannel('A')); ys, xs = np.nonzero(al); top = ys.min(); e['tip'] = [int(xs[ys <= top + 1].mean()) + 0.5, int(top)]
     out['poses'][k] = e
     print(k, im.size, e.get('tip'))
+# ---- アニメ（art/buddy/anims.png：5つ×8コマ）----
+AN = np.array(Image.open(here.parent / 'art' / 'buddy' / 'anims.png').convert('RGB')).astype(int)
+COLS = [(165, 330), (330, 470), (470, 650), (650, 840), (840, 1000), (1000, 1170), (1170, 1345), (1345, 1525)]
+ROWS = {'sleep': (30, 202), 'sit': (235, 408), 'relax': (440, 603), 'drink': (640, 802), 'eat': (830, 982)}
+LOOP = {'sleep': 5, 'sit': 5, 'relax': 3, 'drink': None, 'eat': None}      # ここから先をくりかえす（0はじまり）。Noneは1回だけ
+FPS = {'sleep': 5, 'sit': 5, 'relax': 5, 'drink': 8, 'eat': 8}
+sheet2 = []
+for k, (y0, y1) in ROWS.items():
+    frames = []
+    for (x0, x1) in COLS:
+        im = fin(cut((x0, y0, x1, y1), k, AN), 0.29); frames.append(im)
+        out['anims'][k] = out['anims'].get(k, {'loop': LOOP[k], 'fps': FPS[k], 'frames': []}); out['anims'][k]['frames'].append({'src': png(im), 'w': im.width, 'h': im.height})
+    sheet2.append(frames)
+W2 = max(sum(i.width * 3 + 6 for i in fr) for fr in sheet2); H2 = sum(max(i.height for i in fr) * 3 + 6 for fr in sheet2)
+sh2 = Image.new('RGBA', (W2, H2), (40, 90, 120, 255)); yy = 0
+for fr in sheet2:
+    xx = 0; hh = max(i.height for i in fr) * 3
+    for i in fr: sh2.alpha_composite(i.resize((i.width * 3, i.height * 3), Image.NEAREST), (xx, yy + hh - i.height * 3)); xx += i.width * 3 + 6
+    yy += hh + 6
+sh2.save('/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/anims_sheet.png')
 (here / 'poses_art.js').write_text('window.RAFT.poseArt = ' + json.dumps(out) + ';\n')
 W = sum(i.width * 4 + 10 for _, i in tiles); H = max(i.height * 4 for _, i in tiles)
 sheet = Image.new('RGBA', (W, H), (40, 90, 120, 255)); x = 0

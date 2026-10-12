@@ -22,6 +22,8 @@ window.RAFT.parts.buddy = function (c) {
   // 相棒のしぐさ（poses_art.js）：釣り・座る・寝る・水を飲む・やったー！ など。1枚絵なので、左向きは左右反転
   const PA = R.poseArt, poseTex = {};
   if (PA) Object.keys(PA.poses).forEach(k => { const f = PA.poses[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; poseTex[k] = tx; }; im.src = f.src; });
+  const animTex = {}; let animName = null, animT = 0;
+  if (PA && PA.anims) Object.keys(PA.anims).forEach(k => { animTex[k] = []; PA.anims[k].frames.forEach((f, i) => { const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; animTex[k][i] = tx; }; im.src = f.src; }); });
   let cheerId = s.buddy.cheer || 0, cheerT = 0;
   c.chars = chars;
 
@@ -77,15 +79,22 @@ window.RAFT.parts.buddy = function (c) {
       if (!ch.ready) return; const a = ch.actor, walking = a.path.length > 0, dir = a.dir || 'down';
       if (ch.actor === s.buddy && PA) {
         const bu = s.buddy; if ((bu.cheer || 0) !== cheerId) { cheerId = bu.cheer || 0; cheerT = 1.1; } cheerT = Math.max(0, cheerT - dt);
-        let pose = null;
-        if (bu.act && bu.act.type === 'eat' && bu.job !== 'water') pose = 'drink';
+        let pose = null, anim = null;
+        if (bu.act && bu.act.type === 'eat' && PA.anims[bu.act.kind || 'eat']) anim = bu.act.kind || 'eat';
         else if (cheerT > 0) pose = 'cheer';
         else if (bu.job === 'fish' && bu.line && !walking) pose = 'fish';
-        else if (bu.job === 'rest' && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) pose = bu.mood < 30 ? 'sleep' : bu.mood < 70 ? 'sit' : 'relax';
+        else if (bu.job === 'rest' && !walking && bu.spot && Math.floor(a.x) === bu.spot[0] && Math.floor(a.z) === bu.spot[1]) anim = bu.mood < 30 ? 'sleep' : bu.mood < 70 ? 'sit' : 'relax';
+        if (anim !== animName) { animName = anim; animT = 0; } animT += dt;
         c.buddyTip = null;
-        if (pose && poseTex[pose]) {
-          const f = PA.poses[pose], mir = dir === 'left' ? -1 : 1;
-          ch.mat.map = poseTex[pose]; ch.mat.needsUpdate = false;
+        let f0 = null, tx0 = null;
+        if (anim) { const an = PA.anims[anim], n = an.frames.length; let i;
+          if (bu.act && bu.act.dur) i = Math.min(n - 1, Math.floor((1 - bu.act.t / bu.act.dur) * n));       // 食べる・飲む：動作の長さにあわせて1回
+          else { i = Math.floor(animT * an.fps); if (an.loop !== null && i >= n) i = an.loop + ((i - an.loop) % (n - an.loop)); i = Math.min(i, n - 1); }
+          f0 = an.frames[i]; tx0 = animTex[anim] && animTex[anim][i]; }
+        else if (pose && poseTex[pose]) { f0 = PA.poses[pose]; tx0 = poseTex[pose]; }
+        if (f0 && tx0) {
+          const f = f0, mir = dir === 'left' ? -1 : 1;
+          ch.mat.map = tx0; ch.mat.needsUpdate = false;
           ch.mesh.scale.set(mir * f.w / PA.ppu, f.h / PA.ppu / Math.cos(c.cam.pitch), 1); ch.mesh.position.set(a.x, 0.2, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
           if (pose === 'fish' && f.tip) c.buddyTip = [a.x + Math.cos(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / PA.ppu, 0.2 + (f.h - f.tip[1]) / PA.ppu / Math.cos(c.cam.pitch), a.z - Math.sin(c.cam.yaw) * mir * (f.tip[0] - f.w / 2) / PA.ppu];
           return;
