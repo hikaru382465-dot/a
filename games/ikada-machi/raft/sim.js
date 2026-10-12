@@ -21,7 +21,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }
+      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -295,6 +295,32 @@
     if (act === 'netup') bu.net.lv++; else if (act === 'rod') bu.hasRod = true; else if (act === 'fixnet') bu.dur.net = 100; else bu.dur.rod = 100;
     s.events.push({ e: 'bcrafted', act }); return true;
   };
+  // ---- 船の住人 ----
+  S.dealOk = (s, i) => { const b = s.boat; if (!b || b.phase !== 'stay' || b.done[i]) return false; return S.canPay(s, D.BOAT.RES[b.res].deals[i].want); };
+  S.deal = function (s, i) {
+    const b = s.boat; if (!b || b.phase !== 'stay' || b.done[i]) return false; const dl = D.BOAT.RES[b.res].deals[i];
+    if (!S.canPay(s, dl.want)) { s.events.push({ e: 'short' }); return false; }
+    S.pay(s, dl.want); Object.keys(dl.give).forEach(k => { s.inv[k] = (s.inv[k] || 0) + dl.give[k]; });
+    b.done[i] = true; b.thanks = true; s.events.push({ e: 'traded' }); if (b.done.every(x => x)) b.left = Math.min(b.left, 5); return true;
+  };
+  S.boatLeave = function (s) { const b = s.boat; if (b && b.phase !== 'leave') b.phase = 'leave'; };
+  function boatStep(s, dt, f, bb) {
+    const B = D.BOAT, cx = (bb.x0 + bb.x1 + 1) / 2, cz = (bb.z0 + bb.z1 + 1) / 2;
+    let b = s.boat;
+    if (!b && s.boatDay !== s.clock.day && s.clock.t >= B.FROM && s.clock.t <= B.TO && s.weather.id !== 'storm') {
+      const ids = Object.keys(B.RES).filter(k => k !== s.lastRes), id = ids[Math.floor(S.rand() * ids.length)];
+      const px = -f.z, pz = f.x, rad = Math.max(bb.w, bb.d) / 2 + B.OFFSET, R = 9;
+      const tx = cx + px * rad, tz = cz + pz * rad;
+      s.boat = b = { res: id, phase: 'come', x: tx - f.x * R, z: tz - f.z * R, tx, tz, left: B.STAY, done: B.RES[id].deals.map(() => false), thanks: false };
+      s.boatDay = s.clock.day; s.lastRes = id; s.events.push({ e: 'boatcome' });
+    }
+    if (!b) return;
+    if (s.weather.id === 'storm' && b.phase !== 'leave') { b.phase = 'leave'; s.events.push({ e: 'boatstorm' }); }
+    const sp = B.SPEED * dt;
+    if (b.phase === 'come') { const dx = b.tx - b.x, dz = b.tz - b.z, d = Math.hypot(dx, dz); if (d <= sp) { b.x = b.tx; b.z = b.tz; b.phase = 'stay'; s.events.push({ e: 'boatarrive', res: b.res }); } else { b.x += dx / d * sp; b.z += dz / d * sp; } }
+    else if (b.phase === 'stay') { b.left -= dt; if (b.left <= 0) b.phase = 'leave'; }
+    else { b.x += f.x * sp * 1.3; b.z += f.z * sp * 1.3; if ((b.x - cx) * f.x + (b.z - cz) * f.z > 14) s.boat = null; }
+  }
   S.upgradeNet = function (s) { return S.craft(s, 'net'); };
 
   function pickItem(s) {
@@ -378,6 +404,7 @@
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
+    boatStep(s, dt, f, bb);
     const v = W.speed, rests = [];
     ['player', 'buddy'].forEach(w => {
       const K = kit(s, w), cast = K.net.cast, nl = netNow(s, w), ow = K.actor; if (!cast) return;
@@ -422,5 +449,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

@@ -1,5 +1,5 @@
 // イカダ暮らし：表（数字はここだけ。あとで Godot の Resource / Dictionary にそのまま移せる）
-window.RAFT = { parts: {}, order: ['camera', 'water', 'light', 'floor', 'objects', 'buddy', 'drift', 'sound', 'hud'] };
+window.RAFT = { parts: {}, order: ['camera', 'water', 'light', 'floor', 'objects', 'buddy', 'drift', 'boat', 'sound', 'hud'] };
 window.RAFT.data = {
   DAY_SEC: 720,                       // 1日の長さ（秒）＝12分。URLの最後に ?fast で10倍
   MAX_SIZE: 8,                        // イカダの最大（8×8マス）
@@ -53,6 +53,20 @@ window.RAFT.data = {
   // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
   DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
   COOK: { sec: 12, perWood: 3, maxFish: 8, maxWood: 8, maxOut: 16 },   // 1匹12秒・木くず1個で3匹ぶん・各枠の上限
+  // 船の住人との交渉：夕方に、嵐でなければ、1日に1回まで船が来る。1つの船に2つの取引。1つずつ、1回だけ
+  BOAT: {
+    FROM: 0.55, TO: 0.85, SPEED: 0.9, STAY: 110, OFFSET: 3.2,
+    RES: {
+      toto: { name: 'トトじいさん', hello: 'やあ、海の上でも商売さ。魚と交換しないかい？', thanks: 'まいど！ また来るよ。',
+              deals: [{ want: { fish: 4 }, give: { cloth: 2 } }, { want: { grilled: 2 }, give: { rope: 2 } }] },
+      mina: { name: 'ミナ（かじ屋の子）', hello: '鉄は重いんだ。ただじゃ渡せないよ。', thanks: 'いい物をありがとう。大切に使うね。',
+              deals: [{ want: { grilled: 3 }, give: { iron: 2 } }, { want: { wood: 10 }, give: { iron: 1, stone: 1 } }] },
+      kuro: { name: 'クロさん（焼き物の人）', hello: '雨の日は、土がこねやすいのよ。', thanks: 'また、いい土を持ってくるわ。',
+              deals: [{ want: { wood: 8 }, give: { clay: 3 } }, { want: { coconut: 3 }, give: { glass: 2 } }] },
+      pipi: { name: 'ピピ（見習い船乗り）', hello: 'ヤシの実、ちょうだい！ 石ならあるよ！', thanks: 'やったあ！ ありがとう！',
+              deals: [{ want: { coconut: 2 }, give: { stone: 2 } }, { want: { fish: 3 }, give: { rope: 1, cloth: 1 } }] }
+    }
+  },
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）

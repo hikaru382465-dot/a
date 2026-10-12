@@ -100,7 +100,7 @@ def clean(path, name, h, ncol, crop=None, bgmin=226):
     tiles.append((name, q)); out['emotes'][name] = {'src': png(q), 'w': q.width, 'h': q.height}; print(name, q.size)
 SRC = here.parent / 'art' / 'buddy' / 'emote_src'
 clean(SRC / 'exclaim.png', 'exclaim2', 24, 6, (320, 470, 845, 1220))
-clean(SRC / 'zzz.jpg', 'zzzClean', 26, 6)
+clean(SRC / 'zzz2.png', 'zzzClean', 24, 5)
 clean(SRC / 'note.png', 'noteClean', 16, 4)
 clean(SRC / 'sweat.jpg', 'sweatClean', 18, 6)
 clean(SRC / 'heart.png', 'heartClean', 16, 6)

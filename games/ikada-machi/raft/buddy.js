@@ -54,6 +54,7 @@ window.RAFT.parts.buddy = function (c) {
   el.addEventListener('pointerdown', e => {
     if (c.ui && c.ui.open) return;
     if (c.pinching) { down = null; return; }
+    if (!c.mode.place && s.boat && s.boat.phase === 'stay' && scr(s.boat.x, 0.35, s.boat.z, e) < 55) { down = { x: e.clientX, y: e.clientY, boat: true }; return; }      // 船をタップ：交渉
     if (!c.mode.place && !s.net.cast && !s.rod && hitBuddy(e)) { down = { x: e.clientX, y: e.clientY, buddy: true }; return; }     // 相棒をタップ：お願いの画面
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
     if (!p || c.mode.place) return;
@@ -68,6 +69,7 @@ window.RAFT.parts.buddy = function (c) {
   el.addEventListener('pointerup', e => {
     const d = down; down = null; c.aim.active = false;
     if (!d || c.pinching) return;
+    if (d.boat) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openBoat(); return; }
     if (d.buddy) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openJobs(); return; }
     if (d.aim) { const p = d.p; if (p) R.sim.throwNet(s, p.x, p.z, power()); return; }
     if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;

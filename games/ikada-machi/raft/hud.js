@@ -143,9 +143,27 @@ window.RAFT.parts.hud = function (c) {
   wire(slotEl.wood, { what: 'wood', icon: 'wood', tap: () => cfMove('wood', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('wood', 'slot', 'all'); } });
   wire(slotEl.out, { what: 'out', icon: 'grilled', tap: () => cfMove('out', 'slot', 'all'), drop: to => { if (to === 'inv' || to === null) cfMove('out', 'slot', 'all'); } });
   $('bCfClose').onclick = () => { $('cfbox').style.display = 'none'; };
+  // ---- 船の住人との交渉 ----
+  let lastBoat = '';
+  function boatPanel() {
+    const b = s.boat; if (!b) { $('boatbox').style.display = 'none'; return; }
+    const R_ = D.BOAT.RES[b.res], rows = R_.deals.map((dl, i) => {
+      const its = (o, chk) => Object.keys(o).map(k => `<div class="it${chk && (s.inv[k] || 0) < o[k] ? ' no' : ''}"><canvas width="32" height="32" data-k="${k}"></canvas><i>×${o[k]}${chk ? '/' + (s.inv[k] || 0) : ''}</i></div>`).join('');
+      return `<div class="deal"><div class="its">${its(dl.want, true)}</div><span class="ar">→</span><div class="its">${its(dl.give, false)}</div><button data-d="${i}" ${sim.dealOk(s, i) ? '' : 'disabled'}>${b.done[i] ? '済み' : '交換する'}</button></div>`;
+    }).join('');
+    const line = b.phase === 'leave' ? 'また来るよ。' : b.thanks ? R_.thanks : R_.hello;
+    const html = `${R_.name}|${line}|${rows}|${b.phase}`;
+    if (html === lastBoat) return; lastBoat = html;
+    $('boatName').textContent = R_.name; $('boatLine').textContent = line; $('boatDeals').innerHTML = rows;
+    $('boatDeals').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
+    $('boatDeals').querySelectorAll('button').forEach(bt => bt.onclick = () => { sim.deal(s, +bt.dataset.d); refresh(); lastBoat = ''; boatPanel(); });
+  }
+  const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
+  $('bBoatClose').onclick = () => { $('boatbox').style.display = 'none'; };
+  $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
-  c.hud = { refresh, toast, tryPlace, openJobs, openCf };
+  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat };
   // ---- ボタン ----
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
@@ -177,7 +195,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
@@ -194,6 +212,7 @@ window.RAFT.parts.hud = function (c) {
     if (rainA > 0.02) { rg.strokeStyle = `rgba(200,220,255,${0.35 * rainA})`; rg.lineWidth = 1.5; rg.beginPath();
       drops.forEach(d => { d.y += dt * d.v * 1.6; d.x -= dt * 0.25; if (d.y > 1) { d.y = -0.05; d.x = Math.random() * 1.3; } const x = d.x * rain.width, y = d.y * rain.height; rg.moveTo(x, y); rg.lineTo(x - 5, y + 16); }); rg.stroke(); }
     if ($('cfbox').style.display === 'block') cfPanel();
+    if ($('boatbox').style.display === 'block') boatPanel();
     if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }
     acc += dt; if (acc > 10) { acc = 0; sim.save(s); }
     if (!update.first) { update.first = true; toast('右下の「持ち物」から、網を持って、海を押してみよう', 4000); }
