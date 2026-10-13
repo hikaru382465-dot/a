@@ -12,7 +12,7 @@ window.RAFT.parts.camera = function (c) {
     return Math.max(0.5, Math.min(3, Math.floor(fit * 4) / 4));     // 0.25きざみで切り下げ（一度引いたら戻らない）
   }
   function apply() {
-    const zoom = st.zoom * st.manual * (1 - 0.18 * st.look), ppu = PPU * zoom, w = c.size().w, h = c.size().h;
+    const zoom = st.zoom * st.manual, ppu = PPU * zoom, w = c.size().w, h = c.size().h;
     cam.left = -w / 2 / ppu; cam.right = w / 2 / ppu; cam.top = h / 2 / ppu; cam.bottom = -h / 2 / ppu;
     const sh = 1.1 * st.look;      // 景色を眺めるとき：イカダを画面の下へ、水平線を大きく
     const tg = new THREE.Vector3(st.target.x - sh, st.target.y, st.target.z - sh);

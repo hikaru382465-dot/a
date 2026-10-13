@@ -32,7 +32,15 @@ window.RAFT.parts.hud = function (c) {
     });
   }
   const r_have = o => o.r.special === 'rod' ? 'もう持っている' : 'もう持っている（イカダに1つ）';
+  function renderScenes() {
+    const ids = Object.keys(D.SCENES), got = ids.filter(k => s.scenes[k]).length;
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた景色 ${got} / ${ids.length}</div>` + ids.map(k => { const v = D.SCENES[k], on = s.scenes[k], g = v[2].split(','); return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}"><div style="width:100%;height:32px;border-radius:4px;background:${on ? `linear-gradient(${g[0]},${g[1]})` : '#0004'}"></div><span class="nm">${on ? v[0] : '？？？'}</span></button>`; }).join('');
+    $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
+    const v = D.SCENES[sel], on = v && s.scenes[sel], g = v ? v[2].split(',') : [];
+    $('detail').innerHTML = v ? `<div style="height:90px;border-radius:6px;background:${on ? `linear-gradient(${g[0]},${g[1]})` : '#0004'}"></div><p><b>${on ? v[0] : '？？？'}</b></p><p>${on ? v[1] : '見晴らしいすに座ると、見つかる。時間や天気で景色がかわる。'}</p>` : '';
+  }
   function renderBook() {
+    if (tab === 'scene') { if (!D.SCENES[sel]) sel = Object.keys(D.SCENES)[0]; renderScenes(); return; }
     const list = tab === 'inv' ? slots() : recipes();
     if (!list.some(o => o.key === sel)) sel = list.length ? list[0].key : null;
     const fill = Math.max(12, Math.ceil(list.length / 4) * 4) - list.length;
@@ -60,7 +68,7 @@ window.RAFT.parts.hud = function (c) {
     d.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
     if (onclick) $('act').onclick = onclick;
   }
-  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); renderBook(); }
+  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); renderBook(); }
   function openSheet(t) { cancelPlace(); c.ui.open = true; $('sheet').classList.add('open'); setTab(t || tab); }
   function closeSheet() { c.ui.open = false; $('sheet').classList.remove('open'); }
   // ---- 置くモード ----
@@ -169,7 +177,7 @@ window.RAFT.parts.hud = function (c) {
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
   document.querySelectorAll('.tab canvas').forEach(cv => paint(cv, cv.dataset.k));
-  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft');
+  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
   $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
@@ -183,6 +191,7 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    lookgift: e => `ながめていたら、${nameOf(e.k)}が流れてきた`, scenenew: e => `新しい景色：${D.SCENES[e.k][0]}（図鑑にのった）`,
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
     short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => (e.q === 'great' ? 'ナイス！ ' : '') + `釣れた：${nameOf(e.k)}${e.n > 1 ? ' ×' + e.n : ''}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
     miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった',
@@ -197,7 +206,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);

@@ -21,7 +21,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0
+      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -326,10 +326,12 @@
   // ---- 景色を眺める ----
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
+  S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
   function lookStep(s, dt) {
     const L = s.look, K = D.LOOK;
     if (!L) { s.calm = Math.max(0, (s.calm || 0) - K.decay * dt); return; }
     if (s.player.path.length || s.player.task || !s.objects.some(o => o.id === L.id)) { S.stopLook(s); return; }
+    const sk = S.sceneKey(s); if (!s.scenes[sk]) { s.scenes[sk] = 1; s.events.push({ e: 'scenenew', k: sk }); }
     L.t += dt; s.calm = Math.min(100, (s.calm || 0) + K.gain * dt); s.buddy.mood = Math.min(100, s.buddy.mood + K.buddyBonus * dt);
     L.gift -= dt; if (L.gift <= 0) { L.gift = K.giftSec * (0.8 + S.rand() * 0.5); const k = K.gifts[Math.floor(S.rand() * K.gifts.length)]; s.inv[k] = (s.inv[k] || 0) + 1; s.events.push({ e: 'lookgift', k }); }
   }
@@ -462,5 +464,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.scenes = s.scenes || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);
