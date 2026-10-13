@@ -156,7 +156,7 @@ def scene(key):
         if t == 'day': img = glow(img, 40, 12, 40, '#ffffff', .2)
     img = horizon(img, '#fff4d0' if t in ('dusk', 'dawn') and not st else '#cfe0f0' if not st else '#8a98ac', .5 if not st else .3)
     if ca and t != 'night': img = glow(img, cx, HZ - 1, 60, P['gl'], .12)
-    img = raft(img, '#ffb060', True, {'dawn': '#241624', 'day': '#1e2230', 'dusk': '#180f20', 'night': '#06060e'}[t] if True else '')
+    # イカダは映さない（自分の視点にはイカダが入らないため）
     img = vignette(img, .3 if t == 'night' or st else .22)
     return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8))
 

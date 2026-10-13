@@ -76,7 +76,8 @@ window.RAFT.parts.sound = function (c) {
     splash: () => shot(pick(['splash', 'splash2', 'splash3']), 0.9, 0.95 + Math.random() * 0.1),
     caught: () => shot(pick(['bubble1', 'bubble2', 'bubble3']), 1.4, 0.9 + Math.random() * 0.3),
     haul: () => shot('haul', 0.45, 1.1),
-    drink: () => shot('bubble2', 0.9, 0.8)
+    drink: () => shot('bubble2', 0.9, 0.8),
+    thunder: () => shot('thunder', 0.9, 1)
   };
   const both = { haul: true, drink: true };   // 録音と、作った音を重ねる
   c.sfx = {

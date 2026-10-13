@@ -4,3 +4,4 @@
 - wave_01〜04.flac：「Water Waves」（transitking の録音） https://opengameart.org/content/water-waves
 
 クレジットは不要だが、書いておくと親切。
+- thunder.ogg：「Rain + Long Thunder」（CC0・クレジット不要）https://opengameart.org/content/rain-long-thunder の20秒すぎの雷の部分を切り出した。

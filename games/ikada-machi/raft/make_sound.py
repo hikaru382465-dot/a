@@ -9,6 +9,7 @@ use = {
     'haul': ('splash_02.ogg', 0.9, 0.8),
     'bubble1': ('bubble_01.ogg', 1.0, 0.7), 'bubble2': ('bubble_02.ogg', 1.0, 0.4), 'bubble3': ('bubble_03.ogg', 0.8, 0.6),
     'rain': ('loop_rain.ogg', 1.0, 6.8), 'drag': ('loop_water_02.ogg', 1.0, 7.0),
+    'thunder': ('thunder.ogg', 1.0, 10.7),
     'wave1': ('wave_01.flac', 1.0, 3), 'wave2': ('wave_02.flac', 1.0, 3.3), 'wave3': ('wave_03.flac', 1.0, 2.4), 'wave4': ('wave_04.flac', 1.0, 2.1)
 }
 out = {}
