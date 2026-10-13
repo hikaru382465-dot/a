@@ -20,6 +20,7 @@ window.RAFT.data = {
     bench:   { name: '作業台',   lv: 0, w: 0, place: true, tip: '置くと、いろいろ作れる（イカダに1つ）' },
     tank:    { name: '貯水槽',   lv: 0, w: 0, place: true, cap: 8, tip: '雨の水をためる。タップで飲む' },
     campfire: { name: '焚き火',  lv: 0, w: 0, place: true, tip: '置いて、タップ。魚と木くずを入れると焼ける' },
+    seat:    { name: '見晴らしいす', lv: 0, w: 0, place: true, tip: '置いて、タップで座る。景色を眺めて、ほっとする' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -32,6 +33,7 @@ window.RAFT.data = {
     { id: 'fixnet', special: 'fix', tool: 'net', cost: { wood: 2 }, need: 'bench', tip: '網のいたみを直す' },
     { id: 'fixrod', special: 'fix', tool: 'rod', cost: { wood: 2 }, need: 'bench', tip: '釣りざおのいたみを直す' },
     { id: 'campfire', out: 'campfire', cost: { wood: 8 }, need: 'bench', tip: '魚を焼ける' },
+    { id: 'seat', out: 'seat', cost: { wood: 8, rope: 2, cloth: 1 }, need: 'bench', tip: '座って景色を眺める。ほっとして、贈り物が見つかることも' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）
@@ -67,6 +69,8 @@ window.RAFT.data = {
               deals: [{ want: { coconut: 2 }, give: { stone: 2 } }, { want: { fish: 3 }, give: { rope: 1, cloth: 1 } }] }
     }
   },
+  // 景色を眺める：座っている間、「ほっとした」がふえる。相棒の機嫌ももどる。ときどき贈り物
+  LOOK: { gain: 3, decay: 0.08, giftSec: 45, buddyBonus: 0.8, gifts: ['coconut', 'cloth', 'rope', 'glass', 'wood'] },
   TANK_SIP: 30,      // 貯水槽から1回飲んで戻るのどのかわき
   RAIN_SEC: 4,       // 嵐のとき、貯水槽に水が1たまる間隔（秒）
   // 道具（持ち物の先頭に並ぶ。選ぶと手に持つ）

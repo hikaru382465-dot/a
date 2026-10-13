@@ -73,6 +73,7 @@ button.on{background:#6b4231;color:#fff}
 .deal{display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 8px;background:#0003;border-radius:8px;flex-wrap:wrap}
 .deal .its{display:flex;gap:4px;align-items:center}.deal .it{position:relative;width:38px;height:40px;background:#150a1c;border:2px solid #6b4231;border-radius:6px;display:flex;align-items:center;justify-content:center}.deal .it canvas{width:28px;height:28px;image-rendering:pixelated}.deal .it i{position:absolute;right:2px;bottom:0;font-style:normal;font-size:11px;font-weight:700;text-shadow:0 1px 2px #000}.deal .it.no{border-color:#b8654f}
 .deal .ar{opacity:.7}.deal button{margin-left:auto;padding:4px 10px;min-height:34px}
+#lookbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #jobbox h2{margin:0 0 4px;font-size:15px}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
@@ -129,6 +130,7 @@ button.on{background:#6b4231;color:#fff}
 <li>ろ過器は、海水から、貯水槽に水を入れる</li></ul>
 <div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bCallBoat">【テスト】船をすぐ呼ぶ</button><button id="bHelpClose">わかった</button></div></div>
 <canvas id="dragGhost" width="32" height="32"></canvas>
+<div id="lookbar"><div id="lookTx"></div><div class="lab"><span style="width:6em">ほっとした</span><div class="bar" style="width:110px"><i id="calmFill" style="width:0"></i></div></div><button id="bLookStop">立つ</button></div>
 <div id="toast"></div><div id="log"></div>
 <script src="../island/common.js"></script>
 <script src="data.js"></script><script src="net_art.js"></script><script src="sim.js"></script>
