@@ -20,10 +20,11 @@ window.RAFT.parts.water = function (c) {
   rebuild();
   const col = h => new THREE.Color(h);
   const u = { uTime: { value: 0 }, uShore: { value: tex }, uSize: { value: SIZE }, uMin: { value: MIN },
-    uShallow: { value: col('#46909c') }, uDeep: { value: col('#1f4e6b') }, uFoam: { value: col('#e6efe0') }, uHi: { value: col('#8fc3bd') }, uTint: { value: new THREE.Color(1, 1, 1) }, uRefl: { value: new THREE.Vector2(0.3, 0.3) } };
+    uShallow: { value: col('#33a8bf') }, uDeep: { value: col('#17509a') }, uFoam: { value: col('#f2f6ee') }, uHi: { value: col('#86d2e0') }, uCam: { value: new THREE.Vector2() }, uGlit: { value: 0.5 }, uGlitCol: { value: new THREE.Color('#fff4d0') }, uChop: { value: 0.3 }, uTint: { value: new THREE.Color(1, 1, 1) }, uRefl: { value: new THREE.Vector2(0.3, 0.3) } };
   const mat = new THREE.ShaderMaterial({ uniforms: u,
     vertexShader: 'varying vec2 vXZ;void main(){vec4 w=modelMatrix*vec4(position,1.);vXZ=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
-    fragmentShader: `uniform float uTime,uSize,uMin;uniform sampler2D uShore;uniform vec3 uShallow,uDeep,uFoam,uHi,uTint;uniform vec2 uRefl;varying vec2 vXZ;
+    fragmentShader: `uniform float uTime,uSize,uMin;uniform sampler2D uShore;uniform vec3 uShallow,uDeep,uFoam,uHi,uTint;uniform vec2 uRefl,uCam;uniform float uGlit,uChop;uniform vec3 uGlitCol;varying vec2 vXZ;
+float h21(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
 void main(){
   vec2 q=floor(vXZ*16.)/16.;
   float d=texture2D(uShore,clamp((q-uMin)/uSize,0.,1.)).r*3.;
@@ -48,6 +49,16 @@ void main(){
   float tw=floor(uTime*2.5);
   float sp=step(.9972,fract(sin(dot(floor(q*16.)+tw*3.1,vec2(12.9898,78.233)))*43758.5453));
   col=mix(col,vec3(.95,1.,1.),sp*.5*smoothstep(.6,1.6,d));
+  // 波がしらの白いすじ（沖ほど多い。嵐で増える）
+  vec2 wp=vec2(q.x*1.3+uTime*.3,q.y*3.6);vec2 wc=floor(wp);
+  float dash=step(1.-.035*(.5+uChop),h21(wc))*step(fract(wp.x),.6)*step(fract(wp.y),.16);
+  col=mix(col,vec3(.93,.97,1.),dash*.4*smoothstep(1.,2.4,d));
+  // 太陽（月）の光の道：画面の奥へのびる帯のなかで、きらきら
+  vec2 dd=vXZ-uCam;float lane=(dd.x-dd.y)*.7071;
+  float lb=exp(-lane*lane/.45);
+  float g=step(1.-.22*lb,h21(floor(q*16.)*vec2(1.,2.)+floor(uTime*2.5)*1.7));
+  col=mix(col,uGlitCol,g*uGlit*smoothstep(.5,1.5,d)*.9);
+  col+=uGlitCol*lb*uGlit*.04;
   gl_FragColor=vec4(col*uTint,1.);
   #include <colorspace_fragment>
 }` });

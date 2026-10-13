@@ -6,10 +6,10 @@ window.RAFT.parts.light = function (c) {
   const hemi = new THREE.HemisphereLight(0xaac8ff, 0x553322, 0.5); scene.add(hemi);
   const C = h => new THREE.Color(h);
   const presets = {
-    morning: { sun: C('#ffe4bd'), sunI: 2.2, amb: C('#a9bde0'), ambI: 1.5, tint: C('#ffffff'), water: C('#ffffff'), bg: C('#1f4e6b'), bloom: 0.35, glow: 0.0, grade: C('#fff4e6'), vig: 0.35 },
-    noon:    { sun: C('#fff4dc'), sunI: 2.5, amb: C('#b4c8e8'), ambI: 1.55, tint: C('#ffffff'), water: C('#ffffff'), bg: C('#2a6a8a'), bloom: 0.3, glow: 0.0, grade: C('#ffffff'), vig: 0.3 },
-    dusk:    { sun: C('#ffb47c'), sunI: 1.9, amb: C('#9a7fc0'), ambI: 1.35, tint: C('#ffd6c0'), water: C('#ffe8d8'), bg: C('#4a3a62'), bloom: 0.55, glow: 0.55, grade: C('#ffd9c4'), vig: 0.5 },
-    night:   { sun: C('#7f94ff'), sunI: 0.9, amb: C('#5c70c0'), ambI: 1.05, tint: C('#8fa2e6'), water: C('#a3b6f4'), bg: C('#0c1530'), bloom: 0.85, glow: 1.0, grade: C('#cfd9ff'), vig: 0.65 }
+    morning: { sun: C('#ffe4bd'), sunI: 2.2, amb: C('#a9bde0'), ambI: 1.5, tint: C('#ffffff'), water: C('#ffffff'), bg: C('#1f4e6b'), bloom: 0.35, glow: 0.0, grade: C('#fff4e6'), vig: 0.35, glit: 0.8, glitCol: C('#ffe0a0') },
+    noon:    { sun: C('#fff4dc'), sunI: 2.5, amb: C('#b4c8e8'), ambI: 1.55, tint: C('#ffffff'), water: C('#ffffff'), bg: C('#2a6a8a'), bloom: 0.3, glow: 0.0, grade: C('#ffffff'), vig: 0.3, glit: 0.35, glitCol: C('#ffffff') },
+    dusk:    { sun: C('#ff9a5c'), sunI: 2.1, amb: C('#a07cc0'), ambI: 1.3, tint: C('#ffd8bc'), water: C('#ffe6d2'), bg: C('#4a3a62'), bloom: 0.7, glow: 0.6, grade: C('#ffd4b4'), vig: 0.45, glit: 1.0, glitCol: C('#ffa860') },
+    night:   { sun: C('#7f94ff'), sunI: 0.9, amb: C('#5c70c0'), ambI: 1.05, tint: C('#8fa2e6'), water: C('#a3b6f4'), bg: C('#0c1530'), bloom: 0.85, glow: 1.0, grade: C('#cfd9ff'), vig: 0.65, glit: 0.45, glitCol: C('#bcd0ff') }
   };
   const keys = [[0, 'morning'], [0.2, 'noon'], [0.5, 'noon'], [0.66, 'dusk'], [0.78, 'night'], [0.93, 'night'], [1, 'morning']];
   const names = Object.keys(presets.morning);
@@ -74,6 +74,7 @@ void main(){
       c.sprites.forEach(m => m.color.copy(tint));
       if (c.water) c.water.uniforms.uTint.value.copy(cur.water.clone().lerp(stormTint, storm * 0.5).multiplyScalar(dim));
       c.glows.forEach(g => g.mat.opacity = 0.12 + Math.min(1, cur.glow + storm * 0.3) * 0.88);
+      if (c.water) { const U = c.water.uniforms; U.uGlit.value = cur.glit * (1 - storm); U.uGlitCol.value.copy(cur.glitCol); U.uChop.value = 0.3 + storm * 0.9; U.uCam.value.set(camera.position.x, camera.position.z); }
       if (bloom) bloom.strength = cur.bloom;
       if (grade) { grade.uniforms.uTint.value.copy(cur.grade); grade.uniforms.uVig.value = cur.vig + storm * 0.15; }
       c.lowNeeds = s.needs.hunger <= 0 || s.needs.thirst <= 0;
