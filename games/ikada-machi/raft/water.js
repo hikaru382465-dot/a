@@ -20,7 +20,7 @@ window.RAFT.parts.water = function (c) {
   rebuild();
   const col = h => new THREE.Color(h);
   const u = { uTime: { value: 0 }, uShore: { value: tex }, uSize: { value: SIZE }, uMin: { value: MIN },
-    uShallow: { value: col('#33a8bf') }, uDeep: { value: col('#17509a') }, uFoam: { value: col('#f2f6ee') }, uHi: { value: col('#86d2e0') }, uCam: { value: new THREE.Vector2() }, uGlit: { value: 0.5 }, uGlitCol: { value: new THREE.Color('#fff4d0') }, uChop: { value: 0.3 }, uTint: { value: new THREE.Color(1, 1, 1) }, uRefl: { value: new THREE.Vector2(0.3, 0.3) } };
+    uShallow: { value: col('#33a8bf') }, uDeep: { value: col('#1f64b8') }, uFoam: { value: col('#f2f6ee') }, uHi: { value: col('#86d2e0') }, uCam: { value: new THREE.Vector2() }, uGlit: { value: 0.5 }, uGlitCol: { value: new THREE.Color('#fff4d0') }, uChop: { value: 0.3 }, uTint: { value: new THREE.Color(1, 1, 1) }, uRefl: { value: new THREE.Vector2(0.3, 0.3) } };
   const mat = new THREE.ShaderMaterial({ uniforms: u,
     vertexShader: 'varying vec2 vXZ;void main(){vec4 w=modelMatrix*vec4(position,1.);vXZ=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
     fragmentShader: `uniform float uTime,uSize,uMin;uniform sampler2D uShore;uniform vec3 uShallow,uDeep,uFoam,uHi,uTint;uniform vec2 uRefl,uCam;uniform float uGlit,uChop;uniform vec3 uGlitCol;varying vec2 vXZ;

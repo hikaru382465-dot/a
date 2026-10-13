@@ -8,10 +8,11 @@ window.RAFT.parts.light = function (c) {
   const presets = {
     morning: { sun: C('#ffe4bd'), sunI: 2.2, amb: C('#a9bde0'), ambI: 1.5, tint: C('#ffffff'), water: C('#ffffff'), bg: C('#1f4e6b'), bloom: 0.35, glow: 0.0, grade: C('#fff4e6'), vig: 0.35, glit: 0.8, glitCol: C('#ffe0a0') },
     noon:    { sun: C('#fff4dc'), sunI: 2.5, amb: C('#b4c8e8'), ambI: 1.55, tint: C('#ffffff'), water: C('#ffffff'), bg: C('#2a6a8a'), bloom: 0.3, glow: 0.0, grade: C('#ffffff'), vig: 0.3, glit: 0.35, glitCol: C('#ffffff') },
+    golden:  { sun: C('#ffc088'), sunI: 2.6, amb: C('#c9b6e4'), ambI: 1.55, tint: C('#fff6ea'), water: C('#fff6ec'), bg: C('#2a6a8a'), bloom: 0.5, glow: 0.55, grade: C('#fff0e0'), vig: 0.25, glit: 1.0, glitCol: C('#ffc878') },
     dusk:    { sun: C('#ff9a5c'), sunI: 2.1, amb: C('#a07cc0'), ambI: 1.3, tint: C('#ffd8bc'), water: C('#ffe6d2'), bg: C('#4a3a62'), bloom: 0.7, glow: 0.6, grade: C('#ffd4b4'), vig: 0.45, glit: 1.0, glitCol: C('#ffa860') },
     night:   { sun: C('#7f94ff'), sunI: 0.9, amb: C('#5c70c0'), ambI: 1.05, tint: C('#8fa2e6'), water: C('#a3b6f4'), bg: C('#0c1530'), bloom: 0.85, glow: 1.0, grade: C('#cfd9ff'), vig: 0.65, glit: 0.45, glitCol: C('#bcd0ff') }
   };
-  const keys = [[0, 'morning'], [0.2, 'noon'], [0.5, 'noon'], [0.66, 'dusk'], [0.78, 'night'], [0.93, 'night'], [1, 'morning']];
+  const keys = [[0, 'morning'], [0.2, 'noon'], [0.5, 'noon'], [0.6, 'golden'], [0.7, 'dusk'], [0.8, 'night'], [0.93, 'night'], [1, 'morning']];
   const names = Object.keys(presets.morning);
   const cur = {}; names.forEach(k => cur[k] = presets.morning[k].clone ? presets.morning[k].clone() : presets.morning[k]);
   function at(t) {
@@ -49,7 +50,7 @@ void main(){
   vec2 p=vUv-.5;vec2 ca=p*.0025;
   vec3 c=vec3(texture2D(tDiffuse,vUv+ca).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-ca).b);
   float l=dot(c,vec3(.299,.587,.114));
-  c=mix(vec3(l),c,1.12);
+  c=mix(vec3(l),c,1.2);
   c*=uTint;
   c=(c-.5)*1.06+.5;
   c*=1.-uVig*smoothstep(.25,.85,length(p*vec2(uAsp*.75,1.)));
