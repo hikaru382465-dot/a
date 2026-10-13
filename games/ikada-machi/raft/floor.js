@@ -43,6 +43,11 @@ window.RAFT.parts.floor = function (c) {
   function lantern() { const [cv, g] = I.canvas(10, 20); I.rect(g, 4, 8, 2, 12, P.wood1); I.rect(g, 2, 3, 6, 6, P.wood0); I.rect(g, 3, 4, 4, 4, P.glow); I.rect(g, 4, 5, 2, 2, '#fff1c8'); I.rect(g, 1, 2, 8, 2, P.wood1); I.rect(g, 3, 0, 4, 2, P.wood2); return cv; }
   const gl = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,200,110,1)'); gr.addColorStop(.35, 'rgba(255,150,60,.45)'); gr.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return cv; })();
   const lp = c.sprite(lantern(), { x: 0.28, y: TOP, z: 0.28, ppu: 22 }); scene.add(lp);
+  const OB = window.RAFT.objArt; if (OB && OB.lamp) {      // ひかるの絵（街灯ランタン）に差しかえ
+    const f = OB.lamp[0], [cv, g] = I.canvas(f.w, f.h), im = new Image();
+    im.onload = () => { g.drawImage(im, 0, 0); scene.remove(lp); scene.add(c.sprite(cv, { x: 0.28, y: TOP, z: 0.28, ppu: f.h / 1.15 })); };
+    im.src = f.src;
+  }
   const gm = new THREE.MeshBasicMaterial({ map: c.tex(gl), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.15 });
   const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), gm); gp.rotation.y = c.cam.yaw; gp.position.set(0.28, TOP + 1.0, 0.28); scene.add(gp); c.glows.push({ mat: gm });
   // 置ける場所の光（置くモード）：[[x, z, 高さ], ...] を渡す。空で消える
