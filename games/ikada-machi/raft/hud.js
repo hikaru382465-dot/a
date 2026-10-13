@@ -32,7 +32,7 @@ window.RAFT.parts.hud = function (c) {
     });
   }
   const r_have = o => o.r.special === 'rod' ? 'もう持っている' : 'もう持っている（イカダに1つ）';
-  const scImg = {};
+  const scImg = {}, lt = { next: 0, start: -99, bx: 60 };
   function drawScene(cv, k, t) {
     const SC = (window.RAFT && window.RAFT.scenes) || {}; if (!SC[k]) return;
     const im = scImg[k] || (scImg[k] = Object.assign(new Image(), { src: SC[k] })); if (!im.complete) return;
@@ -47,8 +47,10 @@ window.RAFT.parts.hud = function (c) {
     if (storm) {
       g.fillStyle = night ? '#8ea0c8' : '#c8d8ea'; g.globalAlpha = 0.45;
       for (let i = 0; i < 50; i++) { const x = (R(i) * 230 - t * 22 + 230) % 230, y = (R(i + 50) * 120 + t * 90) % 120 - 6; g.fillRect(Math.floor(x) - Math.floor(y / 2) % 3, Math.floor(y), 1, 6); }
-      const ph = t % 6;
-      if (ph < 0.3) { const bx = 40 + Math.floor(R(Math.floor(t / 6)) * 110); g.globalAlpha = 1; g.fillStyle = '#f4f2ff'; let x = bx; for (let y = 0; y < 62; y += 2) { x += Math.floor(R(y + bx) * 5) - 2; g.fillRect(x, y, 2, 2); } }
+      if (cv.dataset.lk !== k) { cv.dataset.lk = k; lt.next = t + 2 + Math.random() * 4; lt.start = -99; lt.bx = 60; }
+      if (t >= lt.next) { lt.start = t; lt.next = t + 8 + Math.random() * 14; lt.bx = 40 + Math.floor(Math.random() * 110); }
+      const ph = t - lt.start;
+      if (ph < 0.3) { const bx = lt.bx; g.globalAlpha = 1; g.fillStyle = '#f4f2ff'; let x = bx; for (let y = 0; y < 62; y += 2) { x += Math.floor(R(y + bx) * 5) - 2; g.fillRect(x, y, 2, 2); } }
       const fl = ph < 0.08 ? 0.7 : ph < 0.14 ? 0.1 : ph < 0.24 ? 0.5 : ph < 0.5 ? 0.5 * (0.5 - ph) / 0.26 : 0;
       if (fl > 0) { g.globalAlpha = fl; g.fillStyle = '#e8e8ff'; g.fillRect(0, 0, 192, 108); }
     }
@@ -246,7 +248,9 @@ window.RAFT.parts.hud = function (c) {
     if (rainA > 0.02) { rg.strokeStyle = `rgba(200,220,255,${0.35 * rainA})`; rg.lineWidth = 1.5; rg.beginPath();
       drops.forEach(d => { d.y += dt * d.v * 1.6; d.x -= dt * 0.25; if (d.y > 1) { d.y = -0.05; d.x = Math.random() * 1.3; } const x = d.x * rain.width, y = d.y * rain.height; rg.moveTo(x, y); rg.lineTo(x - 5, y + 16); }); rg.stroke(); }
     const scCv = $('scCv'); if (scCv && c.ui.open) drawScene(scCv, scCv.dataset.k, t);
-    if (s.look && storm) { const ph = t % 14; if (ph < 0.35) { rg.fillStyle = `rgba(235,235,255,${0.5 * (ph < 0.1 ? 1 : 0.5 * (0.35 - ph) / 0.25)})`; rg.fillRect(0, 0, rain.width, rain.height); if (!update.th) { update.th = true; setTimeout(() => c.sfx && c.sfx.onEvent({ e: 'weather', id: 'storm' }), 900); } } else update.th = false; }
+    if (s.look && storm) { if (!(update.nl > 0)) update.nl = t + 4 + Math.random() * 6; const ph = t - (update.ls || -99);
+      if (t >= update.nl) { update.ls = t; update.nl = t + 10 + Math.random() * 20; setTimeout(() => c.sfx && c.sfx.onEvent({ e: 'weather', id: 'storm' }), 900); }
+      if (ph >= 0 && ph < 0.35) { rg.fillStyle = `rgba(235,235,255,${0.5 * (ph < 0.1 ? 1 : 0.5 * (0.35 - ph) / 0.25)})`; rg.fillRect(0, 0, rain.width, rain.height); } }
     const lk = $('lookbar'); lk.style.display = s.look ? 'flex' : 'none';
     if (s.look) {
       const hr = s.clock.t, w = s.weather.id, line = w === 'storm' ? '雨と風の音…。ここなら、すこし落ち着く。' : hr < 0.2 ? '朝のひかりが、海にひろがっていく。' : hr < 0.62 ? '空が高い。水平線がずっと先まで見える。' : hr < 0.78 ? '空が、だいだい色にそまっていく…。' : '星がきれい。波の音だけがする。';
