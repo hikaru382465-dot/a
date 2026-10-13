@@ -33,11 +33,12 @@ window.RAFT.parts.hud = function (c) {
   }
   const r_have = o => o.r.special === 'rod' ? 'もう持っている' : 'もう持っている（イカダに1つ）';
   function renderScenes() {
+    const SC = (window.RAFT && window.RAFT.scenes) || {};
     const ids = Object.keys(D.SCENES), got = ids.filter(k => s.scenes[k]).length;
-    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた景色 ${got} / ${ids.length}</div>` + ids.map(k => { const v = D.SCENES[k], on = s.scenes[k], g = v[2].split(','); return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}"><div style="width:100%;height:32px;border-radius:4px;background:${on ? `linear-gradient(${g[0]},${g[1]})` : '#0004'}"></div><span class="nm">${on ? v[0] : '？？？'}</span></button>`; }).join('');
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた景色 ${got} / ${ids.length}</div>` + ids.map(k => { const v = D.SCENES[k], on = s.scenes[k], g = v[2].split(','); return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}">${on ? `<img src="${SC[k]}" style="width:100%;height:34px;object-fit:cover;image-rendering:pixelated;border-radius:4px">` : '<div style="width:100%;height:34px;border-radius:4px;background:#0004"></div>'}<span class="nm">${on ? v[0] : '？？？'}</span></button>`; }).join('');
     $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
     const v = D.SCENES[sel], on = v && s.scenes[sel], g = v ? v[2].split(',') : [];
-    $('detail').innerHTML = v ? `<div style="height:90px;border-radius:6px;background:${on ? `linear-gradient(${g[0]},${g[1]})` : '#0004'}"></div><p><b>${on ? v[0] : '？？？'}</b></p><p>${on ? v[1] : '見晴らしいすに座ると、見つかる。時間や天気で景色がかわる。'}</p>` : '';
+    $('detail').innerHTML = v ? `${on ? `<img src="${SC[sel]}" style="width:100%;image-rendering:pixelated;border-radius:6px;border:3px solid #5a3425;box-sizing:border-box">` : '<div style="height:90px;border-radius:6px;background:#0004"></div>'}<p><b>${on ? v[0] : '？？？'}</b></p><p>${on ? v[1] : '見晴らしいすに座ると、見つかる。時間や天気で景色がかわる。'}</p>` : '';
   }
   function renderBook() {
     if (tab === 'scene') { if (!D.SCENES[sel]) sel = Object.keys(D.SCENES)[0]; renderScenes(); return; }
