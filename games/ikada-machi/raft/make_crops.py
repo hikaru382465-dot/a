@@ -27,7 +27,7 @@ FINAL = {      # 実のなった姿（作物ごと）
 def nosoil(im):      # 作物の絵についている「土のもりあがり」を消す（畑の土の上に直接生えているように見せる。土が浮いて見えるのをふせぐ）
     a = np.array(im).astype(int); r, g, b = a[..., 0], a[..., 1], a[..., 2]
     soil = (np.maximum(np.maximum(r, g), b) < 118) & (np.minimum(np.minimum(r, g), b) >= 36) & (r >= g - 2) & (r >= b - 6) & ((r - b) <= 45)      # 土の色（灰色がかった茶色）
-    yy = np.arange(a.shape[0])[:, None] / a.shape[0]; loose = (yy < 0.62) & (r < 150) & (r > g * 1.05) & (r > b * 1.15) & (g < 110)      # 上のほうにういた、土のかけら
+    yy = np.arange(a.shape[0])[:, None] / a.shape[0]; xx = np.arange(a.shape[1])[None, :] / a.shape[1]; edge = (xx < 0.24) | (xx > 0.76); loose = ((yy < 0.62) | (edge & (yy < 0.92))) & (r < 140) & ((np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b)) < 75) & (r > g * 1.05) & (r > b * 1.1) & (g < 125)      # 上のほうと、左右のふちにういた、土のかけら
     a[..., 3] = np.where(soil | loose, 0, a[..., 3]); out = Image.fromarray(a.astype(np.uint8), 'RGBA')
     cs = cutlib.components(np.array(out.getchannel('A')) > 0, minpx=150, reach=1)      # 土をぬいたあと、はなれた小さいかけらは消す
     keep = np.zeros(a.shape[:2], bool)
