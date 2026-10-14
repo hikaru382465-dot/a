@@ -64,7 +64,17 @@ window.RAFT.parts.hud = function (c) {
     const v = D.SCENES[sel], on = v && s.scenes[sel], g = v ? v[2].split(',') : [];
     $('detail').innerHTML = v ? `${on ? `<canvas id="scCv" width="192" height="108" data-k="${sel}" style="width:100%;image-rendering:pixelated;border-radius:6px;border:3px solid #5a3425;box-sizing:border-box;display:block"></canvas>` : '<div style="height:90px;border-radius:6px;background:#0004"></div>'}<p><b>${on ? v[0] : '？？？'}</b></p><p>${on ? v[1] : '見晴らしいすに座ると、見つかる。時間や天気で景色がかわる。'}</p>` : '';
   }
+  function renderFish() {
+    const FA = (window.RAFT && window.RAFT.fishArt) || {}, ids = Object.keys(D.FISH), dex = s.fishdex || {}, got = ids.filter(k => dex[k]).length;
+    const img = (k, on, h) => FA[k] ? `<img src="${FA[k].src}" style="width:100%;height:${h}px;object-fit:contain;${on ? '' : 'filter:brightness(0);opacity:.28;'}">` : '';
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた魚 ${got} / ${ids.length}</div>` + ids.map(k => { const f = D.FISH[k], on = dex[k]; return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}">${img(k, on, 44)}<span class="nm">${on ? f.name : '？？？'}</span></button>`; }).join('');
+    $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
+    const f = D.FISH[sel], on = f && dex[sel], stars = f ? '★'.repeat(f.star) + '☆'.repeat(3 - f.star) : '';
+    const hint = f ? [f.time ? { dawn: '朝', day: '昼', dusk: '夕方', night: '夜' }[f.time] + 'に多い' : '', f.wx ? { calm: '凪', storm: '嵐', sunny: '晴れ' }[f.wx] + 'の日に多い' : '', f.by === 'rod' ? '釣りざおで' : f.by === 'net' ? '網で' : '', 'Lv' + f.lv + 'の網から'].filter(Boolean).join('・') : '';
+    $('detail').innerHTML = f ? `<div style="height:66px;display:flex;align-items:center;justify-content:center;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px">${img(sel, on, 56)}</div><p><b>${on ? f.name : '？？？'}</b>　<span class="tag">${stars}</span></p><p>${on ? f.tip : '釣ったり、網でとると、見つかる。'}</p><p class="why">${on ? 'とった数：' + dex[sel] + '　（' + hint + '）' : hint}</p>` : '';
+  }
   function renderBook() {
+    if (tab === 'fish') { if (!D.FISH[sel]) sel = Object.keys(D.FISH)[0]; renderFish(); return; }
     if (tab === 'scene') { if (!D.SCENES[sel]) sel = Object.keys(D.SCENES)[0]; renderScenes(); return; }
     const list = tab === 'inv' ? slots() : recipes();
     if (!list.some(o => o.key === sel)) sel = list.length ? list[0].key : null;
@@ -93,7 +103,7 @@ window.RAFT.parts.hud = function (c) {
     d.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
     if (onclick) $('act').onclick = onclick;
   }
-  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); renderBook(); }
+  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); $('tFish').classList.toggle('on', t === 'fish'); renderBook(); }
   function openSheet(t) { cancelPlace(); c.ui.open = true; $('sheet').classList.add('open'); setTab(t || tab); }
   function closeSheet() { c.ui.open = false; $('sheet').classList.remove('open'); }
   // ---- 置くモード ----
@@ -202,7 +212,7 @@ window.RAFT.parts.hud = function (c) {
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
   document.querySelectorAll('.tab canvas').forEach(cv => paint(cv, cv.dataset.k));
-  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene');
+  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene'); $('tFish').onclick = () => setTab('fish');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
   $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
@@ -216,6 +226,7 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    fishnew: e => `新しい魚：${D.FISH[e.id].name}（図鑑にのった）`,
     rackhang: e => `魚を1匹つるした（${e.n}/${e.max}）。しばらくすると干物になる`, rackdone: e => `干物を${e.n}個とった`, racknone: () => '魚を持って、もう一度タップすると、つるせる',
     rackfull: e => `干し魚だなはいっぱい。あと約${e.left}秒で干物`, rackwait: e => `干しているところ。あと約${e.left}秒（魚がまだあれば、足せる）`,
     lookgift: e => `ながめていたら、${nameOf(e.k)}が流れてきた`, scenenew: e => `新しい景色：${D.SCENES[e.k][0]}（図鑑にのった）`,
@@ -233,7 +244,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fishnew', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);

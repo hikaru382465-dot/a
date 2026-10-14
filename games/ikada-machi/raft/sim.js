@@ -21,7 +21,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}
+      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -94,9 +94,23 @@
     s.events.push({ e: 'throw' }); return true;
   };
   S.recallNet = function (s) { const c = s.net.cast; if (!c) return false; if (c.phase !== 'back') c.phase = 'back'; return true; };
+  // 魚の図鑑：どの魚か決める（how＝'rod'か'net'、great＝釣りざおのぴったり）。出やすさは、時間と天気で上がる
+  S.rollFish = function (s, how, great) {
+    const F = D.FISH, lvl = Math.max(s.net.lv, s.buddy.net.lv), tk = S.sceneKey(s).split('_'), list = [];
+    Object.keys(F).forEach(id => { const f = F[id]; if (f.lv > lvl || (f.by && f.by !== how) || (f.great && !great)) return;
+      list.push([id, f.w * (f.time === tk[0] ? 2.5 : 1) * (f.wx === tk[1] ? 2.5 : 1)]); });
+    let tot = 0; list.forEach(x => tot += x[1]); let r = S.rand() * tot;
+    for (const x of list) { r -= x[1]; if (r <= 0) return x[0]; }
+    return list.length ? list[0][0] : 'iwashi';
+  };
+  S.addDex = function (s, id) {
+    s.fishdex = s.fishdex || {}; const first = !s.fishdex[id]; s.fishdex[id] = (s.fishdex[id] || 0) + 1;
+    if (first) s.events.push({ e: 'fishnew', id });
+    return D.FISH[id].star >= 3 ? 2 : 0;      // めずらしい魚は、魚が2匹おまけ（合わせて3匹）
+  };
   function collect(s, w) {
     const K = kit(s, w), c = K.net.cast; if (!c) return;
-    c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; });
+    c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; if (k === 'fish') s.inv.fish += S.addDex(s, S.rollFish(s, 'net', false)); });
     if (c.by === 'buddy') { s.buddy.jobT = D.BUDDY.NET_REST; if (c.held.length) { s.events.push({ e: 'bhaul', n: c.held.length }); s.buddy.cheer = s.uid++; s.buddy.cheerKind = 'net'; } }
     else if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
     K.net.cast = null;
@@ -194,7 +208,7 @@
     const g = D.ROD.great, q = Math.abs(r.t / D.ROD.bite - g[0]) <= g[1] ? 'great' : 'good';   // リズム：輪が重なる頃にタップ
     let k = 'fish';
     if (S.rand() > D.ROD.fishP) { const o = ['wood', 'coconut', 'cloth', 'rope']; k = o[Math.floor(S.rand() * o.length)]; }
-    const n = q === 'great' ? 2 : 1; s.inv[k] = (s.inv[k] || 0) + n; s.reelFx = { id: s.uid++, k, x: r.x, z: r.z }; s.events.push({ e: 'fished', k, n, q }); return true;
+    let n = q === 'great' ? 2 : 1; let sp = null; if (k === 'fish') { sp = S.rollFish(s, 'rod', q === 'great'); n += S.addDex(s, sp); } s.inv[k] = (s.inv[k] || 0) + n; s.reelFx = { id: s.uid++, k, x: r.x, z: r.z }; s.events.push({ e: 'fished', k, n, q, sp }); return true;
   };
   // ---- 相棒の仕事 ----
   const faceOf = (s, x, z) => { const o = N4.find(([dx, dz]) => !S.has(s, x + dx, z + dz)); return o || [0, 1]; };
@@ -252,7 +266,7 @@
         bu.line.t += dt * eff;
         if (bu.line.t >= bu.line.wait) {
           const o = ['wood', 'coconut', 'cloth', 'rope'], k = S.rand() < D.ROD.fishP ? 'fish' : o[Math.floor(S.rand() * o.length)];
-          s.inv[k] = (s.inv[k] || 0) + 1; bu.fx = { id: s.uid++, k, x: bu.line.x, z: bu.line.z }; s.events.push({ e: 'bfished', k }); bu.cheer = s.uid++; bu.cheerKind = 'fish';
+          s.inv[k] = (s.inv[k] || 0) + 1; if (k === 'fish') s.inv.fish += S.addDex(s, S.rollFish(s, 'rod', false)); bu.fx = { id: s.uid++, k, x: bu.line.x, z: bu.line.z }; s.events.push({ e: 'bfished', k }); bu.cheer = s.uid++; bu.cheerKind = 'fish';
           bu.line = null; bu.jobT = rr(B.FISH_REST); bu.act = { type: 'throw', t: 0.4 };
         }
       }
@@ -476,5 +490,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.scenes = s.scenes || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

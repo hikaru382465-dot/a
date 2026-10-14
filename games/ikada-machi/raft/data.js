@@ -112,6 +112,28 @@ window.RAFT.data = {
   NET_HAUL: 0.6,
   NET_FLY: 0.55,     // 飛んでいる時間（秒）
   // speed：流れの速さ（マス/秒）、rate：物の出る多さ、thirst：のどのかわく速さの倍率、w：次に選ばれやすさ
+  // 魚の図鑑：lv＝網のレベルがこれ以上で出る／star＝めずらしさ（3は、とれたら魚が3匹）／w＝出やすさ／time＝多い時間（dawn・day・dusk・night）／wx＝多い天気／by＝rod（釣りざおだけ）・net（網だけ）・省略で両方／great＝釣りざおの「ぴったり」のときだけ
+  FISH: {
+    iwashi: { name: 'イワシ',   lv: 1, star: 1, w: 10, tip: '群れでいる小さな魚。どこにでもいる' },
+    aji:    { name: 'アジ',     lv: 1, star: 1, w: 8,  tip: '素早い。焼くとおいしい' },
+    saba:   { name: 'サバ',     lv: 1, star: 1, w: 7,  tip: '背中のもようがきれい' },
+    tai:    { name: 'タイ',     lv: 2, star: 2, w: 4,  wx: 'calm', tip: '赤いお魚。凪の日に見つかりやすい' },
+    masu:   { name: 'マス',     lv: 2, star: 1, w: 5,  time: 'dawn', tip: '朝のつめたい水が好き' },
+    ika:    { name: 'イカ',     lv: 2, star: 2, w: 4,  time: 'night', tip: '夜になると、あかりに寄ってくる' },
+    ebi:    { name: 'エビ',     lv: 2, star: 1, w: 5,  by: 'net', tip: '網にからまって取れる' },
+    fugu:   { name: 'フグ',     lv: 2, star: 2, w: 3,  tip: 'ふくらむ。かわいいけど、あぶない' },
+    kasago: { name: 'カサゴ',   lv: 2, star: 2, w: 3,  tip: 'とげとげの、岩かげの魚' },
+    kani:   { name: 'カニ',     lv: 3, star: 1, w: 5,  by: 'net', tip: '網の底でごそごそしている' },
+    tako:   { name: 'タコ',     lv: 3, star: 2, w: 3,  time: 'night', by: 'net', tip: '8本の足。夜に出てくる' },
+    hirame: { name: 'ヒラメ',   lv: 3, star: 2, w: 3,  wx: 'calm', tip: '海の底にぺたり。凪の日に会える' },
+    unagi:  { name: 'ウナギ',   lv: 3, star: 2, w: 3,  time: 'night', tip: 'にょろにょろ。夜に多い' },
+    hamachi:{ name: 'ハマチ',   lv: 3, star: 2, w: 3,  time: 'day', tip: '昼のあかるい海で、よく泳ぐ' },
+    ei:     { name: 'エイ',     lv: 3, star: 3, w: 1.5, tip: 'ひらひら泳ぐ、めずらしい魚' },
+    iseebi: { name: 'イセエビ', lv: 3, star: 3, w: 1.5, by: 'net', tip: '長いひげ。ごちそうの王様' },
+    maguro: { name: 'マグロ',   lv: 4, star: 3, w: 2,  by: 'rod', tip: '大きな魚。釣りざおが重い！' },
+    kajiki: { name: 'カジキ',   lv: 4, star: 3, w: 1.5, by: 'rod', great: true, wx: 'storm', tip: '角のある魚。嵐のあとに会えることも' },
+    kurage: { name: 'クラゲ',   lv: 4, star: 2, w: 3,  wx: 'calm', by: 'net', tip: 'ふわふわ浮かぶ。凪の日に多い' }
+  },
   SCENES: {
     dawn_sunny: ['朝やけの海', '空がうすいオレンジ。水平線がきらきらしている。', '#f2b27a,#5a7fa8'], dawn_calm: ['朝もやの海', '風がない。海がしずかに息をしている。', '#d9c3b0,#7c9aa8'], dawn_storm: ['嵐の朝', '雲が低い。波の音が大きい。', '#6d7080,#2f3a4d'],
     day_sunny: ['青い昼の海', '空が高い。水平線がずっと先まで見える。', '#8fd0f0,#2f78b0'], day_calm: ['鏡のような海', '空がそのまま海にうつっている。', '#bfe6f2,#5aa0c0'], day_storm: ['荒れた昼の海', '白い波がたつ。雨が横からふく。', '#59657a,#27384f'],
