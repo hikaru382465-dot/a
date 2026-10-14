@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-14（第15版：掲示板と、手に取って読める新聞を追加。別系統で `games/farmhouse/` のドット絵づくり〔島・網・ちびキャラ・漂流物・音符・スキル `pixel-art`〕を進行。ゲーム本体は変更なし）
+最終更新：2026-10-14（第16版：幽霊の3Dモデルを受け取り、2.5万面に軽くして `assets/unreal/ghost/` に置いた）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -91,7 +91,7 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
-- **幽霊の3D化（進行中）**：Meshy で作った形は良いが、ダウンロードが有料（PRO）。公式の Tencent HY 3D Global（`hy3d.tencent.ai`、メールのコードで登録、1日20回ほど無料の情報）を試す。3面図を、正面・真横・真後ろの3枚に切り出した（`assets/concept/ghost_front.png` / `ghost_side.png` / `ghost_back.png`。1024角・灰色の無地）。「Multi-view」に入れる。`vismint.com` は公式ではなく有料の別会社なので、使わない
+- **幽霊の3D化（進行中）**：HY 3D Global の出力を受け取り済み（元は46万面・元ファイルは履歴にだけ残る）。`assets/unreal/ghost/Ghost.fbx`（2.5万面・身長160cm・足元が原点・Z上）と4枚の質感（albedo/normal/roughness/metallic、2048）。次：色の確認、Unreal に入れて仮の `Ghost` と入れ替え、リグ（Mixamo）で歩き。
 
 - **幽霊のイメージ画像ができた**（ChatGPT作。`assets/concept/ghost_turnaround.png`＝正面・真横・真後ろ、`ghost_head.png`＝顔と髪の寄り）：濡れた長い黒髪で目が隠れた女、白い着物風のワンピース（すそがやぶれ、赤黒い染み）、裸足、青白い肌、Aポーズ。次：作り方を決める（A＝Blenderで私が作る／B＝Meshyなどで画像から3Dを作ってBlenderで整える）→リグ→ゲームに入れる
 
