@@ -158,12 +158,14 @@ def plane_cut(box, shrink=2, seal=0):
 import cutlib
 HI = 1      # 新しいシートの切り出しは、縮めずに元の細かさで（ゲームでは、なめらかに縮めて出す）
 C2 = here.parent / 'art' / 'items' / 'catalog2.png'
-for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806)), ('barrel', (140, 704, 236, 800)), ('bed', (1190, 730, 1292, 820)), ('shelf', (1290, 696, 1388, 822)), ('windmill', (1386, 696, 1462, 830)), ('hut', (20, 816, 190, 968))):      # 新しい絵シート（catalog2）から
+for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806)), ('barrel', (140, 704, 236, 800)), ('bed', (1190, 730, 1292, 820)), ('shelf', (1290, 696, 1388, 822)), ('windmill', (1386, 696, 1462, 830)), ('hut', (20, 816, 190, 968)), ('rack', (668, 700, 790, 820)), ('plot', (488, 590, 596, 672))):      # 新しい絵シート（catalog2）から
     icons[_k] = [entry(cutlib.cut_checker(C2, _b, shrink=HI))]; icons[_k][0]['hi'] = 3 // HI; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
-for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('plot', (26, 618, 134, 700), 3)):
-    icons[_k] = [entry(plane_cut(_b, shrink=3, seal=_s))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
-    _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
+# アイテムの絵（持ち物・漂流物）も、新しいシートから縮めずに切り出す
+for _k, _b in (('wood', (1026, 326, 1110, 420)), ('floor', (1100, 346, 1196, 434)), ('fish', (22, 56, 134, 126)), ('grilled', (1392, 370, 1514, 446)), ('lamp', (1458, 702, 1512, 812))):
+    _im = cutlib.cut_checker(C2, _b, shrink=1); icons[_k] = [entry(_im)]; icons[_k][0]['hi'] = 1; icons[_k][0]['ppu'] = round(max(_im.size) / (0.5 if _k not in ('lamp',) else 1.0))
+    if _k == 'fish':
+        _d = dried_tint(_im); icons['dried'] = [entry(_d)]; icons['dried'][0]['hi'] = 1; icons['dried'][0]['ppu'] = round(max(_d.size) / 0.5)
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
 out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']

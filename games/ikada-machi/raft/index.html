@@ -162,7 +162,7 @@ c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBCol
   if(o.smooth){t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=4;}
   if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
 c.sprite=(cv,{x,y,z,ppu=16,smooth=false})=>{
-  const m=new THREE.MeshBasicMaterial({map:c.tex(cv,{smooth}),transparent:true,alphaTest:.45});c.sprites.push(m);
+  const m=new THREE.MeshBasicMaterial({map:c.tex(cv,{smooth:smooth||!!cv.hi}),transparent:true,alphaTest:.45});c.sprites.push(m);
   const g=new THREE.PlaneGeometry(1,1);g.translate(0,.5,0);
   const mesh=new THREE.Mesh(g,m);mesh.scale.set(cv.width/ppu,cv.height/ppu/Math.cos(c.cam.pitch),1);
   mesh.rotation.y=c.cam.yaw;mesh.position.set(x,y,z);return mesh;};

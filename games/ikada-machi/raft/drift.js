@@ -25,7 +25,7 @@ window.RAFT.parts.drift = function (c) {
     g.putImageData(new ImageData(o, 12, 12), 0, 0); return cv; };
   // ひかるの漂流物の絵（items.js）。読み込めるまでは、プログラムで描いた小さい絵を使う
   const IA = R.itemArt, OAr = R.objArt, artCv = {}, cache = {};
-  const load = (k, list) => { artCv[k] = list.map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; cv.ppu = f.ppu || 90; cv.tip = f.tip; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; }); };
+  const load = (k, list) => { artCv[k] = list.map(f => { const [cv, g] = I.canvas(f.w, f.h); cv.ok = false; cv.ppu = f.ppu || 90; cv.tip = f.tip; cv.hi = f.hi; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv.ok = true; }; im.src = f.src; return cv; }); };
   if (IA) for (const k in IA.art) load(k, IA.art[k]);
   if (OAr) { for (const k in OAr.icons) load(k, OAr.icons[k]); load('bench', OAr.bench); load('tank', [OAr.tank[3]]); load('filter', [OAr.filter[0]]); }   // 新しい絵で、前のをおきかえる
   const artOf = (k, v) => { const a = artCv[k]; if (!a) return null; const cv = a[(v || 0) % a.length]; return cv.ok ? cv : null; };

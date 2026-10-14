@@ -62,7 +62,7 @@ window.RAFT.parts.floor = function (c) {
   const lp = c.sprite(lantern(), { x: 0.28, y: TOP, z: 0.28, ppu: 22 }); scene.add(lp);
   const OB = window.RAFT.objArt; if (OB && OB.lamp) {      // ひかるの絵（街灯ランタン）に差しかえ
     const f = OB.lamp[0], [cv, g] = I.canvas(f.w, f.h), im = new Image();
-    im.onload = () => { g.drawImage(im, 0, 0); scene.remove(lp); scene.add(c.sprite(cv, { x: 0.28, y: TOP, z: 0.28, ppu: f.h / 1.15 })); };
+    im.onload = () => { g.drawImage(im, 0, 0); scene.remove(lp); scene.add(c.sprite(cv, { x: 0.28, y: TOP, z: 0.28, ppu: f.h / 1.15, smooth: true })); };
     im.src = f.src;
   }
   const gm = new THREE.MeshBasicMaterial({ map: c.tex(gl), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.15 });
