@@ -21,7 +21,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}
+      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -348,6 +348,27 @@
     else s.events.push({ e: 'rackwait', left: Math.ceil(R.sec - Math.max.apply(null, o.h)) });
     return false;
   };
+  // 畑：できていれば収穫→空なら種をまく→水が切れていれば水をやる→そうでなければようすを知らせる
+  S.plotUse = function (s, o) {
+    const P = D.PLOT, C = D.CROPS, cr = o.c && C[o.c];
+    if (cr && o.p >= cr.sec) {
+      const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
+      const back = S.rand() < P.seedBack; if (back) s.inv.seed = (s.inv.seed || 0) + 1;
+      s.events.push({ e: 'plotharvest', c: o.c, n, back }); if (first) s.events.push({ e: 'cropnew', id: o.c }); o.c = null; o.p = 0; o.w = 0; return true;
+    }
+    if (!cr) {
+      if ((s.inv.seed || 0) <= 0) { s.events.push({ e: 'plotnoseed' }); return false; }
+      const ids = Object.keys(C); let tot = 0; ids.forEach(k => tot += C[k].w); let r = S.rand() * tot, pick = ids[0];
+      for (const k of ids) { r -= C[k].w; if (r <= 0) { pick = k; break; } }
+      s.inv.seed--; o.c = pick; o.p = 0; o.w = 0; s.events.push({ e: 'plotplant' }); return true;
+    }
+    if ((o.w || 0) <= 0) {
+      const t = s.objects.filter(x => x.k === 'tank' && x.w > 0).sort((a, b) => b.w - a.w)[0];
+      if (!t) { s.events.push({ e: 'plotnowater' }); return false; }
+      t.w--; o.w = P.water; s.events.push({ e: 'plotwater' }); return true;
+    }
+    s.events.push({ e: 'plotgrow', left: Math.ceil((cr.sec - o.p) / (s.weather.id === 'calm' ? P.calmGrow : 1)) }); return false;
+  };
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
   S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
@@ -397,6 +418,10 @@
       o.burn = true; o.p = (o.p || 0) + dt;
       if (o.p >= D.COOK.sec) { o.p = 0; o.fi--; o.fl--; o.go = (o.go || 0) + 1; s.events.push({ e: 'grilled', n: 1 }); }
     });
+    s.objects.forEach(o => { if (o.k === 'plot' && o.c) {     // 畑：水があるあいだ育つ。嵐の雨は水を入れる。晴れは早く乾く、凪はよく育つ
+      const P = D.PLOT, cr = D.CROPS[o.c]; if (s.weather.id === 'storm') o.w = P.water;
+      if ((o.w || 0) > 0 && o.p < cr.sec) { o.p = Math.min(cr.sec, o.p + dt * (s.weather.id === 'calm' ? P.calmGrow : 1)); o.w = Math.max(0, o.w - dt * (s.weather.id === 'sunny' ? P.sunDry : 1)); }
+    } });
     s.objects.forEach(o => { if (o.k === 'rack' && o.h) for (let i = 0; i < o.h.length; i++) o.h[i] = Math.min(o.h[i] + dt, D.RACK.sec); });     // 干し魚だな：つるした魚が干物になっていく
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
@@ -407,7 +432,7 @@
     // 相棒（女の子）：おなか・のどが減ったら自分で食べる・飲む。ひまなときは、イカダの上を歩き回る
     const bu = s.buddy, b = s.player; bu.eatT -= dt; bu.wanderT -= dt;
     if (!bu.act && !bu.task && !bu.path.length && bu.eatT <= 0) {
-      if (s.needs.hunger < D.NEEDS.low && (s.inv.grilled > 0 ? S.use(s, 'grilled', bu) : s.inv.dried > 0 ? S.use(s, 'dried', bu) : s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
+      if (s.needs.hunger < D.NEEDS.low && (s.inv.grilled > 0 ? S.use(s, 'grilled', bu) : s.inv.dried > 0 ? S.use(s, 'dried', bu) : s.inv.veg > 0 ? S.use(s, 'veg', bu) : s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
       else if (s.needs.thirst < D.NEEDS.low) {
         const t = tanks.find(x => x.w > 0);
         if (t) { S.useObj(s, t.id, bu); bu.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut', bu)) bu.eatT = 3;
@@ -431,6 +456,7 @@
         else if (o && o.k === 'campfire' && a === b) s.events.push({ e: 'campfire', id: o.id });
         else if (o && o.k === 'seat' && a === b) S.startLook(s, o);
         else if (o && o.k === 'rack' && a === b) S.rackUse(s, o);
+        else if (o && o.k === 'plot' && a === b) S.plotUse(s, o);
         else if (o && o.k === 'tank') {
           if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); { const d = a === s.buddy ? 1.6 : 0.7; a.act = { type: 'eat', kind: 'drink', t: d, dur: d }; } s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });
@@ -490,5 +516,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

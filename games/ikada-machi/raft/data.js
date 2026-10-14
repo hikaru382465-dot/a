@@ -8,6 +8,8 @@ window.RAFT.data = {
   ITEMS: {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
+    seed:    { name: '種袋',     lv: 2, w: 0.9, tip: 'プランターにまく。何が育つかは、お楽しみ' },
+    veg:     { name: '野菜',     lv: 0, w: 0, food: 20, drink: 6, tip: '畑でとれた。食べると、おなかとのどが少し戻る' },
     dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
     grilled: { name: '焼き魚',   lv: 0, w: 0, food: 40, tip: '食べると、おなかがしっかり戻る' },
     coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 28, tip: '飲むとのどが戻る（おなかも少し）' },
@@ -26,7 +28,7 @@ window.RAFT.data = {
     oven:    { name: 'かまど',   lv: 0, w: 0, place: true, tip: '飾り。石のかまど（焼くのは焚き火で）' },
     crate:   { name: '木箱',     lv: 0, w: 0, place: true, tip: '飾り。荷物を置いた感じになる' },
     chest:   { name: '宝箱',     lv: 0, w: 0, place: true, tip: '飾り。かっこいい箱' },
-    plot:    { name: 'プランター', lv: 0, w: 0, place: true, tip: '飾り。草が育つ小さい畑' },
+    plot:    { name: '畑', lv: 0, w: 0, place: true, tip: '置いて、タップ。種袋をまくと、野菜が育つ' },
     barrel:  { name: '樽',       lv: 0, w: 0, place: true, tip: '飾り。水の樽（のちに、水をためられるようにしたい）' },
     bed:     { name: 'ベッド',   lv: 0, w: 0, place: true, tip: '飾り。ふかふかのベッド（のちに、ねて回復できるようにしたい）' },
     shelf:   { name: '本棚',     lv: 0, w: 0, place: true, tip: '飾り。本や瓶をならべた棚' },
@@ -113,6 +115,16 @@ window.RAFT.data = {
   NET_FLY: 0.55,     // 飛んでいる時間（秒）
   // speed：流れの速さ（マス/秒）、rate：物の出る多さ、thirst：のどのかわく速さの倍率、w：次に選ばれやすさ
   // 魚の図鑑：lv＝網のレベルがこれ以上で出る／star＝めずらしさ（3は、とれたら魚が3匹）／w＝出やすさ／time＝多い時間（dawn・day・dusk・night）／wx＝多い天気／by＝rod（釣りざおだけ）・net（網だけ）・省略で両方／great＝釣りざおの「ぴったり」のときだけ
+  // 畑：プランターに種袋をまくと、くじで作物が決まる。水（貯水槽から）があるあいだだけ育つ。嵐の雨は、全部のプランターに水を入れる
+  PLOT: { water: 240, sunDry: 1.4, calmGrow: 1.5, seedBack: 0.5 },      // water＝水がもつ秒数／sunDry＝晴れの日の乾きの速さ／calmGrow＝凪の日の育ち／seedBack＝収穫で種が戻る確率
+  CROPS: {
+    tomato: { name: 'トマト',     sec: 360, star: 1, w: 5, tip: '赤くてつやつや。おなかにもいい' },
+    carrot: { name: 'ニンジン',   sec: 420, star: 1, w: 5, tip: '土の中でのびる。ぽりぽりおいしい' },
+    potato: { name: 'ジャガイモ', sec: 480, star: 1, w: 5, tip: 'ほくほくのいも。焼くとおいしそう' },
+    corn:   { name: 'トウモロコシ', sec: 600, star: 2, w: 3, tip: '背が高くなる。きいろい実が自慢' },
+    berry:  { name: 'イチゴ',     sec: 600, star: 2, w: 3, tip: 'あまい赤い実。おやつにぴったり' },
+    melon:  { name: 'スイカ',     sec: 720, star: 3, w: 1.5, tip: '大きな丸い実。育つのに時間がかかる' }
+  },
   FISH: {
     iwashi: { name: 'イワシ',   lv: 1, star: 1, w: 10, tip: '群れでいる小さな魚。どこにでもいる' },
     aji:    { name: 'アジ',     lv: 1, star: 1, w: 8,  tip: '素早い。焼くとおいしい' },
