@@ -369,6 +369,16 @@
     }
     s.events.push({ e: 'plotgrow', left: Math.ceil((cr.sec - o.p) / (s.weather.id === 'calm' ? P.calmGrow : 1)) }); return false;
   };
+  // 【テスト】広いイカダに、置き物を全部ならべる（見た目の確認用。畑は作物を1種ずつ、実のなった姿で）
+  S.demoSet = function (s) {
+    s.raft.cells = []; for (let x = 0; x < 7; x++) for (let z = 0; z < 5; z++) s.raft.cells.push([x, z]); s.raftRev++;
+    s.objects = []; const kinds = ['bench', 'tank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'barrel', 'bed', 'shelf', 'windmill', 'hut'];
+    const crops = Object.keys(D.CROPS); let i = 0;
+    const put = (k, x, z, extra) => { s.objects.push(Object.assign({ id: s.uid++, k, x, z, w: 0, p: 0 }, extra || {})); };
+    crops.forEach((c, n) => put('plot', n, 0, { c, p: D.CROPS[c].sec, w: D.PLOT.water }));
+    kinds.forEach((k, n) => { const x = n % 7, z = 1 + Math.floor(n / 7) * 2; put(k, x, z, k === 'tank' ? { w: 8 } : {}); });
+    s.player.x = 3.5; s.player.z = 4.5; s.buddy.x = 4.5; s.buddy.z = 4.5; s.player.path = []; s.buddy.path = []; s.objRev++;
+  };
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
   S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
