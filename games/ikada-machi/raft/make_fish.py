@@ -7,17 +7,21 @@ C2 = here.parent / 'art' / 'items' / 'catalog2.png'
 # 魚のid: 切り出し範囲（左, 上, 右, 下）
 BOX = {
     'iwashi': (22, 56, 134, 126), 'aji': (134, 60, 254, 130), 'saba': (260, 56, 388, 132), 'tai': (396, 52, 514, 136), 'masu': (518, 52, 642, 128),
-    'unagi': (640, 44, 800, 126), 'kurage': (36, 148, 124, 248), 'ei': (140, 152, 250, 222), 'maguro': (258, 154, 434, 240), 'kajiki': (448, 148, 650, 248),
-    'hamachi': (650, 172, 780, 242), 'ika': (790, 40, 842, 118), 'tako': (843, 44, 940, 138), 'ebi': (952, 50, 1074, 142), 'kani': (1086, 44, 1234, 146),
-    'hirame': (782, 172, 908, 240), 'kasago': (926, 164, 1056, 244), 'iseebi': (1056, 164, 1130, 262), 'fugu': (1136, 166, 1204, 238),
+    'unagi': (644, 52, 794, 144), 'kurage': (36, 148, 124, 248), 'ei': (140, 152, 250, 222), 'maguro': (258, 154, 434, 240), 'kajiki': (448, 148, 650, 248),
+    'hamachi': (650, 172, 780, 242), 'ika': (764, 32, 846, 140), 'tako': (843, 44, 940, 138), 'ebi': (952, 50, 1074, 142), 'kani': (1086, 44, 1234, 146),
+    'hirame': (782, 172, 908, 240), 'kasago': (906, 160, 1050, 246), 'iseebi': (1056, 164, 1130, 262), 'fugu': (1124, 148, 1214, 244),
 }
 SHRINK = 1.5      # 1なら元の細かさ（約510KB）。1.5は約230KB
 out = {}; ims = {}
 for k, box in BOX.items():
-    im = cutlib.cut_checker(C2, box, shrink=SHRINK); ims[k] = im
+    im = cutlib.cut_checker(C2, box, shrink=SHRINK)
+    for _ in range(8):      # 範囲のふちにふれていたら、見切れているので、少しずつ広げる
+        if not cutlib.LAST_TOUCH: break
+        box = (box[0] - 4, box[1] - 4, box[2] + 4, box[3] + 4); im = cutlib.cut_checker(C2, box, shrink=SHRINK)
+    ims[k] = im
     buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
     out[k] = {'src': 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': im.width, 'h': im.height}
-    print(k, im.size, len(buf.getvalue()))
+    print(k, im.size, len(buf.getvalue()), '← 範囲のふちにふれている（見切れの疑い）' if cutlib.LAST_TOUCH else '')
 (here / 'fish_art.js').write_text('window.RAFT.fishArt = ' + json.dumps(out) + ';\n', encoding='utf-8')
 print('fish_art.js', (here / 'fish_art.js').stat().st_size, 'bytes')
 # 確かめ用の見本（青い背景）
