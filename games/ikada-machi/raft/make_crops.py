@@ -24,7 +24,17 @@ FINAL = {      # 実のなった姿（作物ごと）
     'tomato': (798, 402, 896, 492), 'potato': (930, 402, 1034, 492), 'carrot': (1050, 402, 1156, 492),
     'corn': (1048, 540, 1150, 634), 'melon': (932, 540, 1034, 634), 'berry': (1408, 540, 1504, 632),
 }
-fin = {k: cut(b) for k, b in FINAL.items()}
+def nosoil(im):      # 作物の絵についている「土のもりあがり」を消す（畑の土の上に直接生えているように見せる。土が浮いて見えるのをふせぐ）
+    a = np.array(im).astype(int); r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    soil = (np.maximum(np.maximum(r, g), b) < 118) & (np.minimum(np.minimum(r, g), b) >= 36) & (r >= g - 2) & (r >= b - 6) & ((r - b) <= 45)      # 土の色（灰色がかった茶色）
+    yy = np.arange(a.shape[0])[:, None] / a.shape[0]; loose = (yy < 0.62) & (r < 150) & (r > g * 1.05) & (r > b * 1.15) & (g < 110)      # 上のほうにういた、土のかけら
+    a[..., 3] = np.where(soil | loose, 0, a[..., 3]); out = Image.fromarray(a.astype(np.uint8), 'RGBA')
+    cs = cutlib.components(np.array(out.getchannel('A')) > 0, minpx=150, reach=1)      # 土をぬいたあと、はなれた小さいかけらは消す
+    keep = np.zeros(a.shape[:2], bool)
+    for pts in cs:
+        for (yy, xx) in pts: keep[yy, xx] = True
+    a[..., 3] = np.where(keep, a[..., 3], 0); out = Image.fromarray(a.astype(np.uint8), 'RGBA'); return out.crop(out.getchannel('A').getbbox())
+fin = {k: nosoil(cut(b)) for k, b in FINAL.items()}
 PW, PH = planter.size; pad = 8; TOPH = 96
 def compose(plant, scale=1.0):
     W = PW + pad * 2; H = PH + TOPH; cv = Image.new('RGBA', (W, H), (0, 0, 0, 0)); cv.alpha_composite(planter, (pad, H - PH))
