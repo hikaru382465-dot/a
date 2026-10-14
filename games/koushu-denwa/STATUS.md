@@ -91,7 +91,7 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
-- **幽霊の3D化（進行中）**：HY 3D Global の出力を受け取り済み（元は46万面・元ファイルは履歴にだけ残る）。`assets/unreal/ghost/Ghost.fbx`（2.5万面・身長160cm・足元が原点・Z上）と4枚の質感（albedo/normal/roughness/metallic、2048）。色は確認済み。`Ghost_rigged.fbx` は骨4本（root/spine/neck/head）＋表情「Smile」（口角が上がる）＋首が傾くアニメ「Ghost_HeadTilt」つき（作り方は `blender/ghost_clean.py` → `ghost_rig.py`）。次：Unreal に入れて仮の `Ghost` と入れ替え、歩きは Mixamo。
+- **幽霊の3D化（進行中）**：HY 3D Global の出力を受け取り済み（元は46万面・元ファイルは履歴にだけ残る）。`assets/unreal/ghost/Ghost.fbx`（2.5万面・身長160cm・足元が原点・Z上）と4枚の質感（albedo/normal/roughness/metallic、2048）。色は確認済み。`Ghost_rigged.fbx` は骨4本（root/spine/neck/head）＋表情「Smile」（口角が上がる）・「Grin」（口が開いて歯が出る。Teeth 物体にも同名キー）＋首が90度傾くアニメ「Ghost_HeadTilt」つき（作り方は `blender/ghost_clean.py` → `ghost_rig.py`）。次：Unreal に入れて仮の `Ghost` と入れ替え、歩きは Mixamo。
 
 - **幽霊のイメージ画像ができた**（ChatGPT作。`assets/concept/ghost_turnaround.png`＝正面・真横・真後ろ、`ghost_head.png`＝顔と髪の寄り）：濡れた長い黒髪で目が隠れた女、白い着物風のワンピース（すそがやぶれ、赤黒い染み）、裸足、青白い肌、Aポーズ。次：作り方を決める（A＝Blenderで私が作る／B＝Meshyなどで画像から3Dを作ってBlenderで整える）→リグ→ゲームに入れる
 

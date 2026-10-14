@@ -18,6 +18,7 @@ for xi in np.linspace(-0.05,0.05,21):
     for zi in np.linspace(cz-0.04,cz+0.04,21):
         loc,nor,idx,d=bm_.ray_cast(Vector((xi,-1,zi)),Vector((0,1,0)))
         if loc: ysf.append((xi,zi,loc.y))
+ly=bm_.ray_cast(Vector((0,-1,cz)),Vector((0,1,0)))[0].y; print('lipy',ly)
 ymed=float(np.median([t[2] for t in ysf])); print('ymed',ymed,len(ysf))
 face=[v.index for v in me.vertices if abs(v.co.x)<0.06 and abs(v.co.z-cz)<0.05 and abs(v.co.y-ymed)<0.025]
 print('face',len(face))
@@ -31,6 +32,28 @@ for i in face:
     # cheek lift
     # mouth centre lowers slightly
     if dx<0.014: sk.data[i].co.z-=0.0015*math.exp(-dz**2/(2*0.012**2))
+gk=o.shape_key_add(name='Grin',from_mix=False)
+for i in face:
+    c=me.vertices[i].co; sm=sk.data[i].co.copy(); gk.data[i].co=sm
+    dx=abs(c.x); dz=c.z-cz; ax=math.exp(-dx**2/(2*0.03**2))
+    if -0.002<dz<0.014: gk.data[i].co.z+=0.007*ax
+    elif -0.016<dz<=-0.002: gk.data[i].co.z-=0.011*ax
+# teeth
+import bmesh
+tm=bpy.data.meshes.new('Teeth'); bm=bmesh.new()
+n=12
+for k in range(n):
+    t=(k+0.5)/n*2-1; x=t*0.026; y=ly-0.003+0.010*t*t   # arc
+    for zc,hh in ((cz+0.005,0.009),(cz-0.007,0.009)):
+        bmesh.ops.create_cube(bm,size=1.0,matrix=__import__('mathutils').Matrix.Translation((x,y,zc))@__import__('mathutils').Matrix.Diagonal((0.0050,0.006,hh,1)))
+bm.to_mesh(tm); bm.free()
+to=bpy.data.objects.new('Teeth',tm); bpy.context.scene.collection.objects.link(to)
+mt=bpy.data.materials.new('TeethMat'); mt.use_nodes=True; mt.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value=(0.55,0.5,0.36,1); mt.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value=0.35
+to.data.materials.append(mt)
+real=[v.co.copy() for v in tm.vertices]
+for v in tm.vertices: v.co=Vector((0,ymed+0.02,cz))
+to.shape_key_add(name='Basis'); tg=to.shape_key_add(name='Grin')
+for v,r in zip(tm.vertices,real): tg.data[v.index].co=r
 # --- Armature
 arm=bpy.data.armatures.new('GhostRig'); ao=bpy.data.objects.new('GhostRig',arm); bpy.context.scene.collection.objects.link(ao)
 bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='EDIT')
@@ -59,15 +82,18 @@ for v in me.vertices:
     else: g={'head':1}
     for k,wt in g.items():
         if wt>0: o.vertex_groups[k].add([v.index],wt,'REPLACE')
+to.parent=ao
+vg=to.vertex_groups.new(name='head'); vg.add(list(range(len(tm.vertices))),1.0,'REPLACE')
+tmod=to.modifiers.new('Armature','ARMATURE'); tmod.object=ao
 o.parent=ao; mod=o.modifiers.new('Armature','ARMATURE'); mod.object=ao
 # --- Tilt action
 bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='POSE')
 pb=ao.pose.bones; 
-for f,(r,s) in ((1,(0,0)),(30,(0,0)),(90,(math.radians(28),1)),(150,(math.radians(28),1))):
+for f,(r,s) in ((1,(0,0)),(30,(0,0)),(90,(math.radians(90),1)),(150,(math.radians(90),1))):
     pb['head'].rotation_mode='XYZ'; pb['neck'].rotation_mode='XYZ'
-    pb['head'].rotation_euler=(math.radians(8)*s,r*0.7,0); pb['neck'].rotation_euler=(0,r*0.3,0)
-    pb['head'].keyframe_insert('rotation_euler',frame=f); pb['neck'].keyframe_insert('rotation_euler',frame=f)
-    sk.value=s; sk.keyframe_insert('value',frame=f)
+    pb['head'].rotation_euler=(math.radians(8)*s,r*0.55,0); pb['neck'].rotation_euler=(0,r*0.35,0); pb['spine'].rotation_euler=(0,r*0.10,0)
+    pb['spine'].keyframe_insert('rotation_euler',frame=f); pb['head'].keyframe_insert('rotation_euler',frame=f); pb['neck'].keyframe_insert('rotation_euler',frame=f)
+    sk.value=s; sk.keyframe_insert('value',frame=f); gk.value=s; gk.keyframe_insert('value',frame=f); tg.value=s; tg.keyframe_insert('value',frame=f)
 bpy.ops.object.mode_set(mode='OBJECT')
 ao.animation_data.action.name='Ghost_HeadTilt'
 sc=bpy.context.scene; sc.frame_start=1; sc.frame_end=150
@@ -80,6 +106,9 @@ cam=bpy.data.cameras.new('c'); co=bpy.data.objects.new('c',cam); sc.collection.o
 def shot(n,fr,loc,tgt,lens):
     sc.frame_set(fr); cam.lens=lens; co.location=loc; co.rotation_euler=(Vector(tgt)-Vector(loc)).to_track_quat('-Z','Y').to_euler()
     sc.render.filepath=f"//gout/r_{n}.png"; bpy.ops.render.render(write_still=True)
-shot('a',1,(0,-1.1,1.4),(0,0,1.4),85)     # no smile
-shot('b',90,(0,-1.1,1.4),(0,0,1.4),85)    # smile+tilt
+
+
 shot('c',90,(0,-3.2,0.9),(0,0,0.9),50)
+for ob in bpy.data.objects:
+    pass
+
