@@ -8,6 +8,7 @@ window.RAFT.data = {
   ITEMS: {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
+    dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
     grilled: { name: '焼き魚',   lv: 0, w: 0, food: 40, tip: '食べると、おなかがしっかり戻る' },
     coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 28, tip: '飲むとのどが戻る（おなかも少し）' },
     rope:    { name: '縄',       lv: 2, w: 3, tip: '作る材料' },
@@ -64,6 +65,7 @@ window.RAFT.data = {
   DUR: { net: { use: 3 }, rod: { use: 5 }, fixCost: { wood: 2 }, worn: { range: 0.5, cap: 1, bite: 0.6 }, low: 25 },
   // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
   DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
+  RACK: { sec: 45, max: 3 },     // 干し魚だな：1匹が干物になる秒数・かけられる数
   COOK: { sec: 12, perWood: 3, maxFish: 8, maxWood: 8, maxOut: 16 },   // 1匹12秒・木くず1個で3匹ぶん・各枠の上限
   // 船の住人との交渉：夕方に、嵐でなければ、1日に1回まで船が来る。1つの船に2つの取引。1つずつ、1回だけ
   BOAT: {

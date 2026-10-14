@@ -90,13 +90,18 @@ def clay_tint(im):     # 灰色の石の絵を、粘土色（赤茶）にぬり�
     lo, hi = np.array([70, 36, 24.0]), np.array([226, 140, 92.0]); t = np.clip((L - 0.12) / 0.7, 0, 1)[..., None]
     a[..., :3] = lo * (1 - t) + hi * t; return Image.fromarray(a.astype(np.uint8), 'RGBA')
 
+def dried_tint(im):     # 銀色の魚を、干物の茶色にぬりかえる
+    a = np.array(im).astype(float); L = a[..., :3].mean(axis=2) / 255.0
+    lo, hi = np.array([60, 40, 30.0]), np.array([214, 168, 112.0]); t = np.clip((L - 0.1) / 0.75, 0, 1)[..., None]
+    a[..., :3] = lo * (1 - t) + hi * t; return Image.fromarray(a.astype(np.uint8), 'RGBA')
+
 def icon(box, shrink=3, tint=None):
     im = cutout(box, shrink=shrink)
     if tint: im = tint(im)
     e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
 icons = {'wood': [icon((38, 28, 142, 118))], 'floor': [icon((142, 28, 246, 118))], 'cloth': [icon((712, 36, 790, 118))],
          'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))], 'rod': [icon((410, 232, 500, 344), shrink=2)],
-         'iron': [icon((628, 30, 700, 112))], 'grilled': [icon((136, 136, 232, 210))], 'campfire': [icon((940, 618, 1028, 702), shrink=3)], 'seat': [icon((1318, 470, 1396, 594), shrink=3)], 'lamp': [icon((1398, 458, 1438, 586), shrink=2)],
+         'iron': [icon((628, 30, 700, 112))], 'grilled': [icon((136, 136, 232, 210))], 'campfire': [icon((940, 618, 1028, 702), shrink=3)], 'seat': [icon((1318, 470, 1396, 594), shrink=3)], 'lamp': [icon((1398, 458, 1438, 586), shrink=2)], 'dried': [icon((26, 136, 136, 208), tint=dried_tint)],
          'rack': [icon((364, 476, 482, 596), shrink=3)], 'oven': [icon((152, 474, 252, 572), shrink=3)], 'crate': [icon((832, 492, 912, 570), shrink=3)], 'chest': [icon((726, 492, 820, 570), shrink=3)], 'plot': [icon((26, 618, 134, 700), shrink=3)],  'clay': [icon((438, 32, 524, 118), tint=clay_tint)]}
 for n, e in list(icons.items()):
     im = Image.open(io.BytesIO(base64.b64decode(e[0]['src'].split(',')[1]))).convert('RGBA'); print(n, im.size, e[0]['ppu'])

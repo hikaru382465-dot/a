@@ -324,6 +324,16 @@
     else { b.x += f.x * sp * 1.3; b.z += f.z * sp * 1.3; if ((b.x - cx) * f.x + (b.z - cz) * f.z > 14) s.boat = null; }
   }
   // ---- 景色を眺める ----
+  // 干し魚だな：できた干物があれば取る→魚があれば1匹つるす→どちらもなければ、ようすを知らせる
+  S.rackUse = function (s, o) {
+    o.h = o.h || []; const R = D.RACK, done = o.h.filter(t => t >= R.sec).length;
+    if (done) { o.h = o.h.filter(t => t < R.sec); s.inv.dried = (s.inv.dried || 0) + done; s.events.push({ e: 'rackdone', n: done }); return true; }
+    if (o.h.length < R.max && (s.inv.fish || 0) > 0) { s.inv.fish--; o.h.push(0); s.events.push({ e: 'rackhang', n: o.h.length, max: R.max }); return true; }
+    if (!o.h.length) s.events.push({ e: 'racknone' });
+    else if (o.h.length >= R.max) s.events.push({ e: 'rackfull', left: Math.ceil(R.sec - Math.max.apply(null, o.h)) });
+    else s.events.push({ e: 'rackwait', left: Math.ceil(R.sec - Math.max.apply(null, o.h)) });
+    return false;
+  };
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
   S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
@@ -373,6 +383,7 @@
       o.burn = true; o.p = (o.p || 0) + dt;
       if (o.p >= D.COOK.sec) { o.p = 0; o.fi--; o.fl--; o.go = (o.go || 0) + 1; s.events.push({ e: 'grilled', n: 1 }); }
     });
+    s.objects.forEach(o => { if (o.k === 'rack' && o.h) for (let i = 0; i < o.h.length; i++) o.h[i] = Math.min(o.h[i] + dt, D.RACK.sec); });     // 干し魚だな：つるした魚が干物になっていく
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
       const t = tanks.filter(x => x.w < tcap).sort((a, c) => a.w - c.w)[0];
@@ -382,7 +393,7 @@
     // 相棒（女の子）：おなか・のどが減ったら自分で食べる・飲む。ひまなときは、イカダの上を歩き回る
     const bu = s.buddy, b = s.player; bu.eatT -= dt; bu.wanderT -= dt;
     if (!bu.act && !bu.task && !bu.path.length && bu.eatT <= 0) {
-      if (s.needs.hunger < D.NEEDS.low && (s.inv.grilled > 0 ? S.use(s, 'grilled', bu) : s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
+      if (s.needs.hunger < D.NEEDS.low && (s.inv.grilled > 0 ? S.use(s, 'grilled', bu) : s.inv.dried > 0 ? S.use(s, 'dried', bu) : s.inv.fish > 0 ? S.use(s, 'fish', bu) : (s.inv.coconut > 0 && S.use(s, 'coconut', bu)))) bu.eatT = 3;
       else if (s.needs.thirst < D.NEEDS.low) {
         const t = tanks.find(x => x.w > 0);
         if (t) { S.useObj(s, t.id, bu); bu.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut', bu)) bu.eatT = 3;
@@ -405,6 +416,7 @@
         if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
         else if (o && o.k === 'campfire' && a === b) s.events.push({ e: 'campfire', id: o.id });
         else if (o && o.k === 'seat' && a === b) S.startLook(s, o);
+        else if (o && o.k === 'rack' && a === b) S.rackUse(s, o);
         else if (o && o.k === 'tank') {
           if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); { const d = a === s.buddy ? 1.6 : 0.7; a.act = { type: 'eat', kind: 'drink', t: d, dur: d }; } s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });

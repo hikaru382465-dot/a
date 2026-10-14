@@ -216,6 +216,8 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    rackhang: e => `魚を1匹つるした（${e.n}/${e.max}）。しばらくすると干物になる`, rackdone: e => `干物を${e.n}個とった`, racknone: () => '魚を持って、もう一度タップすると、つるせる',
+    rackfull: e => `干し魚だなはいっぱい。あと約${e.left}秒で干物`, rackwait: e => `干しているところ。あと約${e.left}秒（魚がまだあれば、足せる）`,
     lookgift: e => `ながめていたら、${nameOf(e.k)}が流れてきた`, scenenew: e => `新しい景色：${D.SCENES[e.k][0]}（図鑑にのった）`,
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
     short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => (e.q === 'great' ? 'ナイス！ ' : '') + `釣れた：${nameOf(e.k)}${e.n > 1 ? ' ×' + e.n : ''}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
@@ -231,7 +233,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
