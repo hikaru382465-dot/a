@@ -1,0 +1,47 @@
+# Unity用 .gitignore（ドット迷宮）。Unityのプロジェクトのいちばん上のフォルダに置く
+# Unityが自動で作る、重くて作り直せるフォルダ
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# エディタ・Visual Studioが作るもの
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+sysinfo.txt
+
+# 書き出したアプリ
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# 【大事】署名の鍵（Androidの公開用）。絶対にGitHubに入れない
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# アドレッサブル（使うとき）
+[Aa]ssets/[Ss]treamingAssets/aa.meta
+[Aa]ssets/[Ss]treamingAssets/aa/*

@@ -118,3 +118,30 @@ FBXから来る材質は簡単なものなので、次の3つだけ手で直す�
 2. `kd_game.py` を実行して、▶（Play）
 3. 閉じ込められたあと、暗転のたびに：張り紙が増える（35%→70%→100%）／幽霊が外の道から近づく／字幕が出る。段階3で「血の目」の張り紙が左の壁に出る。段階5で幽霊が目の前に出て「……みつけた」→赤く暗転 → 6秒後に最初から
 - 張り紙の向きが逆・横になっているときは、ログ（KD）と写真を送る
+
+## 買った公衆電話のレベル（kousyuudennwa / FirstPersonMap）で動かす
+1. `kd_probe.py`：何も変えずに調べる（大きさ・部品・入口の向き）。+X -X +Y -Y の文字が出るので、入口（開いている側）を見る
+2. `setup_game_fp.py`：先頭の `FRONT` を入口の向きに合わせてから実行。当たり判定・ドア（板）・蛍光灯2本・開始位置・懐中電灯・張り紙・幽霊（仮）を置く（何度でも実行できる）
+3. `kd_game.py` を実行 → ▶（Play）。歩くのはテンプレートのキャラ。ボックスに入るとドアが閉まり、点滅・暗転・張り紙・幽霊・失敗エンドが動く
+- ドアが内側に開くときは `kd_game.py` の `DOOR_OPEN_YAW` を `-100` に
+- 買った素材はGitHubに上げない
+
+## 調整つまみ集（Saved/kd_settings.json）
+
+`kd_game.py` か `setup_game_fp.py` を一度動かすと、プロジェクトの `Saved\kd_settings.json`（例：`Documents\Unreal Projects\<プロジェクト名>\Saved\`）ができる。メモ帳で数字を直して保存するだけ。
+
+- `kd_game.py` の値（明るさ・点滅・時間など）：Play のたびに読み直す。コードの書き直し・ZIPの取り直しは不要
+- `setup_game_fp.py` の値（`POSTER_SCALE`・`FLASH_INTENSITY`・`NIGHT_MODE` など）：保存後に `setup_game_fp.py` をもう一度実行
+- 「説明」の欄に、それぞれの意味が書いてある。壊れたファイルは上書きされず、初期値で動く
+
+## 掲示板と新聞（setup_game_fp.py の「掲示板」の手順）
+
+入口の前に木の掲示板（`Board_*`）が立ち、張り紙2枚と新聞（`Paper_News`）が貼ってある。`kd_game.py` を動かして Play し、新聞のほうを向いて近づくと「[E] 新聞を手に取る」が出る。読んでいる間は歩けない。E でとじる。位置は `kd_settings.json` の `BOARD_DIST` / `BOARD_SIDE` / `BOARD_TURN`（変えたら `setup_game_fp.py` を再実行）、読む大きさは `READ_SIZE` / `READ_DIST`（再実行は不要）。
+
+## 設定ファイルの確認（kd_check_settings.py）
+
+`py "…/unreal/kd_check_settings.py"` を Cmd 欄で実行すると、`kd_settings.json` の、書き方のまちがい（カンマ・かっこ）、知らない項目、数字の種類のまちがいを、出力ログ（KD で絞る）に出す。
+
+## 木・岩の当たり判定（kd_trees_collision.py）
+
+Fab や自作の木・岩に当たり判定がないと、歩いて通りぬけてしまう。`py "…/unreal/kd_trees_collision.py"` で、名前に tree / pine / spruce / rock などが入ったメッシュのうち、当たり判定がないものに、幹だけの円柱（岩は箱）をつける。`TRUNK_FRAC`（幹の太さ）で調整。すでにある物は変えない。

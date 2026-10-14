@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>イカダの海暮らし（最小の試作）</title>
+<style>
+html,body{margin:0;height:100%;background:#0c1530;overflow:hidden;font-family:"DotGothic16",system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;color:#e8dcb8;user-select:none;-webkit-user-select:none}
+canvas{display:block;-webkit-touch-callout:none;touch-action:none}
+#gl{position:fixed;left:0;top:0;width:100%;height:100%}
+#rain{position:fixed;inset:0;pointer-events:none}
+button{background:#2b1636e6;color:#e8dcb8;border:1px solid #6b4231;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;font-family:inherit;min-height:40px}
+button:disabled{opacity:.45;cursor:default}
+button.on{background:#6b4231;color:#fff}
+#top{position:fixed;left:10px;top:calc(10px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
+.lab{display:flex;align-items:center;gap:6px;font-size:11px}
+.lab span{width:3.4em}
+.bar{width:92px;height:7px;background:#0007;border:1px solid #6b4231;border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:#a8b862;transition:width .3s}
+.bar i.low{background:#b8654f}
+#tr{position:fixed;right:10px;top:calc(10px + env(safe-area-inset-top,0px));display:flex;gap:6px}
+#tr button{width:44px;height:44px;border-radius:50%;padding:0;font-size:12px}
+#fab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:68px;height:68px;border-radius:50%;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;font-size:10px;border-width:2px;border-color:#caa97e;box-shadow:0 2px 10px #0009}
+#fab canvas{width:30px;height:30px;image-rendering:pixelated}
+#fab small{font-size:10px;line-height:1.1}
+#fabBadge{position:absolute;right:-2px;top:-2px;background:#b8654f;color:#fff;border-radius:9px;padding:0 5px;font-size:10px;line-height:16px}
+#pull{position:fixed;right:14px;bottom:calc(92px + env(safe-area-inset-bottom,0px));display:none;border-color:#8fc3bd}
+#placebar{position:fixed;left:50%;transform:translateX(-50%);top:calc(64px + env(safe-area-inset-top,0px));display:none;align-items:center;gap:8px;background:#2b1636ee;border:1px solid #f2c879;border-radius:10px;padding:6px 8px 6px 12px;font-size:13px;max-width:calc(100vw - 20px);width:max-content}
+#gauge{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:none;width:min(320px,70vw);text-align:center;font-size:13px;text-shadow:0 1px 2px #000;pointer-events:none}
+#gauge .g{height:14px;background:#0008;border:1px solid #e8dcb8;border-radius:7px;overflow:hidden;margin-top:3px}
+#gaugeFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#8fc3bd,#f2c879,#b8654f)}
+#toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#2b1636dd;border:1px solid #6b4231;border-radius:6px;padding:6px 12px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:86vw;text-align:center}
+#sheet{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0a0a1c88;padding:calc(10px + env(safe-area-inset-top,0px)) 10px calc(10px + env(safe-area-inset-bottom,0px))}
+#sheet.open{display:flex}
+#book{--paper:#f3d2a8;--paper2:#e9bd90;--slot:#f9dcb7;--line:#d9a37f;--ink:#4a2c26;--edge:#5a3425;--edge2:#8a5430;position:relative;width:min(700px,100%);max-height:100%;display:flex;flex-direction:column;color:var(--ink);filter:drop-shadow(0 5px 0 #0007)}
+#tabs{display:flex;gap:6px;padding:0 16px;align-items:flex-end;position:relative;z-index:1;margin-bottom:-4px}
+.tab{display:flex;align-items:center;gap:5px;min-height:0;height:34px;padding:0 12px;background:var(--paper2);color:var(--ink);border:4px solid var(--edge);border-bottom:none;border-radius:8px 8px 0 0;font-size:13px}
+.tab canvas{width:20px;height:20px;image-rendering:pixelated}
+.tab.on{height:42px;color:var(--ink);background:var(--paper);box-shadow:inset 0 3px 0 #fff4;padding-bottom:4px}
+#bClose{position:absolute;right:-6px;top:-6px;z-index:3;width:34px;height:34px;min-height:0;border-radius:6px;background:#b8654f;border:3px solid var(--edge);color:#fff;font-size:20px;line-height:1;padding:0}
+#pages{display:flex;min-height:0;background:var(--paper);border:4px solid var(--edge);border-radius:6px;box-shadow:inset 0 0 0 3px var(--paper2),inset 0 0 0 5px var(--edge2)}
+.page{flex:1 1 0;min-width:0;padding:18px 18px;overflow-y:auto;max-height:calc(100vh - 110px);-webkit-overflow-scrolling:touch}
+#pageL{border-right:4px solid var(--edge2);background:linear-gradient(90deg,transparent 94%,#c98d6340)}
+#pageR{background:linear-gradient(270deg,transparent 94%,#c98d6340)}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;aspect-ratio:1;padding:2px;background:var(--slot);color:var(--ink);border:2px dashed var(--line);border-radius:8px;font-size:10px;min-height:0;line-height:1.1}
+.slot canvas{width:30px;height:30px;image-rendering:pixelated}
+.slot .n{position:absolute;right:4px;bottom:2px;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
+.slot.empty{opacity:.55}
+.slot.sel{border-style:solid;border-color:var(--accent,#b8654f);box-shadow:0 0 0 2px #b8654f55}
+.slot.hand{background:#f3b98a}
+.slot.lock{opacity:.5}
+#detail{display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.6}
+#detail .big{display:flex;align-items:center;gap:12px}
+#detail .big canvas{width:56px;height:56px;image-rendering:pixelated;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px}
+#detail b{font-size:16px}
+#detail p{margin:0}
+#detail .tag{font-size:12px;background:var(--paper2);border-radius:5px;padding:0 6px}
+#detail .hint{opacity:.7;text-align:center;padding:30px 6px}
+#detail .why{color:#a8442f}
+#detail ul.cost{margin:0;padding:8px 10px;list-style:none;background:var(--slot);border:2px dashed var(--line);border-radius:8px}
+#detail ul.cost li.no{color:#b23a2c;font-weight:700}
+#detail button{background:#b8654f;color:#fff;border:3px solid var(--edge);border-radius:8px;align-self:flex-start;padding:8px 22px;font-size:15px}
+#detail button:disabled{background:#c9a98c;border-color:#9b7a63}
+@media (max-width:640px){#pages{flex-direction:column;overflow-y:auto;max-height:calc(100vh - 110px)}.page{max-height:none;overflow:visible;padding:12px 12px}#pageL{border-right:none;border-bottom:4px solid var(--edge2)}}
+#helpbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(420px,86vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.7}
+#helpbox h2{margin:0 0 6px;font-size:15px}
+#helpbox ul{margin:0;padding-left:1.2em}
+#zoom{position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px}
+#zoom button{width:40px;height:40px;border-radius:50%;padding:0;font-size:18px;opacity:.85}
+#boatbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(380px,90vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#boatbox h2{margin:0 0 4px;font-size:15px}
+#boatLine{margin:2px 0 8px;padding:6px 10px;background:#0003;border-radius:8px;font-size:13px}
+.deal{display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 8px;background:#0003;border-radius:8px;flex-wrap:wrap}
+.deal .its{display:flex;gap:4px;align-items:center}.deal .it{position:relative;width:38px;height:40px;background:#150a1c;border:2px solid #6b4231;border-radius:6px;display:flex;align-items:center;justify-content:center}.deal .it canvas{width:28px;height:28px;image-rendering:pixelated}.deal .it i{position:absolute;right:2px;bottom:0;font-style:normal;font-size:11px;font-weight:700;text-shadow:0 1px 2px #000}.deal .it.no{border-color:#b8654f}
+.deal .ar{opacity:.7}.deal button{margin-left:auto;padding:4px 10px;min-height:34px}
+#lookbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
+#jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#jobbox h2{margin:0 0 4px;font-size:15px}
+#cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#cfbox h2{margin:0 0 4px;font-size:15px}
+#cfRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 8px;background:#0003;border-radius:10px}
+#cfInv{display:flex;gap:8px;padding:8px;background:#0003;border-radius:10px;min-height:76px;align-items:center}
+.cslot{position:relative;width:64px;height:68px;background:#150a1c;border:2px solid #6b4231;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none}
+.cslot canvas{width:40px;height:40px;image-rendering:pixelated}
+.cwrap{position:relative;width:40px;height:40px;overflow:hidden}.cwrap canvas{display:block}.cwrap b{position:absolute;left:0;right:0;top:0;height:0;background:rgba(10,4,16,.78)}
+.cslot i{position:absolute;right:4px;top:2px;font-style:normal;font-size:12px;font-weight:700;text-shadow:0 1px 2px #000}
+.cslot small{font-size:10px;opacity:.8;line-height:1}
+.cslot.empty canvas{opacity:.18}
+.cslot.over{border-color:#ffd88a;background:#3a2412}
+#cfInv.over{outline:2px dashed #ffd88a}
+.carrow{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:16px}
+.cplus{font-size:18px;opacity:.7}
+#cfHint{font-size:11px;opacity:.75;text-align:center}
+#dragGhost{position:fixed;width:44px;height:44px;pointer-events:none;z-index:50;image-rendering:pixelated;transform:translate(-50%,-50%);display:none}
+.toolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:4px 0;padding:6px 8px;background:#0003;border-radius:8px;font-size:12px}
+.toolrow button{padding:4px 8px;min-height:32px;font-size:12px}
+#jobBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#jobBtns button small{display:block;font-size:10px;opacity:.75;line-height:1.3}
+#log{position:fixed;left:10px;bottom:6px;font-size:11px;color:#ffb0a0;max-width:50vw}
+</style></head><body>
+<canvas id="rain"></canvas>
+<div id="top"><div id="clock"></div>
+<div class="lab"><span>おなか</span><div class="bar"><i id="hunger"></i></div></div>
+<div class="lab"><span>のどの</span><div class="bar"><i id="thirst"></i></div></div></div>
+<div id="tr"><button id="bHelp" title="あそびかた">？</button><button id="bSound">音 ON</button></div>
+<div id="placebar"><span id="placeTx"></span><button id="bPlaceEnd">やめる</button></div>
+<div id="gauge"><span id="gaugeTxt"></span><div class="g"><i id="gaugeFill"></i></div></div>
+<div id="zoom"><button id="zIn" aria-label="拡大">＋</button><button id="zOut" aria-label="縮小">－</button></div>
+<button id="pull">引き寄せる</button>
+<button id="fab" aria-label="持ち物"><canvas id="fabIcon" width="32" height="32"></canvas><small>持ち物</small><span id="fabBadge"></span></button>
+<div id="sheet"><div id="book">
+<div id="tabs"><button class="tab on" id="tInv"><canvas width="32" height="32" data-k="bag"></canvas><span>持ち物</span></button><button class="tab" id="tCraft"><canvas width="32" height="32" data-k="hammer"></canvas><span>作る</span></button><button class="tab" id="tScene"><canvas width="32" height="32" data-k="glass"></canvas><span>景色</span></button></div>
+<button id="bClose" aria-label="閉じる">×</button>
+<div id="pages"><div class="page" id="pageL"><div id="grid"></div></div><div class="page" id="pageR"><div id="detail"></div></div></div>
+</div></div>
+<div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
+<div id="cfbox"><h2>焚き火</h2><div id="cfState"></div>
+<div id="cfRow"><div class="cslot" id="sFish" data-drop="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cplus">＋</div><div class="cslot" id="sWood" data-drop="wood"><div class="cwrap"><canvas width="32" height="32"></canvas><b id="woodDim"></b></div><i></i><small>燃料</small></div><div class="carrow"><div class="bar" style="width:70px;height:9px"><i id="cfBar" style="width:0"></i></div><span id="cfFire">🔥</span></div><div class="cslot out" id="sOut" data-drop="out"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
+<div id="cfHint">タップ＝1つ　ドラッグ＝全部（持ち物の下の枠 ⇄ 焚き火の枠）</div>
+<div id="cfInv" data-drop="inv"><div class="cslot" id="iFish" data-item="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cslot" id="iWood" data-item="wood"><canvas width="32" height="32"></canvas><i></i><small>木くず</small></div><div class="cslot" id="iGrilled" data-item="grilled"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
+<div style="margin-top:8px;text-align:right"><button id="bCfClose">閉じる</button></div></div>
+<div id="boatbox"><h2 id="boatName"></h2><div id="boatLine"></div><div id="boatDeals"></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bBoatBye">さよなら（船が去る）</button><button id="bBoatClose">閉じる</button></div></div>
+<div id="helpbox"><h2>あそびかた</h2><ul>
+<li>右下の「持ち物」から、網を選んで手に持つ</li>
+<li>海を押し続ける → ゲージがたまる → 離すと網を投げる</li>
+<li>網が出ている間に画面を押す（または「引き寄せる」）で、引き寄せる</li>
+<li>床・作業台・貯水槽などは「作る」で作って、持ち物から選んで置く</li>
+<li>作業台を置くと、貯水槽・ろ過器・網の強化が作れる</li>
+<li>貯水槽は、嵐の雨で水がたまる。タップすると飲む</li>
+<li>ろ過器は、海水から、貯水槽に水を入れる</li></ul>
+<div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bCallBoat">【テスト】船をすぐ呼ぶ</button><button id="bHelpClose">わかった</button></div></div>
+<canvas id="dragGhost" width="32" height="32"></canvas>
+<div id="lookbar"><div id="lookTx"></div><div class="lab"><span style="width:6em">ほっとした</span><div class="bar" style="width:110px"><i id="calmFill" style="width:0"></i></div></div><button id="bLookStop">立つ</button></div>
+<div id="toast"></div><div id="log"></div>
+<script src="../island/common.js"></script>
+<script src="data.js"></script><script src="net_art.js"></script><script src="sim.js"></script>
+<script src="camera.js"></script><script src="water.js"></script><script src="light.js"></script>
+<script src="floor.js"></script><script src="buddy.js"></script><script src="chars.js"></script><script src="items.js"></script><script src="objs_art.js"></script><script src="splash_art.js"></script><script src="poses_art.js"></script><script src="emotes_art.js"></script><script src="objects.js"></script><script src="drift.js"></script><script src="boat.js"></script>
+<script src="scenes_art.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const R=window.RAFT, I=window.ISLAND, q=new URLSearchParams(location.search);
+const renderer=new THREE.WebGLRenderer({antialias:false});
+const PR=Math.min(devicePixelRatio,matchMedia('(pointer:coarse)').matches?1.5:2);
+renderer.setPixelRatio(PR); renderer.domElement.id='gl';
+const sz=()=>({w:Math.max(1,renderer.domElement.clientWidth||innerWidth),h:Math.max(1,renderer.domElement.clientHeight||innerHeight)});
+renderer.setSize(innerWidth,innerHeight,false);
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.toneMapping=THREE.NoToneMapping; document.body.prepend(renderer.domElement); renderer.setSize(sz().w,sz().h,false);
+const scene=new THREE.Scene(); scene.background=new THREE.Color('#1f4e6b');
+if(q.has('new')){try{localStorage.removeItem(R.sim.KEY)}catch(e){}}
+const state=(q.has('new')?null:R.sim.load())||R.sim.newState();
+const c={pr:PR,size:sz,THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
+  onResize:[],low:q.has('low'),sprites:[],glows:[],camera:null,render:null,mode:{place:null},ui:{open:false}};
+c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
+  if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
+c.sprite=(cv,{x,y,z,ppu=16})=>{
+  const m=new THREE.MeshBasicMaterial({map:c.tex(cv),transparent:true,alphaTest:.45});c.sprites.push(m);
+  const g=new THREE.PlaneGeometry(1,1);g.translate(0,.5,0);
+  const mesh=new THREE.Mesh(g,m);mesh.scale.set(cv.width/ppu,cv.height/ppu/Math.cos(c.cam.pitch),1);
+  mesh.rotation.y=c.cam.yaw;mesh.position.set(x,y,z);return mesh;};
+const only=q.get('parts')?q.get('parts').split(','):null, upd=[], log=[], inits=[];
+for(const name of R.order){
+  if(only&&!only.includes(name)&&!['camera','hud'].includes(name))continue;
+  try{const r=R.parts[name]&&R.parts[name](c);if(r&&r.update)upd.push(r.update);if(r&&r.init)inits.push(r.init);}
+  catch(e){console.error(name,e);log.push('パーツ「'+name+'」でエラー：'+e.message);}
+}
+if(!c.camera){c.camera=new THREE.OrthographicCamera(-10,10,10,-10,-100,100);c.camera.position.set(20,20,20);c.camera.lookAt(0,0,0);}
+if(!c.render)c.render=()=>renderer.render(scene,c.camera);
+inits.forEach(f=>f());
+document.getElementById('log').textContent=log.join(' / ');
+const onSize=()=>{const z=sz();renderer.setSize(z.w,z.h,false);c.onResize.forEach(f=>f());};
+addEventListener('resize',onSize); if(window.ResizeObserver)new ResizeObserver(onSize).observe(renderer.domElement);
+const fast=q.has('fast')?10:1; let last=performance.now(),t=0;
+function loop(now){
+  let dt=Math.min(.1,(now-last)/1000);last=now;t+=dt;
+  const sdt=dt*fast; for(let n=Math.ceil(sdt/0.05),i=0;i<n;i++)R.sim.step(state,sdt/n);
+  upd.forEach(f=>f(t,dt));c.render();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+window.__c=c;
+</script></body></html>

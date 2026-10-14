@@ -10,7 +10,7 @@ except NameError:
 OUT = os.path.normpath(os.path.join(HERE, '..', 'assets', 'unreal'))
 os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.mesh.primitive_plane_add(size=1)
+bpy.ops.mesh.primitive_grid_add(x_subdivisions=12, y_subdivisions=16, size=1)       # 紙がゆれて曲がるように、細かく分けておく
 o = bpy.context.active_object
 o.scale = (0.5, 0.7, 1.0)
 o.rotation_euler = (math.radians(90), 0, 0)

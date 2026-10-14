@@ -19,6 +19,28 @@ Match the art style, outline thickness, and color mood of the attached reference
 - ペット（スライム）：`A cute round green slime pet, big eyes, small and friendly, 3 poses in one row: idle, hopping, happy. Side view.`
 - ペットの進化：`The same slime, evolved: version with small horns / version with tiny wings / version with glowing eyes.`
 
+### 召喚スキルの絵
+- 幻影の狼・走り（8コマ・4×2の格子。ずれたら4コマ×2回に分け、2回目に1回目を添付）：`A ghostly wolf made of translucent blue magic energy, glowing white eyes, sleek and fast body, misty tail that fades out. A smooth running cycle of 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size and identical wolf design in every frame, side view facing right, legs clearly separated, the last frame loops back to the first.`
+- 幻影の狼・かみつき（5コマ）：`Same style and exactly the same ghost wolf as the attached image. 5 frames in one horizontal row, evenly spaced, same size: 1 crouching to jump, 2 leaping forward, 3 biting with open jaws and sharp teeth, 4 landing, 5 returning to a standing pose. Side view facing right, transparent background.`
+- コマ数の目安：走り8・かみつき5。ゲーム側で、上下のゆれ・伸び縮み・残像を足して、なめらかに見せる。
+
+### 召喚スキルの絵（残り5体）：先に「共通部分」を貼り、魔法使いと狼の絵を添付。動き＝8コマ（4×2の格子）、攻撃＝5コマ（横1列）
+- 共通部分：`Dark fantasy pixel art game sprite, 32-bit style, limited muted color palette, 1px dark outline, soft top-left lighting, clean readable silhouette, transparent background, no text, no watermark, no shadow on the ground. Match the art style, outline thickness, and color mood of the attached reference image exactly. Side view facing right. Translucent glowing magic-energy look, same as the attached ghost wolf.`
+- 幻影の騎士・動き：`A ghostly knight made of translucent teal magic energy, small and slightly chibi, round helmet with glowing eyes, holding a short sword and a small shield. A smooth walking-running cycle of 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size and design in every frame.`
+- 幻影の騎士・切る：`Same knight as the attached image. 5 frames in one horizontal row, evenly spaced, same size: 1 raising the sword, 2 swinging down, 3 slash follow-through, 4 recovering, 5 back to standing.`
+- 幻影の射手・動き：`A ghostly archer made of translucent teal magic energy, small and slightly chibi, hooded, holding a glowing bow. A smooth walking cycle of 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size and design in every frame.`
+- 幻影の射手・射る：`Same archer as the attached image. 5 frames in one horizontal row, same size: 1 drawing an arrow, 2 aiming, 3 releasing with a glowing arrow, 4 follow-through, 5 back to standing.`
+- 火の精霊・動き：`A small fire spirit, a floating flame creature with a round glowing body, two bright eyes, and a trailing flame tail, orange and yellow glow. A floating idle cycle of 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size in every frame.`
+- 火の精霊・突進：`Same fire spirit as the attached image. 5 frames in one horizontal row, same size: 1 gathering energy and shrinking, 2 flying forward fast, 3 glowing bright white, 4 swelling just before exploding, 5 a burst of flame.`
+- 氷霊の守護像・立つ（4コマ）：`A small guardian statue made of ice and stone, a short stocky knight-like figure holding a big shield, glowing pale-blue cracks, frost mist at the feet. An idle animation of 4 frames in one horizontal row, same size, subtle breathing and glowing motion.`
+- 氷霊の守護像・光る（4コマ）：`Same statue as the attached image. 4 frames in one horizontal row, same size: the cracks glow brighter and a ring of frost spreads outward, then fades.`
+- 雷の精霊鳥・飛ぶ：`A small thunder spirit bird, a round bird made of yellow-white lightning energy, small wings, bright eyes, crackling sparks around it. A flying cycle with flapping wings, 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size in every frame.`
+- 雷の精霊鳥・雷を放つ：`Same thunder bird as the attached image. 5 frames in one horizontal row, same size: 1 gathering sparks, 2 body glowing white, 3 releasing a bolt of lightning downward, 4 sparks scatter, 5 back to flying pose.`
+- 幻影の鷹・飛ぶ（8コマ・4×2の格子）：`A ghostly hawk made of translucent blue magic energy, glowing white eyes, sharp beak and talons, misty feather trails. A smooth flying cycle with flapping wings, 8 frames, arranged in 2 rows of 4 frames, evenly spaced in a grid, identical size and identical design in every frame, side view facing right.`
+- 幻影の鷹・急降下（5コマ）：`Same ghost hawk as the attached image. 5 frames in one horizontal row, same size: 1 soaring high with wings spread, 2 folding wings and tilting down, 3 diving steeply with talons forward, 4 striking with a bright flash, 5 pulling up. Side view facing right, transparent PNG background (not a checkerboard).`
+- スライム分身は、ペットのスライムの絵を使う（新しい絵は不要）。
+- 頼む順番のおすすめ：騎士 → 火の精霊 → 射手 → 精霊鳥 → 守護像（生成の制限があるため）。
+
 ### 敵（森）※ それぞれ右向き。向きを変えるときはコードで左右を反転する
 - スライム、コウモリ、ゴブリンの弓兵、毒キノコ、コボルトのひろい屋（背中に袋）、ボス：スライム王（大きい、王冠）
 
