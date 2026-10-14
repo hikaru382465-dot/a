@@ -1,0 +1,186 @@
+# ドット絵キャンバス（Claude用）
+
+文字のマス目でドット絵を描いて、絵にして、拡大して見直すための道具。
+
+- `palette.json`：色の系統（A〜Z・a〜z）×明るさ0〜7。コードは2文字（例 `D3`）。暗い側は青むらさき、明るい側は黄色へずれる
+- `pxl.py`：`python pxl.py sprites/barrel.pxl` → 原寸の絵と、目盛りつき拡大の絵（`_zoom.png`）。点検（使った色の数、ぽつんと1ドット）も出す
+- 書き方は `pxl.py` の先頭に書いてある（@mirror=左右折り返し、@sidelight=左明るく右暗く、@outline sel=となりの色で輪郭）
+- 描き方：絵を書く → 拡大を見る → マスの文字だけ直す、をくり返す
+
+## 農夫の歩き（v2）
+- `python gen_walk.py`：正面と横向き（右向き）の歩き4コマずつを `sprites/farmer_*_walk0〜3.pxl` に作り、絵にしてまとめる
+- 出力（`assets/character/`）：`farmer_sheet_v2.png`（2行×4列、1コマ32×41）、`farmer_walk_v2.gif`（横向き）、`farmer_preview_v2.png`（拡大）
+- 左向きは、横向きを左右反転して使う。うしろ向きはまだ
+
+## 家を「ドット絵として」描く（iso.py）
+- `python iso.py` → `../assets/farmhouse_iso.png`（1920×1080。細かさは iso.py の `S`。4で見本と同じくらい）と半分の大きさの `_half.png`。農夫はいまは入れていない
+- 3Dを縮めるのではなく、2:1の斜め上の視点で、面ごとに1ドットずつ模様（パレットのコード）を決めて塗る。色は `palette.json` だけ（農夫と同じ）
+- 屋根のわらの段とギザギザ、しっくいの汚れ、石の目地、木目、窓のあかり、影、足もとの暗がりは `iso.py` の「テクスチャ」の関数で決まる
+- 物の置き場所は `build()` と `props()`。数字を変えれば動く
+
+## 小物（props.py）
+- `python props.py` → `sprites/` に 樽（水入り）・バケツ（縄の取っ手）・木箱（すき間のある板＋だいだいの花）・丸太の山（6本、年輪）の `.pxl` と `.png` と `_zoom.png`
+- 家の絵（`iso.py`）が、この小物の絵を読んで置く。小物だけ直したいときは `sprites/*.pxl` を直して `python iso.py`
+
+## 描き方の決まり（次の絵を頼まれたときも、これを守る）
+ひかるの指摘（2026-10-06）：家の壁・屋根の「ポツポツ」は、乱数で点を散らしたせい。見本は、形のあるかたまりと線で描いてある。
+1. **乱数の点を散らさない**。質感は、かたまり（2〜6ドットの塊）か線（木目・わらの筋）で描く。明るさのなだらかな変化は、決まった網点（ディザ）にする
+2. **ぽつんと1ドットを作らない**。まわりに同じ色が1つもないドットは、まわりの色にならす（意図した小さな飾り＝花・実・ハイライトだけ残す）
+3. **面のふちの点線（重なりの判定のずれ）を出さない**。出たら絵を拡大して確認し、直してから渡す
+4. 小物は1つずつ文字のマス目で描く。大きな面の模様は、手で描いた小さなタイル（16×16など）を並べる
+5. 色は `palette.json` の系統×明るさだけを使う。足りない色が見つかったら、先にパレットへ足す（見本と比べて確認）
+6. 渡す前に、拡大して見直す。見本があるときは、同じ場所を同じ大きさで切り抜いて並べて比べる
+※ 壁（しっくい）と屋根（わら）は、手描きタイル（`tiles.py`）に変更済み。木・石・地面の模様と、面のふちの点線は、まだ直していない
+
+## 単色モード（見本のようなベタ塗り）
+- `python iso.py --flat` → `../assets/farmhouse_iso_flat.png`。壁・屋根・梁を単色にして、影と形だけで見せる
+- 見本の壁・屋根・梁は、数えるとほぼ単色（壁 `#bb885a`、梁 `#3d1f28`、ギザギザ `#6f3b31` など）。模様の粒は見本にない
+- 見本の色に近いコード：壁 D6、屋根 D4、ギザギザ D3、梁 R2
+
+## どちらを使うか（ひかるの判断 2026-10-06）
+- 単色版（`--flat`）は「のっぺり」して見えるので、**手描きタイルの模様あり版（`python iso.py`）を基本にする**。単色版は比べるために残す
+- 見本がのっぺりして見えないのは、形（梁の格子、ギザギザの不規則さ、小物）が細かいから。単色にするなら、先に形を作り込む必要がある
+
+## 参考キャラ用のパレット（palette_from_ref.py）
+- `python palette_from_ref.py`：参考の絵（`ref/source_sheet.png` の左端）から色を取り出して、系統 U（輪郭の暗いえんじ紫）・V（肌）・W（青緑）・X（赤い上着）・Y（髪・靴・かばんの茶色）を `palette.json` に足し、`sprites/girl_src01.pxl` を作り直す
+- 系統の8段は「絵に実際にあった色」を明るさ順に並べたもの。きれいな段階にはなっていないところがある（例：Y に上着の暗い赤がまざる）。新しい絵に使うときは、基本色だけ取り出して `make_ramp` で作り直すほうがよい
+
+## オリジナルキャラ（gen_char.py）
+- `python gen_char.py` → `sprites/herbgirl.pxl/.png/_big.png`：旅の薬草売りの少女（横向き・右向き、約30×69ドット）
+- 形を塗りつぶしの図形で置いて、パレットの系統で色をつけ、ふちの明暗と輪郭は自動。系統 a（紺の髪）・b（からし色）・c（深い緑）を足した
+- 参考キャラと同じように、暗いえんじ紫の輪郭（U1）を使う
+
+## ゲーム用キャラのきまり（gen_hero.py）
+- 縮尺：1m = 30ドット（家の絵 `iso.py` と同じ）。身長1.6m ≒ 48ドット
+- 1コマ：30×52ドット。基準点＝足もとの地面の線（下から2ドット上）の中央。足はコマごとに同じ高さにそろえる
+- 向き：右向きだけ描く。左向きは左右反転で使う（正面・うしろは別に描く）
+- 歩き：4コマ（開く→そろえて片足あげ→反対に開く→反対あげ）。1コマ約140ms（約7fps）
+- 出力：`assets/character/hero_sheet.png`（4コマを横に並べた1行）、`hero_walk.gif`、`hero_preview.png`、`sprites/hero_walk0〜3.pxl`
+- 顔・腕・足の長さは下書き。足が短く見える／腕がまだらになる
+
+## 手描きの1枚（hand_girl.py）
+- `python hand_girl.py` → `sprites/hand_girl.pxl/.png/_big.png`：旅の薬草売りの少女（右向き、26×59）。文字1つ＝1ドットで、全部手で決めて描いた（外側の輪郭だけ自動）
+- 見本との比べ：形・ポーズ（ひじを外に、手を腰に、歩幅）・スカートのひだは近づいた。顔（3/4の向き、目の色）と髪の毛束の細かさは見本に負けている
+
+## パーツで作る（頭＝gen_head2.py）
+- 参考の絵の大きさ（数え直し）：全体 24×62、髪をふくむ頭 約22×18、顔（肌）約8×10、目は1〜3ドット
+- 頭は 24×20 の部品。体につなぐ位置＝下の中央 x=16。`python gen_head2.py` → `sprites/part_head.pxl/.png/_big.png`、`ref/compare_head.png`（参考と並べた絵）
+- 髪は「毛束のかたまり」を重ねて作る（`gen_head.py` の1枚の丸だと、ヘルメットになった）
+- 次のパーツ：服（上着）→スカート→かばん→足→靴
+
+## パーツの組み合わせ（gen_body.py）
+- `python gen_body.py`：かばん・足・靴・スカート・胴・ひも・スカーフ・腕を別々の絵（`sprites/part_*.png`）で作り、頭（`part_head`）と重ねて `sprites/girl_parts.png` を作る。参考との比べは `ref/compare_full.png`
+- 全パーツ 26×64 の同じ枠で描くので、重ねるだけでつながる。体は頭のうしろ寄りに置く（参考のとおり。`TX` で位置と細さを決める）
+- ひかるの評価（2026-10-06）：前の手描き1枚は、髪・服・顔・ポーズとも20点。パーツ分けは、顔と髪は良くなった。体の組み合わせは、まだ形がかたい
+
+## 関節から作る（gen_rig.py）— 2026-10-06 の繰り返し作業
+- ひかるの指示：「作る→自分で見る→ダメなところを直す、を90点くらいになるまで繰り返す」。途中は見せず、最後に報告
+- 繰り返した内容（約8回）：体を積み木のように重ねる作り方（`gen_body.py`）は硬い紙人形になったので、**関節の座標からポーズを決める作り方**（`gen_rig.py`）に変えた。腕・足・体は骨に沿った太い棒、スカートは腰から流れるひだ
+- 直した点：体が箱 → 歩幅・ひざの曲がり・手を腰に当てたポーズ／腕が胴と同化 → 上腕はクリーム色のそで、前腕は肌（そでをまくる）／頬の毛が傷に見える → 削除／スカートのひだが点線 → 3本の連続した線／靴が大きい → 小さく
+- 自己評価：参考を100として、45〜50点。ポーズ・形は大きく良くなったが、顔（目・口の表情）、服のしわ、髪の毛束の細かさは、参考の半分程度。90点には届いていない
+- 骨のポーズ（POSES）を増やせば、歩きのコマも同じ絵柄で作れる
+
+## 炎の斬撃エフェクト（gen_fire_slash.py）
+- `python gen_fire_slash.py` → `assets/effects/fire_slash_sheet.png`（1600×128：160×128のコマ×10を横に並べた1行）、`fire_slash.gif`、`fire_slash_preview.png`
+- 1回きり。左上→右下にふる三日月の炎。コマ0〜1：ためる小さな火 / 2〜5：弧がのびて先頭が白〜黄、外がわに炎の舌 / 6〜9：しっぽから消えて火の粉が舞う
+- 色はパレットの系統 `f`（濃い赤紫→赤→だいだい→黄→白の8段）。網点（ディザ）で段階に切り、ぽつんと浮いた点は消す。火の粉だけ1〜2ドットで足す
+- 1コマ約70ms（約14fps）が目安。向きを変えるときは、エンジン側で回転・反転する
+
+## 炎の5連撃（gen_fire_combo.py）
+- `python gen_fire_combo.py` → `assets/effects/fire_combo_hit1〜5_sheet.png`（打ごとのシート）、`fire_combo_all_sheet.png`（全44コマを横に並べた1行）、`fire_combo.gif`、`fire_combo_preview.png`
+- 打：①ななめ下ぎり（左上→右下）②ななめ下ぎり（右上→左下）③横なぎ（右→左）④たて斬り（上→下）⑤しあげ（大きなX字＋中央の爆発の輪）。①〜④は8コマ、⑤は12コマ
+- 斬撃は「始点・終点・ふくらみ」で決める（`arc_from_points`）。先頭が太く、うしろへ細く尾を引き、白い軌道の光が先頭にそって一瞬出る
+- 1コマ約60ms、打と打のあいだに120msの間。1コマ 160×128 ドット
+
+## サブマシンガン（gen_smg.py）
+- `python gen_smg.py` → `sprites/smg.pxl/.png/_big.png`（横向き・右向き、約104×54ドット）
+- 骨組みストック、上のレールとサイト、排莢口、通気スリットとシュラウドの穴、斜めのグリップ（滑り止めの格子）、リブ付きマガジン、トリガーガード、マズルデバイス。金属は青灰(S)・鉄(I)、ポリマーは黒(T)、左上から光
+
+## 写真からドット絵（photo_to_pixel.py）
+- `python photo_to_pixel.py ref/smg_photo.jpg 160 名前` → `sprites/名前.pxl/.png/_big.png/_compare.png`（写真と並べた絵）。背景が白い写真の物を、形（シルエット）と明暗を写真から取って、パレットの段階に切る
+- 色は青灰の鋼（S0〜S6）、赤い表示だけ赤（G）。明暗は網点で出し、ぽつんと浮いた点は消す
+- 写真のサブマシンガン（`ref/smg_photo.jpg`）の変換が `mp_c`。形・レール・トリガーガード・グリップ・マガジン・折りたたみストックは写真どおり。細かい刻印や文字は、ドットでは潰れるので省いた
+
+## 炎の精霊（gen_fire_spirit.py）
+- `python gen_fire_spirit.py` → `assets/effects/fire_spirit_sheet.png`（64×64 のコマを 4列×2行＝8コマ、背景は透明）、`fire_spirit.gif`、`fire_spirit_preview.png`
+- 右向き。丸くひかる体、黒ふちに白い芯の目が2つ、うしろ（左）へなびく炎のしっぽ、頭の上の小さな炎の舌、まばらな点の光のもや、ゆっくり上る火の粉。ふわふわ上下（8コマで1周）、7コマ目でまばたき
+- 色はパレットの炎の系統 `f`。1ドットの暗い輪郭、左上から光
+
+## 木のイカダの床 1マス（gen_raft_tile.py）
+- `python gen_raft_tile.py` → `sprites/raft_tile.pxl/.png/_big.png`（66×44ドット）、`sprites/raft_tile_3x2.png`（つなげた確認）
+- ななめ上の視点（2:1）、1m×1m。上面のひし形は 64×32 ドットで、ぴったりつながる。厚み9ドット（手前の左は板の横、右は板の端の年輪）
+- 上面：板5枚（すき間から暗い水）、木目、板のつなぎ目、節2つ、両はしの縄のしばり、くぎ、ふちの苔と水しみ。左上から光
+- 並べるとき：タイルの左端を (+32,+16)（右下の隣）または (+32,-16)（右上の隣）にずらす。奥から手前の順に描く
+
+## 海のマス（gen_sea_tile.py）
+- `python gen_sea_tile.py` → `assets/effects/sea_tile_sheet.png`（64×32の菱形×8コマ、4列×2行）、`sea_tile.gif`、`sea_raft_demo.gif`（6×6マスの海にイカダ3×2を浮かべた確認）
+- 波の式は、マスの中で整数回くり返す周期だけで作っているので、隣とつなぎ目なくつながり、8コマでぴったり1周する。筋は u の方向（右下）へ流れる。色はパレットの系統 `w`（深い青→青緑→あわの白）
+- 白いあわ＝波がしらの線、きらめき＝ときどき1ドット、谷は暗く。網点で段階に切る
+
+## 水ぎわの家と反射（iso_reflect.py）
+`python iso_reflect.py` → assets/effects/house_reflect.gif / _frame0.png。
+家を島に置き、水面（WZ=-0.35）で上下反転。各ドットの高さzを逆算し、高いほど波でゆがみ・網点で薄くなる。色は水へ寄せてパレットの一番近い色に。
+弱点：反射は家の形だけ（つる・小物は未対応）。
+
+## 島のマップ（パーツ方式）
+`python compose_island.py [parts]` → assets/island/（island.png, island_water.gif, island_mask/depth.png, parts/*.png）
+- island_parts.py：部品（Terrain 地形, hut 小屋, pier 桟橋, boat, tree/bush/rock＝球を1ドットずつ計算, props_at）
+- island_map.json：位置だけを書く地図（小屋・桟橋・木・小物）。場所を変えるときはここだけ。
+- 反射は iso_reflect と同じ式（小物の絵も、奥行きから高さが出るので映る）。
+弱点：地形が0.5mの段々、木が丸い玉、小屋の向きが全部同じ、HD-2Dのぼかし・光はエンジン側。
+
+## 網（gen_net.py）
+`python gen_net.py` → assets/effects/net_throw(.gif/_sheet.png)（投げる12コマ＋着水4コマ）, net_float(.gif/_sheet.png)（海にうかぶ4コマ）, net_still.png（透明背景の1枚）。
+あみ目は2:1の斜め線（(x±2y) の格子）、ふちになわ・おもり8・うき4。しずむ中心ほど暗く。
+
+## 網を引き上げる（gen_net_haul.py）
+`python gen_net_haul.py` → assets/effects/net_haul(.gif/_sheet.png)（12コマ）, net_haul_still.png（引き上げた袋）。
+ひろがった網 → ふちをすぼめて持ち上がる → 資材（板・樽・丸太・魚・箱）を包んだ袋。水のしたたりと波紋つき。
+弱点：中身が小さく、あみ目の穴でよく見えない。
+
+## 網の一連（gen_net_sequence.py）
+`python gen_net_sequence.py` → assets/effects/net_sequence.gif / net_sequence_sheet.png（36コマ：投げる12＋着水4＋うかぶ8＋引き上げ12）。
+gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手）にそろえて置く。引き上げ中は、なわが手のほうへ引っぱられる。
+
+## 網の高精細版
+`NET_SCALE=2 python gen_net.py` → net_*_hd.png/gif（網の直径が約2倍、あみ目が細かい）。倍率は NET_SCALE で変えられる（ふつうは1）。
+
+## 赤髪の女性キャラ（gen_redhead.py）
+`python gen_redhead.py` → assets/character/redhead_sheet.png（4行×4列：下・左・右・上）, redhead_walk.gif, redhead_<向き>.gif, redhead_preview.png。
+32×52、頭は手描きの格子、体は手続き。左向きは右向きの反転。パレットに r（赤髪）・s（白シャツ）・k（うすい肌）を追加。参考絵は pixel/ref/redhead_src.png。
+弱点：頭が大きい・まるい、顔が小さい、横向きの腕と胴が薄い。
+
+## 赤髪のちびキャラ（gen_redhead_chibi.py）
+`python gen_redhead_chibi.py` → assets/character/redhead_chibi_sheet.png（4行×4列：下・左・右・上）, _walk.gif, _<向き>.gif, _preview.png（イカダ1マスに立てた大きさ比べ）。
+24×36、身長33ドット、2頭身。頭は手描きの格子（大きな目・ほほの赤み）。
+
+## 金髪ボブのちびキャラ（gen_blonde_chibi.py）
+`python gen_blonde_chibi.py` → assets/character/blonde_chibi_*（sheet / walk.gif / 向き別gif / preview）。24×36、赤い制服・灰色スカート・紺のリボン・赤いリボンの髪。パレットに n（金髪）・u（制服の赤）・g（スカートの灰）を追加。
+網の一連（gen_net_sequence.py）は、このキャラを使う。参考絵は pixel/ref/blonde_ref*。
+
+## 釣竿と漂流物（gen_items.py）
+`python gen_items.py` → assets/items/（rod, rope, stone1, stone2, cloth, bottle, bag, coconut, coconut_cut の各PNG）, items_sheet.png（一覧）, items_float.gif（海にうかんで流れる）。
+ロープ＝ねじれた縄のうず巻き、石＝球のかげ＋こけ、布＝やぶれ・ほつれ・青い縞、プラスチック＝ボトルとビニール袋、ヤシの実＝まるごと／わって水入り。
+
+## 釣竿と漂流物の細かい版（gen_items_hd.py）
+`python gen_items_hd.py [名前]` → assets/items/hd/（rope, stone_round, stone_rock, cloth, bottle, bag, coconut, coconut_cut, rod の各PNGと _x8.png, hd_sheet.png）。
+通常版（gen_items.py）の約2倍。ロープ=3本よりと巻き糸、石=割れ面ごとのかげ、布=ひだのかげ・ぬい目・穴、ボトル=リブ・ラベル・水位、袋=しわ・赤い印字、ヤシ=繊維・3つの目、竿=節・リール・ガイド・うき・はり。
+弱点：袋としみの見え方、ロープの縄目が点描ぽい。
+
+## 漂流物を海にうかべる（gen_items_float.py）
+`python gen_items_float.py` → assets/items/float/<名前>_float.gif（8コマ）, items_float_hd.gif（全部ならべ）。細かい版を水面で切り、水ぎわのあわ・波・波紋・水中のうっすら透けを付ける。水面の位置は ITEMS の表で調整。
+
+## 漂流物が流れてくる場面（gen_items_drift.py）
+`python gen_items_drift.py` → assets/items/float/drift_scene.gif。8つの漂流物が右から左へ流れ、上下にゆれて（3回/周）、底のたびに水しぶき。うしろに波紋とあわ。ちびキャラが桟橋で待つ。細かい版は半分に縮めて、パレットの一番近い色にそろえて使う。
+
+## 水がはねる（斜め上45度）（gen_splash.py）
+`python gen_splash.py` → assets/effects/splash45_sheet.png（透明・20コマ）, splash45.gif, splash45_big.png。
+しぶきを3Dの点で計算し、45度（水面の奥ゆき・高さとも0.707倍）で投影。王冠（奥の内がわ→手前の外がわの順に描く）・中央の水柱・水玉（放物線、着水で小さな輪）・広がる波紋・白いあわ。
+弱点：王冠が小さく、水玉が細かい。
+
+小さい水しぶき：`SPLASH_SCALE=.35 python gen_splash.py` → splash45_small.gif / splash45_sheet_small.png（12コマ、39×29）。漂流物のはね用。倍率は変えられる。
+
+## 音符マーク（gen_notes.py）
+`python gen_notes.py` → assets/ui/note_<♪eighth/♫beamed/♩quarter/♬double>_<white/pink/gold/aqua>.png（16×20、16個）, notes_sheet.png, notes_float.gif（ちびキャラの頭から上がって網点で消える。音符は0.6倍の小さい版）。
+
+音符の高解像度版：assets/ui/x2/（32×40前後）, x3/（48×60前後）, notes_sheet_x2.png / _x3.png。ふちの面取り（左上が明るく右下が暗い）・頭のつや・軸のハイライトを追加。`paint(形, 色, 倍率)` の倍率で作る。

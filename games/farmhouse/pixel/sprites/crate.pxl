@@ -1,0 +1,44 @@
+# 木箱と花（isoの描画道具で描いた板に、花を足した）
+@size 36 41
+@outline sel
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. H6 .. .. .. .. .. .. .. H6 .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. H4 B6 H6 .. D3 D3 .. .. H4 B6 H6 .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. H3 D3 D3 D3 H6 D5 D5 .. H3 .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. D3 E4 K1 D3 H4 B6 H6 D4 D5 E4 .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. D3 E4 D3 E3 D5 H6 K1 H3 D5 H6 D6 E3 D5 E3 .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. K1 K1 D3 D3 E4 E3 H4 B6 H6 E4 H4 B6 H6 E3 E3 D5 D5 D4 .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. D3 D3 D3 D3 K1 K1 D5 E3 D4 H3 D5 E3 D5 H3 K1 E3 D5 D5 D5 D4 D5 D5 .. .. .. .. .. .. ..
+.. .. .. .. .. K1 D3 D3 D3 D3 D3 D4 D3 K1 K1 D5 E4 E4 E3 E3 E4 D6 K1 K1 D5 D6 D6 D5 D5 D4 D6 .. .. .. .. ..
+.. .. .. D3 D3 D3 K1 K1 D4 D3 D3 D3 D2 D3 E4 K1 E3 D5 E4 D6 E3 D5 E3 D5 K1 K1 D5 D6 D5 D5 D6 D5 D5 .. .. ..
+.. D3 D3 D3 D3 D4 D4 D4 K1 K1 D3 D2 D3 D3 D3 E4 E3 E3 K1 E4 E3 E3 D5 D5 D5 D5 K1 K1 D5 D5 D5 D3 D3 D3 D1 ..
+.. D4 K1 D3 D4 D4 D3 D4 D4 D4 K1 K1 D4 D3 D3 D2 E3 D3 D3 K1 E3 D5 D4 D5 D6 D5 D5 D5 K1 K1 D3 D3 D3 D3 D1 ..
+.. D4 D4 D4 K1 K1 D4 D4 D4 D4 D5 D4 K1 K1 D3 D4 D3 D3 D2 D3 D2 K1 K1 D6 D5 D5 D5 D3 D3 D3 D3 K1 D4 D1 D1 ..
+.. D4 D4 D4 D4 K1 K1 D3 D4 D4 D4 D3 D5 D4 K1 K1 D3 D3 D3 D3 D3 D3 D4 K1 K1 D3 D3 D3 D3 D3 D4 D3 D3 K0 K0 ..
+.. D4 D4 D4 D3 K1 D3 D2 K1 K1 D4 D4 D4 D4 D4 D5 K1 K1 D3 D3 D3 D3 D4 D3 D3 K1 D3 D3 D3 D3 D3 K0 K0 D1 D1 ..
+.. D4 D4 D4 D4 K1 D3 D3 D3 K1 K1 D3 D3 D4 D4 D4 D4 D4 K1 K1 D2 D3 D3 D3 D3 D3 D4 D3 D3 K0 K0 D3 D3 D1 D1 ..
+.. D4 D4 D4 D3 K1 D3 D3 D3 K1 D5 D4 K1 D3 D5 D3 D4 D4 D4 D3 K1 K1 D3 D3 D3 D3 D2 K0 K0 D4 D2 D3 D3 D1 D1 ..
+.. D4 D3 D3 D5 K1 D4 D3 D3 K1 D5 D5 D5 D6 K1 D3 D4 D3 D3 D3 D3 D3 D3 D3 D3 K0 K0 D3 D3 D3 D3 D4 D3 D1 D1 ..
+.. D4 D4 D4 D3 K1 D3 D3 D3 K1 D5 D5 D5 D5 K1 D5 K1 D3 D1 D3 D3 D3 D3 K0 K0 D3 D3 D3 D3 D3 D3 D3 D3 D1 K0 ..
+.. D4 D4 D4 D4 K1 D3 D3 D3 K1 D5 D6 D4 D5 K1 D5 D5 D6 D1 D1 D3 K0 K0 D4 D3 D3 D3 D3 D3 D3 D4 D3 K0 K0 D1 ..
+.. D4 D4 D5 D4 K1 D3 D3 D3 K1 D5 D5 D5 D5 K1 D5 D5 D4 D1 K0 K0 D4 D3 D3 D3 D3 D2 D3 D3 D3 K0 K0 D1 D1 D1 ..
+.. D4 D4 D4 D4 K1 D3 D3 D3 K1 D5 D5 D5 D5 K1 D5 D6 D5 K0 D1 D3 D3 D3 D3 D3 D3 D3 D3 K0 K0 D1 D1 D1 D1 D1 ..
+.. D4 D4 D4 D4 K1 D3 D3 D3 K1 D5 D5 D5 D5 K1 D5 D5 D5 D1 D1 D3 D4 D3 D2 D2 D3 K0 K0 D2 D1 D0 D1 D1 D1 D1 ..
+.. D4 D4 D4 D4 K1 D3 D3 D2 K1 D4 D6 D5 D4 K1 D5 D5 D6 D1 D1 D3 D3 D3 D3 K0 K0 D1 D1 D1 D1 D1 D2 D1 D1 D1 ..
+.. D4 D4 D4 D4 K1 D2 D3 D4 K1 D5 D5 D5 D5 K1 D5 D4 D5 D1 D1 D3 D3 K0 K0 D0 D1 D1 D0 D1 D1 D2 D0 D2 K0 K0 ..
+.. D4 D4 D4 D4 K1 D3 D3 D3 K1 D5 D6 D5 D5 K1 D5 D5 D5 D1 D1 K0 K0 D1 D1 D1 D1 D1 D1 D1 D1 D1 K0 K0 D1 D1 ..
+.. D3 D4 D4 D4 K1 D3 D3 D4 K1 D5 D5 D5 D4 K1 D5 D5 D5 K0 K0 D0 D1 D1 D1 D1 D1 D0 D1 D1 K0 K0 D2 D2 D1 D1 ..
+.. D3 D3 D4 D5 K1 D3 D3 D3 K1 D5 D5 D4 D4 K1 D5 D5 D5 D1 D1 D1 D2 D1 D1 D1 D1 D1 K0 K0 D2 D2 D2 D2 D1 D1 ..
+.. D3 D3 D3 D3 K1 D3 D3 D3 K1 D5 D6 D5 D5 K1 D5 D5 D5 D1 D1 D1 D1 D2 D1 D1 K0 K0 D2 D2 D3 D2 D2 D2 D1 D1 ..
+.. D3 D3 D3 D3 K1 D3 D3 D3 K1 D5 D5 D5 D6 K1 D5 D5 D5 D1 D1 D1 D1 D1 K0 K0 D2 D1 D2 D1 D2 D2 D2 D2 D1 K0 ..
+.. .. .. D3 D3 K1 D3 D3 D3 K1 D5 D5 D5 D6 K1 D5 D5 D5 D1 D1 D1 K0 K0 D3 D2 D2 D2 D2 D2 D2 D1 D2 K0 .. .. ..
+.. .. .. .. .. K1 D3 D3 D3 K1 D3 D5 D5 D5 K1 D6 D5 D5 D1 K0 K0 D3 D2 D2 D2 D2 D2 D2 D3 D2 K0 .. .. .. .. ..
+.. .. .. .. .. .. .. D3 D3 K1 D3 D3 D3 D5 K1 D6 D5 D4 K0 D1 D2 D2 D2 D2 D3 D2 D2 D2 K0 .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. K1 D3 D3 D3 D3 K1 D4 D5 D5 D1 D1 D1 D2 D2 D2 D2 D2 K0 .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. D3 D3 D3 K1 D3 D3 D5 D1 D1 D1 D2 D2 D3 K0 .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. D3 K1 D3 D3 D3 D1 D1 D2 D2 K0 .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. D3 D3 D3 D1 D1 K0 .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. D3 K0 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
