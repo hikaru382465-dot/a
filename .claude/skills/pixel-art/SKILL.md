@@ -30,6 +30,7 @@ description: ひかるのドット絵づくりの技術一式（パレット制�
 | 炎・斬撃 | `gen_fire_slash.py`, `gen_fire_combo.py`, `gen_fire_spirit.py` | ベイヤーで段を作る。1コマずつ最大に広がる枠で出力 |
 | 等角（2:1）の建物・島 | `iso.py`, `island_parts.py`, `island_map.json`, `compose_island.py` | パーツ関数＋地図（位置だけ）。奥から手前へ置く。z-buffer。反射は合成のあとで |
 | 手描き模様タイル | `tiles.py`, `sprites/*.pxl`, `pxl.py` | 文字グリッド→パレット色。壁や屋根は「手描きの小さなタイルを並べる」とポツポツしない |
+| 白い市松背景のAI絵シート（catalog2）から切り出す | `games/ikada-machi/raft/cutlib.py` の `cut_checker(path, box, shrink, blank)` | 外のふちとつながった白っぽい所だけ消す→いちばん大きいかたまり。となりの絵が入るときは `blank` で消す。`shrink=3` で置き物（約30px）、`shrink=2` でアイテム（約45px）。暗い面や輪郭も欠けない |
 | AI絵のカタログから置き物を切り出す（イカダの海暮らし） | `games/ikada-machi/raft/make_objs.py`（`icon()`／輪郭が暗い物・光のにじみがある物は `plane_cut()`） | 背景が光でにじむ絵は `plane_cut` のほうが欠けない。`ppu`＝1マスに対する大きさ（幅がマスの約0.8倍になるように、`objects.js` の `PPU_OF`）。暗い輪郭は `cutout()` だと欠けやすい |
 
 ## 失敗から学んだこと（同じ失敗をしない）

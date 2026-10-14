@@ -156,7 +156,12 @@ def plane_cut(box, shrink=2, seal=0):
     img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.BOX)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     q2 = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q2.putalpha(img.getchannel('A')); return q2
-for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('oven', (152, 474, 252, 572), 2), ('crate', (832, 492, 912, 570), 2), ('chest', (726, 492, 820, 570), 3), ('plot', (26, 618, 134, 700), 3)):
+import cutlib
+C2 = here.parent / 'art' / 'items' / 'catalog2.png'
+for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806))):      # 新しい絵シート（catalog2）から
+    icons[_k] = [entry(cutlib.cut_checker(C2, _b, shrink=3))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
+    _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
+for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('plot', (26, 618, 134, 700), 3)):
     icons[_k] = [entry(plane_cut(_b, shrink=3, seal=_s))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
