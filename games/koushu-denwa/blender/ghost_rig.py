@@ -41,14 +41,21 @@ for i in face:
 # teeth
 import bmesh
 tm=bpy.data.meshes.new('Teeth'); bm=bmesh.new()
-n=12
+import random; random.seed(7)
+from mathutils import Matrix as M
+def tooth(x,y,zc,w,h,up):
+    # tapered tooth: cone, wide at gum, narrow at tip, slightly rounded
+    r=bmesh.ops.create_cone(bm,cap_ends=True,segments=7,radius1=w*0.5,radius2=w*0.28,depth=h,matrix=M.Translation((x,y,zc))@M.Rotation(math.radians(random.uniform(-6,6)),4,'Y')@M.Rotation(0 if up else math.pi,4,'X'))
+n=9
 for k in range(n):
-    t=(k+0.5)/n*2-1; x=t*0.026; y=ly-0.003+0.010*t*t   # arc
-    for zc,hh in ((cz+0.005,0.009),(cz-0.007,0.009)):
-        bmesh.ops.create_cube(bm,size=1.0,matrix=__import__('mathutils').Matrix.Translation((x,y,zc))@__import__('mathutils').Matrix.Diagonal((0.0050,0.006,hh,1)))
+    t=(k+0.5)/n*2-1; x=t*0.024+random.uniform(-0.0008,0.0008); y=ly-0.002+0.012*t*t
+    big=1.35 if abs(t)<0.2 else (1.0 if abs(t)<0.6 else 0.8)
+    # upper row (tips point down), lower row (tips point up)
+    tooth(x,y,cz+0.004+random.uniform(-0.0006,0.0006),0.0044*big+random.uniform(0,0.0008),0.011*big*random.uniform(0.85,1.1),False)
+    if k%1==0: tooth(x+random.uniform(-0.0006,0.0006),y+0.001,cz-0.008+random.uniform(-0.0008,0.0008),0.0040*big,0.0095*big*random.uniform(0.8,1.15),True)
 bm.to_mesh(tm); bm.free()
 to=bpy.data.objects.new('Teeth',tm); bpy.context.scene.collection.objects.link(to)
-mt=bpy.data.materials.new('TeethMat'); mt.use_nodes=True; mt.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value=(0.55,0.5,0.36,1); mt.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value=0.35
+mt=bpy.data.materials.new('TeethMat'); mt.use_nodes=True; mt.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value=(0.52,0.46,0.32,1); mt.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value=0.35
 to.data.materials.append(mt)
 real=[v.co.copy() for v in tm.vertices]
 for v in tm.vertices: v.co=Vector((0,ymed+0.02,cz))
