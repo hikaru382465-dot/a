@@ -43,7 +43,7 @@ button.on{background:#6b4231;color:#fff}
 #pageR{background:linear-gradient(270deg,transparent 94%,#c98d6340)}
 #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;aspect-ratio:1;padding:2px;background:var(--slot);color:var(--ink);border:2px dashed var(--line);border-radius:8px;font-size:10px;min-height:0;line-height:1.1}
-.slot canvas{width:30px;height:30px;image-rendering:pixelated}
+.slot canvas{width:60px;height:60px;margin-top:-6px;image-rendering:auto}
 .slot .n{position:absolute;right:4px;bottom:2px;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
 .slot.empty{opacity:.55}
 .slot.sel{border-style:solid;border-color:var(--accent,#b8654f);box-shadow:0 0 0 2px #b8654f55}
@@ -51,7 +51,7 @@ button.on{background:#6b4231;color:#fff}
 .slot.lock{opacity:.5}
 #detail{display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.6}
 #detail .big{display:flex;align-items:center;gap:12px}
-#detail .big canvas{width:56px;height:56px;image-rendering:pixelated;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px}
+#detail .big canvas{width:96px;height:96px;image-rendering:auto;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px}
 #detail b{font-size:16px}
 #detail p{margin:0}
 #detail .tag{font-size:12px;background:var(--paper2);border-radius:5px;padding:0 6px}
