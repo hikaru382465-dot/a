@@ -96,7 +96,8 @@ def icon(box, shrink=3, tint=None):
     e = entry(im); e['ppu'] = round(max(im.size) / 0.5); return e
 icons = {'wood': [icon((38, 28, 142, 118))], 'floor': [icon((142, 28, 246, 118))], 'cloth': [icon((712, 36, 790, 118))],
          'fish': [icon((26, 136, 136, 208))], 'hammer': [icon((238, 238, 324, 344))], 'net': [icon((1066, 240, 1184, 342))], 'rod': [icon((410, 232, 500, 344), shrink=2)],
-         'iron': [icon((628, 30, 700, 112))], 'grilled': [icon((136, 136, 232, 210))], 'campfire': [icon((940, 618, 1028, 702), shrink=3)], 'seat': [icon((1318, 470, 1396, 594), shrink=3)], 'lamp': [icon((1398, 458, 1438, 586), shrink=2)],  'clay': [icon((438, 32, 524, 118), tint=clay_tint)]}
+         'iron': [icon((628, 30, 700, 112))], 'grilled': [icon((136, 136, 232, 210))], 'campfire': [icon((940, 618, 1028, 702), shrink=3)], 'seat': [icon((1318, 470, 1396, 594), shrink=3)], 'lamp': [icon((1398, 458, 1438, 586), shrink=2)],
+         'rack': [icon((364, 476, 482, 596), shrink=3)], 'oven': [icon((152, 474, 252, 572), shrink=3)], 'crate': [icon((832, 492, 912, 570), shrink=3)], 'chest': [icon((726, 492, 820, 570), shrink=3)], 'plot': [icon((26, 618, 134, 700), shrink=3)],  'clay': [icon((438, 32, 524, 118), tint=clay_tint)]}
 for n, e in list(icons.items()):
     im = Image.open(io.BytesIO(base64.b64decode(e[0]['src'].split(',')[1]))).convert('RGBA'); print(n, im.size, e[0]['ppu'])
     bg = Image.new('RGBA', (im.width * 5, im.height * 5), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 5, im.height * 5), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{n}.png')
@@ -143,9 +144,13 @@ def plane_cut(box, shrink=2):
     img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.BOX)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     q2 = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q2.putalpha(img.getchannel('A')); return q2
+for _k, _b in (('rack', (364, 476, 482, 596)), ('oven', (152, 474, 252, 572)), ('crate', (832, 492, 912, 570)), ('chest', (726, 492, 820, 570)), ('plot', (26, 618, 134, 700))):
+    icons[_k] = [entry(plane_cut(_b, shrink=3))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
+    _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
 out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
+for _k in ('rack', 'oven', 'crate', 'chest', 'plot'): out[_k] = out['icons'][_k]
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
     bg = Image.new('RGBA', (im.width * 6, im.height * 6), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 6, im.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/o_{n}.png')
