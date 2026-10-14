@@ -11,8 +11,8 @@ BOX = {
     'hamachi': (650, 172, 780, 242), 'ika': (764, 32, 846, 140), 'tako': (843, 44, 940, 138), 'ebi': (952, 50, 1074, 142), 'kani': (1086, 44, 1234, 146),
     'hirame': (782, 172, 908, 240), 'kasago': (906, 160, 1050, 246), 'iseebi': (1056, 164, 1130, 262), 'fugu': (1124, 148, 1214, 244),
 }
-CLEAN = dict(pocket=900, fringe=2, pocket_min=40)      # 足のすきま・ひげの輪にとり残された白い背景を消す
-CLEAN_FOR = ('ebi', 'kani', 'iseebi')
+CLEAN = dict(pocket=900, fringe=6, pocket_min=12)      # 足のすきま・ひげの輪にとり残された白い背景を消す
+CLEAN_FOR = ('ebi', 'kani', 'iseebi', 'kurage')
 SHRINK = 1.5      # 1なら元の細かさ（約510KB）。1.5は約230KB
 out = {}; ims = {}
 for k, box in BOX.items():
