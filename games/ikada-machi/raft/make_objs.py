@@ -57,11 +57,10 @@ def cutout(box, dark=48, shrink=None):
         grown |= np.roll(np.roll(inside, dy, 0), dx, 1) & wall
     rgba = np.dstack([a.astype(np.uint8), (grown * 255).astype(np.uint8)])
     img = Image.fromarray(rgba, 'RGBA'); bb = img.getchannel('A').getbbox(); img = img.crop(bb)
-    img = img.resize((max(1, round(img.width / (shrink or SHRINK))), max(1, round(img.height / (shrink or SHRINK)))), Image.BOX)
+    img = img.resize((max(1, round(img.width / (shrink or SHRINK))), max(1, round(img.height / (shrink or SHRINK)))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     # 色数をへらして、ドット絵っぽくそろえる
-    rgb = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); rgb.putalpha(img.getchannel('A'))
-    return rgb
+    return img      # 色はへらさない（元の色のまま）
 
 def entry(img): return {'src': png(img), 'w': img.width, 'h': img.height}
 
@@ -153,9 +152,9 @@ def plane_cut(box, shrink=2, seal=0):
                 if cnt > best[0]: best = (cnt, n)
     fg = lab == best[1]
     img = Image.fromarray(np.dstack([a.astype(np.uint8), (fg * 255).astype(np.uint8)]), 'RGBA'); img = img.crop(img.getchannel('A').getbbox())
-    img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.BOX)
+    img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
-    q2 = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q2.putalpha(img.getchannel('A')); return q2
+    return img      # 色はへらさない
 import cutlib
 C2 = here.parent / 'art' / 'items' / 'catalog2.png'
 for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806)), ('barrel', (140, 704, 236, 800)), ('bed', (1190, 730, 1292, 820)), ('shelf', (1290, 696, 1388, 822)), ('windmill', (1386, 696, 1462, 830)), ('hut', (20, 816, 190, 968))):      # 新しい絵シート（catalog2）から
@@ -210,7 +209,7 @@ def make_rod():
     def fin(img):
         img = img.resize((max(1, round(img.width * sc)), H), Image.BOX); al = np.array(img.getchannel('A')); px = np.array(img.convert('RGB')).astype(int); white = (px.min(axis=2) > 175)      # 背景の白っぽい色を消す
         img.putalpha(Image.fromarray((((al > 90) & ~white) * 255).astype(np.uint8)))
-        q = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q.putalpha(img.getchannel('A')); return q
+        return img
     ff, fb = fin(imf), fin(imb)
     ab = np.array(fb); ab[14:, 21:, 3] = 0; ab[9:14, 29:, 3] = 0; fb = Image.fromarray(ab, 'RGBA')      # ウキと糸だけ消す（投げたあとは、水の中のウキを使う）
     # ざおの先（いちばん上の、いちばん右）を、絵の中の位置で出す

@@ -39,6 +39,6 @@ def cut_checker(path, box, shrink=2, blank=None, colors=28):
         big = max(cs, key=len); fg = np.zeros((h, w), bool)
         for (yy, xx) in big: fg[yy, xx] = True
     img = Image.fromarray(np.dstack([a.astype(np.uint8), (fg * 255).astype(np.uint8)]), 'RGBA'); img = img.crop(img.getchannel('A').getbbox())
-    img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.BOX)
+    img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
-    q2 = img.convert('RGB').quantize(colors, dither=Image.NONE).convert('RGB'); q2.putalpha(img.getchannel('A')); return q2
+    return img      # 元の色のまま（色数はへらさない）
