@@ -43,7 +43,10 @@ void main(){
   vec3 woodR=vec3(.40,.26,.17)*band;
   col=mix(col,woodR,own*(r1*.62+r2*(1.-r1)*.3));
   float f=.2+.07*sin(uTime*1.5-d*6.)+.04*sin(q.x*5.+uTime);
-  col=mix(col,uFoam,step(d,f));
+  float hh=h21(floor(q*16.)+floor(uTime*1.4)*3.7);
+  float fo=f+.05;
+  float foam=max(step(d,fo),max(step(d,fo+.26)*step(.5,hh),step(d,.8)*step(.92,hh)*.85));
+  col=mix(col,uFoam,foam);
   // 海っぽさ：大きなうねり・きらきら・イカダの映りこみ
   col*=1.+.07*sin(q.x*.35+uTime*.3)*sin(q.y*.3-uTime*.25);
   float tw=floor(uTime*2.5);
