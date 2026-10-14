@@ -11,15 +11,22 @@ BOX = {
     'hamachi': (650, 172, 780, 242), 'ika': (764, 32, 846, 140), 'tako': (843, 44, 940, 138), 'ebi': (952, 50, 1074, 142), 'kani': (1086, 44, 1234, 146),
     'hirame': (782, 172, 908, 240), 'kasago': (906, 160, 1050, 246), 'iseebi': (1056, 164, 1130, 262), 'fugu': (1124, 148, 1214, 244),
 }
-CLEAN = dict(pocket=900, fringe=2, pocket_min=40)      # 足のすきま・ひげの輪にとり残された白い背景を消す
-CLEAN_FOR = ('ebi', 'kani', 'iseebi')
+CLEAN = dict(pocket=900, fringe=6, pocket_min=12)      # 足のすきま・ひげの輪にとり残された白い背景を消す
+CLEAN_FOR = ('ebi', 'kani', 'iseebi', 'kurage')
+# 2まいめの新シート（catalog3）から切るもの。マグロは、前のシートの絵がマグロらしくなかったので、こちらに差しかえた
+C3 = here.parent / 'art' / 'items' / 'catalog3.png'
+BOX3 = {
+    'maguro': (678, 58, 814, 156), 'katsuo': (540, 58, 676, 156), 'sake': (816, 66, 942, 150), 'tachiuo': (1058, 72, 1190, 136), 'karei': (1188, 64, 1306, 140),
+    'shirakansu': (1394, 58, 1522, 140), 'anago': (760, 206, 872, 300), 'utsubo': (876, 208, 994, 300), 'manbo': (1280, 202, 1400, 292), 'iruka': (1396, 212, 1510, 302),
+}
 SHRINK = 1.5      # 1なら元の細かさ（約510KB）。1.5は約230KB
 out = {}; ims = {}
-for k, box in BOX.items():
-    im = cutlib.cut_checker(C2, box, shrink=SHRINK, **(CLEAN if k in CLEAN_FOR else {}))
+for k, box in {**BOX, **BOX3}.items():
+    SRC = C3 if k in BOX3 else C2
+    im = cutlib.cut_checker(SRC, box, shrink=SHRINK, **(CLEAN if k in CLEAN_FOR else {}))
     for _ in range(8):      # 範囲のふちにふれていたら、見切れているので、少しずつ広げる
         if not cutlib.LAST_TOUCH: break
-        box = (box[0] - 4, box[1] - 4, box[2] + 4, box[3] + 4); im = cutlib.cut_checker(C2, box, shrink=SHRINK, **(CLEAN if k in CLEAN_FOR else {}))
+        box = (box[0] - 4, box[1] - 4, box[2] + 4, box[3] + 4); im = cutlib.cut_checker(SRC, box, shrink=SHRINK, **(CLEAN if k in CLEAN_FOR else {}))
     ims[k] = im
     buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
     out[k] = {'src': 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': im.width, 'h': im.height}

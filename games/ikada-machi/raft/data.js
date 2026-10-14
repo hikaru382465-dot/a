@@ -132,6 +132,15 @@ window.RAFT.data = {
     iseebi: { name: 'イセエビ', lv: 3, star: 3, w: 1.5, by: 'net', tip: '長いひげ。ごちそうの王様' },
     maguro: { name: 'マグロ',   lv: 4, star: 3, w: 2,  by: 'rod', tip: '大きな魚。釣りざおが重い！' },
     kajiki: { name: 'カジキ',   lv: 4, star: 3, w: 1.5, by: 'rod', great: true, wx: 'storm', tip: '角のある魚。嵐のあとに会えることも' },
+    katsuo: { name: 'カツオ',   lv: 2, star: 1, w: 5,  time: 'day', tip: 'すばしこい群れの魚。昼のあかるい海が好き' },
+    sake:   { name: 'サーモン', lv: 2, star: 1, w: 4,  time: 'dusk', tip: '夕方、まっすぐ泳いでくる魚' },
+    karei:  { name: 'カレイ',   lv: 2, star: 1, w: 3,  wx: 'calm', tip: '海の底にぺたり。ヒラメとは目の向きがちがう' },
+    tachiuo:{ name: 'タチウオ', lv: 3, star: 2, w: 3,  time: 'night', tip: '銀色の細長い魚。夜の海でキラリと光る' },
+    anago:  { name: 'アナゴ',   lv: 3, star: 2, w: 3,  time: 'night', tip: '岩のあなにひそむ、細長い魚' },
+    utsubo: { name: 'ウツボ',   lv: 3, star: 2, w: 2,  time: 'night', tip: '岩かげから、がぶり！ こわい顔だけど、はずかしがり' },
+    manbo:  { name: 'マンボウ', lv: 4, star: 3, w: 1.5, wx: 'calm', tip: 'ぷかぷか浮かぶ、まるい魚。凪の日にのんびり' },
+    iruka:  { name: 'イルカ',   lv: 4, star: 3, w: 1,  time: 'day', by: 'rod', tip: '人なつこい海の友だち。晴れた昼に会えることも' },
+    shirakansu: { name: 'シーラカンス', lv: 4, star: 3, w: 0.7, by: 'rod', great: true, tip: '大昔から生きている、まぼろしの魚' },
     kurage: { name: 'クラゲ',   lv: 4, star: 2, w: 3,  wx: 'calm', by: 'net', tip: 'ふわふわ浮かぶ。凪の日に多い' }
   },
   SCENES: {

@@ -67,7 +67,7 @@ window.RAFT.parts.hud = function (c) {
   function renderFish() {
     const FA = (window.RAFT && window.RAFT.fishArt) || {}, ids = Object.keys(D.FISH), dex = s.fishdex || {}, got = ids.filter(k => dex[k]).length;
     const img = (k, on, h) => FA[k] ? `<img src="${FA[k].src}" style="width:100%;height:${h}px;object-fit:contain;${on ? '' : 'filter:brightness(0);opacity:.28;'}">` : '';
-    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた魚 ${got} / ${ids.length}</div>` + ids.map(k => { const f = D.FISH[k], on = dex[k]; return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}" style="aspect-ratio:1.3">${img(k, on, 38)}<span class="nm">${on ? f.name : '？？？'}</span></button>`; }).join('');
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた魚 ${got} / ${ids.length}</div>` + ids.map(k => { const f = D.FISH[k], on = dex[k]; return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}" style="aspect-ratio:1.6">${img(k, on, 30)}<span class="nm">${on ? f.name : '？？？'}</span></button>`; }).join('');
     $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
     const f = D.FISH[sel], on = f && dex[sel], stars = f ? '★'.repeat(f.star) + '☆'.repeat(3 - f.star) : '';
     const hint = f ? [f.time ? { dawn: '朝', day: '昼', dusk: '夕方', night: '夜' }[f.time] + 'に多い' : '', f.wx ? { calm: '凪', storm: '嵐', sunny: '晴れ' }[f.wx] + 'の日に多い' : '', f.by === 'rod' ? '釣りざおで' : f.by === 'net' ? '網で' : '', 'Lv' + f.lv + 'の網から'].filter(Boolean).join('・') : '';
@@ -215,6 +215,7 @@ window.RAFT.parts.hud = function (c) {
   $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene'); $('tFish').onclick = () => setTab('fish');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
+  $('bDexAll').onclick = () => { Object.keys(D.FISH).forEach(k => { s.fishdex[k] = s.fishdex[k] || 1; }); Object.keys(D.SCENES).forEach(k => { s.scenes[k] = s.scenes[k] || 1; }); $('helpbox').style.display = 'none'; toast('図鑑を全部のせた（テスト）。持ち物の本で「魚」「景色」を見てね'); };
   $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
   $('bHelp').onclick = () => { $('helpbox').style.display = 'block'; };
   $('bHelpClose').onclick = () => { $('helpbox').style.display = 'none'; };
