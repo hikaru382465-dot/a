@@ -162,8 +162,8 @@ for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), 
     icons[_k] = [entry(cutlib.cut_checker(C2, _b, shrink=HI))]; icons[_k][0]['hi'] = 3 // HI; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 # アイテムの絵（持ち物・漂流物）も、新しいシートから縮めずに切り出す
-for _k, _b in (('wood', (1026, 326, 1110, 420)), ('floor', (1100, 346, 1196, 434)), ('fish', (22, 56, 134, 126)), ('grilled', (1392, 370, 1514, 446)), ('lamp', (1458, 702, 1512, 812))):
-    _im = cutlib.cut_checker(C2, _b, shrink=1); icons[_k] = [entry(_im)]; icons[_k][0]['hi'] = 1; icons[_k][0]['ppu'] = round(max(_im.size) / (0.5 if _k not in ('lamp',) else 1.0))
+for _k, _b, _bl in (('wood', (1024, 324, 1126, 426), (84, 72)), ('floor', (1100, 346, 1196, 434), None), ('fish', (22, 56, 134, 126), None), ('grilled', (1392, 370, 1514, 446), None), ('lamp', (1458, 702, 1512, 812), None)):
+    _im = cutlib.cut_checker(C2, _b, shrink=1, blank=_bl); icons[_k] = [entry(_im)]; icons[_k][0]['hi'] = 1; icons[_k][0]['ppu'] = round(max(_im.size) / (0.5 if _k not in ('lamp',) else 1.0))
     if _k == 'fish':
         _d = dried_tint(_im); icons['dried'] = [entry(_d)]; icons['dried'][0]['hi'] = 1; icons['dried'][0]['ppu'] = round(max(_d.size) / 0.5)
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
