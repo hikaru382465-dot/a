@@ -156,9 +156,10 @@ def plane_cut(box, shrink=2, seal=0):
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     return img      # 色はへらさない
 import cutlib
+HI = 1      # 新しいシートの切り出しは、縮めずに元の細かさで（ゲームでは、なめらかに縮めて出す）
 C2 = here.parent / 'art' / 'items' / 'catalog2.png'
 for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806)), ('barrel', (140, 704, 236, 800)), ('bed', (1190, 730, 1292, 820)), ('shelf', (1290, 696, 1388, 822)), ('windmill', (1386, 696, 1462, 830)), ('hut', (20, 816, 190, 968))):      # 新しい絵シート（catalog2）から
-    icons[_k] = [entry(cutlib.cut_checker(C2, _b, shrink=3))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
+    icons[_k] = [entry(cutlib.cut_checker(C2, _b, shrink=HI))]; icons[_k][0]['hi'] = 3 // HI; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('plot', (26, 618, 134, 700), 3)):
     icons[_k] = [entry(plane_cut(_b, shrink=3, seal=_s))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)

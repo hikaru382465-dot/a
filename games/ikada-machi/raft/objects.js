@@ -39,13 +39,13 @@ window.RAFT.parts.objects = function (c) {
     I.dot(g, 17, 21 + (f ? 2 : 0), P.blue3); if (f) I.dot(g, 17, 20, P.blue2);
     return outline(cv, g);
   }
-  const mk = (cv, ppu) => ({ cv, ppu });
+  const mk = (cv, ppu, hi) => ({ cv, ppu, hi });
   const art = { bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
   // ひかるの絵（objs_art.js）。読み込めたら、コードで描いた仮の絵のかわりに使う
   const OA = R.objArt; let oaLeft = 0;
   const SH_OF = { campfire: 1.15, bench: 1.3, rack: 1.15, oven: 0.95, crate: 0.8, chest: 0.9, plot: 1.05, seat: 0.7, barrel: 0.8, bed: 1.15, shelf: 0.9, windmill: 0.9, hut: 1.5 };      // 足もとの影の大きさ（物ごと）
   const PPU_OF = { campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36, barrel: 34, bed: 30, shelf: 34, windmill: 36, hut: 34 }, ART_KEYS = ['bench', 'tank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'];
-  if (OA) ART_KEYS.forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], PPU_OF[kk] || 34)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
+  if (OA) ART_KEYS.forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], (PPU_OF[kk] || 34) * (f2.hi ? f2.hi : 1), !!f2.hi)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
   const glowTex = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,190,100,1)'); gr.addColorStop(.4, 'rgba(255,130,50,.4)'); gr.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c.tex(cv); })();
   const shGeo = new THREE.PlaneGeometry(0.85, 0.85); shGeo.rotateX(-Math.PI / 2);
   const shTex = (() => { const [cv, g] = I.canvas(32, 32), gr = g.createRadialGradient(16, 16, 2, 16, 16, 16); gr.addColorStop(0, 'rgba(18,10,28,.55)'); gr.addColorStop(.7, 'rgba(18,10,28,.35)'); gr.addColorStop(1, 'rgba(18,10,28,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
@@ -56,8 +56,8 @@ window.RAFT.parts.objects = function (c) {
     while (group.children.length) group.remove(group.children[0]); items.clear();
     s.objects.forEach(o => {
       const a = art[o.k]; if (!a) return;
-      const m = c.sprite(a[0].cv, { x: o.x + 0.5, y: TOP, z: o.z + 0.5, ppu: a[0].ppu }); group.add(m);
-      const tex = a.map(f => c.tex(f.cv));
+      const m = c.sprite(a[0].cv, { x: o.x + 0.5, y: TOP, z: o.z + 0.5, ppu: a[0].ppu, smooth: a[0].hi }); group.add(m);
+      const tex = a.map(f => c.tex(f.cv, { smooth: f.hi }));
       const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(o.x + 0.5, TOP + 0.004, o.z + 0.5); sh.rotation.y = Math.PI / 4; sh.scale.setScalar(SH_OF[o.k] || 0.9); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
       const it = { m, tex, o, last: -1 };
