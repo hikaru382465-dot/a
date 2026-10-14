@@ -27,6 +27,11 @@ window.RAFT.data = {
     crate:   { name: '木箱',     lv: 0, w: 0, place: true, tip: '飾り。荷物を置いた感じになる' },
     chest:   { name: '宝箱',     lv: 0, w: 0, place: true, tip: '飾り。かっこいい箱' },
     plot:    { name: 'プランター', lv: 0, w: 0, place: true, tip: '飾り。草が育つ小さい畑' },
+    barrel:  { name: '樽',       lv: 0, w: 0, place: true, tip: '飾り。水の樽（のちに、水をためられるようにしたい）' },
+    bed:     { name: 'ベッド',   lv: 0, w: 0, place: true, tip: '飾り。ふかふかのベッド（のちに、ねて回復できるようにしたい）' },
+    shelf:   { name: '本棚',     lv: 0, w: 0, place: true, tip: '飾り。本や瓶をならべた棚' },
+    windmill:{ name: '風車',     lv: 0, w: 0, place: true, tip: '飾り。小さな風車' },
+    hut:     { name: '小屋',     lv: 0, w: 0, place: true, tip: '飾り。わらぶき屋根の小屋（大きい）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -45,6 +50,11 @@ window.RAFT.data = {
     { id: 'chest', out: 'chest', cost: { wood: 6, iron: 2 }, need: 'bench', tip: '鉄で補強した宝箱' },
     { id: 'plot', out: 'plot', cost: { wood: 5, cloth: 1 }, need: 'bench', tip: '草のプランターを置く' },
     { id: 'oven', out: 'oven', cost: { wood: 2, clay: 6, iron: 1 }, need: 'bench', tip: '粘土で作る石のかまど（飾り）' },
+    { id: 'barrel', out: 'barrel', cost: { wood: 6, iron: 1 }, need: 'bench', tip: '木の樽を作る' },
+    { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
+    { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
+    { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
+    { id: 'hut', out: 'hut', cost: { wood: 14, cloth: 4, rope: 4 }, need: 'bench', tip: 'わらぶきの小屋（飾り）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）

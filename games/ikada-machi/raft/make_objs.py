@@ -158,7 +158,7 @@ def plane_cut(box, shrink=2, seal=0):
     q2 = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q2.putalpha(img.getchannel('A')); return q2
 import cutlib
 C2 = here.parent / 'art' / 'items' / 'catalog2.png'
-for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806))):      # 新しい絵シート（catalog2）から
+for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), ('chest', (18, 700, 138, 806)), ('barrel', (140, 704, 236, 800)), ('bed', (1190, 730, 1292, 820)), ('shelf', (1290, 696, 1388, 822)), ('windmill', (1386, 696, 1462, 830)), ('hut', (20, 816, 190, 968))):      # 新しい絵シート（catalog2）から
     icons[_k] = [entry(cutlib.cut_checker(C2, _b, shrink=3))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('plot', (26, 618, 134, 700), 3)):
@@ -167,7 +167,7 @@ for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('plot', (26, 618, 134, 70
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
 out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
-for _k in ('rack', 'oven', 'crate', 'chest', 'plot'): out[_k] = out['icons'][_k]
+for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
     bg = Image.new('RGBA', (im.width * 6, im.height * 6), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 6, im.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/o_{n}.png')
