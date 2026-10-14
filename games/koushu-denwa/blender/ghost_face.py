@@ -14,10 +14,43 @@ def lum_of(i):
 lum=[lum_of(i) for i in range(len(me.vertices))]
 bvh=BVHTree.FromObject(o,bpy.context.evaluated_depsgraph_get())
 ly=bvh.ray_cast(Vector((0,-1,cz)),Vector((0,1,0)))[0].y; print('ly',ly)
+# lip paint
+from PIL import Image as PI
+pts=[(v.co.x,v.co.z,*vuv[v.index]) for v in me.vertices if abs(v.co.x)<0.05 and abs(v.co.z-cz)<0.03 and abs(v.co.y-ly)<0.02 and lum[v.index]>0.12]
+A=np.array([[1,p[0],p[1]] for p in pts]); cu=np.linalg.lstsq(A,np.array([p[2] for p in pts]),rcond=None)[0]; cv=np.linalg.lstsq(A,np.array([p[3] for p in pts]),rcond=None)[0]
+print('uvfit pts',len(pts))
+src=PI.open('gout/texture_pbr_20250901.png').convert('RGB'); arr=np.array(src).astype(np.float32)
+Hh,Ww=arr.shape[:2]
+J=np.array([[cu[1],cu[2]],[cv[1],cv[2]]]); Ji=np.linalg.inv(J)
+u0=cu[0]; v0=cv[0]
+us=np.arange(int(max(0,(cu[0]-0.06*abs(cu[1])-0.04)*Ww)),int(min(Ww,(cu[0]+0.06*abs(cu[1])+0.04)*Ww)))
+vs_=np.arange(int(max(0,(cv[0]-0.05*abs(cv[2])-0.04)*Hh)),int(min(Hh,(cv[0]+0.05*abs(cv[2])+0.04)*Hh)))
+uu,vv=np.meshgrid(us/Ww,vs_/Hh)   # v from bottom, rows from bottom
+d=np.stack([uu-u0,vv-v0],-1)@Ji.T
+X=d[...,0]; Z=d[...,1]
+def ss(t): t=np.clip(t,0,1); return t*t*(3-2*t)
+dz=Z; up=np.clip(dz/0.0085,0,2); lo=np.clip(-dz/0.0105,0,2)
+band=np.where(dz>=0,1-ss((up-0.85)/0.4),1-ss((lo-0.85)/0.4))
+band=np.where(np.abs(dz)<0.0004,1,band)
+mx=1-ss((np.abs(X)-0.021)/0.011)
+M_=(band*mx*0.85).astype(np.float32)
+lipc=np.array([172,48,58],np.float32)
+rows=(Hh-1-vs_)   # PIL rows from top
+sub=arr[rows[:,None],us[None,:]]
+mixed=sub*(1-M_[...,None])+((sub*0.35+lipc*0.65))*M_[...,None]
+arr[rows[:,None],us[None,:]]=mixed
+PI.fromarray(arr.clip(0,255).astype(np.uint8)).save('gout/Ghost_albedo.png')
+for m in me.materials:
+    for nd in m.node_tree.nodes:
+        if nd.type=='TEX_IMAGE' and nd.image and nd.image.name=='texture_pbr_20250901.png':
+            nd.image=bpy.data.images.load('gout/Ghost_albedo.png',check_existing=True)
 bm=bmesh.new(); bm.from_mesh(me); bm.verts.ensure_lookup_table(); bm.faces.ensure_lookup_table()
 n0=len(bm.verts)
 # --- 1. cut hole
-sel=[f for f in bm.faces if (lambda c:(c.x/0.026)**2+((c.z-cz)/0.0125)**2<1 and abs(c.y-ly)<0.03 and f.normal.y<-0.15)(f.calc_center_median())]
+fe=[e for e in bm.edges if all(abs(v.co.x)<0.05 and abs(v.co.z-cz)<0.024 and abs(v.co.y-ly)<0.03 for v in e.verts) and any(f.normal.y<-0.1 for f in e.link_faces)]
+bmesh.ops.subdivide_edges(bm,edges=fe,cuts=2,use_grid_fill=True)
+bm.verts.ensure_lookup_table(); bm.faces.ensure_lookup_table()
+sel=[f for f in bm.faces if (lambda c:(c.x/0.027)**2+((c.z-cz)/0.0095)**2<1 and abs(c.y-ly)<0.03 and f.normal.y<-0.15)(f.calc_center_median())]
 print('hole faces',len(sel))
 selset=set(sel)
 bedges=[e for f in sel for e in f.edges if sum(1 for lf in e.link_faces if lf in selset)==1]
@@ -27,6 +60,12 @@ bmesh.ops.delete(bm,geom=sel,context='FACES_ONLY')
 bm.edges.ensure_lookup_table()
 bedges=[e for e in bedges if e.is_valid]
 print('boundary edges',len(bedges))
+HX=0.027; HU=0.0075; HL=0.0135; PW=2.6
+for v in ring0:
+    if not v.is_valid: continue
+    a=v.co.x/HX; hz=HU if v.co.z>=cz else HL; b=(v.co.z-cz)/hz
+    sct=(abs(a)**PW+abs(b)**PW)**(-1/PW)
+    v.co.x=a*sct*HX; v.co.z=cz+b*sct*hz
 new_verts=set(); new_faces=[]
 cur=bedges
 steps=((0.006,0.97),(0.008,0.9),(0.010,0.75),(0.010,0.55),(0.008,0.35))
@@ -54,31 +93,38 @@ for f in new_faces:
 print('cavity verts',len(new_verts),'ring',len(ring0))
 # --- 2. teeth + tongue
 random.seed(7)
-tooth_f=[];tongue_f=[]
-def tooth(x,y,zc,w,h,up_row):
-    r=bmesh.ops.create_cone(bm,cap_ends=True,segments=7,radius1=w*0.5,radius2=w*0.26,depth=h,
-        matrix=M.Translation((x,y,zc))@M.Rotation(math.radians(random.uniform(-6,6)),4,'Y')@M.Rotation(math.pi if up_row else 0,4,'X'))
-    vs=r['verts']; return vs
-upper=[];lower=[]
-nT=10
-for k in range(nT):
-    t=(k+0.5)/nT*2-1; x=t*0.022+random.uniform(-0.0006,0.0006); y=ly+0.007+0.013*t*t
-    big=1.35 if abs(t)<0.2 else (1.0 if abs(t)<0.6 else 0.78)
-    upper+=tooth(x,y,cz+0.0065,0.0043*big,0.0095*big*random.uniform(0.85,1.1),True)
-    lower+=tooth(x+random.uniform(-0.0005,0.0005),y+0.0015,cz-0.0066,0.0039*big,0.0085*big*random.uniform(0.8,1.15),False)
-# tongue
-rt=bmesh.ops.create_uvsphere(bm,u_segments=12,v_segments=8,radius=1.0,matrix=M.Translation((0,ly+0.017,cz-0.0095))@M.Diagonal((0.011,0.014,0.0035,1)))
-tongue=rt['verts']
+upper=[];lower=[];
+def rbox(x,y,zc,w,d,h,ang):
+    before=set(bm.verts)
+    r=bmesh.ops.create_cube(bm,size=1.0,matrix=M.Translation((x,y,zc))@M.Rotation(ang,4,'Z')@M.Diagonal((w,d,h,1)))
+    vs=r['verts']; es=list({e for v in vs for e in v.link_edges})
+    bmesh.ops.bevel(bm,geom=vs+es,offset=0.0007,segments=2,affect='EDGES')
+    return set(bm.verts)-before
+W_=[0.0056,0.0044,0.0046,0.0042,0.0040]
+xs=[];acc=0.0
+for k,w in enumerate(W_):
+    xs.append(acc+w/2); acc+=w
+for side in (-1,1):
+    for k,w in enumerate(W_):
+        x=side*xs[k]; slope=2*0.013*x/0.022**2; ang=math.atan(slope)*0.8
+        y=ly+0.006+0.013*(x/0.022)**2
+        hh=0.0100*(1.12 if k==0 else 1.0)*(1.06 if k==2 else 1.0)
+        upper+=rbox(x,y,cz+0.0030+(0.0 if k else -0.0003)-0.0000,w*0.99,0.0035,hh,ang)
+        # lower row: smaller, tips up
+        lower+=rbox(x*0.98,y+0.0018,cz-0.0090,w*0.80,0.0030,0.0085,ang)
+tg=bmesh.ops.create_uvsphere(bm,u_segments=12,v_segments=8,radius=1.0,matrix=M.Translation((0,ly+0.019,cz-0.0115))@M.Diagonal((0.012,0.014,0.0035,1)))
+tongue=tg['verts']
 # material per added geometry
-for v in upper+lower:
+for v in list(upper)+list(lower):
     for f in v.link_faces: f.material_index=2
 for v in tongue:
     for f in v.link_faces: f.material_index=3
+bmesh.ops.triangulate(bm,faces=bm.faces[:])
 bm.verts.index_update()
 ID=dict(ring={v.index for v in ring0 if v.is_valid},cav={v.index for v in new_verts},up={v.index for v in upper},lo={v.index for v in lower},tg={v.index for v in tongue})
 bm.to_mesh(me); bm.free()
 mats=me.materials
-for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.52,0.46,0.32,1),0.3),('Tongue',(0.28,0.07,0.08,1),0.45)):
+for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.80,0.77,0.70,1),0.25),('Tongue',(0.55,0.2,0.22,1),0.45)):
     m=bpy.data.materials.new(nm); m.use_nodes=True; b=m.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value=col; b.inputs['Roughness'].default_value=rough; mats.append(m)
 print({k:len(v) for k,v in ID.items()},len(me.vertices))
 V=me.vertices
@@ -86,15 +132,18 @@ openco={v.index:v.co.copy() for v in V}
 mouthset=ID['ring']|ID['cav']
 closed={}
 for i in mouthset:
-    c=openco[i]; closed[i]=Vector((c.x,c.y,cz+(c.z-cz)*0.06))
+    c=openco[i]; closed[i]=Vector((c.x,c.y,cz+(c.z-cz)*0.02))
+grin_teeth={}
 for i in ID['lo']|ID['tg']:
-    c=openco[i]; closed[i]=Vector((c.x,c.y,c.z+0.0078))
+    c=openco[i]; closed[i]=Vector((c.x,c.y+0.008,c.z+0.0075)); grin_teeth[i]=Vector((c.x,c.y,c.z+0.0047))
+for i in ID['up']:
+    c=openco[i]; closed[i]=Vector((c.x,c.y+0.008,c.z+0.004)); grin_teeth[i]=c.copy()
 # smile deltas
 def smile_delta(c):
     d=Vector((0,0,0))
     for s in (-1,1):
         g=math.exp(-(((c.x-s*0.027)**2)+((c.z-cz)**2))/(2*0.012**2))
-        d+=Vector((s*0.004*g,-0.001*g,0.0075*g))
+        d+=Vector((s*0.006*g,-0.001*g,0.0105*g))
     return d
 front=lambda c: abs(c.x)<0.07 and abs(c.z-cz)<0.05 and c.y<ly+0.045 and c.y>ly-0.03
 sm={}
@@ -110,7 +159,7 @@ for i,c in openco.items(): k1.data[i].co=c
 k2=o.shape_key_add(name='Smile')
 for i,c in sm.items(): k2.data[i].co=closed.get(i,openco[i])+c
 k3=o.shape_key_add(name='Grin')
-for i,c in openco.items(): k3.data[i].co=c+sm.get(i,Vector((0,0,0)))
+for i,c in openco.items(): k3.data[i].co=(grin_teeth[i] if i in grin_teeth else closed.get(i,c).lerp(c,0.38))+sm.get(i,Vector((0,0,0)))
 # --- armature
 arm=bpy.data.armatures.new('GhostRig'); ao=bpy.data.objects.new('GhostRig',arm); bpy.context.scene.collection.objects.link(ao)
 bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='EDIT')
@@ -168,3 +217,4 @@ def shot(n,j,s,g,loc=(0,-1.2,1.39),tgt=(0,0,1.39)):
     sc.render.filepath=f"//gout/f_{n}.png"; bpy.ops.render.render(write_still=True)
 shot('0',0,0,0); shot('1',1,0,0); shot('2',0,1,0); shot('3',0,0,1)
 shot('4',0,0,1,loc=(0.9,-0.9,1.45))
+cam.lens=200; shot('5',0,0,1,loc=(0,-1.2,1.39))
