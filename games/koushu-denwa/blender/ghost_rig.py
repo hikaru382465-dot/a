@@ -1,0 +1,85 @@
+import bpy, math, numpy as np
+from mathutils import Vector
+bpy.ops.wm.open_mainfile(filepath="gout/ghost.blend")
+o=bpy.data.objects['Ghost']; me=o.data
+bpy.context.view_layer.objects.active=o
+# --- Smile shape key
+img=bpy.data.images['texture_pbr_20250901.png']; W,H=img.size; px=np.array(img.pixels[:]).reshape(H,W,4)
+uv=me.uv_layers.active.data
+vuv={}
+for l in me.loops: vuv[l.vertex_index]=uv[l.index].uv
+def lum(i):
+    u,v=vuv[i]; c=px[min(H-1,int(v*H)),min(W-1,int(u*W))]; return (c[0]+c[1]+c[2])/3
+cz=1.403; mw=0.030
+from mathutils.bvhtree import BVHTree
+bm_=BVHTree.FromObject(o,bpy.context.evaluated_depsgraph_get())
+hit=set(); ysf=[]
+for xi in np.linspace(-0.05,0.05,21):
+    for zi in np.linspace(cz-0.04,cz+0.04,21):
+        loc,nor,idx,d=bm_.ray_cast(Vector((xi,-1,zi)),Vector((0,1,0)))
+        if loc: ysf.append((xi,zi,loc.y))
+ymed=float(np.median([t[2] for t in ysf])); print('ymed',ymed,len(ysf))
+face=[v.index for v in me.vertices if abs(v.co.x)<0.06 and abs(v.co.z-cz)<0.05 and abs(v.co.y-ymed)<0.025]
+print('face',len(face))
+o.shape_key_add(name='Basis'); sk=o.shape_key_add(name='Smile')
+for i in face:
+    c=me.vertices[i].co; dx=abs(c.x); dz=c.z-cz
+    wgt=math.exp(-((dx-0.028)**2)/(2*0.014**2))*math.exp(-(dz**2)/(2*0.016**2))
+    if dz<-0.012: wgt*=0.3
+    s=1 if c.x>=0 else -1
+    sk.data[i].co=Vector((c.x+s*0.010*wgt, c.y-0.002*wgt, c.z+0.016*wgt))
+    # cheek lift
+    # mouth centre lowers slightly
+    if dx<0.014: sk.data[i].co.z-=0.0015*math.exp(-dz**2/(2*0.012**2))
+# --- Armature
+arm=bpy.data.armatures.new('GhostRig'); ao=bpy.data.objects.new('GhostRig',arm); bpy.context.scene.collection.objects.link(ao)
+bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='EDIT')
+def bone(n,h,t,p=None):
+    b=arm.edit_bones.new(n); b.head=h; b.tail=t
+    if p: b.parent=arm.edit_bones[p]; b.use_connect=True
+bone('root',(0,0,0),(0,0,0.9)); bone('spine',(0,0,0.9),(0,0,1.32),'root'); bone('neck',(0,0,1.32),(0,0,1.40),'spine'); bone('head',(0,0,1.40),(0,0,1.62),'neck')
+bpy.ops.object.mode_set(mode='OBJECT')
+for n in ('root','spine','neck','head'): o.vertex_groups.new(name=n)
+for v in me.vertices:
+    z=v.co.z
+    if z<1.26: w=(1,0,0)
+    elif z<1.32: t=(z-1.26)/0.06; w=(1-t,t,0)   # spine->neck
+    elif z<1.40: t=(z-1.32)/0.08; w=(0,1-t,t)
+    else: w=(0,0,1)
+    names=('spine','neck','head')
+    if z<1.26: o.vertex_groups['spine'].add([v.index],1.0,'REPLACE')
+    else:
+        for nm,wt in zip(names,w[:3] if z>=1.32 else (w[0],w[1],0)):
+            pass
+for v in me.vertices:
+    z=v.co.z
+    if z<1.26: g={'spine':1}
+    elif z<1.32: t=(z-1.26)/0.06; g={'spine':1-t,'neck':t}
+    elif z<1.40: t=(z-1.32)/0.08; g={'neck':1-t,'head':t}
+    else: g={'head':1}
+    for k,wt in g.items():
+        if wt>0: o.vertex_groups[k].add([v.index],wt,'REPLACE')
+o.parent=ao; mod=o.modifiers.new('Armature','ARMATURE'); mod.object=ao
+# --- Tilt action
+bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='POSE')
+pb=ao.pose.bones; 
+for f,(r,s) in ((1,(0,0)),(30,(0,0)),(90,(math.radians(28),1)),(150,(math.radians(28),1))):
+    pb['head'].rotation_mode='XYZ'; pb['neck'].rotation_mode='XYZ'
+    pb['head'].rotation_euler=(math.radians(8)*s,r*0.7,0); pb['neck'].rotation_euler=(0,r*0.3,0)
+    pb['head'].keyframe_insert('rotation_euler',frame=f); pb['neck'].keyframe_insert('rotation_euler',frame=f)
+    sk.value=s; sk.keyframe_insert('value',frame=f)
+bpy.ops.object.mode_set(mode='OBJECT')
+ao.animation_data.action.name='Ghost_HeadTilt'
+sc=bpy.context.scene; sc.frame_start=1; sc.frame_end=150
+bpy.ops.wm.save_as_mainfile(filepath="gout/ghost_rig.blend")
+# renders
+sc.render.engine='CYCLES'; sc.cycles.device='CPU'; sc.cycles.samples=32; sc.render.resolution_x=700; sc.render.resolution_y=900
+w=bpy.data.worlds.new('w'); sc.world=w; w.color=(0.25,0.25,0.28)
+l=bpy.data.lights.new('l','SUN'); l.energy=4; lo=bpy.data.objects.new('l',l); sc.collection.objects.link(lo); lo.rotation_euler=(0.8,0.2,0.6)
+cam=bpy.data.cameras.new('c'); co=bpy.data.objects.new('c',cam); sc.collection.objects.link(co); sc.camera=co
+def shot(n,fr,loc,tgt,lens):
+    sc.frame_set(fr); cam.lens=lens; co.location=loc; co.rotation_euler=(Vector(tgt)-Vector(loc)).to_track_quat('-Z','Y').to_euler()
+    sc.render.filepath=f"//gout/r_{n}.png"; bpy.ops.render.render(write_still=True)
+shot('a',1,(0,-1.1,1.4),(0,0,1.4),85)     # no smile
+shot('b',90,(0,-1.1,1.4),(0,0,1.4),85)    # smile+tilt
+shot('c',90,(0,-3.2,0.9),(0,0,0.9),50)
