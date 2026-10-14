@@ -17,7 +17,7 @@ def components(mask, minpx=50, reach=2):
                             if 0 <= Y < h and 0 <= X < w and mask[Y, X] and not lab[Y, X]: lab[Y, X] = n; q.append((Y, X)); pts.append((Y, X))
                 if len(pts) >= minpx: out.append(pts)
     return out
-def cut_checker(path, box, shrink=2, blank=None, colors=28):
+def cut_checker(path, box, shrink=2, blank=None, colors=28, pocket=0, fringe=0, pocket_min=80):
     """外のふちとつながった白っぽい所だけを消して切り出す（絵の中の白は残る）。いちばん大きいかたまりだけ残す。"""
     im = Image.open(path).convert('RGB').crop(box); a = np.array(im).astype(int); h, w = a.shape[:2]
     bgl = (a.min(axis=2) > 205) & ((a.max(axis=2) - a.min(axis=2)) < 28)
@@ -34,6 +34,15 @@ def cut_checker(path, box, shrink=2, blank=None, colors=28):
         for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             Y, X = cy + dy, cx + dx
             if 0 <= Y < h and 0 <= X < w and bgl[Y, X] and not om[Y, X]: om[Y, X] = True; q.append((Y, X))
+    if pocket:      # 絵の中にとり残された、小さい背景（足のすきま・ひげの輪の中）も消す
+        inner = bgl & ~om; labp = np.zeros((h, w), bool)
+        for pts in components(inner, minpx=1, reach=1):
+            if pocket_min <= len(pts) < pocket:
+                for (yy, xx) in pts: om[yy, xx] = True
+    if fringe:      # 背景ととなりあう、白っぽいふち（にじみ）も消す
+        lite = (a.min(axis=2) > 165) & ((a.max(axis=2) - a.min(axis=2)) < 40)
+        for _ in range(fringe):
+            p = np.pad(om, 1); near = p[:-2, 1:-1] | p[2:, 1:-1] | p[1:-1, :-2] | p[1:-1, 2:]; om = om | (near & lite)
     fg = ~om
     cs = components(fg, minpx=50, reach=2)
     if cs:
