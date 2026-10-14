@@ -2,6 +2,7 @@
 import numpy as np
 from collections import deque
 from PIL import Image
+LAST_TOUCH = False
 def components(mask, minpx=50, reach=2):
     h, w = mask.shape; lab = np.zeros((h, w), int); n = 0; out = []
     for y in range(h):
@@ -38,6 +39,7 @@ def cut_checker(path, box, shrink=2, blank=None, colors=28):
     if cs:
         big = max(cs, key=len); fg = np.zeros((h, w), bool)
         for (yy, xx) in big: fg[yy, xx] = True
+    global LAST_TOUCH; LAST_TOUCH = bool(fg[0, :].any() or fg[-1, :].any() or fg[:, 0].any() or fg[:, -1].any())      # 切り出し範囲のふちにふれていたら、絵が見切れているかもしれない
     img = Image.fromarray(np.dstack([a.astype(np.uint8), (fg * 255).astype(np.uint8)]), 'RGBA'); img = img.crop(img.getchannel('A').getbbox())
     img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
