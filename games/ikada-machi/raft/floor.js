@@ -25,6 +25,7 @@ window.RAFT.parts.floor = function (c) {
   const topT = c.tex(topCv(), { repeat: true }), sideT = c.tex(sideCv(), { repeat: true });
   const topM = new THREE.MeshLambertMaterial({ map: topT }), sideM = new THREE.MeshLambertMaterial({ map: sideT });
   const group = new THREE.Group(); scene.add(group);
+  const FENCE = false;      // ふちの柵（ひかるの希望でいまは無し。trueで戻る）
   const rail = new THREE.Group(); scene.add(rail);
   const postM = new THREE.MeshLambertMaterial({ color: '#6b4429' }), ropeM = new THREE.MeshLambertMaterial({ color: '#c49a62' });
   const postG = new THREE.BoxGeometry(0.08, 0.34, 0.08), ropeG = new THREE.BoxGeometry(1, 0.035, 0.035);
@@ -46,7 +47,7 @@ window.RAFT.parts.floor = function (c) {
       [[x0, z0], [x1, z1]].forEach(([px, pz]) => { const k = px + ',' + pz; if (posts.has(k)) return; posts.add(k); const p = new THREE.Mesh(postG, postM); p.position.set(px, TOP + 0.17, pz); rail.add(p); });
       [0.27, 0.15].forEach(h => { const r = new THREE.Mesh(ropeG, ropeM); r.position.set((x0 + x1) / 2, TOP + h, (z0 + z1) / 2); if (z0 !== z1) r.rotation.y = Math.PI / 2; rail.add(r); });
     };
-    s.raft.cells.forEach(([x, z]) => {
+    if (FENCE) s.raft.cells.forEach(([x, z]) => {
       if (!has.has(x + ',' + (z - 1))) E(x, z, x + 1, z);
       if (!has.has(x + ',' + (z + 1))) E(x, z + 1, x + 1, z + 1);
       if (!has.has((x - 1) + ',' + z)) E(x, z, x, z + 1);
