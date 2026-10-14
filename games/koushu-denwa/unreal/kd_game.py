@@ -49,6 +49,10 @@ ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩ける�
 START_POS = []                 # 開始位置を決め打ちにする：[x, y, z]（cm）。[] なら使わない。PlayerStart を動かしても変わらないときに使う（アウトライナーで、置きたい場所の位置の数字をコピー）
 MANUAL_WALK = "auto"           # 歩けないときの、歩く仕組み。"auto"＝動かないときだけ自分で動かす／"on"＝いつも自分で動かす／"off"＝使わない
 WALKABLE_ANGLE = 70.0          # 歩ける坂の角度（度）。テンプレは約45度。急な坂で歩けず、すべって落ちるときに大きくする。0 なら変えない
+PHONE_BACK = 25.0              # 電話機の「触る点」：奥の壁から手前へ何cm
+PHONE_Z = -30.0                # 電話機の「触る点」の高さ（ボックスの中心から。－が下）。電話機が見えている高さに合わせる
+HATCH_Z = -105.0               # 電話の下のふたの高さ（ボックスの中心から）。足元近くを見て E
+PHONE_COIN_COST = 1            # 電話をかけるときの10円の枚数
 ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
 READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
@@ -125,6 +129,10 @@ SETTINGS_DESCR = {
     "START_POS": "開始位置を決め打ち：[x, y, z]。空 [] なら使わない。PlayerStart を動かしても変わらないとき用",
     "MANUAL_WALK": "歩く仕組み。auto＝キャラが動かないときだけ自分で動かす／on／off",
     "WALKABLE_ANGLE": "歩ける坂の角度（度）。急な坂で歩けないとき大きく。0なら変えない",
+    "PHONE_BACK": "電話機の触る点を、奥の壁から手前へ何cm にするか",
+    "PHONE_Z": "電話機の触る点の高さ（ボックスの中心から。マイナスが下）",
+    "HATCH_Z": "電話の下のふたの高さ（ボックスの中心から）",
+    "PHONE_COIN_COST": "電話1回に必要な10円の枚数",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
@@ -232,7 +240,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -356,6 +364,8 @@ class Game:
         self.dial_body = found.get("DialSafe_Body")                  # ダイヤル式の金庫（本体と、回るつまみ）
         self.dial_knob = found.get("DialSafe_Knob")
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
+        self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
+        self.hatch_open = False
         self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
         log("触れる物: 10円=%s 本=%s 金庫=%s" % (label_of(self.coin) if self.coin else "なし", label_of(self.book) if self.book else "なし（BOOK_LABEL を直す）", label_of(self.safe) if self.safe else "なし（SAFE_LABEL を直す）"))
         self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
@@ -621,6 +631,8 @@ class Game:
             self.tick_reading()
         elif self.state == "SAFE":
             self.tick_safe(dt)
+        elif self.state == "PHONE":
+            self.tick_phone(dt)
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
@@ -644,6 +656,8 @@ class Game:
                 screen(self.world, "バタン！（とじこめられた）", (255, 120, 120), 4.0)
                 self.fade(False, 0.8)
         elif self.state == "TRAPPED":
+            if getattr(self, "deferred", None):
+                self.on_flag(self.deferred.pop(0))
             self.tick_trapped(dt)
             self.tick_items(loc)
         elif self.state == "DEAD":
@@ -699,6 +713,129 @@ class Game:
                 log("  (紙のゆれを止めます) %s" % e)
                 self.sway = []
                 return
+
+    def phone_point(self):
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        return unreal.Vector(self.cx - nx * (self.half_n - PHONE_BACK), self.cy - ny * (self.half_n - PHONE_BACK), getattr(self, "cz", 200.0) + PHONE_Z)
+
+    def hatch_point(self):
+        p = self.phone_point()
+        return unreal.Vector(p.x, p.y, getattr(self, "cz", 200.0) + HATCH_Z)
+
+    def looking_at_pt(self, p, rng, thr=0.93):
+        try:
+            eye, rot = self.eye_info()
+            d = unreal.Vector(p.x - eye.x, p.y - eye.y, p.z - eye.z)
+            dist = math.sqrt(d.x * d.x + d.y * d.y + d.z * d.z) or 1.0
+            if dist > rng:
+                return False
+            f = unreal.MathLibrary.get_forward_vector(rot)
+            return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > thr
+        except Exception:  # noqa
+            return False
+
+    # ---- 電話の下のふた ----
+    def open_hatch(self):
+        if not self.has_key:
+            screen(self.world, "ふたには鍵がかかっている（小さな鍵がいる）", (255, 200, 150), 3.0)
+            return
+        self.hatch_open = True
+        self.has_memo = True
+        self.coins += 1
+        screen(self.world, "ふたが開いた。メモと10円を見つけた（10円 %d枚）" % self.coins, (255, 240, 160), 5.0)
+        log("電話の下のふたを開けました（メモ・10円③）")
+        self.after_read = lambda: self.on_flag("ふた")
+        self.begin_read("M_KDReadMemo", 1.33)
+
+    # ---- 電話 ----
+    PHONE_KEYS = [("Zero", "0"), ("One", "1"), ("Two", "2"), ("Three", "3"), ("Four", "4"), ("Five", "5"), ("Six", "6"), ("Seven", "7"), ("Eight", "8"), ("Nine", "9"),
+                  ("NumPadZero", "0"), ("NumPadOne", "1"), ("NumPadTwo", "2"), ("NumPadThree", "3"), ("NumPadFour", "4"), ("NumPadFive", "5"), ("NumPadSix", "6"), ("NumPadSeven", "7"), ("NumPadEight", "8"), ("NumPadNine", "9")]
+
+    def begin_phone(self):
+        eye, _r = self.eye_info()
+        try:
+            self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, self.phone_point()))
+        except Exception as e:  # noqa
+            log("  (電話のほうを向けません) %s" % e)
+        self.lock_input(True)
+        self.state, self.state_t = "PHONE", 0.0
+        self.digits = ""
+        log("電話を使い始めました")
+
+    def end_phone(self):
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def tick_phone(self, dt):
+        try:
+            for name, ch in self.PHONE_KEYS:
+                if self.pc.was_input_key_just_pressed(self._key(name)) and len(self.digits) < 8:
+                    self.digits += ch
+            if self.pc.was_input_key_just_pressed(self._key("BackSpace")):
+                self.digits = self.digits[:-1]
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self._key("Q")):
+                self.end_phone()
+                return
+            if self.state_t > 0.3 and (self.pc.was_input_key_just_pressed(self._key("Enter")) or self.pc.was_input_key_just_pressed(self._key("E"))) and self.digits:
+                num, self.digits = self.digits, ""
+                self.phone_call(num)
+        except Exception as e:  # noqa
+            log("  (電話のキーを読めません) %s" % e)
+        if int(self.t * 8) != getattr(self, "_ph_k", -1):
+            self._ph_k = int(self.t * 8)
+            txt = "電話  番号: %s_   10円: %d枚   [0〜9] 入れる  [Enter]か[E] かける  [BackSpace] 消す  [Q] やめる" % (self.digits, self.coins)
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(0.8, 1, 1, 1), 0.3, "KD_PHONE_UI")
+            except Exception:  # noqa
+                pass
+
+    def pay(self, n):
+        """10円を払う。足りないとき、0115 だけは、返却口から1枚落ちてくる（詰み防止）"""
+        if self.coins >= n:
+            self.coins -= n
+            return True
+        return False
+
+    def phone_call(self, num):
+        log("電話をかけました: %s（10円 %d枚）" % (num, self.coins))
+        free = {"110", "119"}
+        msgs = {"117": ("ポーン…「7月14日 午前0時を お知らせします」", (200, 230, 255)),
+                "177": ("「神狩村は…赤い雨です」", (255, 160, 160)),
+                "104": ("「お調べします…張り紙は 貼られた順に」", (200, 230, 255))}
+        if num in free:
+            first = not self.lcd_seen
+            screen(self.world, "（声はない。……液晶に文字が出た）  ソト ヒダリ ミギ ヒダリ", (255, 120, 120), 7.0)
+            if first:
+                self.lcd_seen = True
+                self.on_flag("液晶")
+            return
+        if num == "0115":
+            if not self.pay(PHONE_COIN_COST):
+                self.coins += 1
+                screen(self.world, "チャリン…返却口から10円が落ちてきた（10円 %d枚）。もう一度かけてみる" % self.coins, (255, 220, 150), 5.0)
+                return
+            screen(self.world, "「……あの日を……おして……」（女の声）", (255, 120, 120), 8.0)
+            if not self.called_0115:
+                self.called_0115 = True
+                self.on_flag("電話")
+            return
+        if num == "0714":
+            if self.called_0115:
+                screen(self.world, "カチッ。液晶に「2 15 4 9」の文字が、一瞬だけ出た", (255, 120, 120), 8.0)
+                if not self.dialed_0714:
+                    self.dialed_0714 = True
+                    self.on_flag("0714")
+            else:
+                screen(self.world, "ツー、ツー……（つながらない）", (180, 180, 180), 3.0)
+            return
+        if num in msgs:
+            if not self.pay(PHONE_COIN_COST):
+                screen(self.world, "10円が足りない", (255, 200, 150), 3.0)
+                return
+            screen(self.world, msgs[num][0] + "（10円 %d枚）" % self.coins, msgs[num][1], 8.0)
+            return
+        screen(self.world, "ツー、ツー……（つながらない）", (180, 180, 180), 3.0)
 
     def lock_input(self, on):
         for fn in ("set_ignore_move_input", "set_ignore_look_input"):
@@ -980,6 +1117,18 @@ class Game:
                 screen(self.world, "10円を拾った（%d枚）" % self.coins, (255, 220, 150), 3.0)
                 log("10円を拾いました: %d枚" % self.coins)
                 return
+        if self.state == "TRAPPED":
+            hp, pp = self.hatch_point(), self.phone_point()
+            if not self.hatch_open and self.looking_at_pt(hp, ITEM_RANGE + 60.0, 0.95):
+                self.prompt_item("[%s] 電話の下のふたを開ける" % ENTER_KEY, "HATCH")
+                if pressed:
+                    self.open_hatch()
+                    return
+            elif self.looking_at_pt(pp, ITEM_RANGE + 60.0, 0.93):
+                self.prompt_item("[%s] 電話をかける" % ENTER_KEY, "PHONE")
+                if pressed:
+                    self.begin_phone()
+                    return
         if self.dial_body is not None and not self.safe_open and self.state == "TRAPPED" and self.looking_at(self.dial_knob or self.dial_body, ITEM_RANGE):
             self.prompt_item("[%s] 金庫のダイヤルを回す" % ENTER_KEY, "SAFE")
             if pressed:
@@ -1132,6 +1281,7 @@ class Game:
     # 謎が進むほど強い札を使い、使った札は二度と出さない（あとで出せる演出がなくならないよう、1回の謎で出すのは1つだけ）。
     # 謎が進まないまま時間がたつと、持ち札を使わずに「幽霊がじわじわ近づく」圧力だけが増える。
     def start_trapped(self):
+        self.trapped_started = True
         self.set_flash_scale(FLASH_INSIDE * FLASH_OUTSIDE)
         self.steps = []
         self.step_i = 0
@@ -1172,8 +1322,11 @@ class Game:
 
     def on_flag(self, name="?"):
         """謎を1つ解いた（フラグがたった）。演出を1つ選んで出す"""
-        if self.state != "TRAPPED":
+        if self.state not in ("TRAPPED", "PHONE", "SAFE", "READING") or not getattr(self, "trapped_started", False):
             log("(閉じ込められていないので、フラグは無視) %s" % name)
+            return
+        if self.state != "TRAPPED":                              # 電話・金庫・読んでいる最中は、終わってから演出を出す
+            self.deferred = getattr(self, "deferred", []) + [name]
             return
         self.solved += 1
         self.pressure_t = 0.0
