@@ -101,7 +101,12 @@ icons = {'wood': [icon((38, 28, 142, 118))], 'floor': [icon((142, 28, 246, 118))
 for n, e in list(icons.items()):
     im = Image.open(io.BytesIO(base64.b64decode(e[0]['src'].split(',')[1]))).convert('RGBA'); print(n, im.size, e[0]['ppu'])
     bg = Image.new('RGBA', (im.width * 5, im.height * 5), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 5, im.height * 5), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{n}.png')
-def plane_cut(box, shrink=2):
+def _dil(b, n):
+    out = b.copy()
+    for _ in range(n):
+        p = np.pad(out, 1); out = p[1:-1, 1:-1] | p[:-2, 1:-1] | p[2:, 1:-1] | p[1:-1, :-2] | p[1:-1, 2:]
+    return out
+def plane_cut(box, shrink=2, seal=0):
     """背景がぼやけた光の輪になっている絵用：外のふちから背景を平面でフィットして、ちがう所だけを残す。"""
     a = np.array(cat.crop(box)).astype(float); h, w = a.shape[:2]
     ys, xs = np.mgrid[0:h, 0:w]; edge = np.zeros((h, w), bool); edge[:6, :] = edge[-6:, :] = True; edge[:, :6] = edge[:, -6:] = True
@@ -114,6 +119,7 @@ def plane_cut(box, shrink=2):
     pad = np.pad(L, 1, mode='edge'); stack = np.stack([pad[dy:dy + h, dx:dx + w] for dy in range(3) for dx in range(3)]); sd = stack.std(axis=0)
     halo = (mx - mn < 45) & (L > 60) & (L < 170) & (sd < 7)
     m &= ~halo
+    m0 = m; m = _dil(m, seal) if seal else m
     om = np.zeros((h, w), bool); q = deque()
     for x in range(w):
         for y in (0, h - 1):
@@ -127,6 +133,7 @@ def plane_cut(box, shrink=2):
             Y, X2 = cy + dy, cx + dx
             if 0 <= Y < h and 0 <= X2 < w and not m[Y, X2] and not om[Y, X2]: om[Y, X2] = True; q.append((Y, X2))
     fg = ~om
+    if seal: fg &= ~(_dil(om, seal) & ~m0)
     lab = np.zeros((h, w), int); best = (0, 0); n = 0
     for y in range(h):
         for x in range(w):
@@ -144,8 +151,8 @@ def plane_cut(box, shrink=2):
     img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.BOX)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     q2 = img.convert('RGB').quantize(28, dither=Image.NONE).convert('RGB'); q2.putalpha(img.getchannel('A')); return q2
-for _k, _b in (('rack', (364, 476, 482, 596)), ('oven', (152, 474, 252, 572)), ('crate', (832, 492, 912, 570)), ('chest', (726, 492, 820, 570)), ('plot', (26, 618, 134, 700))):
-    icons[_k] = [entry(plane_cut(_b, shrink=3))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
+for _k, _b, _s in (('rack', (354, 474, 488, 600), 0), ('oven', (152, 474, 252, 572), 2), ('crate', (832, 492, 912, 570), 2), ('chest', (726, 492, 820, 570), 3), ('plot', (26, 618, 134, 700), 3)):
+    icons[_k] = [entry(plane_cut(_b, shrink=3, seal=_s))]; icons[_k][0]['ppu'] = round(max(icons[_k][0]['w'], icons[_k][0]['h']) / 0.62)
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
 out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}

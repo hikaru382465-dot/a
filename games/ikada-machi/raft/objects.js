@@ -43,6 +43,7 @@ window.RAFT.parts.objects = function (c) {
   const art = { bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
   // ひかるの絵（objs_art.js）。読み込めたら、コードで描いた仮の絵のかわりに使う
   const OA = R.objArt; let oaLeft = 0;
+  const SH_OF = { campfire: 1.15, bench: 1.3, rack: 1.15, oven: 0.95, crate: 0.8, chest: 0.9, plot: 1.05, seat: 0.7 };      // 足もとの影の大きさ（物ごと）
   const PPU_OF = { campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36 }, ART_KEYS = ['bench', 'tank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot'];
   if (OA) ART_KEYS.forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], PPU_OF[kk] || 34)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
   const glowTex = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,190,100,1)'); gr.addColorStop(.4, 'rgba(255,130,50,.4)'); gr.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c.tex(cv); })();
@@ -57,7 +58,7 @@ window.RAFT.parts.objects = function (c) {
       const a = art[o.k]; if (!a) return;
       const m = c.sprite(a[0].cv, { x: o.x + 0.5, y: TOP, z: o.z + 0.5, ppu: a[0].ppu }); group.add(m);
       const tex = a.map(f => c.tex(f.cv));
-      const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(o.x + 0.5, TOP + 0.004, o.z + 0.5); sh.rotation.y = Math.PI / 4; sh.scale.setScalar(o.k === 'campfire' ? 1.15 : o.k === 'bench' ? 1.3 : 0.9); group.add(sh);     // 足もとの影（浮いて見えないように）
+      const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(o.x + 0.5, TOP + 0.004, o.z + 0.5); sh.rotation.y = Math.PI / 4; sh.scale.setScalar(SH_OF[o.k] || 0.9); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
       const it = { m, tex, o, last: -1 };
       if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
