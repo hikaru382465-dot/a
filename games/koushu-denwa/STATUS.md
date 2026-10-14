@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **幽霊の3D化（進行中）**：Meshy で作った形は良いが、ダウンロードが有料（PRO）。公式の Tencent HY 3D Global（`hy3d.tencent.ai`、メールのコードで登録、1日20回ほど無料の情報）を試す。3面図を、正面・真横・真後ろの3枚に切り出した（`assets/concept/ghost_front.png` / `ghost_side.png` / `ghost_back.png`。1024角・灰色の無地）。「Multi-view」に入れる。`vismint.com` は公式ではなく有料の別会社なので、使わない
+
 - **幽霊のイメージ画像ができた**（ChatGPT作。`assets/concept/ghost_turnaround.png`＝正面・真横・真後ろ、`ghost_head.png`＝顔と髪の寄り）：濡れた長い黒髪で目が隠れた女、白い着物風のワンピース（すそがやぶれ、赤黒い染み）、裸足、青白い肌、Aポーズ。次：作り方を決める（A＝Blenderで私が作る／B＝Meshyなどで画像から3Dを作ってBlenderで整える）→リグ→ゲームに入れる
 
 - **土曜日まで、ゲームの動作確認は止める（ひかるの都合）**。その間は幽霊のキャラ作り：①ChatGPTでイメージ画像（前・横・後ろの3面図＋顔の寄り）を作ってもらう ②その画像をもとに、Blenderで幽霊を作る（ゲーム用の軽い形、リグ付き）③`kd_game.py` の仮の幽霊（`Ghost`）と入れ替える。土曜日に試すもの：電話・ふた・金庫・歩き・木の当たり判定（`kd_trees_collision.py`）・`PUZZLE_COUNT=8`
