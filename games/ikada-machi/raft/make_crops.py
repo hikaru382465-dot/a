@@ -18,7 +18,7 @@ def soil(im):      # プランターの草（緑）を、土の色にぬりか�
     n = (np.sin(np.arange(a.shape[0])[:, None] * 12.9 + np.arange(a.shape[1])[None, :] * 78.2) * 43758.5 % 1.0)
     base = np.array([78, 52, 34.0]); k = (0.78 + 0.35 * n)[..., None]
     a[..., :3] = np.where(green[..., None], base * k, a[..., :3]); return Image.fromarray(a.astype(np.uint8), 'RGBA')
-planter = soil(cut((1138, 730, 1250, 792)))
+planter = soil(cut((1000, 728, 1114, 794)))
 STAGES = [cut((598, 752, 628, 784)), cut((662, 752, 700, 792)), cut((732, 728, 794, 792))]      # 種・芽・育ち中（みんな共通）
 FINAL = {      # 実のなった姿（作物ごと）
     'tomato': (798, 402, 896, 492), 'potato': (930, 402, 1034, 492), 'carrot': (1050, 402, 1156, 492),

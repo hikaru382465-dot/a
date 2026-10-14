@@ -28,7 +28,7 @@ window.RAFT.data = {
     oven:    { name: 'かまど',   lv: 0, w: 0, place: true, tip: '飾り。石のかまど（焼くのは焚き火で）' },
     crate:   { name: '木箱',     lv: 0, w: 0, place: true, tip: '飾り。荷物を置いた感じになる' },
     chest:   { name: '宝箱',     lv: 0, w: 0, place: true, tip: '飾り。かっこいい箱' },
-    plot:    { name: 'プランター', lv: 0, w: 0, place: true, tip: '置いて、タップ。種袋をまくと、野菜が育つ' },
+    plot:    { name: '畑', lv: 0, w: 0, place: true, tip: '置いて、タップ。種袋をまくと、野菜が育つ' },
     barrel:  { name: '樽',       lv: 0, w: 0, place: true, tip: '飾り。水の樽（のちに、水をためられるようにしたい）' },
     bed:     { name: 'ベッド',   lv: 0, w: 0, place: true, tip: '飾り。ふかふかのベッド（のちに、ねて回復できるようにしたい）' },
     shelf:   { name: '本棚',     lv: 0, w: 0, place: true, tip: '飾り。本や瓶をならべた棚' },
