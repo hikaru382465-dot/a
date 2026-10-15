@@ -188,6 +188,14 @@ out = {'ppu': 40, 'icons': icons, 'bench': [_hi(entry(bench2))], 'tank': [_hi(en
 _nt = _loopclear(cutlib.cut_checker(here.parent / 'art' / 'items' / 'catalog3.png', (556, 386, 746, 566), shrink=1)); out['icons']['net'] = [_hi(entry(_nt))]; out['icons']['net'][0]['ppu'] = round(max(_nt.size) / 0.62)      # 投網（持ち物・手にもつ絵）
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
+# 小屋の「夜」の絵（窓に明かり）：昼の絵と同じ大きさにそろえる。夜は2コマ目に切りかえる（objects.js）
+_hd = Image.open(io.BytesIO(base64.b64decode(out['hut'][0]['src'].split(',')[1]))).convert('RGBA')
+_hn = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'night_src.png', (120, 140, 830, 790), shrink=1, pocket=3000, fringe=2, pocket_min=60).resize(_hd.size, Image.BOX)
+_en = entry(_hn); _en['hi'] = 3; _en['ppu'] = out['hut'][0].get('ppu'); out['hut'] = [out['hut'][0], _en]
+# 小屋の中の絵（入ったときに出す）：別ファイル hut_art.js
+_ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior.png', (0, 0, 1536, 1024), shrink=1); _ti = _ti.resize((_ti.width // 2, _ti.height // 2), Image.BOX)
+_bf = io.BytesIO(); _ti.save(_bf, 'PNG', optimize=True)
+(here / 'hut_art.js').write_text('window.RAFT.hutArt = ' + json.dumps({'interior': 'data:image/png;base64,' + base64.b64encode(_bf.getvalue()).decode(), 'w': _ti.width, 'h': _ti.height}) + ';\n', encoding='utf-8')
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
     bg = Image.new('RGBA', (im.width * 6, im.height * 6), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 6, im.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/o_{n}.png')

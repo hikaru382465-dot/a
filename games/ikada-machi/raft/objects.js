@@ -78,6 +78,7 @@ window.RAFT.parts.objects = function (c) {
       let idx = 0;
       if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / D.ITEMS.tank.cap * 3));
       else if (it.o.k === 'filter') idx = (it.o.p > 0 && Math.floor(t * 2) % 2) ? 1 : 0;
+      else if (it.o.k === 'hut') idx = (s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > 1 ? 1 : 0;
       else if (it.o.k === 'plot') { const cr = it.o.c && D.CROPS[it.o.c]; if (cr) { const f = it.o.p / cr.sec; idx = f >= 1 ? 4 + Math.max(0, (R.cropIds || []).indexOf(it.o.c)) : f < 0.12 ? 1 : f < 0.4 ? 2 : 3; } }
       if (idx !== it.last) { it.m.material.map = it.tex[idx]; it.last = idx; }
     });
