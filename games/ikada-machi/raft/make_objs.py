@@ -196,7 +196,7 @@ _en = entry(_hn); _en['hi'] = 3; _en['ppu'] = out['hut'][0].get('ppu'); out['hut
 _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1536, 1024), shrink=1, trim=False); _bx = _ti.getchannel('A').getbbox(); _ti = _ti.crop(_bx); IW, IH = _ti.size      # 余白は切りおとす（ベッドの位置は、この切りおとし分をひく）
 _ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
 _runs = [(116, 417), (652, 955), (1180, 1519), (1681, 2021), (2250, 2553), (2786, 3093), (3320, 3621), (3860, 4157)]      # 相棒だけ（ベッドなし）の足パタパタ。ベッドは部屋の絵の1枚のまま
-_fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'girl_sheet.png', ((a + b) // 2 - 210, 420, (a + b) // 2 + 210, 1000), shrink=1, fringe=1, trim=False) for a, b in _runs]
+_fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'girl_sheet.png', ((a + b) // 2 - 210, 420, (a + b) // 2 + 210, 1000), shrink=1, fringe=1, trim=False, bgthr=(238, 14), seam=True) for a, b in _runs]
 def _align(frames, top=0.36):      # コマごとのずれを、頭・体の上の部分の「重さの中心」をそろえて直す（足は動いてよいので、見ない）
     import numpy as _np
     def cen(f):
