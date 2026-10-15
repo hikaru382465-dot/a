@@ -211,3 +211,6 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 .sn-av{width:54px;height:54px;border-radius:50%;background:#8d6bb5;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
 .sn-prof h3{margin:2px 0}.sn-tbl{margin:12px auto 0;border-collapse:collapse;font-size:12px;text-align:left}
 .sn-tbl td{border-top:1px solid #e4e8f0;padding:4px 8px}.sn-tbl td:first-child{color:var(--muted)}
+
+.term{border-bottom:1.5px dotted #2f6fdd;cursor:pointer;color:#1a4fa0}
+.term:hover{background:#e6effd}

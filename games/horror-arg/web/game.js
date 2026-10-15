@@ -206,6 +206,7 @@
           h("span", {}, "投稿：", h("b", {}, e.time)), h("span", {}, "端末：", h("b", {}, e.device)));
         if (e.origin) meta.append(h("span", {}, "投稿元コード：", h("b", {}, e.origin)));
         const bodyEl = h("div", { class: "det-body" }, e.body.map(t => h("p", {}, t)));
+        window.Apps.decorate(e, bodyEl);
         if (e.photo) {
           const info = h("div", { class: "photo-info hidden" });
           const bInfo = h("button", { class: "btn", style: "margin-top:6px", onclick: () => {
@@ -506,7 +507,7 @@
   $("#tb-mute").addEventListener("click", e => { const m = S.toggleMute(); e.currentTarget.classList.toggle("off", m); });
   window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden") && document.activeElement.tagName !== "BUTTON") boot(); });
   $("#login-site").textContent = D.siteName + "　管理画面";
-  window.Apps.bind({ h, openWin, toast, S, state: () => state, save, norm, D, refreshBadges: () => updateBadge() });
+  window.Apps.bind({ h, openWin, toast, S, state: () => state, save, norm, D, wins: () => wins, focus: focusWin, refreshBadges: () => updateBadge() });
   window.Gimmicks.bind({ D, S, state: () => state, save, tab: () => tab, selId: () => selId, wins: () => wins, openMemo,
     clockEl: () => $("#tb-clock"), clockMin: () => clockMin, paintClock });
   showLogin();

@@ -73,7 +73,9 @@ window.Apps = (function () {
     const hit = E().search.entries.filter(en => (en.minDay || 0) <= day() && en.keys.some(k => nq.includes(norm(k))));
     return hit.length ? hit.flatMap(en => en.results) : [];
   }
-  function openSearch() {
+  let searchHandle = null;
+  function openSearch(q0) {
+    if (api.wins().search && searchHandle) { api.focus("search"); if (q0) searchHandle.go(q0); return; }
     const SD = E().search, st = api.state();
     const input = h("input", { class: "sr-input", placeholder: "ことばで さがす", autocomplete: "off" });
     const sugg = h("div", { class: "sr-sugg hidden" });
@@ -111,7 +113,9 @@ window.Apps = (function () {
     input.addEventListener("keydown", e => { if (e.key === "Enter") go(input.value.trim()); });
     api.openWin("search", "さがす", h("div", { class: "sr" }, h("div", { class: "sr-bar" }, h("span", { class: "sr-mini" }, SD.siteName), h("div", { class: "sr-box" }, input, sugg),
       h("button", { class: "btn primary", onclick: () => go(input.value.trim()) }, "さがす")), main), { w: 720, h: 500, x: 190, y: 40 });
+    searchHandle = { go };
     home();
+    if (q0) go(q0);
   }
 
   // ---------- ひとこと（SNS風） ----------
@@ -132,14 +136,36 @@ window.Apps = (function () {
     paint();
   }
 
+  // 本文の「調べられる言葉」に下線をつける（2日目から）。押すと「さがす」が開く
+  function decorate(e, bodyEl) {
+    if (day() < 2) return;
+    const words = E().terms[e.base] || [];
+    let any = false;
+    words.forEach(w => {
+      for (const p of bodyEl.querySelectorAll("p")) {
+        const tn = [...p.childNodes].find(n => n.nodeType === 3 && n.textContent.includes(w));
+        if (!tn) continue;
+        const i = tn.textContent.indexOf(w);
+        const mid = tn.splitText(i); mid.splitText(w.length);
+        const span = h("span", { class: "term", title: "「さがす」で調べる", onclick: () => { api.S.click(); openSearch(w); } }, w);
+        mid.replaceWith(span); any = true; break;
+      }
+    });
+    const st = api.state();
+    if (any && !st.flags.termHint) {
+      st.flags.termHint = true; api.save();
+      setTimeout(() => api.toast("ヒント", "本文の下線の言葉は、タップすると「さがす」で調べられます。"), 1200);
+    }
+  }
+
   // ---------- アイコンの定義（game.js が使う） ----------
   function iconDefs() {
     const d = day(), out = [];
     out.push({ key: "mail", label: "メール", glyph: "✉", color: "linear-gradient(135deg,#4c9b6f,#2c6e4a)", fn: openMail, badge: unread });
     out.push({ key: "site", label: "公開サイト", glyph: "◎", color: "linear-gradient(135deg,#c9784a,#8f4a25)", fn: openSite });
-    if (d >= 2) out.push({ key: "search", label: "さがす", glyph: "⌕", color: "linear-gradient(135deg,#3b8bb0,#215f80)", fn: openSearch });
+    if (d >= 2) out.push({ key: "search", label: "さがす", glyph: "⌕", color: "linear-gradient(135deg,#3b8bb0,#215f80)", fn: () => openSearch() });
     if (d >= 3) out.push({ key: "sns", label: "ひとこと", glyph: "✦", color: "linear-gradient(135deg,#b04f8a,#7a2f5f)", fn: openSns });
     return out;
   }
-  return { bind, iconDefs, unread, onApprove, newOddCount, openMail };
+  return { bind, iconDefs, unread, onApprove, newOddCount, openMail, decorate };
 })();
