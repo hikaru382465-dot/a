@@ -168,7 +168,19 @@ for _k, _b, _bl, _src in (('seed', (30, 750, 92, 808), None, 'C3'), ('veg', (30,
     if _k == 'fish':
         _d = dried_tint(_im); icons['dried'] = [entry(_d)]; icons['dried'][0]['hi'] = 1; icons['dried'][0]['ppu'] = round(max(_d.size) / 0.5)
 _boat = plane_cut((398, 712, 648, 866)); icons['boat'] = [entry(_boat)]; icons['boat'][0]['ppu'] = 52
-out = {'ppu': 40, 'icons': icons, 'bench': [entry(bench)], 'tank': [entry(tank_level(tank, l)) for l in range(4)], 'filter': [entry(drip(frame, 0)), entry(drip(frame, 1))]}
+# 作業台・貯水槽・ろ過器（真水器）も、新しい絵シートから縮めずに切る（ほかの置き物と絵のタッチをそろえる）
+_CD = here.parent / 'art' / 'items' / 'catalog_dark.png'
+bench2 = cutlib.cut_checker(C2, (930, 720, 1050, 830), shrink=1)
+tank2 = cutlib.cut_checker(C2, (244, 694, 344, 816), shrink=1, pocket=900, fringe=3, pocket_min=12)
+frame2 = cutlib.cut_plane(_CD, (716, 880, 792, 980), shrink=1, thr=46)
+def _drip2(img, on):
+    a = np.array(img).copy()
+    if on:
+        h, w = a.shape[:2]
+        for dy, c in ((1, (140, 205, 245)), (3, (180, 225, 250))): a[h - 1 - dy, w // 2 + 1] = (*c, 255)
+    return Image.fromarray(a, 'RGBA')
+def _hi(e): e['hi'] = 3; return e
+out = {'ppu': 40, 'icons': icons, 'bench': [_hi(entry(bench2))], 'tank': [_hi(entry(tank_level(tank2, l))) for l in range(4)], 'filter': [_hi(entry(_drip2(frame2, 0))), _hi(entry(_drip2(frame2, 1)))]}
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
