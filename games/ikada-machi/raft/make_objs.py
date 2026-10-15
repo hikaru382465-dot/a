@@ -192,10 +192,21 @@ for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', '
 _hd = Image.open(io.BytesIO(base64.b64decode(out['hut'][0]['src'].split(',')[1]))).convert('RGBA')
 _hn = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'night_src.png', (120, 140, 830, 790), shrink=1, pocket=3000, fringe=2, pocket_min=60).resize(_hd.size, Image.BOX)
 _en = entry(_hn); _en['hi'] = 3; _en['ppu'] = out['hut'][0].get('ppu'); out['hut'] = [out['hut'][0], _en]
-# 小屋の中の絵（入ったときに出す）：別ファイル hut_art.js
-_ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior.png', (0, 0, 1536, 1024), shrink=1); _ti = _ti.resize((_ti.width // 2, _ti.height // 2), Image.BOX)
-_bf = io.BytesIO(); _ti.save(_bf, 'PNG', optimize=True)
-(here / 'hut_art.js').write_text('window.RAFT.hutArt = ' + json.dumps({'interior': 'data:image/png;base64,' + base64.b64encode(_bf.getvalue()).decode(), 'w': _ti.width, 'h': _ti.height}) + ';\n', encoding='utf-8')
+# 小屋の中の絵（入ったときに出す）と、ベッドで足パタパタの8コマ：別ファイル hut_art.js（部屋の絵の上に、%の位置で重ねる）
+_ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1536, 1024), shrink=1, trim=False); _bx = _ti.getchannel('A').getbbox(); _ti = _ti.crop(_bx); IW, IH = _ti.size      # 余白は切りおとす（ベッドの位置は、この切りおとし分をひく）
+_ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
+_runs = [(28, 273), (296, 540), (563, 806), (829, 1072), (1096, 1339), (1362, 1607), (1631, 1877), (1900, 2140)]
+_fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'bed_sheet1.png', ((a + b) // 2 - 135, 220, (a + b) // 2 + 135, 500), shrink=1, fringe=1, trim=False) for a, b in _runs]
+_bb = None
+for _f in _fr:
+    _b = _f.getchannel('A').getbbox(); _bb = _b if _bb is None else (min(_bb[0], _b[0]), min(_bb[1], _b[1]), max(_bb[2], _b[2]), max(_bb[3], _b[3]))
+_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.4, 230 - _bx[0], 262 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
+_frs = []
+for _f in _fr:
+    _g = _f.resize((int(_f.width * _S / 2), int(_f.height * _S / 2)), Image.NEAREST); _gb = io.BytesIO(); _g.save(_gb, 'PNG', optimize=True)
+    _frs.append('data:image/png;base64,' + base64.b64encode(_gb.getvalue()).decode())
+_gw, _gh = int(_fr[0].width * _S), int(_fr[0].height * _S)
+(here / 'hut_art.js').write_text('window.RAFT.hutArt = ' + json.dumps({'interior': 'data:image/png;base64,' + base64.b64encode(_bf.getvalue()).decode(), 'w': IW // 2, 'h': IH // 2, 'bed': {'frames': _frs, 'x': _OX / IW * 100, 'y': _OY / IH * 100, 'w': _gw / IW * 100, 'h': _gh / IH * 100}}) + ';\n', encoding='utf-8')
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
     bg = Image.new('RGBA', (im.width * 6, im.height * 6), (40, 90, 120, 255)); bg.alpha_composite(im.resize((im.width * 6, im.height * 6), Image.NEAREST)); bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/o_{n}.png')
