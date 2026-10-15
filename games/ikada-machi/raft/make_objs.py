@@ -163,7 +163,7 @@ for _k, _b in (('oven', (448, 704, 552, 812)), ('crate', (558, 700, 662, 808)), 
     _im = Image.open(io.BytesIO(base64.b64decode(icons[_k][0]['src'].split(',')[1]))).convert('RGBA'); print(_k, _im.size); _bg = Image.new('RGBA', (_im.width * 5, _im.height * 5), (40, 90, 120, 255)); _bg.alpha_composite(_im.resize((_im.width * 5, _im.height * 5), Image.NEAREST)); _bg.save(f'/tmp/claude-0/-home-user-a/3a8914da-c12e-5acb-b76e-3d39cc2e80dd/scratchpad/ic_{_k}.png')
 # アイテムの絵（持ち物・漂流物）も、新しいシートから縮めずに切り出す
 C3 = here.parent / 'art' / 'items' / 'catalog3.png'
-for _k, _b, _bl, _src in (('seed', (30, 750, 92, 808), None, 'C3'), ('veg', (30, 455, 102, 535), None, 'C2'), ('wood', (1024, 324, 1126, 426), (84, 72), 'C2'), ('floor', (1100, 346, 1196, 434), None, 'C2'), ('fish', (22, 56, 134, 126), None, 'C2'), ('grilled', (1392, 370, 1514, 446), None, 'C2'), ('lamp', (1458, 702, 1512, 812), None, 'C2')):
+for _k, _b, _bl, _src in (('seed', (26, 744, 94, 822), None, 'C3'), ('veg', (30, 455, 102, 535), None, 'C2'), ('wood', (1024, 324, 1126, 426), (84, 72), 'C2'), ('floor', (1100, 346, 1196, 434), None, 'C2'), ('fish', (22, 56, 134, 126), None, 'C2'), ('grilled', (1392, 370, 1514, 446), None, 'C2'), ('lamp', (1458, 702, 1512, 812), None, 'C2')):
     _im = cutlib.cut_checker(C3 if _src == 'C3' else C2, _b, shrink=1, blank=_bl); icons[_k] = [entry(_im)]; icons[_k][0]['hi'] = 1; icons[_k][0]['ppu'] = round(max(_im.size) / (0.5 if _k not in ('lamp',) else 1.0))
     if _k == 'fish':
         _d = dried_tint(_im); icons['dried'] = [entry(_d)]; icons['dried'][0]['hi'] = 1; icons['dried'][0]['ppu'] = round(max(_d.size) / 0.5)
@@ -179,8 +179,13 @@ def _drip2(img, on):
         h, w = a.shape[:2]
         for dy, c in ((1, (140, 205, 245)), (3, (180, 225, 250))): a[h - 1 - dy, w // 2 + 1] = (*c, 255)
     return Image.fromarray(a, 'RGBA')
+def _loopclear(im):      # 投網のロープの輪の中の、白い背景を消す
+    a = np.array(im); h, w = a.shape[:2]; sub = a[20:60, 140:w]
+    white = (sub[..., :3].min(axis=2) > 205) & ((sub[..., :3].max(axis=2) - sub[..., :3].min(axis=2)) < 28)
+    sub[..., 3] = np.where(white, 0, sub[..., 3]); a[20:60, 140:w] = sub; return Image.fromarray(a, 'RGBA')
 def _hi(e): e['hi'] = 3; return e
 out = {'ppu': 40, 'icons': icons, 'bench': [_hi(entry(bench2))], 'tank': [_hi(entry(tank_level(tank2, l))) for l in range(4)], 'filter': [_hi(entry(_drip2(frame2, 0))), _hi(entry(_drip2(frame2, 1)))]}
+_nt = _loopclear(cutlib.cut_checker(here.parent / 'art' / 'items' / 'catalog3.png', (556, 386, 746, 566), shrink=1)); out['icons']['net'] = [_hi(entry(_nt))]; out['icons']['net'][0]['ppu'] = round(max(_nt.size) / 0.62)      # 投網（持ち物・手にもつ絵）
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')

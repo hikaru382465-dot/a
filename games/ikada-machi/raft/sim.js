@@ -33,7 +33,10 @@
   S.flow = s => { const a = Math.PI / 4 * -1 + s.current.ang; return { x: Math.cos(a), z: Math.sin(a) }; };   // 画面の左から右へ流れる向き
   S.speed = s => D.WEATHER[s.weather.id].speed;
 
-  S.objAt = (s, x, z) => s.objects.find(o => o.x === x && o.z === z) || null;
+  // 置き物の大きさ（マス）：data.js の ITEMS[k].size＝[横x, 縦z]。置いた位置(x,z)は、左上（x・zが小さいほう）の角
+  S.sizeOf = o => (D.ITEMS[o.k] && D.ITEMS[o.k].size) || [1, 1];
+  S.footprint = o => { const [fw, fd] = S.sizeOf(o), out = []; for (let i = 0; i < fw; i++) for (let j = 0; j < fd; j++) out.push([o.x + i, o.z + j]); return out; };
+  S.objAt = (s, x, z) => s.objects.find(o => { const [fw, fd] = S.sizeOf(o); return x >= o.x && x < o.x + fw && z >= o.z && z < o.z + fd; }) || null;
   S.hasBench = s => s.objects.some(o => o.k === 'bench');
   const free = (s, x, z) => S.has(s, x, z) && !S.objAt(s, x, z);
   S.bfs = function (s, from, to) {
@@ -61,8 +64,9 @@
   // 物のそばまで歩いて、着いたら task を実行する
   S.walkNear = function (s, x, z, task, a) {
     a = a || s.player; let best = null;
-    for (const [dx, dz] of N4) {
-      const X = x + dx, Z = z + dz; if (!free(s, X, Z)) continue;
+    const ob = task && task.id != null ? s.objects.find(q => q.id === task.id) : null, cells = ob ? S.footprint(ob) : [[x, z]];
+    for (const [cx, cz] of cells) for (const [dx, dz] of N4) {
+      const X = cx + dx, Z = cz + dz; if (!free(s, X, Z)) continue;
       const p = S.bfs(s, cellOf(a), [X, Z]); if (p && (!best || p.length < best.length)) best = p;
     }
     if (!best) return false;
@@ -164,11 +168,12 @@
   // 置き場所：床板は海側のマス。ほかの物は、イカダの空いているマス。置いたあとも、空きマスがつながって2つ以上残ること
   S.placeCandidates = function (s, k) {
     if (k === 'floor') return S.floorCandidates(s);
-    const cs = [cellOf(s.player), cellOf(s.buddy)], out = [];
-    const freeCells = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z));
+    const cs = [cellOf(s.player), cellOf(s.buddy)], out = [], [fw, fd] = (D.ITEMS[k] && D.ITEMS[k].size) || [1, 1];
+    const freeCells = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z)), isFree = (x, z) => freeCells.some(c => c[0] === x && c[1] === z);
     s.raft.cells.forEach(([x, z]) => {
-      if (S.objAt(s, x, z) || cs.some(q => q[0] === x && q[1] === z)) return;
-      const rest = freeCells.filter(c => !(c[0] === x && c[1] === z)); if (rest.length < 2) return;
+      const fp = []; for (let i = 0; i < fw; i++) for (let j = 0; j < fd; j++) fp.push([x + i, z + j]);
+      if (fp.some(([X, Z]) => !isFree(X, Z) || cs.some(q => q[0] === X && q[1] === Z))) return;
+      const rest = freeCells.filter(c => !fp.some(f => f[0] === c[0] && f[1] === c[1])); if (rest.length < 2) return;
       const seen = new Set([key(rest[0][0], rest[0][1])]), q = [rest[0]];
       while (q.length) { const c = q.shift(); for (const [dx, dz] of N4) { const X = c[0] + dx, Z = c[1] + dz, kk = key(X, Z); if (!seen.has(kk) && rest.some(r => r[0] === X && r[1] === Z)) { seen.add(kk); q.push([X, Z]); } } }
       if (seen.size === rest.length) out.push([x, z, 0.215]);
@@ -176,7 +181,11 @@
     return out;
   };
   S.place = function (s, k, x, z) {
-    if ((s.inv[k] || 0) <= 0 || !S.placeCandidates(s, k).some(c => c[0] === x && c[1] === z)) return false;
+    if ((s.inv[k] || 0) <= 0) return false;
+    const cands = S.placeCandidates(s, k), sz = (D.ITEMS[k] && D.ITEMS[k].size) || [1, 1];
+    let hit = cands.find(c => c[0] === x && c[1] === z);
+    if (!hit && k !== 'floor' && (sz[0] > 1 || sz[1] > 1)) hit = cands.find(c => x >= c[0] && x < c[0] + sz[0] && z >= c[1] && z < c[1] + sz[1]);      // 大きい物は、広がるどこのマスを押してもよい
+    if (!hit) return false; x = hit[0]; z = hit[1];
     s.inv[k]--;
     if (k === 'floor') { s.raft.cells.push([x, z]); s.raftRev++; }
     else { s.objects.push({ id: s.uid++, k, x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); }
@@ -376,7 +385,8 @@
     const crops = Object.keys(D.CROPS); let i = 0;
     const put = (k, x, z, extra) => { s.objects.push(Object.assign({ id: s.uid++, k, x, z, w: 0, p: 0 }, extra || {})); };
     crops.forEach((c, n) => put('plot', n, 0, { c, p: D.CROPS[c].sec, w: D.PLOT.water }));
-    kinds.forEach((k, n) => { const x = n % 7, z = 1 + Math.floor(n / 7) * 2; put(k, x, z, k === 'tank' ? { w: 8 } : {}); });
+    put('hut', 5, 2);
+    kinds.filter(k => k !== 'hut').forEach((k, n) => { const x = n % 5, z = 1 + Math.floor(n / 5) * 2; put(k, x, z, k === 'tank' ? { w: 8 } : {}); });
     s.player.x = 3.5; s.player.z = 4.5; s.buddy.x = 4.5; s.buddy.z = 4.5; s.player.path = []; s.buddy.path = []; s.objRev++;
   };
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };

@@ -104,7 +104,7 @@ def cut_checker(path, box, shrink=2, blank=None):
     img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     return img
-rope = cut_checker(art / 'items' / 'catalog2.png', (1244, 246, 1362, 346), shrink=2, blank=(64, 68))       # 新しい絵シート（catalog2）の巻いたロープ
+rope = cut_checker(art / 'items' / 'catalog2.png', (1248, 252, 1346, 338), shrink=2)       # 新しい絵シート（catalog2）の巻いたロープ
 rope_old = fit(cut(C, pick_rope()[5], (x0, y0)), 44, 'w')
 rod = fit(cut(C, pick_rod()[5], (x0, y0)), 62, 'h')
 print('rope', rope.size, 'rod', rod.size)
