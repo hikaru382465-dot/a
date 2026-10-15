@@ -314,12 +314,25 @@ for f,(r,sv,gv,jv) in ((1,(0,0,0,0)),(30,(0,0,0,0)),(90,(math.radians(90),1,0,0)
     for k in (k1,k2,k3): k.keyframe_insert('value',frame=f)
 bpy.ops.object.mode_set(mode='OBJECT')
 ao.animation_data.action.name='Ghost_HeadTilt'
+act90=ao.animation_data.action; skact90=o.data.shape_keys.animation_data.action; skact90.name='Ghost_HeadTilt_Face'
+# --- second take: natural tilt (about 40 deg, shoulders stay level, bends at the neck)
+act40=bpy.data.actions.new('Ghost_HeadTilt_Natural'); ao.animation_data.action=act40
+skact40=bpy.data.actions.new('Ghost_HeadTilt_Natural_Face'); o.data.shape_keys.animation_data.action=skact40
+bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='POSE')
+for f,(r,sv) in ((1,(0,0)),(30,(0,0)),(90,(math.radians(40),1)),(150,(math.radians(40),1)),(180,(math.radians(40),1))):
+    pb['head'].rotation_euler=(math.radians(4)*(1 if r else 0),r*0.50,0); pb['neck'].rotation_euler=(0,r*0.50,0); pb['spine'].rotation_euler=(0,0,0)
+    for b in ('spine','neck','head'): pb[b].keyframe_insert('rotation_euler',frame=f)
+    k1.value=0; k2.value=sv; k3.value=0
+    for k in (k1,k2,k3): k.keyframe_insert('value',frame=f)
+bpy.ops.object.mode_set(mode='OBJECT')
+ao.animation_data.action=act90; o.data.shape_keys.animation_data.action=skact90
+
 sc=bpy.context.scene; sc.frame_start=1; sc.frame_end=180
 for v in V: pass
 bpy.ops.wm.save_as_mainfile(filepath="gout/ghost_face.blend")
 # --- export
 bpy.ops.object.select_all(action='SELECT')
-bpy.ops.export_scene.fbx(filepath="gout/Ghost_rigged.fbx",use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,path_mode='COPY',embed_textures=False,apply_unit_scale=True,use_mesh_modifiers=False)
+bpy.ops.export_scene.fbx(filepath="gout/Ghost_rigged.fbx",use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,bake_anim=True,bake_anim_use_all_actions=True,bake_anim_use_nla_strips=False,path_mode='COPY',embed_textures=False,apply_unit_scale=True,use_mesh_modifiers=False)
 # --- renders
 sc.render.engine='CYCLES'; sc.cycles.device='CPU'; sc.cycles.samples=48; sc.render.resolution_x=800; sc.render.resolution_y=500
 w=bpy.data.worlds.new('w'); sc.world=w; w.color=(0.3,0.3,0.33)
