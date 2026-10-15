@@ -248,9 +248,9 @@ for v in V:
     if i in ID['up']:
         k1.data[i].co=grin_teeth[i]; continue
     if i in ID['lo']:
-        k1.data[i].co=rot(grin_teeth[i],1.0); continue
+        k1.data[i].co=rot(openco[i]+Vector((0,0,0.0075)),1.0); continue
     if i in ID['tg']:
-        k1.data[i].co=rot(grin_teeth[i],0.6); continue
+        k1.data[i].co=rot(openco[i]+Vector((0,0.001,0.0075)),0.6); continue
     if i in mouthset:
         oz=openco[i].z
         w=ssf((cz-oz)/0.003)
