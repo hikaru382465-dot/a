@@ -197,18 +197,14 @@ _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1
 _ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
 _runs = [(116, 417), (652, 955), (1180, 1519), (1681, 2021), (2250, 2553), (2786, 3093), (3320, 3621), (3860, 4157)]      # 相棒だけ（ベッドなし）の足パタパタ。ベッドは部屋の絵の1枚のまま
 _fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'girl_sheet.png', ((a + b) // 2 - 210, 420, (a + b) // 2 + 210, 1000), shrink=1, fringe=1, trim=False) for a, b in _runs]
-def _align(frames, top=0.5):      # コマごとのずれを、頭・体（上の半分）をそろえて直す
+def _align(frames, top=0.36):      # コマごとのずれを、頭・体の上の部分の「重さの中心」をそろえて直す（足は動いてよいので、見ない）
     import numpy as _np
-    ref = _np.array(frames[0]).astype(float); h = ref.shape[0]; out = [frames[0]]
-    def feat(a): return _np.dstack([a[..., :3].mean(axis=2) * (a[..., 3] > 128), (a[..., 3] > 128) * 255.0])
-    R = feat(ref)[:int(h * top)]
+    def cen(f):
+        a = _np.array(f.getchannel('A')) > 128; h = a.shape[0]; ys, xs = _np.where(a[:int(h * top)]); return xs.mean(), ys.mean()
+    cx0, cy0 = cen(frames[0]); out = [frames[0]]
     for f in frames[1:]:
-        a = _np.array(f).astype(float); best = (1e18, 0, 0)
-        for dy in range(-10, 11):
-            for dx in range(-10, 11):
-                e = ((feat(_np.roll(_np.roll(a, dy, 0), dx, 1))[:int(h * top)] - R) ** 2).sum()
-                if e < best[0]: best = (e, dx, dy)
-        out.append(Image.fromarray(_np.roll(_np.roll(a, best[2], 0), best[1], 1).astype(_np.uint8), 'RGBA'))
+        cx, cy = cen(f); dx, dy = int(round(cx0 - cx)), int(round(cy0 - cy)); a = _np.array(f)
+        out.append(Image.fromarray(_np.roll(_np.roll(a, dy, 0), dx, 1), 'RGBA'))
     return out
 _fr = _align(_fr)
 _bb = None
