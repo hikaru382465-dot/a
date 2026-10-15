@@ -308,7 +308,7 @@ pb=ao.pose.bones
 for b in pb: b.rotation_mode='XYZ'
 for f,(r,sv,gv,jv) in ((1,(0,0,0,0)),(30,(0,0,0,0)),(90,(math.radians(90),1,0,0)),(150,(math.radians(90),0,1,0)),(180,(math.radians(90),0,1,0))):
     s=1 if r else 0
-    pb['head'].rotation_euler=(math.radians(8)*s,r*0.55,0); pb['neck'].rotation_euler=(0,r*0.35,0); pb['spine'].rotation_euler=(0,r*0.10,0)
+    pb['head'].rotation_euler=(math.radians(8)*s,0,r*0.55); pb['neck'].rotation_euler=(0,0,r*0.35); pb['spine'].rotation_euler=(0,0,r*0.10)
     for b in ('spine','neck','head'): pb[b].keyframe_insert('rotation_euler',frame=f)
     k2.value=sv; k3.value=gv; k1.value=jv
     for k in (k1,k2,k3): k.keyframe_insert('value',frame=f)
@@ -320,7 +320,7 @@ act40=bpy.data.actions.new('Ghost_HeadTilt_Natural'); ao.animation_data.action=a
 skact40=bpy.data.actions.new('Ghost_HeadTilt_Natural_Face'); o.data.shape_keys.animation_data.action=skact40
 bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='POSE')
 for f,(r,sv) in ((1,(0,0)),(30,(0,0)),(90,(math.radians(40),1)),(150,(math.radians(40),1)),(180,(math.radians(40),1))):
-    pb['head'].rotation_euler=(math.radians(4)*(1 if r else 0),r*0.50,0); pb['neck'].rotation_euler=(0,r*0.50,0); pb['spine'].rotation_euler=(0,0,0)
+    pb['head'].rotation_euler=(math.radians(4)*(1 if r else 0),0,r*0.50); pb['neck'].rotation_euler=(0,0,r*0.50); pb['spine'].rotation_euler=(0,0,0)
     for b in ('spine','neck','head'): pb[b].keyframe_insert('rotation_euler',frame=f)
     k1.value=0; k2.value=sv; k3.value=0
     for k in (k1,k2,k3): k.keyframe_insert('value',frame=f)
