@@ -115,14 +115,14 @@ for side in (-1,1):
         hh=0.0100*(1.12 if k==0 else 1.0)*(1.06 if k==2 else 1.0)
         upper+=rbox(x,y,cz+0.0030+(0.0 if k else -0.0003)-0.0000,w*0.99,0.0035,hh,ang)
         # lower row: smaller, tips up
-        lower+=rbox(x*0.98,y+0.0018,cz-0.0090,w*0.80,0.0030,0.0085,ang)
+        lower+=rbox(x*0.98,y+0.0030,cz-0.0090,w*0.80,0.0030,0.0080,ang)
 gum_up=[];gum_lo=[]
 for side in (-1,1):
     for k,w in enumerate(W_):
         x=side*xs[k]; slope=2*0.013*x/0.022**2; ang=math.atan(slope)*0.8
         y=ly+0.006+0.013*(x/0.022)**2
         gum_up+=rbox(x,y+0.0030,cz+0.0075,w*1.04,0.0030,0.0090,ang)
-        gum_lo+=rbox(x*0.98,y+0.0045,cz-0.0125,w*0.88,0.0030,0.0075,ang)
+        gum_lo+=rbox(x*0.98,y+0.0085,cz-0.0112,w*0.88,0.0030,0.0055,ang)
 tg=bmesh.ops.create_uvsphere(bm,u_segments=12,v_segments=8,radius=1.0,matrix=M.Translation((0,ly+0.019,cz-0.0115))@M.Diagonal((0.012,0.014,0.0035,1)))
 tongue=tg['verts']
 # material per added geometry
@@ -141,11 +141,36 @@ for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.80,0.7
     m=bpy.data.materials.new(nm); m.use_nodes=True; b=m.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value=col; b.inputs['Roughness'].default_value=rough; mats.append(m)
 print({k:len(v) for k,v in ID.items()},len(me.vertices))
 V=me.vertices
+# --- sculpt-like smoothing (Smooth brush) + gentle inflate on cheeks
+adj=[[] for _ in V]
+for e in me.edges:
+    a,b=e.vertices; adj[a].append(b); adj[b].append(a)
+newids_=ID['cav']|ID['up']|ID['lo']|ID['tg']
+def ssf(t): t=max(0,min(1,t)); return t*t*(3-2*t)
+reg={}
+for v in V:
+    i=v.index; c=v.co
+    if i in newids_ or i in ID['ring']: continue
+    if abs(c.x)<0.075 and abs(c.z-(cz-0.012))<0.060 and c.y>ly-0.010 and c.y<ly+0.06:
+        r=math.hypot(c.x/0.075,(c.z-(cz-0.012))/0.060)
+        reg[i]=1-ssf((r-0.55)/0.45)
+for it in range(8):
+    newp={}
+    for i,w in reg.items():
+        nb=[V[j].co for j in adj[i]]
+        if not nb: continue
+        avg=sum(nb,Vector((0,0,0)))/len(nb)
+        newp[i]=V[i].co.lerp(avg,0.55*w)
+    for i,p in newp.items(): V[i].co=p
+for i,w in reg.items():   # inflate cheeks outward a little
+    c=V[i].co
+    ch=math.exp(-((abs(c.x)-0.040)**2+((c.z-cz-0.008))**2)/(2*0.020**2))
+    V[i].co=c+Vector((0,-0.0012*ch*w,0))
 openco={v.index:v.co.copy() for v in V}
 newids0=ID['cav']|ID['up']|ID['lo']|ID['tg']
 for v in V:
     i=v.index
-    if i in newids0 or i>=len(lum) or (lum[i]<0.12 and i not in ID['ring']): continue
+    if i in newids0: continue
     c=openco[i]
     if abs(c.x)<0.06 and abs(c.z-cz)<0.03 and abs(c.y-ly)<0.03:
         w=math.exp(-((c.x/0.032)**2+((c.z-cz)/0.012)**2)*0.9)
@@ -172,7 +197,7 @@ front=lambda c: abs(c.x)<0.09 and abs(c.z-cz)<0.065 and c.y<ly+0.045 and c.y>ly-
 sm={}
 for v in V:
     base=closed.get(v.index,openco[v.index])
-    if front(openco[v.index]) and (v.index in mouthset or v.index>=len(lum) or lum[v.index]>0.2):
+    if front(openco[v.index]) and True:
         sm[v.index]=smile_delta(openco[v.index])
 # basis = closed
 for i,c in closed.items(): V[i].co=c
