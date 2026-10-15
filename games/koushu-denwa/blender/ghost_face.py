@@ -297,6 +297,12 @@ for v in V:
         elif z<1.32: t=(z-1.26)/0.06; g={'spine':1-t,'neck':t}
         elif z<1.40: t=(z-1.32)/0.08; g={'neck':1-t,'head':t}
         else: g={'head':1}
+        if (not hair) and z<1.42:
+            f=ssf((0.17-abs(v.co.x))/0.07)     # shoulders (far from the neck) stay with the spine
+            g2={'spine':g.get('spine',0)}
+            for kk in ('neck','head'):
+                if kk in g: g2[kk]=g[kk]*f; g2['spine']+=g[kk]*(1-f)
+            g=g2
         if hair and z<1.42 and abs(v.co.x)<0.16:
             w=sstep((z-1.30)/0.12); g={'head':w,'spine':1-w}
     for k,wt in g.items():
