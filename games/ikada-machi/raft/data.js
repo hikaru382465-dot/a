@@ -9,7 +9,7 @@ window.RAFT.data = {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
     seed:    { name: '種袋',     lv: 2, w: 0.9, tip: 'プランターにまく。何が育つかは、お楽しみ' },
-    veg:     { name: '野菜',     lv: 0, w: 0, food: 20, drink: 6, tip: '畑でとれた。食べると、おなかとのどが少し戻る' },
+    veg:     { name: '野菜',     lv: 0, w: 0, food: 8, drink: 3, tip: '畑でとれた。そのままだと少し。料理すると、もっと戻る' },
     dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
     grilled: { name: '焼き魚',   lv: 0, w: 0, food: 40, tip: '食べると、おなかがしっかり戻る' },
     coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 28, tip: '飲むとのどが戻る（おなかも少し）' },
