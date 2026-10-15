@@ -225,7 +225,7 @@
   S.setJob = function (s, job) {
     const bu = s.buddy; if (job && !D.BUDDY.JOBS[job]) return false;
     if (job === 'fish' && !bu.hasRod) { s.events.push({ e: 'needrod' }); return false; }
-    bu.job = job || null; bu.spot = null; bu.line = null; bu.jobT = 0; bu.working = false; bu.path = []; bu.task = null; bu.act = null;
+    bu.inHut = null; bu.job = job || null; bu.spot = null; bu.line = null; bu.jobT = 0; bu.working = false; bu.path = []; bu.task = null; bu.act = null;
     s.events.push({ e: 'job', job: bu.job }); return true;
   };
   function goSpot(s, bu) {      // 水ぎわのマスに立つ。着いたら true
@@ -400,6 +400,15 @@
     if (p.path.length || p.task || s.net.cast || s.rod || !s.objects.some(o => o.id === p.inHut)) { S.exitHut(s); return; }
     s.calm = Math.min(100, (s.calm || 0) + D.HUT.calm * dt);
   }
+  // 相棒の小屋：夜と嵐のとき、ひまなら（仕事なし・おなかとのどが足りている）自分から小屋に入って休む。朝・晴れたら出てくる
+  function buddyHutStep(s) {
+    const bu = s.buddy, hut = s.objects.find(o => o.k === 'hut');
+    if (!hut) { bu.inHut = null; return; }
+    const t = s.clock.t, night = t >= 0.78 || t < 0.2, storm = s.weather.id === 'storm', ok = s.needs.hunger >= D.NEEDS.low && s.needs.thirst >= D.NEEDS.low;
+    const want = (night || storm) && !bu.job && ok;
+    if (bu.inHut && !want) { bu.inHut = null; s.events.push({ e: 'bhutout' }); return; }
+    if (want && !bu.inHut && !bu.path.length && !bu.task && !bu.act) S.walkNear(s, hut.x, hut.z, { type: 'hut', id: hut.id }, bu);
+  }
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
   S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
@@ -467,7 +476,7 @@
       else if (s.needs.thirst < D.NEEDS.low) {
         const t = tanks.find(x => x.w > 0);
         if (t) { S.useObj(s, t.id, bu); bu.eatT = 3; } else if (s.inv.coconut > 0 && S.use(s, 'coconut', bu)) bu.eatT = 3;
-      } else if (bu.wanderT <= 0 && !bu.job) {
+      } else if (bu.wanderT <= 0 && !bu.job && !bu.inHut) {
         const fc = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z)); const t = fc[Math.floor(S.rand() * fc.length)];
         if (t) S.walkTo(s, t[0], t[1], bu); bu.wanderT = 4 + S.rand() * 7;
       }
@@ -489,6 +498,7 @@
         else if (o && o.k === 'rack' && a === b) S.rackUse(s, o);
         else if (o && o.k === 'plot' && a === b) S.plotUse(s, o);
         else if (o && o.k === 'hut' && a === b) S.enterHut(s, o);
+        else if (o && o.k === 'hut' && a === s.buddy) { s.buddy.inHut = o.id; s.events.push({ e: 'bhutin' }); }
         else if (o && o.k === 'tank') {
           if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); { const d = a === s.buddy ? 1.6 : 0.7; a.act = { type: 'eat', kind: 'drink', t: d, dur: d }; } s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });
@@ -503,7 +513,7 @@
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
-    boatStep(s, dt, f, bb); lookStep(s, dt); hutStep(s, dt);
+    boatStep(s, dt, f, bb); lookStep(s, dt); hutStep(s, dt); buddyHutStep(s);
     const v = W.speed, rests = [];
     ['player', 'buddy'].forEach(w => {
       const K = kit(s, w), cast = K.net.cast, nl = netNow(s, w), ow = K.actor; if (!cast) return;
