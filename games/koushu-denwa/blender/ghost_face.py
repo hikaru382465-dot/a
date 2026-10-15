@@ -51,7 +51,7 @@ for m in me.materials:
 bm=bmesh.new(); bm.from_mesh(me); bm.verts.ensure_lookup_table(); bm.faces.ensure_lookup_table()
 n0=len(bm.verts)
 # --- 1. cut hole
-fe=[e for e in bm.edges if all(abs(v.co.x)<0.05 and abs(v.co.z-cz)<0.024 and abs(v.co.y-ly)<0.03 for v in e.verts) and any(f.normal.y<-0.1 for f in e.link_faces)]
+fe=[e for e in bm.edges if all(abs(v.co.x)<0.06 and (cz-0.050)<v.co.z<(cz+0.024) and abs(v.co.y-ly)<0.045 for v in e.verts) and any(f.normal.y<-0.1 for f in e.link_faces)]
 bmesh.ops.subdivide_edges(bm,edges=fe,cuts=2,use_grid_fill=True)
 bm.verts.ensure_lookup_table(); bm.faces.ensure_lookup_table()
 sel=[f for f in bm.faces if (lambda c:(c.x/0.027)**2+((c.z-cz)/0.0095)**2<1 and abs(c.y-ly)<0.03 and f.normal.y<-0.15)(f.calc_center_median())]
@@ -263,6 +263,16 @@ for v in V:
         k1.data[i].co=rot(c,w)
     else:
         k1.data[i].co=c
+jaw_skin=[v.index for v in V if v.index not in mouthset and v.index not in ID['up'] and v.index not in ID['lo'] and v.index not in ID['tg'] and v.index not in ID['cav'] and (k1.data[v.index].co-v.co).length>0.0006]
+for it in range(10):
+    newc={}
+    for i in jaw_skin:
+        nb=[k1.data[j].co for j in adj[i]]
+        if not nb: continue
+        avg=sum(nb,Vector((0,0,0)))/len(nb)
+        newc[i]=k1.data[i].co.lerp(avg,0.5)
+    for i,c in newc.items(): k1.data[i].co=c
+print('jaw_skin',len(jaw_skin))
 k2=o.shape_key_add(name='Smile')
 for i,c in sm.items(): k2.data[i].co=closed.get(i,openco[i])+c
 k3=o.shape_key_add(name='Grin')
