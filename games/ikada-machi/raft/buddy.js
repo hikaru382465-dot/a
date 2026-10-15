@@ -85,6 +85,7 @@ window.RAFT.parts.buddy = function (c) {
     if (down && down.aim && down.p) setAim(down.p, power());
     chars.forEach(ch => {
       if (!ch.ready) return; const a = ch.actor, walking = a.path.length > 0, dir = a.dir || 'down';
+      if (a.inHut) { ch.mesh.visible = false; ch.sh.visible = false; if (ch.actor === s.buddy) { /* 相棒が中にいる：吹き出しは屋根の上へ（次の段階） */ } return; } ch.sh.visible = true;
       if (ch.actor === s.buddy && PA) {
         const bu = s.buddy; if ((bu.cheer || 0) !== cheerId) { cheerId = bu.cheer || 0; cheerT = 1.1; } cheerT = Math.max(0, cheerT - dt);
         let pose = null, anim = null;

@@ -204,6 +204,7 @@ window.RAFT.parts.hud = function (c) {
   }
   const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
   $('bLookStop').onclick = () => sim.stopLook(s);
+  $('bHutOut').onclick = () => sim.exitHut(s);
   $('bBoatClose').onclick = () => { $('boatbox').style.display = 'none'; };
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
@@ -229,6 +230,7 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', hutbusy: () => '網か釣りざおを出している間は、入れない',
     plotplant: () => '種をまいた。何が育つかな？ もう一度タップで、水をやる', plotwater: () => '水をやった（貯水槽の水を1つ使った）', plotnowater: () => '貯水槽に水がない。雨か、ろ過器で水をためよう', plotnoseed: () => '種袋がない。網でひろえることがある',
     plotgrow: e => `育っているところ。あと約${e.left}秒`, plotharvest: e => `${D.CROPS[e.c].name}をしゅうかく！ 野菜+${e.n}${e.back ? '・種が1つ戻った' : ''}`, cropnew: e => `新しい作物：${D.CROPS[e.id].name}`,
     fishnew: e => `新しい魚：${D.FISH[e.id].name}（図鑑にのった）`,
@@ -269,6 +271,7 @@ window.RAFT.parts.hud = function (c) {
     if (s.look && storm) { if (!(update.nl > 0)) update.nl = t + 4 + Math.random() * 6; const ph = t - (update.ls || -99);
       if (t >= update.nl) { update.ls = t; update.nl = t + 10 + Math.random() * 20; setTimeout(() => c.sfx && c.sfx.onEvent({ e: 'weather', id: 'storm' }), 900); }
       if (ph >= 0 && ph < 0.35) { rg.fillStyle = `rgba(235,235,255,${0.5 * (ph < 0.1 ? 1 : 0.5 * (0.35 - ph) / 0.25)})`; rg.fillRect(0, 0, rain.width, rain.height); } }
+    const hb = $('hutbar'); hb.style.display = s.player.inHut ? 'flex' : 'none'; if (s.player.inHut) $('hutCalm').style.width = (s.calm || 0) + '%';
     const lk = $('lookbar'); lk.style.display = s.look ? 'flex' : 'none';
     if (s.look) {
       const hr = s.clock.t, w = s.weather.id, line = w === 'storm' ? '雨と風の音…。ここなら、すこし落ち着く。' : hr < 0.2 ? '朝のひかりが、海にひろがっていく。' : hr < 0.62 ? '空が高い。水平線がずっと先まで見える。' : hr < 0.78 ? '空が、だいだい色にそまっていく…。' : '星がきれい。波の音だけがする。';
