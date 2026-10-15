@@ -15,70 +15,88 @@
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const sentences = t => t.split(/(?<=。)/).filter(Boolean);
+  const norm = t => t.replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[\s　、。．.・「」]/g, "").toLowerCase();
 
-  // ---------- 状態（ブラウザに保存。開発用に ?reset で消せる） ----------
-  const KEY = "horror-arg-v1";
-  let state = { decisions: {}, found: {}, memoExtra: [], day: 1 };
+  // ---------- 状態（ブラウザに保存。?reset で消せる） ----------
+  const KEY = "horror-arg-v2";
+  const fresh = () => ({ day: 1, queue: null, history: [], decisions: {}, found: {}, memoExtra: [], answers: {}, flags: {}, endings: {} });
+  let state = fresh();
   try {
     if (location.search.includes("reset")) localStorage.removeItem(KEY);
     const raw = localStorage.getItem(KEY);
-    if (raw) state = Object.assign(state, JSON.parse(raw));
+    if (raw) state = Object.assign(fresh(), JSON.parse(raw));
   } catch (e) { /* 保存できなくても遊べる */ }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 
-  const posts = D.posts.filter(p => p.day === state.day);
-  const statusOf = id => state.decisions[id] || "pending";
-  const pendingCount = () => posts.filter(p => statusOf(p.id) === "pending").length;
-
-  // ---------- 時計（ゲーム内。02:41から進む） ----------
-  let clockMin = (() => { const [a, b] = D.clockStart.split(":").map(Number); return a * 60 + b; })();
-  const clockStr = () => String(Math.floor(clockMin / 60) % 24).padStart(2, "0") + ":" + String(clockMin % 60).padStart(2, "0");
-  function paintClock() {
-    $("#tb-clock").textContent = clockStr();
-    $("#login-clock").textContent = clockStr();
+  // ---------- 投稿の組み立て ----------
+  function counts() {
+    const all = state.history.concat(state.queue || []);
+    const c = { d1: { approve: 0, reject: 0 }, d2: { approve: 0, reject: 0 }, d3: { approve: 0, reject: 0 },
+      approvedTotal: 0, rejectedTotal: 0, approvedTitles: [] };
+    all.forEach(e => {
+      const s = state.decisions[e.eid];
+      if (s === "approve") { c.approvedTotal++; c.approvedTitles.push(e.title.replace("【再投稿】", "")); if (c["d" + e.day]) c["d" + e.day].approve++; }
+      if (s === "reject") { c.rejectedTotal++; if (c["d" + e.day]) c["d" + e.day].reject++; }
+    });
+    return c;
   }
+  function makeEntry(p) {
+    return { eid: p.id, base: p.id, day: p.day, title: p.title, author: p.author, authorId: p.authorId,
+      time: p.time, device: p.device, origin: p.origin || null, photo: !!p.photo, final: !!p.final, last: !!p.last,
+      retryN: 0, body: typeof p.body === "function" ? p.body(counts()) : p.body.slice() };
+  }
+  function makeRetry(e, day) {
+    const n = e.retryN + 1;
+    const orig = D.posts.find(p => p.id === e.base);
+    return { eid: e.base + "-r" + n, base: e.base, day: day, title: "【再投稿】" + orig.title, author: e.author, authorId: e.authorId,
+      time: n === 1 ? "今日 02:36" : "今日 02:39", device: e.device, origin: null, photo: false, final: false, last: false, retryN: n,
+      body: [D.retry[e.base]].concat(D.retryTail[n - 1] ? [D.retryTail[n - 1]] : []) };
+  }
+  if (!state.queue) state.queue = D.posts.filter(p => p.day === state.day).map(makeEntry);
+  const status = id => state.decisions[id] || "pending";
+  const pendingCount = () => state.queue.filter(e => status(e.eid) === "pending").length;
+  const allEntries = () => state.history.concat(state.queue);
+
+  // ---------- 時計 ----------
+  let clockMin = 0;
+  const clockStr = () => String(Math.floor(clockMin / 60) % 24).padStart(2, "0") + ":" + String(clockMin % 60).padStart(2, "0");
+  function paintClock() { $("#tb-clock").textContent = clockStr(); $("#login-clock").textContent = clockStr(); }
+  function resetClock() { const [a, b] = D.clockStart.split(":").map(Number); clockMin = a * 60 + b; paintClock(); }
   setInterval(() => { clockMin++; paintClock(); }, 60000);
-  paintClock();
-  $("#login-date").textContent = "日付は、いつも通り。";
-  $("#login-site").textContent = D.siteName + "　管理画面";
+  resetClock();
 
   // ---------- トースト ----------
   function toast(title, text, kind) {
     const t = h("div", { class: "toast " + (kind || "") }, h("div", { class: "tt" }, title), text);
     const box = $("#toasts"); box.append(t);
     while (box.children.length > 3) box.firstChild.remove();
-    setTimeout(() => { t.style.transition = "opacity .5s"; t.style.opacity = "0"; setTimeout(() => t.remove(), 520); }, 5200);
+    setTimeout(() => { t.style.transition = "opacity .5s"; t.style.opacity = "0"; setTimeout(() => t.remove(), 520); }, 5600);
   }
 
   // ---------- ウィンドウ管理 ----------
-  const wins = {};
+  let wins = {};
   let zTop = 10;
   function focusWin(id) {
     Object.keys(wins).forEach(k => {
-      const w = wins[k];
-      const on = k === id && !w.min;
-      w.el.classList.toggle("inactive", !on);
-      w.tb.classList.toggle("active", on);
+      const w = wins[k], on = k === id && !w.min;
+      w.el.classList.toggle("inactive", !on); w.tb.classList.toggle("active", on);
     });
     if (wins[id]) wins[id].el.style.zIndex = ++zTop;
   }
   function openWin(id, title, body, o) {
-    if (wins[id]) {
-      wins[id].min = false; wins[id].el.style.display = "flex"; focusWin(id); return wins[id];
-    }
+    if (wins[id]) { wins[id].min = false; wins[id].el.style.display = "flex"; focusWin(id); return wins[id]; }
     o = Object.assign({ w: 640, h: 440, x: 120, y: 40 }, o || {});
     const dw = $("#desktop").clientWidth, dh = $("#desktop").clientHeight;
     o.w = Math.min(o.w, dw - 20); o.h = Math.min(o.h, dh - 20);
     o.x = Math.max(0, Math.min(o.x, dw - o.w)); o.y = Math.max(0, Math.min(o.y, dh - o.h));
-    const tEl = h("span", { class: "t" }, title);
-    const bMin = h("button", { title: "最小化" }, "–");
-    const bX = h("button", { class: "x", title: "閉じる" }, "×");
-    const bar = h("div", { class: "win-title" }, tEl, bMin, bX);
+    const bMin = h("button", { title: "最小化" }, "–"), bX = h("button", { class: "x", title: "閉じる" }, "×");
+    const bar = h("div", { class: "win-title" }, h("span", { class: "t" }, title), bMin, bX);
     const el = h("div", { class: "win", style: `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px` },
       bar, h("div", { class: "win-body" }, body));
     const tb = h("div", { class: "tb-item" }, title);
     $("#desktop").append(el); $("#tb-items").append(tb);
-    const w = { el, tb, min: false, titleEl: tEl, onClose: o.onClose };
+    const w = { el, tb, min: false };
     wins[id] = w;
     el.addEventListener("pointerdown", () => focusWin(id));
     bX.addEventListener("click", () => closeWin(id));
@@ -89,7 +107,6 @@
       else { w.min = true; el.style.display = "none"; focusWin(null); }
       S.click();
     });
-    // ドラッグ
     bar.addEventListener("pointerdown", ev => {
       if (ev.target.tagName === "BUTTON") return;
       const sx = ev.clientX - el.offsetLeft, sy = ev.clientY - el.offsetTop;
@@ -103,60 +120,113 @@
     S.open(); focusWin(id);
     return w;
   }
-  function closeWin(id) {
+  function closeWin(id, quiet) {
     const w = wins[id]; if (!w) return;
-    if (w.onClose) w.onClose();
-    w.el.remove(); w.tb.remove(); delete wins[id]; S.close();
+    w.el.remove(); w.tb.remove(); delete wins[id]; if (!quiet) S.close();
+  }
+
+  // ---------- 写真（絵で描く。暗い部屋・光るモニター・後ろ姿・戸口の人影） ----------
+  function makePhoto() {
+    const W = 420, H = 280, cv = document.createElement("canvas");
+    cv.width = W; cv.height = H; cv.className = "photo";
+    const g = cv.getContext("2d");
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#07090d"); bg.addColorStop(1, "#10151e");
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    // 戸口と人影（右はし。ほとんど見えない）
+    g.fillStyle = "#0b0e14"; g.fillRect(332, 40, 64, 190);
+    g.fillStyle = "#06070a"; g.beginPath(); g.ellipse(364, 78, 11, 14, 0, 0, 7); g.fill(); g.fillRect(352, 90, 24, 118);
+    // 机
+    g.fillStyle = "#151b26"; g.fillRect(0, 196, W, 84);
+    g.fillStyle = "#222b3b"; g.fillRect(0, 194, W, 3);
+    // モニターの光
+    const glow = g.createRadialGradient(170, 130, 10, 170, 130, 190);
+    glow.addColorStop(0, "rgba(120,170,255,.55)"); glow.addColorStop(1, "rgba(120,170,255,0)");
+    g.fillStyle = glow; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#cfe0ff"; g.fillRect(110, 80, 120, 80);
+    g.fillStyle = "#3b78e0"; g.fillRect(116, 86, 108, 8);
+    g.fillStyle = "#e8eefb"; for (let i = 0; i < 5; i++) g.fillRect(120, 100 + i * 11, 40 + (i * 17) % 50, 5);
+    g.fillStyle = "#1a2130"; g.fillRect(163, 160, 14, 28); g.fillRect(143, 186, 54, 6);
+    // 座っている人の後ろ姿
+    g.fillStyle = "#04060a"; g.beginPath(); g.ellipse(250, 150, 22, 27, 0, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(205, 235); g.quadraticCurveTo(212, 182, 250, 176); g.quadraticCurveTo(290, 182, 297, 235); g.closePath(); g.fill();
+    // 粒子と周辺減光
+    const id = g.getImageData(0, 0, W, H), d = id.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * 26; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(id, 0, 0);
+    const v = g.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, W * 0.62);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.65)");
+    g.fillStyle = v; g.fillRect(0, 0, W, H);
+    return cv;
   }
 
   // ---------- 管理画面 ----------
-  let selId = null, renderAdmin = () => {};
+  let selId = null, tab = "today", renderAdmin = () => {}, badgeEl = null;
+  const statusLabel = s => ({ pending: "未審査", approve: "承認", reject: "却下", hold: "保留" }[s]);
   function openAdmin() {
+    const finalDay = state.queue.some(e => e.last);
+    const bTab1 = h("button", { class: "tab on", onclick: () => { tab = "today"; selId = null; S.click(); renderAdmin(); } }, "本日の投稿");
+    const bTab2 = h("button", { class: "tab", onclick: () => { tab = "hist"; selId = null; S.click(); renderAdmin(); } }, "過去の投稿");
     const top = h("div", { class: "adm-top" },
       h("span", { class: "site" }, D.siteName), h("span", { class: "tag" }, "管理画面"), h("span", { class: "sp" }),
-      h("span", { class: "who" }, "管理者：" + D.adminName));
+      h("span", { class: "who" }, "管理者：" + D.adminName + "　" + state.day + "日目"));
     const list = h("div", { class: "adm-list" });
     const detail = h("div", { class: "adm-detail" });
     const bPend = h("span");
     const bCmp = h("button", { class: "btn", onclick: () => { S.click(); openCompare(); } }, "類似チェック");
-    const bEnd = h("button", { class: "btn primary", onclick: () => endDay() }, "本日の審査を終了");
+    const bEnd = h("button", { class: "btn primary", onclick: () => endDay() }, finalDay ? "最後の審査を確定" : "本日の審査を終了");
     const bottom = h("div", { class: "adm-bottom" }, bPend, h("span", { class: "sp" }), bCmp, bEnd);
     const body = h("div", { style: "display:flex;flex-direction:column;height:100%" },
-      top, h("div", { class: "adm-main" }, list, detail), bottom);
+      top, h("div", { class: "adm-main" }, h("div", { class: "adm-left" }, h("div", { class: "tabs" }, bTab1, bTab2), list), detail), bottom);
 
-    function statusLabel(s) { return { pending: "未審査", approve: "承認", reject: "却下", hold: "保留" }[s]; }
     renderAdmin = function () {
-      list.replaceChildren(...posts.map(p => {
-        const s = statusOf(p.id);
-        return h("div", { class: "adm-row" + (selId === p.id ? " sel" : ""), onclick: () => { selId = p.id; S.click(); renderAdmin(); } },
-          h("div", { class: "r1" }, h("span", { class: "ttl" }, p.title), h("span", { class: "st " + s }, statusLabel(s))),
-          h("div", { class: "r2" }, h("span", {}, p.author), h("span", {}, p.time)));
+      bTab1.classList.toggle("on", tab === "today"); bTab2.classList.toggle("on", tab === "hist");
+      const rows = tab === "today" ? state.queue : state.history;
+      list.replaceChildren(...(rows.length ? rows : [h("div", { class: "adm-empty small" }, "まだありません")]).map(e => {
+        if (!e.eid) return e;
+        const s = status(e.eid);
+        return h("div", { class: "adm-row" + (selId === e.eid ? " sel" : ""), onclick: () => { selId = e.eid; S.click(); renderAdmin(); } },
+          h("div", { class: "r1" }, h("span", { class: "ttl" }, e.title), h("span", { class: "st " + s }, statusLabel(s))),
+          h("div", { class: "r2" }, h("span", {}, (tab === "hist" ? e.day + "日目　" : "") + e.author), h("span", {}, e.time)));
       }));
-      const p = posts.find(x => x.id === selId);
-      if (!p) {
-        detail.replaceChildren(h("div", { class: "adm-empty" }, "左の一覧から投稿を選んでください"));
+      const e = rows.find(x => x.eid === selId);
+      if (!e) {
+        detail.replaceChildren(h("div", { class: "adm-empty" }, "一覧から投稿を選んでください"));
       } else {
         const dec = d => {
-          state.decisions[p.id] = d; save();
-          if (d === "approve") { S.approve(); toast("公開しました", "「" + p.title + "」を外部の公開サイトに掲載しました。", "ok"); }
+          state.decisions[e.eid] = d; save();
+          if (d === "approve") { S.approve(); toast("公開しました", "「" + e.title + "」を外部の公開サイトに掲載しました。", "ok"); }
           if (d === "reject") { S.reject(); toast("却下しました", "投稿者には通知されません。", "bad"); }
           if (d === "hold") { S.hold(); openMemo(); toast("保留にしました", "前任者の引き継ぎメモを開きました。", "warn"); }
           renderAdmin();
         };
-        const cur = statusOf(p.id);
-        detail.replaceChildren(
-          h("div", { class: "det-head" }, h("h2", {}, p.title),
-            h("div", { class: "det-meta" },
-              h("span", {}, "投稿者：", h("b", {}, p.author)),
-              h("span", {}, "ID：", h("b", {}, p.authorId)),
-              h("span", {}, "投稿：", h("b", {}, p.time)),
-              h("span", {}, "端末：", h("b", {}, p.device)))),
-          h("div", { class: "det-body" }, p.body.map(t => h("p", {}, t))),
-          h("div", { class: "det-foot" },
+        const cur = status(e.eid);
+        const meta = h("div", { class: "det-meta" },
+          h("span", {}, "投稿者：", h("b", {}, e.author)), h("span", {}, "ID：", h("b", {}, e.authorId)),
+          h("span", {}, "投稿：", h("b", {}, e.time)), h("span", {}, "端末：", h("b", {}, e.device)));
+        if (e.origin) meta.append(h("span", {}, "投稿元コード：", h("b", {}, e.origin)));
+        const bodyEl = h("div", { class: "det-body" }, e.body.map(t => h("p", {}, t)));
+        if (e.photo) {
+          const info = h("div", { class: "photo-info hidden" });
+          const bInfo = h("button", { class: "btn", style: "margin-top:6px", onclick: () => {
+            info.classList.toggle("hidden");
+            if (!state.flags.photo) {
+              state.flags.photo = true; save(); S.sting();
+              toast("写真の情報", "撮影日時が、「明日」になっています。", "warn");
+            } else S.click();
+          } }, "写真の情報を見る");
+          info.append(h("table", {}, D.photoInfo.map(r => h("tr", {}, h("td", {}, r[0]), h("td", {}, r[1])))));
+          bodyEl.append(h("div", { class: "photo-wrap" }, makePhoto(), bInfo, info));
+        }
+        const foot = tab === "hist"
+          ? h("div", { class: "det-foot" }, h("span", { class: "note", style: "margin-left:0" }, "過去の投稿です。判断：" + statusLabel(cur)))
+          : h("div", { class: "det-foot" },
             h("button", { class: "btn ok", onclick: () => dec("approve") }, cur === "approve" ? "承認済み" : "承認"),
             h("button", { class: "btn ng", onclick: () => dec("reject") }, cur === "reject" ? "却下済み" : "却下"),
-            h("button", { class: "btn hold", onclick: () => dec("hold") }, "保留"),
-            h("span", { class: "note" }, "承認すると、外部の公開サイトに掲載されます。")));
+            e.last ? null : h("button", { class: "btn hold", onclick: () => dec("hold") }, "保留"),
+            h("span", { class: "note" }, e.last ? "この投稿の判断で、結末が決まります。" : "承認すると、外部の公開サイトに掲載されます。"));
+        detail.replaceChildren(
+          h("div", { class: "det-head" }, h("h2", {}, e.title), meta), bodyEl, foot);
       }
       const n = pendingCount();
       bPend.textContent = n > 0 ? "未審査：" + n + "件" : "未審査：なし";
@@ -169,34 +239,31 @@
   // ---------- メモ帳 ----------
   function openMemo() {
     const body = h("div", { class: "memo-body", id: "memo-body" });
-    const status = h("div", { class: "memo-status", id: "memo-status" }, "引き継ぎメモ.txt　最終更新：前任者");
-    const lines = D.memo.concat(state.memoExtra);
-    lines.forEach(t => body.append(h("p", {}, t)));
-    openWin("memo", "引き継ぎメモ.txt - メモ帳", h("div", { style: "display:flex;flex-direction:column;height:100%" }, body, status),
+    const stat = h("div", { class: "memo-status", id: "memo-status" }, "引き継ぎメモ.txt　最終更新：前任者");
+    D.memo.concat(state.memoExtra).forEach(t => body.append(h("p", {}, t)));
+    openWin("memo", "引き継ぎメモ.txt - メモ帳", h("div", { style: "display:flex;flex-direction:column;height:100%" }, body, stat),
       { w: 500, h: 380, x: 770, y: 60 });
   }
-  async function appendMemo(text) {
+  async function appendMemo(text, silent) {
     state.memoExtra.push(text); save();
-    const w = wins.memo;
-    if (!w) { toast("引き継ぎメモ.txt", "ファイルが更新されました。", "warn"); return; }
-    const body = $("#memo-body"), status = $("#memo-status");
-    status.textContent = "このファイルは外部で更新されました"; status.classList.add("alert");
+    if (!wins.memo) { if (!silent) { S.notify(); toast("引き継ぎメモ.txt", "ファイルが更新されました。", "warn"); } return; }
+    const body = $("#memo-body"), stat = $("#memo-status");
+    stat.textContent = "このファイルは外部で更新されました"; stat.classList.add("alert");
     const p = h("p", { class: "new" }); body.append(p);
     for (const ch of text) { p.textContent += ch; S.key(); body.scrollTop = body.scrollHeight; await sleep(70 + Math.random() * 60); }
   }
 
   // ---------- 類似チェック ----------
   function openCompare() {
-    const sources = posts.map(p => ({ key: p.id, label: p.title, paras: p.body }))
+    const sources = allEntries().map(e => ({ key: e.eid, label: e.day + "日目：" + e.title, paras: e.body }))
       .concat([{ key: "memo", label: "引き継ぎメモ.txt", paras: D.memo.concat(state.memoExtra) }]);
     let pickA = null, pickB = null, fails = 0;
     const selA = h("select"), selB = h("select");
-    sources.forEach((s, i) => { selA.append(h("option", { value: s.key }, s.label)); selB.append(h("option", { value: s.key }, s.label)); });
-    selA.value = sources[0].key; selB.value = sources[1].key;
+    sources.forEach(s => { selA.append(h("option", { value: s.key }, s.label)); selB.append(h("option", { value: s.key }, s.label)); });
+    selA.value = sources[Math.min(1, sources.length - 1)].key; selB.value = "memo";
     const colA = h("div", { class: "cmp-col" }), colB = h("div", { class: "cmp-col" });
     const msg = h("div", { class: "cmp-msg" }, "2つの文章を選び、同じ言い回しだと思う文を、左右から1つずつ選んでください。");
     const go = h("button", { class: "btn primary", onclick: check }, "照合");
-
     function paint() {
       pickA = pickB = null;
       [[selA, colA, "A"], [selB, colB, "B"]].forEach(([sel, col, side]) => {
@@ -217,22 +284,17 @@
         });
       });
     }
-    function tagOf(sn) {
-      for (const k in D.tags) if (sn.includes(D.tags[k])) return k;
-      return null;
-    }
+    const tagOf = sn => { for (const k in D.tags) if (sn.includes(D.tags[k])) return k; return null; };
     function check() {
       if (!pickA || !pickB) { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "左右から1文ずつ選んでください。"; return; }
-      const ta = tagOf(pickA), tb = tagOf(pickB);
       if (selA.value === selB.value) { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "同じ文章どうしは比べられません。"; return; }
+      const ta = tagOf(pickA), tb = tagOf(pickB);
       if (ta && ta === tb) {
         document.querySelectorAll(".cmp-col .picked").forEach(x => { x.classList.remove("picked"); x.classList.add("match"); });
         msg.className = "cmp-msg good";
         msg.textContent = "一致を検出しました。同じ言い回しが、別の投稿者の文章に含まれています。";
-        const first = !state.found[ta];
-        state.found[ta] = true; save();
-        if (first) {
-          S.found();
+        if (!state.found[ta]) {
+          state.found[ta] = true; save(); S.found();
           if (D.memoAddenda[ta]) setTimeout(() => appendMemo(D.memoAddenda[ta]), 1800);
         }
       } else {
@@ -243,83 +305,191 @@
     }
     selA.addEventListener("change", () => { S.click(); paint(); });
     selB.addEventListener("change", () => { S.click(); paint(); });
-    const body = h("div", { style: "display:flex;flex-direction:column;height:100%" },
-      h("div", { class: "cmp-bar" }, "文章A", selA, "文章B", selB),
-      h("div", { class: "cmp-cols" }, colA, colB),
-      h("div", { class: "cmp-foot" }, msg, go));
-    openWin("cmp", "類似チェック", body, { w: 820, h: 480, x: 130, y: 50 });
+    openWin("cmp", "類似チェック", h("div", { style: "display:flex;flex-direction:column;height:100%" },
+      h("div", { class: "cmp-bar" }, "文章A", selA, "文章B", selB), h("div", { class: "cmp-cols" }, colA, colB),
+      h("div", { class: "cmp-foot" }, msg, go)), { w: 820, h: 480, x: 130, y: 50 });
     paint();
   }
 
+  // ---------- 調査メモ（わかったことを書き込む） ----------
+  function openNotes() {
+    const input = h("input", { class: "note-input", placeholder: "わかったことを書く", autocomplete: "off" });
+    const log = h("div", { class: "note-log" });
+    const msg = h("div", { class: "cmp-msg" });
+    function paint() {
+      log.replaceChildren(...(D.answers.filter(a => state.answers[a.id]).map(a => h("div", { class: "note-item" }, "✓ " + a.log)).concat(
+        Object.keys(state.answers).length ? [] : [h("div", { class: "adm-empty small" }, "まだ記録がありません")])));
+    }
+    function submit() {
+      const v = norm(input.value); if (!v) return;
+      const a = D.answers.find(x => x.day <= state.day && x.accept.some(c => norm(c) === v));
+      if (!a) { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "該当する手がかりが見つかりません。"; return; }
+      input.value = "";
+      if (state.answers[a.id]) { msg.className = "cmp-msg"; msg.textContent = "すでに記録済みです。"; S.click(); return; }
+      state.answers[a.id] = true; save(); S.found(); paint();
+      msg.className = "cmp-msg good"; msg.textContent = "記録しました。";
+      if (a.memo && D.memoAddenda[a.memo]) setTimeout(() => appendMemo(D.memoAddenda[a.memo]), 1600);
+      if (a.ending) setTimeout(() => showEnding("secret"), 2600);
+    }
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); else S.key(); });
+    openWin("notes", "調査メモ", h("div", { class: "notes" },
+      h("div", { class: "note-help" }, "調べてわかったことを書き込むと、記録されます。"),
+      h("div", { class: "note-row" }, input, h("button", { class: "btn primary", onclick: submit }, "記録")),
+      msg, log), { w: 460, h: 340, x: 300, y: 120 });
+    paint();
+  }
+
+  // ---------- 最後の投稿者.txt（暗証番号つき） ----------
+  function openLocked() {
+    const body = h("div", { style: "display:flex;flex-direction:column;height:100%" });
+    function showText() {
+      body.replaceChildren(h("div", { class: "memo-body" }, D.lockedFile.map(t => h("p", {}, t))),
+        h("div", { class: "memo-status" }, "最後の投稿者.txt　（解除済み）"));
+    }
+    if (state.flags.lockOpen) showText();
+    else {
+      const inp = h("input", { class: "note-input", placeholder: "4けたの番号", maxlength: "4", autocomplete: "off", style: "text-align:center;width:140px" });
+      const msg = h("div", { class: "cmp-msg", style: "text-align:center" }, "このファイルは、暗証番号で保護されています。");
+      const go = () => {
+        if (norm(inp.value) === D.lockCode) { state.flags.lockOpen = true; save(); S.found(); showText(); }
+        else { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "番号が違います。"; }
+      };
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); else S.key(); });
+      body.append(h("div", { class: "lock" }, h("div", { class: "lock-ico" }, "🔒"), msg, inp, h("button", { class: "btn primary", onclick: go }, "解除")));
+    }
+    openWin("locked", "最後の投稿者.txt", body, { w: 440, h: 340, x: 340, y: 90 });
+  }
+
   // ---------- デスクトップのアイコン ----------
-  let badgeEl = null;
   function updateBadge() { if (badgeEl) { const n = pendingCount(); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; } }
   function buildIcons() {
     const mk = (label, glyph, color, fn, withBadge) => {
-      const g = h("div", { class: "glyph", style: "background:" + color }, glyph);
-      const el = h("div", { class: "icon" }, g, label);
+      const el = h("div", { class: "icon" }, h("div", { class: "glyph", style: "background:" + color }, glyph), label);
       el.addEventListener("click", () => { document.querySelectorAll(".icon").forEach(i => i.classList.remove("sel")); el.classList.add("sel"); S.click(); });
       el.addEventListener("dblclick", fn);
       if (withBadge) { badgeEl = h("span", { class: "badge" }, "0"); el.append(badgeEl); }
       return el;
     };
-    $("#icons").append(
-      mk("管理画面", "✉", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
+    const box = $("#icons"); box.replaceChildren();
+    box.append(mk("管理画面", "✉", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
       mk("引き継ぎメモ", "✎", "linear-gradient(135deg,#d9a93a,#a97a14)", openMemo, false));
+    if (state.day >= 2) box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false));
+    if (state.day >= 3) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
     updateBadge();
+  }
+  function resetDesktop() {
+    Object.keys(wins).forEach(k => closeWin(k, true)); wins = {};
+    $("#icons").replaceChildren(); $("#toasts").replaceChildren(); $("#tb-items").replaceChildren();
+    badgeEl = null; selId = null; tab = "today";
+  }
+
+  // ---------- 文字を1文字ずつ出す演出（終了・エンディング共通） ----------
+  async function typeLines(box, items) {
+    for (const it of items) {
+      const d = h("div", { class: it.cls || "" }); box.append(d);
+      for (const ch of it.text) { d.textContent += ch; await sleep(it.speed || 36); }
+      await sleep(it.wait == null ? 500 : it.wait);
+    }
   }
 
   // ---------- 1日の終わり ----------
   async function endDay() {
-    const cnt = { approve: 0, reject: 0, hold: 0, pending: 0 };
-    posts.forEach(p => cnt[statusOf(p.id)]++);
+    const q = state.queue, cnt = { approve: 0, reject: 0, hold: 0, pending: 0 };
+    q.forEach(e => cnt[status(e.eid)]++);
     if (cnt.pending > 0) { S.error(); toast("まだ終われません", "未審査の投稿が" + cnt.pending + "件あります。", "warn"); return; }
+    const last = q.find(e => e.last);
+    if (last && !["approve", "reject"].includes(status(last.eid))) { S.error(); toast("まだ終われません", "最後の投稿は、承認か却下を選んでください。", "warn"); return; }
     S.click();
+    if (last) {
+      const c = counts();
+      const heavy = status(last.eid) === "reject" ? c.rejectedTotal >= 8 : c.approvedTotal >= 8;
+      return showEnding(status(last.eid) === "reject" ? "close" : "open", heavy);
+    }
     const scr = $("#screen-end"), box = $("#end-box");
-    $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden");
-    box.innerHTML = "";
-    const line = async (cls, text, wait) => {
-      const d = h("div", { class: cls }); box.append(d);
-      for (const ch of text) { d.textContent += ch; await sleep(36); }
-      await sleep(wait || 500);
-      return d;
-    };
+    $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
     S.sting();
-    await line("big", state.day + "日目の審査を終了しました。", 700);
-    const mk = (a, b) => { const r = h("div", { class: "row" }, h("span", {}, a), h("span", {}, b)); box.append(r); };
-    mk("承認", cnt.approve + "件"); await sleep(250);
-    mk("却下", cnt.reject + "件"); await sleep(250);
-    mk("保留", cnt.hold + "件"); await sleep(900);
-    box.append(h("div", { style: "height:18px" }));
-    await line("dim", "ログアウトします。", 900);
-    await line("dim", "次回のログイン予定：明日 02:41", 1100);
-    const x = await line("dim flick", "前回のログイン：02:38（アカウント削除済み）", 1400);
-    await line("dim", "", 200);
-    box.append(h("div", { class: "dim", style: "margin-top:26px" }, "— 試作 第1段階はここまで —"));
-    box.append(h("button", { class: "btn", style: "margin-top:14px", onclick: () => { try { localStorage.removeItem(KEY); } catch (e) {} location.href = location.pathname + "?reset"; } }, "最初からやり直す"));
+    const day = state.day;
+    await typeLines(box, [{ cls: "big", text: day + "日目の審査を終了しました。", wait: 700 }]);
+    [["承認", cnt.approve], ["却下", cnt.reject], ["保留", cnt.hold]].forEach(r => box.append(h("div", { class: "row" }, h("span", {}, r[0]), h("span", {}, r[1] + "件"))));
+    await sleep(900); box.append(h("div", { style: "height:18px" }));
+    const notes = { 1: "前回のログイン：02:38（アカウント削除済み）", 2: "最後の投稿時刻：02:38（あなたのログインの3分前）", 3: "最後の投稿時刻：02:41（あなたのログイン時刻と同じ）" };
+    await typeLines(box, [{ cls: "dim", text: "ログアウトします。", wait: 900 }, { cls: "dim", text: "次回のログイン予定：明日 02:41", wait: 1100 },
+      { cls: "dim flick", text: notes[day] || "", wait: 1300 }]);
+    box.append(h("button", { class: "btn", style: "margin-top:26px", onclick: nextDay }, "ログインする（" + (day + 1) + "日目）"));
+  }
+  function nextDay() {
+    const next = state.day + 1, carry = [], retries = [];
+    state.queue.forEach(e => {
+      const s = state.decisions[e.eid];
+      if (s === "hold") carry.push(e);
+      else { state.history.push(Object.assign({}, e)); if (s === "reject" && e.retryN < 2 && D.retry[e.base]) retries.push(makeRetry(e, next)); }
+    });
+    state.queue = null; state.day = next;
+    const news = D.posts.filter(p => p.day === next).map(makeEntry);
+    const rest = retries.concat(carry), fin = news.filter(e => e.final), mid = news.filter(e => !e.final);
+    state.queue = mid.concat(rest, fin);
+    if (next === 2 && !state.flags.day2memo) { state.flags.day2memo = true; state.memoExtra.push(D.memoAddenda.day2); }
+    save();
+    showLogin();
   }
 
-  // ---------- 起動の流れ ----------
+  // ---------- エンディング ----------
+  async function showEnding(kind, heavy) {
+    const c = counts();
+    const key = kind === "secret" ? "secret" : kind + (heavy ? "_heavy" : "_light");
+    const lines = D.endings[key](c);
+    state.endings[kind] = true; save();
+    const scr = $("#screen-end"), box = $("#end-box");
+    $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
+    S.sting();
+    for (const t of lines) await typeLines(box, [{ cls: "dim", text: t, wait: 1100, speed: 55 }]);
+    await sleep(900);
+    box.append(h("div", { class: "big", style: "margin-top:26px" }, D.endingNames[kind]));
+    const got = Object.keys(D.endingNames).map(k => (state.endings[k] ? "● " : "○ ") + D.endingNames[k]).join("　");
+    box.append(h("div", { class: "dim" }, "到達したエンディング：" + got));
+    box.append(h("button", { class: "btn", style: "margin-top:20px", onclick: () => {
+      const keep = state.endings; state = fresh(); state.endings = keep; save(); location.href = location.pathname;
+    } }, "最初からやり直す"));
+  }
+
+  // ---------- ログイン画面と起動 ----------
+  function showLogin() {
+    resetDesktop(); resetClock();
+    $("#screen-end").classList.add("hidden"); $("#screen-desk").classList.add("hidden"); $("#screen-boot").classList.add("hidden");
+    $("#screen-login").classList.remove("hidden");
+    const last = state.day === 1 ? "前回のログイン：02:38（アカウント削除済み）" : "前回のログイン：昨日 02:41（あなた）";
+    $("#login-last").textContent = last;
+    $("#login-date").textContent = state.day === 1 ? "日付は、いつも通り。" : state.day + "日目";
+  }
   async function boot() {
     S.init(); S.login();
     $("#screen-login").classList.add("hidden");
     const bs = $("#screen-boot"), bt = $("#boot-text");
-    bs.classList.remove("hidden");
-    const lines = ["認証しています…", "ログインしました。", "前任の管理人は退会済みです。"];
+    bt.textContent = ""; bs.classList.remove("hidden");
+    const lines = { 1: ["認証しています…", "ログインしました。", "前任の管理人は退会済みです。"],
+      2: ["認証しています…", "ログインしました。", "前回のログイン：昨日 02:41（あなた）"],
+      3: ["認証しています…", "ログインしました。", "現在のログイン数：2"],
+      4: ["認証しています…", "ログインしました。", "現在のログイン数：2", "あなたは、1人目ではありません。"] }[state.day] || ["ログインしました。"];
     for (const l of lines) {
       bt.textContent += (bt.textContent ? "\n" : "");
       for (const ch of l) { bt.textContent += ch; S.key(); await sleep(55); }
       await sleep(600);
     }
     await sleep(500);
-    bs.classList.add("hidden");
-    $("#screen-desk").classList.remove("hidden");
+    bs.classList.add("hidden"); $("#screen-desk").classList.remove("hidden");
     buildIcons(); S.startAmbient();
-    await sleep(1400);
-    S.notify();
+    await sleep(1400); S.notify();
+    const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面をダブルクリックで開いてください。");
+    if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
+    if (state.day === 2 && state.flags.day2memo) setTimeout(() => { S.notify(); toast("引き継ぎメモ.txt", "ファイルが更新されました。", "warn"); }, 1900);
   }
+
   $("#login-btn").addEventListener("click", boot);
+  $("#login-reset").addEventListener("click", () => { state = Object.assign(fresh(), { endings: state.endings }); save(); location.href = location.pathname; });
   $("#tb-mute").addEventListener("click", e => { const m = S.toggleMute(); e.currentTarget.classList.toggle("off", m); });
-  window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden")) boot(); });
+  window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden") && document.activeElement.tagName !== "BUTTON") boot(); });
+  $("#login-site").textContent = D.siteName + "　管理画面";
+  showLogin();
+  window.__game = { state: () => state, jump: d => { /* 開発用：N日目へ飛ぶ */ while (state.day < d) { state.queue.forEach(e => { if (!state.decisions[e.eid]) state.decisions[e.eid] = "approve"; }); nextDay(); } } };
 })();
