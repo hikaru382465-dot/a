@@ -200,7 +200,7 @@ _fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'bed_sheet1.png', ((a + 
 _bb = None
 for _f in _fr:
     _b = _f.getchannel('A').getbbox(); _bb = _b if _bb is None else (min(_bb[0], _b[0]), min(_bb[1], _b[1]), max(_bb[2], _b[2]), max(_bb[3], _b[3]))
-_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.5, 258 - _bx[0], 262 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
+_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.35, 285 - _bx[0], 285 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
 _frs = []
 for _f in _fr:
     _g = _f.resize((int(_f.width * _S / 2), int(_f.height * _S / 2)), Image.NEAREST); _gb = io.BytesIO(); _g.save(_gb, 'PNG', optimize=True)
