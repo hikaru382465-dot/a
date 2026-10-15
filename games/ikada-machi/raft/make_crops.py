@@ -28,7 +28,23 @@ def nosoil(im):      # 作物の絵についている「土のもりあがり」
     a = np.array(im).astype(int); r, g, b = a[..., 0], a[..., 1], a[..., 2]
     soil = (np.maximum(np.maximum(r, g), b) < 118) & (np.minimum(np.minimum(r, g), b) >= 36) & (r >= g - 2) & (r >= b - 6) & ((r - b) <= 45)      # 土の色（灰色がかった茶色）
     yy = np.arange(a.shape[0])[:, None] / a.shape[0]; xx = np.arange(a.shape[1])[None, :] / a.shape[1]; edge = (xx < 0.24) | (xx > 0.76); loose = ((yy < 0.62) | (edge & (yy < 0.92))) & (r < 140) & ((np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b)) < 75) & (r > g * 1.05) & (r > b * 1.1) & (g < 125)      # 上のほうと、左右のふちにういた、土のかけら
-    a[..., 3] = np.where(soil | loose, 0, a[..., 3]); out = Image.fromarray(a.astype(np.uint8), 'RGBA')
+    rm = soil | loose; a0 = a[..., 3].copy(); alpha = np.where(rm, 0, a0)
+    # 絵の中にある穴（外とつながっていない、ぬいた所）は、もとに戻す（実が透けないように）
+    from collections import deque
+    hh, ww = alpha.shape; outside = np.zeros((hh, ww), bool); dq = deque()
+    for yy0 in range(hh):
+        for xx0 in (0, ww - 1):
+            if alpha[yy0, xx0] == 0 and not outside[yy0, xx0]: outside[yy0, xx0] = True; dq.append((yy0, xx0))
+    for xx0 in range(ww):
+        for yy0 in (0, hh - 1):
+            if alpha[yy0, xx0] == 0 and not outside[yy0, xx0]: outside[yy0, xx0] = True; dq.append((yy0, xx0))
+    while dq:
+        cy, cx = dq.popleft()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            Y, X = cy + dy, cx + dx
+            if 0 <= Y < hh and 0 <= X < ww and alpha[Y, X] == 0 and not outside[Y, X]: outside[Y, X] = True; dq.append((Y, X))
+    alpha = np.where((alpha == 0) & ~outside & (a0 > 0), a0, alpha)
+    a[..., 3] = alpha; out = Image.fromarray(a.astype(np.uint8), 'RGBA')
     cs = cutlib.components(np.array(out.getchannel('A')) > 0, minpx=150, reach=1)      # 土をぬいたあと、はなれた小さいかけらは消す
     keep = np.zeros(a.shape[:2], bool)
     for pts in cs:
