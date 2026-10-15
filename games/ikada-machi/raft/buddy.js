@@ -134,6 +134,7 @@ window.RAFT.parts.buddy = function (c) {
       if (cheerT > 0) key = 'heart';
       else if (burstT > 0) key = 'burst';                                              // 嵐になった：びっくり
       else if (R.sim.weak(s)) key = 'gloom';                                           // 飢えて渇いて、ふらふら
+      else if (bu.inHut) key = 'zz';
       else if (bu.job === 'sleep' && !bu.path.length) key = 'zz';
       else if (bu.job === 'rest' && !bu.path.length) key = 'music';
       else if (s.needs.hunger < D.NEEDS.low || s.needs.thirst < D.NEEDS.low) key = 'sweat';
@@ -150,6 +151,7 @@ window.RAFT.parts.buddy = function (c) {
         const kk = (EA.k || 1) * 1.4 * (key === 'music' ? 0.5 : key === 'zz' ? 0.75 : 1); emoMesh.scale.set(f.w * u * pop * kk, f.h * u * pop * kk / Math.cos(c.cam.pitch), 1);
         const ox = Math.cos(c.cam.yaw) * 0.26, oz = -Math.sin(c.cam.yaw) * 0.26;
         emoMesh.position.set(bu.x + ox, emoteTop + 0.06 + floatUp + f.h * u * kh * (key === 'music' ? 0.4 : key === 'zz' ? 0.55 : 0.7) / Math.cos(c.cam.pitch), bu.z + oz);
+        if (bu.inHut) { const hh = s.objects.find(q => q.id === bu.inHut); if (hh) { const [hw, hd] = R.sim.sizeOf(hh); emoMesh.position.set(hh.x + hw / 2 + 0.5, 0.2 + 2.6 + floatUp, hh.z + hd / 2 + 0.5); } }      // 小屋の中：屋根の上に吹き出し
       }
     }
   } };
