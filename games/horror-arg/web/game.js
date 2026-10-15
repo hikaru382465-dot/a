@@ -20,7 +20,7 @@
 
   // ---------- 状態（ブラウザに保存。?reset で消せる） ----------
   const KEY = "horror-arg-v2";
-  const fresh = () => ({ day: 1, queue: null, history: [], decisions: {}, found: {}, memoExtra: [], answers: {}, flags: {}, endings: {} });
+  const fresh = () => ({ day: 1, queue: null, history: [], decisions: {}, found: {}, memoExtra: [], answers: {}, flags: {}, endings: {}, mailRead: {}, searchHistory: [], commentSeen: {} });
   let state = fresh();
   try {
     if (location.search.includes("reset")) localStorage.removeItem(KEY);
@@ -195,7 +195,7 @@
       } else {
         const dec = d => {
           state.decisions[e.eid] = d; save();
-          if (d === "approve") { S.approve(); toast("公開しました", "「" + e.title + "」を外部の公開サイトに掲載しました。", "ok"); }
+          if (d === "approve") { window.Apps.onApprove(e); S.approve(); toast("公開しました", "「" + e.title + "」を外部の公開サイトに掲載しました。", "ok"); }
           if (d === "reject") { S.reject(); toast("却下しました", "投稿者には通知されません。", "bad"); }
           if (d === "hold") { S.hold(); openMemo(); toast("保留にしました", "前任者の引き継ぎメモを開きました。", "warn"); }
           renderAdmin();
@@ -364,18 +364,25 @@
   }
 
   // ---------- デスクトップのアイコン ----------
-  function updateBadge() { if (badgeEl) { const n = window.Gimmicks.shownPending(pendingCount()); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; } }
+  let badgeFns = [];
+  function updateBadge() {
+    if (badgeEl) { const n = window.Gimmicks.shownPending(pendingCount()); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; }
+    badgeFns.forEach(f => f());
+  }
   function buildIcons() {
-    const mk = (label, glyph, color, fn, withBadge) => {
+    badgeFns = [];
+    const mk = (label, glyph, color, fn, withBadge, badgeFn) => {
       const el = h("div", { class: "icon" }, h("div", { class: "glyph", style: "background:" + color }, glyph), label);
       el.addEventListener("click", () => { document.querySelectorAll(".icon").forEach(i => i.classList.remove("sel")); el.classList.add("sel"); S.click(); });
       el.addEventListener("dblclick", fn);
       if (withBadge) { badgeEl = h("span", { class: "badge" }, "0"); el.append(badgeEl); }
+      if (badgeFn) { const b = h("span", { class: "badge" }, "0"); el.append(b); const f = () => { const n = badgeFn(); b.textContent = n; b.style.display = n ? "" : "none"; }; badgeFns.push(f); f(); }
       return el;
     };
     const box = $("#icons"); box.replaceChildren();
     box.append(mk("管理画面", "✉", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
       mk("引き継ぎメモ", "✎", "linear-gradient(135deg,#d9a93a,#a97a14)", openMemo, false));
+    window.Apps.iconDefs().forEach(d => box.append(mk(d.label, d.glyph, d.color, d.fn, false, d.badge)));
     if (state.day >= 2) box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false));
     if (state.day >= 4) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
     updateBadge();
@@ -487,6 +494,10 @@
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面をダブルクリックで開いてください。");
     if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
+    const um = window.Apps.unread();
+    if (um) setTimeout(() => { S.notify(); toast("新着メール", um + "件の未読メールがあります。"); }, 600);
+    const odd = window.Apps.newOddCount();
+    if (odd) setTimeout(() => toast("公開サイト", "承認した投稿に、新しいコメントが付いています。", "warn"), 1500);
     if (state.day === 2 && state.flags.day2memo) setTimeout(() => { S.notify(); toast("引き継ぎメモ.txt", "ファイルが更新されました。", "warn"); }, 1900);
   }
 
@@ -495,6 +506,7 @@
   $("#tb-mute").addEventListener("click", e => { const m = S.toggleMute(); e.currentTarget.classList.toggle("off", m); });
   window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden") && document.activeElement.tagName !== "BUTTON") boot(); });
   $("#login-site").textContent = D.siteName + "　管理画面";
+  window.Apps.bind({ h, openWin, toast, S, state: () => state, save, norm, D, refreshBadges: () => updateBadge() });
   window.Gimmicks.bind({ D, S, state: () => state, save, tab: () => tab, selId: () => selId, wins: () => wins, openMemo,
     clockEl: () => $("#tb-clock"), clockMin: () => clockMin, paintClock });
   showLogin();
