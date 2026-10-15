@@ -157,3 +157,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 .lock{margin:auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:#fff;height:100%;justify-content:center;width:100%}
 .lock-ico{font-size:34px}
 #login-reset{color:#6f7a90}
+
+/* ギミック */
+.det-body p{transition:background 2.5s}
+.det-body p.glow{background:linear-gradient(90deg,rgba(255,226,140,.30),rgba(255,226,140,0) 85%)}
+#tb-clock.flick{animation:flick .5s steps(1) infinite;color:#ff9a8a}

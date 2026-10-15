@@ -61,7 +61,7 @@
   // ---------- 時計 ----------
   let clockMin = 0;
   const clockStr = () => String(Math.floor(clockMin / 60) % 24).padStart(2, "0") + ":" + String(clockMin % 60).padStart(2, "0");
-  function paintClock() { $("#tb-clock").textContent = clockStr(); $("#login-clock").textContent = clockStr(); }
+  function paintClock() { $("#tb-clock").textContent = window.Gimmicks.clockText(clockStr()); $("#login-clock").textContent = clockStr(); }
   function resetClock() { const [a, b] = D.clockStart.split(":").map(Number); clockMin = a * 60 + b; paintClock(); }
   setInterval(() => { clockMin++; paintClock(); }, 60000);
   resetClock();
@@ -218,19 +218,22 @@
           info.append(h("table", {}, D.photoInfo.map(r => h("tr", {}, h("td", {}, r[0]), h("td", {}, r[1])))));
           bodyEl.append(h("div", { class: "photo-wrap" }, makePhoto(), bInfo, info));
         }
+        const bApprove = h("button", { class: "btn ok", onclick: () => dec("approve") }, cur === "approve" ? "承認済み" : "承認");
         const foot = tab === "hist"
           ? h("div", { class: "det-foot" }, h("span", { class: "note", style: "margin-left:0" }, "過去の投稿です。判断：" + statusLabel(cur)))
           : h("div", { class: "det-foot" },
-            h("button", { class: "btn ok", onclick: () => dec("approve") }, cur === "approve" ? "承認済み" : "承認"),
+            bApprove,
             h("button", { class: "btn ng", onclick: () => dec("reject") }, cur === "reject" ? "却下済み" : "却下"),
             e.last ? null : h("button", { class: "btn hold", onclick: () => dec("hold") }, "保留"),
             h("span", { class: "note" }, e.last ? "この投稿の判断で、結末が決まります。" : "承認すると、外部の公開サイトに掲載されます。"));
         detail.replaceChildren(
           h("div", { class: "det-head" }, h("h2", {}, e.title), meta), bodyEl, foot);
+        window.Gimmicks.onDetail(e, { bodyEl, bApprove: tab === "today" ? bApprove : null });
       }
-      const n = pendingCount();
-      bPend.textContent = n > 0 ? "未審査：" + n + "件" : "未審査：なし";
+      const n = pendingCount(), shown = window.Gimmicks.shownPending(n);
+      bPend.textContent = shown > 0 ? "未審査：" + shown + "件" : "未審査：なし";
       updateBadge();
+      if (n === 0) window.Gimmicks.zeroTrick(bPend, badgeEl);
     };
     openWin("admin", D.siteName + " 管理画面", body, { w: 880, h: 520, x: 90, y: 20 });
     renderAdmin();
@@ -361,7 +364,7 @@
   }
 
   // ---------- デスクトップのアイコン ----------
-  function updateBadge() { if (badgeEl) { const n = pendingCount(); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; } }
+  function updateBadge() { if (badgeEl) { const n = window.Gimmicks.shownPending(pendingCount()); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; } }
   function buildIcons() {
     const mk = (label, glyph, color, fn, withBadge) => {
       const el = h("div", { class: "icon" }, h("div", { class: "glyph", style: "background:" + color }, glyph), label);
@@ -378,6 +381,7 @@
     updateBadge();
   }
   function resetDesktop() {
+    window.Gimmicks.stop();
     Object.keys(wins).forEach(k => closeWin(k, true)); wins = {};
     $("#icons").replaceChildren(); $("#toasts").replaceChildren(); $("#tb-items").replaceChildren();
     badgeEl = null; selId = null; tab = "today";
@@ -406,7 +410,7 @@
       return showEnding(status(last.eid) === "reject" ? "close" : "open", heavy);
     }
     const scr = $("#screen-end"), box = $("#end-box");
-    $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
+    window.Gimmicks.stop(); $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
     S.sting();
     const day = state.day;
     await typeLines(box, [{ cls: "big", text: day + "日目の審査を終了しました。", wait: 700 }]);
@@ -440,7 +444,7 @@
     const lines = D.endings[key](c);
     state.endings[kind] = true; save();
     const scr = $("#screen-end"), box = $("#end-box");
-    $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
+    window.Gimmicks.stop(); $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
     S.sting();
     for (const t of lines) await typeLines(box, [{ cls: "dim", text: t, wait: 1100, speed: 55 }]);
     await sleep(900);
@@ -477,7 +481,7 @@
     }
     await sleep(500);
     bs.classList.add("hidden"); $("#screen-desk").classList.remove("hidden");
-    buildIcons(); S.startAmbient();
+    buildIcons(); S.startAmbient(); window.Gimmicks.start();
     await sleep(1400); S.notify();
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面をダブルクリックで開いてください。");
@@ -490,6 +494,8 @@
   $("#tb-mute").addEventListener("click", e => { const m = S.toggleMute(); e.currentTarget.classList.toggle("off", m); });
   window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden") && document.activeElement.tagName !== "BUTTON") boot(); });
   $("#login-site").textContent = D.siteName + "　管理画面";
+  window.Gimmicks.bind({ D, S, state: () => state, save, tab: () => tab, selId: () => selId, wins: () => wins, openMemo,
+    clockEl: () => $("#tb-clock"), clockMin: () => clockMin, paintClock });
   showLogin();
-  window.__game = { state: () => state, jump: d => { /* 開発用：N日目へ飛ぶ */ while (state.day < d) { state.queue.forEach(e => { if (!state.decisions[e.eid]) state.decisions[e.eid] = "approve"; }); nextDay(); } } };
+  window.__game = { fire: n => window.Gimmicks.fire(n), swap: () => { const e = state.queue.find(x => x.eid === selId); return e && window.Gimmicks.doSwap(e, document.querySelector(".det-body"), 2); }, state: () => state, jump: d => { /* 開発用：N日目へ飛ぶ */ while (state.day < d) { state.queue.forEach(e => { if (!state.decisions[e.eid]) state.decisions[e.eid] = "approve"; }); nextDay(); } } };
 })();
