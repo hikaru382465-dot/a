@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>投稿受付中（試作）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="screen-login" class="screen">
+  <div class="login-clock" id="login-clock">02:41</div>
+  <div class="login-date" id="login-date"></div>
+  <div class="login-card">
+    <div class="login-title" id="login-site"></div>
+    <label>管理者ID<input id="login-id" value="admin_0721" readonly></label>
+    <label>パスワード<input id="login-pw" type="password" value="••••••••" readonly></label>
+    <button id="login-btn" class="btn primary">ログイン</button>
+    <div class="login-last">前回のログイン：02:38（アカウント削除済み）</div>
+  </div>
+  <div class="login-note">音が出ます。ヘッドホン推奨・夜に遊んでください。</div>
+</div>
+
+<div id="screen-boot" class="screen hidden"><pre id="boot-text"></pre></div>
+
+<div id="screen-desk" class="screen hidden">
+  <div id="desktop">
+    <div id="icons"></div>
+    <div id="toasts"></div>
+  </div>
+  <div id="taskbar">
+    <div id="tb-start">夜ばなし</div>
+    <div id="tb-items"></div>
+    <div id="tb-right">
+      <button id="tb-mute" class="tb-btn" title="音のオン／オフ">♪</button>
+      <div id="tb-clock">02:41</div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-end" class="screen hidden"><div id="end-box"></div></div>
+<div id="vignette"></div>
+
+<script src="data.js"></script>
+<script src="sound.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
