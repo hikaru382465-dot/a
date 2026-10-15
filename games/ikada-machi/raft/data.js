@@ -33,7 +33,7 @@ window.RAFT.data = {
     bed:     { name: 'ベッド',   lv: 0, w: 0, place: true, tip: '飾り。ふかふかのベッド（のちに、ねて回復できるようにしたい）' },
     shelf:   { name: '本棚',     lv: 0, w: 0, place: true, tip: '飾り。本や瓶をならべた棚' },
     windmill:{ name: '風車',     lv: 0, w: 0, place: true, tip: '飾り。小さな風車' },
-    hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], tip: '飾り。わらぶき屋根の小屋（2×3マス）' },
+    hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], tip: '自分と相棒の家。タップで中に入って、休める（2×3マス）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -116,6 +116,7 @@ window.RAFT.data = {
   // speed：流れの速さ（マス/秒）、rate：物の出る多さ、thirst：のどのかわく速さの倍率、w：次に選ばれやすさ
   // 魚の図鑑：lv＝網のレベルがこれ以上で出る／star＝めずらしさ（3は、とれたら魚が3匹）／w＝出やすさ／time＝多い時間（dawn・day・dusk・night）／wx＝多い天気／by＝rod（釣りざおだけ）・net（網だけ）・省略で両方／great＝釣りざおの「ぴったり」のときだけ
   // 畑：畑に種袋をまくと、くじで作物が決まる。水（貯水槽から）があるあいだだけ育つ。嵐の雨は、全部のプランターに水を入れる
+  HUT: { needMul: 0.6, calm: 2 },      // 小屋の中：おなか・のどの減りが0.6倍／「ほっとした」が1秒に2ふえる
   PLOT: { water: 240, sunDry: 1.4, calmGrow: 1.5, seedBack: 0.5 },      // water＝水がもつ秒数／sunDry＝晴れの日の乾きの速さ／calmGrow＝凪の日の育ち／seedBack＝収穫で種が戻る確率
   CROPS: {
     tomato: { name: 'トマト',     sec: 360, star: 1, w: 5, tip: '赤くてつやつや。おなかにもいい' },

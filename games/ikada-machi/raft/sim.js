@@ -389,6 +389,17 @@
     kinds.filter(k => k !== 'hut').forEach((k, n) => { const x = n % 5, z = 1 + Math.floor(n / 5) * 2; put(k, x, z, k === 'tank' ? { w: 8 } : {}); });
     s.player.x = 3.5; s.player.z = 4.5; s.buddy.x = 4.5; s.buddy.z = 4.5; s.player.path = []; s.buddy.path = []; s.objRev++;
   };
+  // 小屋＝自分と相棒の家。入ると絵が消えて、おなか・のどの減りがゆるみ、「ほっとした」が上がる。動こうとすると出る
+  S.enterHut = function (s, o) {
+    if (s.player.inHut) return; if (s.net.cast || s.rod) { s.events.push({ e: 'hutbusy' }); return; }
+    s.player.inHut = o.id; s.events.push({ e: 'hutin' });
+  };
+  S.exitHut = function (s) { if (!s.player.inHut) return; s.player.inHut = null; s.events.push({ e: 'hutout' }); };
+  function hutStep(s, dt) {
+    const p = s.player; if (!p.inHut) return;
+    if (p.path.length || p.task || s.net.cast || s.rod || !s.objects.some(o => o.id === p.inHut)) { S.exitHut(s); return; }
+    s.calm = Math.min(100, (s.calm || 0) + D.HUT.calm * dt);
+  }
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
   S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
@@ -425,7 +436,7 @@
     s.current.ang = Math.sin(s.clock.day * 1.7 + s.clock.t * 6.28) * 0.35;
     const W = D.WEATHER[s.weather.id];
     // おなか・のどのかわき（0で止まる。死なない）
-    const dn = diffNeed(s); s.needs.hunger = Math.max(0, s.needs.hunger - D.NEEDS.hunger * dn * dt);
+    const dn = diffNeed(s) * (s.player.inHut ? D.HUT.needMul : 1); s.needs.hunger = Math.max(0, s.needs.hunger - D.NEEDS.hunger * dn * dt);
     s.needs.thirst = Math.max(0, s.needs.thirst - D.NEEDS.thirst * dn * W.thirst * dt);
     const wk = S.weak(s); if (wk !== !!s.flags.weak) { s.flags.weak = wk; if (wk) s.events.push({ e: 'weak' }); }
     const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
@@ -477,6 +488,7 @@
         else if (o && o.k === 'seat' && a === b) S.startLook(s, o);
         else if (o && o.k === 'rack' && a === b) S.rackUse(s, o);
         else if (o && o.k === 'plot' && a === b) S.plotUse(s, o);
+        else if (o && o.k === 'hut' && a === b) S.enterHut(s, o);
         else if (o && o.k === 'tank') {
           if (o.w > 0) { o.w--; s.needs.thirst = clamp(s.needs.thirst + D.TANK_SIP, 0, 100); { const d = a === s.buddy ? 1.6 : 0.7; a.act = { type: 'eat', kind: 'drink', t: d, dur: d }; } s.events.push({ e: 'drink', k: 'tank' }); }
           else s.events.push({ e: 'tankempty' });
@@ -491,7 +503,7 @@
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
-    boatStep(s, dt, f, bb); lookStep(s, dt);
+    boatStep(s, dt, f, bb); lookStep(s, dt); hutStep(s, dt);
     const v = W.speed, rests = [];
     ['player', 'buddy'].forEach(w => {
       const K = kit(s, w), cast = K.net.cast, nl = netNow(s, w), ow = K.actor; if (!cast) return;
@@ -536,5 +548,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);
