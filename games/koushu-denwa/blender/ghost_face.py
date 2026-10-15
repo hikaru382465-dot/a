@@ -98,32 +98,45 @@ print('cavity verts',len(new_verts),'ring',len(ring0))
 # --- 2. teeth + tongue
 random.seed(7)
 upper=[];lower=[];
-def rbox(x,y,zc,w,d,h,ang):
+teeth_meta=[]
+def rbox(x,y,zc,w,d,h,ang,taper=0.0,tipsign=-1,gum=False):
     before=set(bm.verts)
     r=bmesh.ops.create_cube(bm,size=1.0,matrix=M.Translation((x,y,zc))@M.Rotation(ang,4,'Z')@M.Diagonal((w,d,h,1)))
     vs=r['verts']; es=list({e for v in vs for e in v.link_edges})
-    bmesh.ops.bevel(bm,geom=vs+es,offset=0.0007,segments=2,affect='EDGES')
-    return set(bm.verts)-before
-W_=[0.0056,0.0044,0.0046,0.0042,0.0040]
+    bmesh.ops.bevel(bm,geom=vs+es,offset=min(0.0009,w*0.18),segments=2,affect='EDGES')
+    new=set(bm.verts)-before
+    if taper>0:
+        for v in new:
+            fr=(v.co.z-zc)/(h/2)*tipsign
+            if fr>0:
+                v.co.x=x+(v.co.x-x)*(1-taper*fr); v.co.y=y+(v.co.y-y)*(1-0.5*taper*fr)
+    if not gum: teeth_meta.append((new,zc,h,tipsign,random.uniform(0.93,1.0)))
+    return new
+UP=[(0.0062,0.0118,0.0),(0.0048,0.0098,0.0),(0.0050,0.0110,0.35),(0.0046,0.0088,0.0),(0.0044,0.0082,0.0)]
+LO=[(0.72,0.0070,0.0),(0.78,0.0074,0.0),(0.92,0.0092,0.30),(0.95,0.0080,0.0),(0.95,0.0074,0.0)]
 xs=[];acc=0.0
-for k,w in enumerate(W_):
+for (w,h,t) in UP:
     xs.append(acc+w/2); acc+=w
+xl=[];acc=0.0
+for (w,h,t),(fw,_,_) in zip(UP,LO):
+    xl.append(acc+w*fw/2); acc+=w*fw
 for side in (-1,1):
-    for k,w in enumerate(W_):
-        x=side*xs[k]; slope=2*0.013*x/0.022**2; ang=math.atan(slope)*0.8
+    for k,(w,h,t) in enumerate(UP):
+        x=side*xs[k]; slope=2*0.013*x/0.022**2; ang=math.atan(slope)*0.8+math.radians(random.uniform(-3,3))
         y=ly+0.006+0.013*(x/0.022)**2
-        hh=0.0100*(1.12 if k==0 else 1.0)*(1.06 if k==2 else 1.0)
-        upper+=rbox(x,y,cz+0.0030+(0.0 if k else -0.0003)-0.0000,w*0.99,0.0035,hh,ang)
-        # lower row: smaller, tips up
-        lower+=rbox(x*0.98,y+0.0030,cz-0.0090,w*0.80,0.0030,0.0080,ang)
+        upper+=rbox(x,y,cz+0.0030+(h-0.0100)/2*0.9,w*1.05,0.0035,h,ang,taper=t,tipsign=-1)
+        fw,fh,ft=LO[k]
+        lower+=rbox(side*xl[k],y+0.0030,cz-0.0090-(0.0080-fh)/2,w*fw*1.06,0.0030,fh,ang,taper=ft,tipsign=1)
 gum_up=[];gum_lo=[]
 for side in (-1,1):
-    for k,w in enumerate(W_):
+    for k,(w,h,t) in enumerate(UP):
         x=side*xs[k]; slope=2*0.013*x/0.022**2; ang=math.atan(slope)*0.8
         y=ly+0.006+0.013*(x/0.022)**2
-        gum_up+=rbox(x,y+0.0030,cz+0.0075,w*1.04,0.0030,0.0090,ang)
-        gum_lo+=rbox(x*0.98,y+0.0085,cz-0.0112,w*0.88,0.0030,0.0055,ang)
-tg=bmesh.ops.create_uvsphere(bm,u_segments=12,v_segments=8,radius=1.0,matrix=M.Translation((0,ly+0.019,cz-0.0115))@M.Diagonal((0.012,0.014,0.0035,1)))
+        gum_up+=rbox(x,y+0.0030,cz+0.0082,w*1.04,0.0030,0.0090,ang,gum=True)
+        gum_lo+=rbox(x*0.98,y+0.0085,cz-0.0112,w*0.88,0.0030,0.0055,ang,gum=True)
+uv=bmesh.ops.create_uvsphere(bm,u_segments=10,v_segments=6,radius=1.0,matrix=M.Translation((0,ly+0.032,cz+0.0045))@M.Diagonal((0.0022,0.0022,0.0050,1)))
+uvula=uv['verts']
+tg=bmesh.ops.create_uvsphere(bm,u_segments=12,v_segments=8,radius=1.0,matrix=M.Translation((0,ly+0.020,cz-0.0112))@M.Diagonal((0.0135,0.016,0.0040,1)))
 tongue=tg['verts']
 # material per added geometry
 for v in list(upper)+list(lower):
@@ -132,14 +145,36 @@ for v in tongue:
     for f in v.link_faces: f.material_index=3
 for v in list(gum_up)+list(gum_lo):
     for f in v.link_faces: f.material_index=4
+for v in uvula:
+    for f in v.link_faces: f.material_index=3
 bmesh.ops.triangulate(bm,faces=bm.faces[:])
 bm.verts.index_update()
-ID=dict(ring={v.index for v in ring0 if v.is_valid},cav={v.index for v in new_verts},up={v.index for v in upper}|{v.index for v in gum_up},lo={v.index for v in lower}|{v.index for v in gum_lo},tg={v.index for v in tongue})
+TM=[({v.index for v in st},zc,h,ts,tint) for st,zc,h,ts,tint in teeth_meta]
+ID=dict(ring={v.index for v in ring0 if v.is_valid},cav={v.index for v in new_verts},up={v.index for v in upper}|{v.index for v in gum_up}|{v.index for v in uvula},lo={v.index for v in lower}|{v.index for v in gum_lo},tg={v.index for v in tongue})
 bm.to_mesh(me); bm.free()
 mats=me.materials
-for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.80,0.77,0.70,1),0.15),('Tongue',(0.55,0.2,0.22,1),0.45),('Gum',(0.42,0.14,0.16,1),0.4)):
+for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.80,0.77,0.70,1),0.15),('Tongue',(0.66,0.27,0.29,1),0.4),('Gum',(0.62,0.22,0.25,1),0.35)):
     m=bpy.data.materials.new(nm); m.use_nodes=True; b=m.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value=col; b.inputs['Roughness'].default_value=rough; mats.append(m)
+    if nm in ('MouthInside','Teeth'):
+        vc=m.node_tree.nodes.new('ShaderNodeVertexColor'); vc.layer_name='Col'; m.node_tree.links.new(vc.outputs['Color'],b.inputs['Base Color'])
 print({k:len(v) for k,v in ID.items()},len(me.vertices))
+ca=me.color_attributes.new('Col','FLOAT_COLOR','POINT')
+cols=[(1,1,1,1)]*len(me.vertices)
+cols=list(cols)
+def lerpc(a,b,t): return tuple(a[i]+(b[i]-a[i])*t for i in range(3))+(1,)
+for idxs,zc,h,ts,tint in TM:
+    for i in idxs:
+        z=me.vertices[i].co.z
+        rootness=((z-(zc-h/2))/h) if ts==-1 else 1-((z-(zc-h/2))/h)
+        rootness=max(0,min(1,rootness))
+        c=lerpc((0.94,0.92,0.85),(0.80,0.66,0.46),rootness**1.6)
+        base=0.96 if ts==-1 else 0.92
+        cols[i]=tuple(min(1,x*tint*base) for x in c[:3])+(1,)
+for i in ID['cav']:
+    d=me.vertices[i].co.y-ly
+    t=max(0,min(1,d/0.036))**0.7
+    cols[i]=lerpc((0.66,0.18,0.20),(0.04,0.008,0.010),t)
+for i,c in enumerate(cols): ca.data[i].color=c
 V=me.vertices
 # --- sculpt-like smoothing (Smooth brush) + gentle inflate on cheeks
 adj=[[] for _ in V]
@@ -207,7 +242,7 @@ for i,c in openco.items(): k1.data[i].co=c
 k2=o.shape_key_add(name='Smile')
 for i,c in sm.items(): k2.data[i].co=closed.get(i,openco[i])+c
 k3=o.shape_key_add(name='Grin')
-for i,c in openco.items(): k3.data[i].co=(grin_teeth[i] if i in grin_teeth else closed.get(i,c).lerp(c,0.38))+sm.get(i,Vector((0,0,0)))
+for i,c in openco.items(): k3.data[i].co=(grin_teeth[i] if i in grin_teeth else closed.get(i,c).lerp(c,0.46))+sm.get(i,Vector((0,0,0)))
 # --- armature
 arm=bpy.data.armatures.new('GhostRig'); ao=bpy.data.objects.new('GhostRig',arm); bpy.context.scene.collection.objects.link(ao)
 bpy.context.view_layer.objects.active=ao; bpy.ops.object.mode_set(mode='EDIT')
