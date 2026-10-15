@@ -197,6 +197,20 @@ _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior3.png', (0, 0, 1
 _ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
 _runs = [(28, 273), (296, 540), (563, 806), (829, 1072), (1096, 1339), (1362, 1607), (1631, 1877), (1900, 2140)]
 _fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'bed_sheet1.png', ((a + b) // 2 - 135, 220, (a + b) // 2 + 135, 500), shrink=1, fringe=1, trim=False) for a, b in _runs]
+def _align(frames):      # コマごとのベッドのずれを、ベッドの下のほう（足・わく）をそろえて直す
+    import numpy as _np
+    ref = _np.array(frames[0].convert('RGBA')).astype(float); h = ref.shape[0]; out = [frames[0]]
+    def feat(a): return _np.dstack([a[..., :3].mean(axis=2) * (a[..., 3] > 128), (a[..., 3] > 128) * 255.0])
+    R = feat(ref)[int(h * 0.55):]
+    for f in frames[1:]:
+        a = _np.array(f.convert('RGBA')).astype(float); best = (1e18, 0, 0)
+        for dy in range(-8, 9):
+            for dx in range(-8, 9):
+                b = _np.roll(_np.roll(a, dy, 0), dx, 1); e = ((feat(b)[int(h * 0.55):] - R) ** 2).sum()
+                if e < best[0]: best = (e, dx, dy)
+        b = _np.roll(_np.roll(a, best[2], 0), best[1], 1); out.append(Image.fromarray(b.astype(_np.uint8), 'RGBA'))
+    return out
+_fr = _align(_fr)
 _bb = None
 for _f in _fr:
     _b = _f.getchannel('A').getbbox(); _bb = _b if _bb is None else (min(_bb[0], _b[0]), min(_bb[1], _b[1]), max(_bb[2], _b[2]), max(_bb[3], _b[3]))
