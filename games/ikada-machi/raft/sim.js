@@ -21,7 +21,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}
+      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}, sleepNight: -1
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -409,6 +409,21 @@
     if (bu.inHut && !want) { bu.inHut = null; s.events.push({ e: 'bhutout' }); return; }
     if (want && !bu.inHut && !bu.path.length && !bu.task && !bu.act) S.walkNear(s, hut.x, hut.z, { type: 'hut', id: hut.id }, bu);
   }
+  // 小屋の中でできること：「ごはん」（持ち物の食べ物を1つ）／「朝まで眠る」（夜だけ。1晩に1回。おなか・のどが20以上のとき。朝までの時間が一気にすすむ）
+  S.hutEat = function (s) {
+    if (!s.player.inHut) return false; const k = ['grilled', 'dried', 'veg', 'fish', 'coconut'].find(q => (s.inv[q] || 0) > 0);
+    if (!k) { s.events.push({ e: 'hutnofood' }); return false; } return S.use(s, k);
+  };
+  S.isNight = s => s.clock.t >= 0.78 || s.clock.t < 0.2;
+  S.sleepHut = function (s) {
+    if (!s.player.inHut) return false;
+    if (!S.isNight(s)) { s.events.push({ e: 'hutnotnight' }); return false; }
+    const nid = s.clock.t >= 0.78 ? s.clock.day : s.clock.day - 1; if (s.sleepNight === nid) { s.events.push({ e: 'hutslept2' }); return false; }
+    if (s.needs.hunger < 20 || s.needs.thirst < 20) { s.events.push({ e: 'hutnosleep' }); return false; }
+    s.sleepNight = nid; let guard = 0; s.hutSleeping = true;
+    while (S.isNight(s) && guard++ < 700) { S.step(s, 1); s.needs.hunger = Math.max(s.needs.hunger, 3); s.needs.thirst = Math.max(s.needs.thirst, 3); }
+    s.hutSleeping = false; s.calm = Math.min(100, (s.calm || 0) + 30); s.buddy.mood = Math.min(100, s.buddy.mood + 30); s.events.push({ e: 'hutwake' }); return true;
+  };
   S.startLook = function (s, o) { if (s.look) return; s.look = { id: o.id, t: 0, gift: D.LOOK.giftSec * 0.6, setBuddy: false }; const bu = s.buddy; if (!bu.job) { S.setJob(s, 'rest'); s.look.setBuddy = true; } s.events.push({ e: 'lookstart' }); };
   S.stopLook = function (s) { const L = s.look; if (!L) return; if (L.setBuddy && s.buddy.job === 'rest') S.setJob(s, null); s.look = null; s.events.push({ e: 'lookstop' }); };
   S.sceneKey = s => { const h = s.clock.t, w = s.weather.id; return (h < 0.2 ? 'dawn' : h < 0.62 ? 'day' : h < 0.78 ? 'dusk' : 'night') + '_' + w; };
@@ -558,5 +573,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);
