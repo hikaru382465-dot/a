@@ -172,8 +172,8 @@ for idxs,zc,h,ts,tint in TM:
         cols[i]=tuple(min(1,x*tint*base) for x in c[:3])+(1,)
 for i in ID['cav']:
     d=me.vertices[i].co.y-ly
-    t=max(0,min(1,d/0.036))**0.7
-    cols[i]=lerpc((0.66,0.18,0.20),(0.04,0.008,0.010),t)
+    t=max(0,min(1,d/0.050))**1.3
+    cols[i]=lerpc((0.70,0.20,0.22),(0.08,0.015,0.020),t)
 for i,c in enumerate(cols): ca.data[i].color=c
 V=me.vertices
 # --- sculpt-like smoothing (Smooth brush) + gentle inflate on cheeks
@@ -239,6 +239,10 @@ for i,c in closed.items(): V[i].co=c
 o.shape_key_add(name='Basis')
 k1=o.shape_key_add(name='JawOpen'); 
 for i,c in openco.items(): k1.data[i].co=c
+for i in ID['lo']|ID['tg']:
+    k1.data[i].co=grin_teeth[i]+Vector((0,0,-0.0045))
+for i in ID['tg']:
+    k1.data[i].co=grin_teeth[i]+Vector((0,-0.003,0.0005))
 k2=o.shape_key_add(name='Smile')
 for i,c in sm.items(): k2.data[i].co=closed.get(i,openco[i])+c
 k3=o.shape_key_add(name='Grin')
