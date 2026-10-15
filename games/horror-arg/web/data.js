@@ -12,16 +12,16 @@ window.GAME_DATA = {
   clockStart: "02:41",
   // ギミックがいつから起きるか（N日目から）。大きくするほど遅くなる。99で無効
   gimmicks: {
-    pendingOff: 2,    // 未審査の数が実際より1多く見える（3日目からは0件の直後に「1件」）
-    swap: 2,          // 読んでいる最中に本文の1語が変わる
+    pendingOff: 2,    // 未審査の数が実際より1多く見える（0件の直後に「1件」は4日目から）
+    clock: 2,         // 時計が1分戻る（5日目は02:41で止まる）
     glow: 2,          // ある段落がうっすら光る
-    windowReturn: 2,  // 閉じたメモが勝手に戻る
-    windowNudge: 3,   // 窓が少しだけずれる
-    flee: 3,          // 承認ボタンが逃げる
-    buttonLabel: 4,   // 最後の投稿で「承認」が「あなた」になる
-    title: 2,         // ブラウザの題名が一瞬変わる
-    clock: 2,         // 時計が1分戻る（4日目は02:41で止まる）
-    silentNotify: 2   // 音だけの通知
+    swap: 3,          // 読んでいる最中に本文の1語が変わる
+    windowReturn: 3,  // 閉じたメモが勝手に戻る
+    title: 3,         // ブラウザの題名が一瞬変わる
+    silentNotify: 4,  // 音だけの通知
+    flee: 4,          // 承認ボタンが逃げる
+    windowNudge: 4,   // 窓が少しだけずれる
+    buttonLabel: 5    // 最後の投稿で「承認」が「あなた」になる
   },
   // 読んでいる最中に入れ替わる言葉（[元, 後]）。書き出し（1段落目）は変えない
   swaps: {
@@ -66,11 +66,11 @@ window.GAME_DATA = {
 
   // 調査メモに書き込める答え（ひらがな・漢字・時刻などの表記ゆれを許す）
   answers: [
-    { id: "town", day: 2, accept: ["はなみずき", "花水木", "はなみずき町", "花水木町"],
+    { id: "town", day: 3, accept: ["はなみずき", "花水木", "はなみずき町", "花水木町"],
       log: "投稿元コードを読みかえた町の名前：はなみずき", memo: "town" },
-    { id: "time", day: 3, accept: ["0241", "02:41", "2:41", "2時41分", "二時四十一分", "02時41分"],
+    { id: "time", day: 4, accept: ["0241", "02:41", "2:41", "2時41分", "二時四十一分", "02時41分"],
       log: "管理人がログインする時刻：02:41", memo: "time" },
-    { id: "pass", day: 4, accept: ["あなたがくるまえからみていたのよ", "あなたが来る前から見ていたのよ", "あなたが来る前から見ていたのよ。"],
+    { id: "pass", day: 5, accept: ["あなたがくるまえからみていたのよ", "あなたが来る前から見ていたのよ", "あなたが来る前から見ていたのよ。"],
       log: "16本の最初の文字：あなたが来る前から見ていたのよ", ending: "true" }
   ],
 
@@ -196,7 +196,7 @@ window.GAME_DATA = {
       ]
     },
     {
-      id: "p09", day: 2, origin: "K-9",
+      id: "p09", day: 3, origin: "K-9",
       title: "壁の染み", author: "さくら餅", authorId: "u_6a25-4417",
       time: "今日 02:38", device: "スマートフォン",
       body: [
@@ -240,7 +240,7 @@ window.GAME_DATA = {
       ]
     },
     {
-      id: "p13", day: 3,
+      id: "p13", day: 4,
       title: "二時四十一分", author: "夜勤明け", authorId: "u_b319-4417",
       time: "今日 02:41", device: "パソコン",
       body: [
@@ -250,7 +250,7 @@ window.GAME_DATA = {
       ]
     },
     {
-      id: "p14", day: 3,
+      id: "p14", day: 4,
       title: "十二回目", author: "かすみ草", authorId: "u_4ee6-4417",
       time: "今日 02:41", device: "スマートフォン",
       body: [
@@ -260,7 +260,7 @@ window.GAME_DATA = {
       ]
     },
     {
-      id: "p15", day: 4, final: true,
+      id: "p15", day: 5, final: true,
       title: "のこしたメモ", author: "元管理人", authorId: "u_0000-4417",
       time: "今日 02:41", device: "不明",
       body: [
@@ -271,7 +271,7 @@ window.GAME_DATA = {
       ]
     },
     {
-      id: "p16", day: 4, final: true, last: true,
+      id: "p16", day: 5, final: true, last: true,
       title: "管理人の夜", author: "（あなた）", authorId: "u_admin-4417",
       time: "今日 02:41", device: "パソコン",
       // 関数にすると、ここにそれまでの承認・却下の数が入る（c は数のまとめ）
@@ -279,7 +279,7 @@ window.GAME_DATA = {
         return [
           "よる二時四十一分、私は管理画面にログインしました。",
           "一日目、四件のうち、" + c.d1.approve + "件を承認し、" + c.d1.reject + "件を却下しました。",
-          "二日目と三日目で、承認は" + (c.d2.approve + c.d3.approve) + "件、却下は" + (c.d2.reject + c.d3.reject) + "件でした。",
+          "二日目から四日目で、承認は" + (c.d2.approve + c.d3.approve + c.d4.approve) + "件、却下は" + (c.d2.reject + c.d3.reject + c.d4.reject) + "件でした。",
           "気がつくと、私の書いたこの文章が、投稿欄に届いています。読んでいるのは、誰でしょうか。",
           "承認すれば、これは明日の朝、公開サイトに載ります。却下すれば、明日の夜、もう一度届きます。"
         ];
@@ -358,7 +358,7 @@ window.GAME_DATA = {
 // 開発用：16本の書き出しの文字が合言葉と合っているか調べる
 window.checkHeads = function () {
   const heads = window.GAME_DATA.posts.map(p => {
-    const b = typeof p.body === "function" ? p.body({ d1: { approve: 0, reject: 0 }, d2: { approve: 0, reject: 0 }, d3: { approve: 0, reject: 0 } }) : p.body;
+    const b = typeof p.body === "function" ? p.body({ d1: { approve: 0, reject: 0 }, d2: { approve: 0, reject: 0 }, d3: { approve: 0, reject: 0 }, d4: { approve: 0, reject: 0 } }) : p.body;
     return b[0][0];
   }).join("");
   const want = window.GAME_DATA.passphrase;

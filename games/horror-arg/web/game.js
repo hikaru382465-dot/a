@@ -32,7 +32,7 @@
   // ---------- 投稿の組み立て ----------
   function counts() {
     const all = state.history.concat(state.queue || []);
-    const c = { d1: { approve: 0, reject: 0 }, d2: { approve: 0, reject: 0 }, d3: { approve: 0, reject: 0 },
+    const c = { d1: { approve: 0, reject: 0 }, d2: { approve: 0, reject: 0 }, d3: { approve: 0, reject: 0 }, d4: { approve: 0, reject: 0 },
       approvedTotal: 0, rejectedTotal: 0, approvedTitles: [] };
     all.forEach(e => {
       const s = state.decisions[e.eid];
@@ -377,7 +377,7 @@
     box.append(mk("管理画面", "✉", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
       mk("引き継ぎメモ", "✎", "linear-gradient(135deg,#d9a93a,#a97a14)", openMemo, false));
     if (state.day >= 2) box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false));
-    if (state.day >= 3) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
+    if (state.day >= 4) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
     updateBadge();
   }
   function resetDesktop() {
@@ -416,7 +416,7 @@
     await typeLines(box, [{ cls: "big", text: day + "日目の審査を終了しました。", wait: 700 }]);
     [["承認", cnt.approve], ["却下", cnt.reject], ["保留", cnt.hold]].forEach(r => box.append(h("div", { class: "row" }, h("span", {}, r[0]), h("span", {}, r[1] + "件"))));
     await sleep(900); box.append(h("div", { style: "height:18px" }));
-    const notes = { 1: "前回のログイン：02:38（アカウント削除済み）", 2: "最後の投稿時刻：02:38（あなたのログインの3分前）", 3: "最後の投稿時刻：02:41（あなたのログイン時刻と同じ）" };
+    const notes = { 1: "前回のログイン：02:38（アカウント削除済み）", 2: "最後の投稿時刻：02:34（あなたのログインの7分前）", 3: "最後の投稿時刻：02:40（あなたのログインの1分前）", 4: "最後の投稿時刻：02:41（あなたのログイン時刻と同じ）" };
     await typeLines(box, [{ cls: "dim", text: "ログアウトします。", wait: 900 }, { cls: "dim", text: "次回のログイン予定：明日 02:41", wait: 1100 },
       { cls: "dim flick", text: notes[day] || "", wait: 1300 }]);
     box.append(h("button", { class: "btn", style: "margin-top:26px", onclick: nextDay }, "ログインする（" + (day + 1) + "日目）"));
@@ -473,7 +473,8 @@
     const lines = { 1: ["認証しています…", "ログインしました。", "前任の管理人は退会済みです。"],
       2: ["認証しています…", "ログインしました。", "前回のログイン：昨日 02:41（あなた）"],
       3: ["認証しています…", "ログインしました。", "現在のログイン数：2"],
-      4: ["認証しています…", "ログインしました。", "現在のログイン数：2", "あなたは、1人目ではありません。"] }[state.day] || ["ログインしました。"];
+      4: ["認証しています…", "ログインしました。", "現在のログイン数：3"],
+      5: ["認証しています…", "ログインしました。", "現在のログイン数：16", "あなたは、1人目ではありません。"] }[state.day] || ["ログインしました。"];
     for (const l of lines) {
       bt.textContent += (bt.textContent ? "\n" : "");
       for (const ch of l) { bt.textContent += ch; S.key(); await sleep(55); }

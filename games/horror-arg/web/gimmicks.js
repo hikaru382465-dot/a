@@ -35,7 +35,7 @@ window.Gimmicks = (function () {
   // 1. 未審査の数がずれる（実際より1多く見える）／3日目からは、0件になった直後に「1件」と出る
   function shownPending(n) { return on("pendingOff") && n > 0 ? n + 1 : n; }
   function zeroTrick(textEl, badgeEl) {
-    if (!on("pendingOff") || day() < 3 || zeroDone[day()]) return;
+    if (!on("pendingOff") || day() < 4 || zeroDone[day()]) return;
     zeroDone[day()] = true;
     textEl.textContent = "未審査：1件";
     if (badgeEl) { badgeEl.textContent = "1"; badgeEl.style.display = ""; }
@@ -72,7 +72,7 @@ window.Gimmicks = (function () {
     if (api.tab() !== "today") return;
     if (on("swap") && !e.swapped) {
       swapTimer = setTimeout(() => {
-        if (active && c.bodyEl.isConnected && api.selId() === e.eid) doSwap(e, c.bodyEl, day() >= 3 ? 2 : 1);
+        if (active && c.bodyEl.isConnected && api.selId() === e.eid) doSwap(e, c.bodyEl, day() >= 4 ? 2 : 1);
       }, 11000 + Math.random() * 5000);
       timers.push(swapTimer);
     }
@@ -123,12 +123,12 @@ window.Gimmicks = (function () {
 
   // 6. ブラウザの題名が一瞬変わる
   function titleBlip() {
-    document.title = day() >= 3 ? "02:41" : "みている";
+    document.title = day() >= 4 ? "02:41" : "みている";
     setTimeout(() => { document.title = baseTitle; }, 1100);
   }
 
   // 7. 時計が1分戻る・4日目は02:41で止まる
-  function clockText(t) { return active && day() >= 4 ? "02:41" : t; }
+  function clockText(t) { return active && day() >= 5 ? "02:41" : t; }
   async function clockGlitch() {
     const el = api.clockEl(), m = api.clockMin();
     const f = x => String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
