@@ -201,11 +201,17 @@ _bb = None
 for _f in _fr:
     _b = _f.getchannel('A').getbbox(); _bb = _b if _bb is None else (min(_bb[0], _b[0]), min(_bb[1], _b[1]), max(_bb[2], _b[2]), max(_bb[3], _b[3]))
 _fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.35, 322 - _bx[0], 262 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
-_frs = []
+_frs = []; _PAD = 40
+from PIL import ImageDraw, ImageFilter
+def _shadowed(_g):      # ベッドの足もとに、床にうつるかげをつける（ういて見えないように）
+    W, H = _g.size; c = Image.new('RGBA', (W + _PAD * 2, H + _PAD), (0, 0, 0, 0)); sh = Image.new('RGBA', c.size, (0, 0, 0, 0)); d = ImageDraw.Draw(sh)
+    cx, cy = _PAD + W * 0.50, H - H * 0.04
+    d.polygon([(cx - W * 0.58, cy - H * 0.12), (cx - W * 0.02, cy - H * 0.30), (cx + W * 0.62, cy - H * 0.10), (cx + W * 0.06, cy + H * 0.10)], fill=(8, 3, 1, 215))
+    sh = sh.filter(ImageFilter.GaussianBlur(3)); c.alpha_composite(sh); c.alpha_composite(_g, (_PAD, 0)); return c
 for _f in _fr:
-    _g = _f.resize((int(_f.width * _S / 2), int(_f.height * _S / 2)), Image.NEAREST); _gb = io.BytesIO(); _g.save(_gb, 'PNG', optimize=True)
+    _g = _shadowed(_f.resize((int(_f.width * _S), int(_f.height * _S)), Image.NEAREST)); _g = _g.resize((_g.width // 2, _g.height // 2), Image.NEAREST); _gb = io.BytesIO(); _g.save(_gb, 'PNG', optimize=True)
     _frs.append('data:image/png;base64,' + base64.b64encode(_gb.getvalue()).decode())
-_gw, _gh = int(_fr[0].width * _S), int(_fr[0].height * _S)
+_gw, _gh = int(_fr[0].width * _S) + _PAD * 2, int(_fr[0].height * _S) + _PAD; _OX -= _PAD; _OY += 8
 (here / 'hut_art.js').write_text('window.RAFT.hutArt = ' + json.dumps({'interior': 'data:image/png;base64,' + base64.b64encode(_bf.getvalue()).decode(), 'w': IW // 2, 'h': IH // 2, 'bed': {'frames': _frs, 'x': _OX / IW * 100, 'y': _OY / IH * 100, 'w': _gw / IW * 100, 'h': _gh / IH * 100}}) + ';\n', encoding='utf-8')
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
 for n, im in (('bench', bench), ('tank', tank), ('frame', frame)):
