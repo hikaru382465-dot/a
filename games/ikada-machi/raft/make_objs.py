@@ -179,8 +179,13 @@ def _drip2(img, on):
         h, w = a.shape[:2]
         for dy, c in ((1, (140, 205, 245)), (3, (180, 225, 250))): a[h - 1 - dy, w // 2 + 1] = (*c, 255)
     return Image.fromarray(a, 'RGBA')
+def _loopclear(im):      # 投網のロープの輪の中の、白い背景を消す
+    a = np.array(im); h, w = a.shape[:2]; sub = a[20:60, 140:w]
+    white = (sub[..., :3].min(axis=2) > 205) & ((sub[..., :3].max(axis=2) - sub[..., :3].min(axis=2)) < 28)
+    sub[..., 3] = np.where(white, 0, sub[..., 3]); a[20:60, 140:w] = sub; return Image.fromarray(a, 'RGBA')
 def _hi(e): e['hi'] = 3; return e
 out = {'ppu': 40, 'icons': icons, 'bench': [_hi(entry(bench2))], 'tank': [_hi(entry(tank_level(tank2, l))) for l in range(4)], 'filter': [_hi(entry(_drip2(frame2, 0))), _hi(entry(_drip2(frame2, 1)))]}
+_nt = _loopclear(cutlib.cut_checker(here.parent / 'art' / 'items' / 'catalog3.png', (556, 386, 746, 566), shrink=1)); out['icons']['net'] = [_hi(entry(_nt))]; out['icons']['net'][0]['ppu'] = round(max(_nt.size) / 0.62)      # 投網（持ち物・手にもつ絵）
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 (here / 'objs_art.js').write_text('window.RAFT.objArt = ' + json.dumps(out) + ';\n')
