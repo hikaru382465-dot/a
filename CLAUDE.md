@@ -8,6 +8,7 @@
 | YouTube | `docs/youtube/STATUS.md` | 怪談チャンネル「実話怪談ラジオ」の台本と動画制作 |
 | ホラーゲーム | `games/koushu-denwa/STATUS.md` | 3Dホラーゲーム「公衆電話」（森の電話ボックスに閉じ込められる脱出ゲーム） |
 | 海暮らしゲーム | `games/ikada-machi/STATUS.md` | 「イカダの海暮らし（仮）」ほのぼの拠点づくり（Steam・スマホで販売予定）。企画書は `DESIGN.md` |
+| ホラーARGゲーム | `games/horror-arg/STATUS.md` | Steam販売予定のゲーム外までつながるホラー（Godot）。企画書は `DESIGN.md` |
 
 作業を終えるときは、その分野の状況メモの「最終更新」と「進行中・次にやること」を書き換えて、コミットする。会話が長くなると前の内容が消えるので、決まったことは会話ではなくメモに残す。
 
