@@ -207,8 +207,8 @@ def _shadowed(_g):      # ベッドの足もとに、床にうつるかげをつ
     W, H = _g.size; c = Image.new('RGBA', (W + _PAD * 2, H + _PAD), (0, 0, 0, 0)); sh = Image.new('RGBA', c.size, (0, 0, 0, 0)); d = ImageDraw.Draw(sh)
     cx, cy = _PAD + W * 0.50, H - H * 0.04
     d.polygon([(cx - W * 0.58, cy - H * 0.12), (cx - W * 0.02, cy - H * 0.30), (cx + W * 0.62, cy - H * 0.10), (cx + W * 0.06, cy + H * 0.10)], fill=(8, 3, 1, 215))
-    for _lx, _ly, _lr in ((18, 222, 17), (96, 256, 19), (226, 197, 17), (150, 168, 14)):      # 足の根もとに、まるいかげ（後ろ足もういて見えないように）
-        _x, _y, _r = _PAD + _lx * _S, _ly * _S, _lr * _S; d.ellipse([_x - _r, _y - _r * 0.45, _x + _r, _y + _r * 0.45], fill=(8, 3, 1, 235))
+    for _lx, _ly, _lr in ((20, 214, 18), (96, 255, 19), (226, 196, 17), (150, 168, 14)):      # 足の根もとに、まるいかげ（後ろ足もういて見えないように）
+        _x, _y, _r = _PAD + _lx * _S, _ly * _S, _lr * _S; d.ellipse([_x - _r, _y - _r * 0.6, _x + _r, _y + _r * 0.5], fill=(8, 3, 1, 235))
     sh = sh.filter(ImageFilter.GaussianBlur(2)); c.alpha_composite(sh); c.alpha_composite(_g, (_PAD, 0)); return c
 for _f in _fr:
     _g = _shadowed(_f.resize((int(_f.width * _S), int(_f.height * _S)), Image.NEAREST)); _g = _g.resize((_g.width // 2, _g.height // 2), Image.NEAREST); _gb = io.BytesIO(); _g.save(_gb, 'PNG', optimize=True)
