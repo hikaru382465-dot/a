@@ -64,7 +64,8 @@ def entry(im):
     buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
     return {'src': 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': im.width, 'h': im.height, 'hi': 3, 'ppu': 100}
 out = [entry(f) for f in frames]
-(here / 'crops_art.js').write_text('window.RAFT.objArt.plot = ' + json.dumps(out) + ';\nwindow.RAFT.cropIds = ' + json.dumps(list(FINAL)) + ';\n', encoding='utf-8')
+icon0 = entry(frames[0].crop(frames[0].getchannel('A').getbbox())); icon0['hi'] = 1; icon0['ppu'] = 100      # 作る・持ち物の「畑」の絵は、空の畑だけ
+(here / 'crops_art.js').write_text('window.RAFT.objArt.plot = ' + json.dumps(out) + ';\nwindow.RAFT.objArt.icons.plot = [' + json.dumps(icon0) + '];\nwindow.RAFT.cropIds = ' + json.dumps(list(FINAL)) + ';\n', encoding='utf-8')
 print('crops_art.js', (here / 'crops_art.js').stat().st_size, 'bytes', [f.size for f in frames][:2])
 bgc = Image.new('RGBA', (frames[0].width * len(frames) + 10 * len(frames), frames[0].height), (40, 120, 170, 255)); x = 0
 for f in frames: bgc.alpha_composite(f, (x, 0)); x += f.width + 10

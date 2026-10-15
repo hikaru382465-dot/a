@@ -110,7 +110,8 @@ window.RAFT.parts.hud = function (c) {
   function startPlace(k) {
     const cands = sim.placeCandidates(s, k);
     if (!cands.length) { toast(k === 'floor' ? 'これ以上は広げられない（8×8まで）' : 'イカダがせまくて置けない。まず「床板」で広げよう', 3500); return; }
-    c.mode.place = { k }; c.setHighlight && c.setHighlight(cands); closeSheet(); placeBar();
+    const sz = (D.ITEMS[k] && D.ITEMS[k].size) || [1, 1], shown = {}; cands.forEach(([x0, z0, y]) => { for (let i = 0; i < sz[0]; i++) for (let j = 0; j < sz[1]; j++) shown[(x0 + i) + ',' + (z0 + j)] = [x0 + i, z0 + j, y]; });
+    c.mode.place = { k }; c.setHighlight && c.setHighlight(Object.values(shown)); closeSheet(); placeBar();
   }
   function placeBar() {
     const p = c.mode.place; $('placebar').style.display = p ? 'flex' : 'none';

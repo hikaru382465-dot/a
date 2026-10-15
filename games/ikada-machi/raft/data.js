@@ -8,7 +8,7 @@ window.RAFT.data = {
   ITEMS: {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
-    seed:    { name: '種袋',     lv: 2, w: 0.9, tip: 'プランターにまく。何が育つかは、お楽しみ' },
+    seed:    { name: '種袋',     lv: 2, w: 0.9, tip: '畑にまく。何が育つかは、お楽しみ' },
     veg:     { name: '野菜',     lv: 0, w: 0, food: 8, drink: 3, tip: '畑でとれた。そのままだと少し。料理すると、もっと戻る' },
     dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
     grilled: { name: '焼き魚',   lv: 0, w: 0, food: 40, tip: '食べると、おなかがしっかり戻る' },
@@ -33,7 +33,7 @@ window.RAFT.data = {
     bed:     { name: 'ベッド',   lv: 0, w: 0, place: true, tip: '飾り。ふかふかのベッド（のちに、ねて回復できるようにしたい）' },
     shelf:   { name: '本棚',     lv: 0, w: 0, place: true, tip: '飾り。本や瓶をならべた棚' },
     windmill:{ name: '風車',     lv: 0, w: 0, place: true, tip: '飾り。小さな風車' },
-    hut:     { name: '小屋',     lv: 0, w: 0, place: true, tip: '飾り。わらぶき屋根の小屋（大きい）' },
+    hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], tip: '飾り。わらぶき屋根の小屋（2×3マス）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -50,7 +50,7 @@ window.RAFT.data = {
     { id: 'rack', out: 'rack', cost: { wood: 6, rope: 3 }, need: 'bench', tip: '魚をつるして飾る' },
     { id: 'crate', out: 'crate', cost: { wood: 5 }, need: 'bench', tip: '木の箱を飾る' },
     { id: 'chest', out: 'chest', cost: { wood: 6, iron: 2 }, need: 'bench', tip: '鉄で補強した宝箱' },
-    { id: 'plot', out: 'plot', cost: { wood: 5, cloth: 1 }, need: 'bench', tip: '草のプランターを置く' },
+    { id: 'plot', out: 'plot', cost: { wood: 5, cloth: 1 }, need: 'bench', tip: '畑を置く。種袋をまくと野菜が育つ' },
     { id: 'oven', out: 'oven', cost: { wood: 2, clay: 6, iron: 1 }, need: 'bench', tip: '粘土で作る石のかまど（飾り）' },
     { id: 'barrel', out: 'barrel', cost: { wood: 6, iron: 1 }, need: 'bench', tip: '木の樽を作る' },
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
@@ -115,7 +115,7 @@ window.RAFT.data = {
   NET_FLY: 0.55,     // 飛んでいる時間（秒）
   // speed：流れの速さ（マス/秒）、rate：物の出る多さ、thirst：のどのかわく速さの倍率、w：次に選ばれやすさ
   // 魚の図鑑：lv＝網のレベルがこれ以上で出る／star＝めずらしさ（3は、とれたら魚が3匹）／w＝出やすさ／time＝多い時間（dawn・day・dusk・night）／wx＝多い天気／by＝rod（釣りざおだけ）・net（網だけ）・省略で両方／great＝釣りざおの「ぴったり」のときだけ
-  // 畑：プランターに種袋をまくと、くじで作物が決まる。水（貯水槽から）があるあいだだけ育つ。嵐の雨は、全部のプランターに水を入れる
+  // 畑：畑に種袋をまくと、くじで作物が決まる。水（貯水槽から）があるあいだだけ育つ。嵐の雨は、全部のプランターに水を入れる
   PLOT: { water: 240, sunDry: 1.4, calmGrow: 1.5, seedBack: 0.5 },      // water＝水がもつ秒数／sunDry＝晴れの日の乾きの速さ／calmGrow＝凪の日の育ち／seedBack＝収穫で種が戻る確率
   CROPS: {
     tomato: { name: 'トマト',     sec: 360, star: 1, w: 5, tip: '赤くてつやつや。おなかにもいい' },
