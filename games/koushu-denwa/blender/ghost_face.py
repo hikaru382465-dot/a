@@ -297,8 +297,8 @@ for v in V:
         elif z<1.32: t=(z-1.26)/0.06; g={'spine':1-t,'neck':t}
         elif z<1.40: t=(z-1.32)/0.08; g={'neck':1-t,'head':t}
         else: g={'head':1}
-        if hair and z<1.32 and abs(v.co.x)<0.16:
-            w=sstep((z-1.0)/0.32); g={'head':w,'spine':1-w}
+        if hair and z<1.42 and abs(v.co.x)<0.16:
+            w=sstep((z-1.30)/0.12); g={'head':w,'spine':1-w}
     for k,wt in g.items():
         if wt>0: o.vertex_groups[k].add([i],wt,'REPLACE')
 o.parent=ao; mod=o.modifiers.new('Armature','ARMATURE'); mod.object=ao
