@@ -200,7 +200,7 @@ _fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'bed_sheet1.png', ((a + 
 _bb = None
 for _f in _fr:
     _b = _f.getchannel('A').getbbox(); _bb = _b if _bb is None else (min(_bb[0], _b[0]), min(_bb[1], _b[1]), max(_bb[2], _b[2]), max(_bb[3], _b[3]))
-_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.35, 322 - _bx[0], 262 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
+_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.35, 338 - _bx[0], 276 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
 _frs = []; _PAD = 40
 from PIL import ImageDraw, ImageFilter
 def _shadowed(_g):      # ベッドの足もとに、床にうつるかげをつける（ういて見えないように）
