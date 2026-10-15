@@ -34,10 +34,14 @@ band=np.where(dz>=0,1-ss((up-0.85)/0.4),1-ss((lo-0.85)/0.4))
 band=np.where(np.abs(dz)<0.0004,1,band)
 mx=1-ss((np.abs(X)-0.021)/0.011)
 M_=(band*mx*0.85).astype(np.float32)
+line=np.exp(-(dz/0.0006)**2)*mx
 lipc=np.array([172,48,58],np.float32)
 rows=(Hh-1-vs_)   # PIL rows from top
 sub=arr[rows[:,None],us[None,:]]
 mixed=sub*(1-M_[...,None])+((sub*0.35+lipc*0.65))*M_[...,None]
+mixed=mixed*(1-0.55*line[...,None])+np.array([55,12,18],np.float32)*(0.55*line[...,None])
+hl=np.exp(-((dz+0.0050)/0.0018)**2)*mx*0.25
+mixed=mixed+(255-mixed)*hl[...,None]*0.35
 arr[rows[:,None],us[None,:]]=mixed
 PI.fromarray(arr.clip(0,255).astype(np.uint8)).save('gout/Ghost_albedo.png')
 for m in me.materials:
@@ -112,6 +116,13 @@ for side in (-1,1):
         upper+=rbox(x,y,cz+0.0030+(0.0 if k else -0.0003)-0.0000,w*0.99,0.0035,hh,ang)
         # lower row: smaller, tips up
         lower+=rbox(x*0.98,y+0.0018,cz-0.0090,w*0.80,0.0030,0.0085,ang)
+gum_up=[];gum_lo=[]
+for side in (-1,1):
+    for k,w in enumerate(W_):
+        x=side*xs[k]; slope=2*0.013*x/0.022**2; ang=math.atan(slope)*0.8
+        y=ly+0.006+0.013*(x/0.022)**2
+        gum_up+=rbox(x,y+0.0030,cz+0.0075,w*1.04,0.0030,0.0090,ang)
+        gum_lo+=rbox(x*0.98,y+0.0045,cz-0.0125,w*0.88,0.0030,0.0075,ang)
 tg=bmesh.ops.create_uvsphere(bm,u_segments=12,v_segments=8,radius=1.0,matrix=M.Translation((0,ly+0.019,cz-0.0115))@M.Diagonal((0.012,0.014,0.0035,1)))
 tongue=tg['verts']
 # material per added geometry
@@ -119,16 +130,26 @@ for v in list(upper)+list(lower):
     for f in v.link_faces: f.material_index=2
 for v in tongue:
     for f in v.link_faces: f.material_index=3
+for v in list(gum_up)+list(gum_lo):
+    for f in v.link_faces: f.material_index=4
 bmesh.ops.triangulate(bm,faces=bm.faces[:])
 bm.verts.index_update()
-ID=dict(ring={v.index for v in ring0 if v.is_valid},cav={v.index for v in new_verts},up={v.index for v in upper},lo={v.index for v in lower},tg={v.index for v in tongue})
+ID=dict(ring={v.index for v in ring0 if v.is_valid},cav={v.index for v in new_verts},up={v.index for v in upper}|{v.index for v in gum_up},lo={v.index for v in lower}|{v.index for v in gum_lo},tg={v.index for v in tongue})
 bm.to_mesh(me); bm.free()
 mats=me.materials
-for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.80,0.77,0.70,1),0.25),('Tongue',(0.55,0.2,0.22,1),0.45)):
+for nm,col,rough in (('MouthInside',(0.05,0.008,0.012,1),0.4),('Teeth',(0.80,0.77,0.70,1),0.15),('Tongue',(0.55,0.2,0.22,1),0.45),('Gum',(0.42,0.14,0.16,1),0.4)):
     m=bpy.data.materials.new(nm); m.use_nodes=True; b=m.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value=col; b.inputs['Roughness'].default_value=rough; mats.append(m)
 print({k:len(v) for k,v in ID.items()},len(me.vertices))
 V=me.vertices
 openco={v.index:v.co.copy() for v in V}
+newids0=ID['cav']|ID['up']|ID['lo']|ID['tg']
+for v in V:
+    i=v.index
+    if i in newids0 or i>=len(lum) or (lum[i]<0.12 and i not in ID['ring']): continue
+    c=openco[i]
+    if abs(c.x)<0.06 and abs(c.z-cz)<0.03 and abs(c.y-ly)<0.03:
+        w=math.exp(-((c.x/0.032)**2+((c.z-cz)/0.012)**2)*0.9)
+        c=c+Vector((0,-0.0020*w,0)); openco[i]=c; v.co=c
 mouthset=ID['ring']|ID['cav']
 closed={}
 for i in mouthset:
@@ -144,12 +165,14 @@ def smile_delta(c):
     for s in (-1,1):
         g=math.exp(-(((c.x-s*0.027)**2)+((c.z-cz)**2))/(2*0.012**2))
         d+=Vector((s*0.006*g,-0.001*g,0.0105*g))
+        g2=math.exp(-(((c.x-s*0.042)**2)+((c.z-cz-0.012)**2))/(2*0.022**2))
+        d+=Vector((s*0.0025*g2,-0.0028*g2,0.0065*g2))
     return d
-front=lambda c: abs(c.x)<0.07 and abs(c.z-cz)<0.05 and c.y<ly+0.045 and c.y>ly-0.03
+front=lambda c: abs(c.x)<0.09 and abs(c.z-cz)<0.065 and c.y<ly+0.045 and c.y>ly-0.010
 sm={}
 for v in V:
     base=closed.get(v.index,openco[v.index])
-    if front(openco[v.index]) and (v.index in mouthset or v.index<len(V)-0 and lum[v.index] >0.12 if v.index<len(lum) else True):
+    if front(openco[v.index]) and (v.index in mouthset or v.index>=len(lum) or lum[v.index]>0.2):
         sm[v.index]=smile_delta(openco[v.index])
 # basis = closed
 for i,c in closed.items(): V[i].co=c
