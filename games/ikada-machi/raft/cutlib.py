@@ -53,3 +53,21 @@ def cut_checker(path, box, shrink=2, blank=None, colors=28, pocket=0, fringe=0, 
     img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     return img      # 元の色のまま（色数はへらさない）
+
+def cut_plane(path, box, shrink=1, thr=34):
+    """暗いなめらかな背景の絵用：ふちの色から背景を平面でフィットして、ちがう所だけ残す。いちばん大きいかたまりだけ。"""
+    im = Image.open(path).convert('RGB').crop(box); a = np.array(im).astype(float); h, w = a.shape[:2]
+    ys, xs = np.mgrid[0:h, 0:w]; edge = np.zeros((h, w), bool); edge[:4, :] = edge[-4:, :] = True; edge[:, :4] = edge[:, -4:] = True
+    X = np.c_[xs[edge], ys[edge], np.ones(edge.sum())]; bgm = np.zeros_like(a)
+    for ch in range(3):
+        co = np.linalg.lstsq(X, a[..., ch][edge], rcond=None)[0]; bgm[..., ch] = co[0] * xs + co[1] * ys + co[2]
+    fg = np.sqrt(((a - bgm) ** 2).sum(axis=2)) > thr
+    cs = components(fg, minpx=50, reach=2)
+    if cs:
+        big = max(cs, key=len); fg = np.zeros((h, w), bool)
+        for (yy, xx) in big: fg[yy, xx] = True
+    global LAST_TOUCH; LAST_TOUCH = bool(fg[0, :].any() or fg[-1, :].any() or fg[:, 0].any() or fg[:, -1].any())
+    img = Image.fromarray(np.dstack([a.astype(np.uint8), (fg * 255).astype(np.uint8)]), 'RGBA'); img = img.crop(img.getchannel('A').getbbox())
+    if shrink != 1: img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
+    al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
+    return img
