@@ -51,7 +51,7 @@ for m in me.materials:
 bm=bmesh.new(); bm.from_mesh(me); bm.verts.ensure_lookup_table(); bm.faces.ensure_lookup_table()
 n0=len(bm.verts)
 # --- 1. cut hole
-fe=[e for e in bm.edges if all(abs(v.co.x)<0.05 and abs(v.co.z-cz)<0.024 and abs(v.co.y-ly)<0.03 for v in e.verts) and any(f.normal.y<-0.1 for f in e.link_faces)]
+fe=[e for e in bm.edges if all(abs(v.co.x)<0.06 and (cz-0.050)<v.co.z<(cz+0.024) and abs(v.co.y-ly)<0.045 for v in e.verts) and any(f.normal.y<-0.1 for f in e.link_faces)]
 bmesh.ops.subdivide_edges(bm,edges=fe,cuts=2,use_grid_fill=True)
 bm.verts.ensure_lookup_table(); bm.faces.ensure_lookup_table()
 sel=[f for f in bm.faces if (lambda c:(c.x/0.027)**2+((c.z-cz)/0.0095)**2<1 and abs(c.y-ly)<0.03 and f.normal.y<-0.15)(f.calc_center_median())]
@@ -238,11 +238,41 @@ for v in V:
 for i,c in closed.items(): V[i].co=c
 o.shape_key_add(name='Basis')
 k1=o.shape_key_add(name='JawOpen'); 
-for i,c in openco.items(): k1.data[i].co=c
-for i in ID['lo']|ID['tg']:
-    k1.data[i].co=grin_teeth[i]+Vector((0,0,-0.0045))
-for i in ID['tg']:
-    k1.data[i].co=grin_teeth[i]+Vector((0,-0.003,0.0005))
+# JawOpen = lower jaw rotates about hinge near the ear; upper lip/teeth stay still
+HING=Vector((0,-0.010,1.44)); TH=math.radians(10)
+def rot(p,w):
+    t=TH*w; y=p.y-HING.y; z=p.z-HING.z
+    return Vector((p.x,HING.y+y*math.cos(t)-z*math.sin(t),HING.z+y*math.sin(t)+z*math.cos(t)))
+for v in V:
+    i=v.index; base=v.co.copy()      # basis (closed) coordinates
+    if i in ID['up']:
+        k1.data[i].co=grin_teeth[i]; continue
+    if i in ID['lo']:
+        k1.data[i].co=rot(grin_teeth[i],1.0); continue
+    if i in ID['tg']:
+        k1.data[i].co=rot(grin_teeth[i],0.6); continue
+    if i in mouthset:
+        oz=openco[i].z
+        w=ssf((cz-oz)/0.003)
+        p=rot(base,w)
+        if oz>cz: p.z+=0.0020*ssf((oz-cz)/0.003)    # upper lip lifts a little
+        k1.data[i].co=p; continue
+    c=base
+    if i<len(lum) and c.y>ly-0.015 and c.y<ly+0.075 and abs(c.x)<0.085 and c.z<cz-0.0015:
+        w=ssf((cz-0.0015-c.z)/0.010)*(1-ssf((abs(c.x)-0.030)/0.050))*ssf((c.z-1.325)/0.050)
+        k1.data[i].co=rot(c,w)
+    else:
+        k1.data[i].co=c
+jaw_skin=[v.index for v in V if v.index not in mouthset and v.index not in ID['up'] and v.index not in ID['lo'] and v.index not in ID['tg'] and v.index not in ID['cav'] and (k1.data[v.index].co-v.co).length>0.0006]
+for it in range(10):
+    newc={}
+    for i in jaw_skin:
+        nb=[k1.data[j].co for j in adj[i]]
+        if not nb: continue
+        avg=sum(nb,Vector((0,0,0)))/len(nb)
+        newc[i]=k1.data[i].co.lerp(avg,0.5)
+    for i,c in newc.items(): k1.data[i].co=c
+print('jaw_skin',len(jaw_skin))
 k2=o.shape_key_add(name='Smile')
 for i,c in sm.items(): k2.data[i].co=closed.get(i,openco[i])+c
 k3=o.shape_key_add(name='Grin')
