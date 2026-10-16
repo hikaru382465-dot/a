@@ -90,7 +90,7 @@
     const dw = $("#desktop").clientWidth, dh = $("#desktop").clientHeight;
     o.w = Math.min(o.w, dw - 20); o.h = Math.min(o.h, dh - 20);
     o.x = Math.max(0, Math.min(o.x, dw - o.w)); o.y = Math.max(0, Math.min(o.y, dh - o.h));
-    const bMin = h("button", { title: "最小化" }, "–"), bX = h("button", { class: "x", title: "閉じる" }, "×");
+    const bMin = h("button", { title: "最小化", "aria-label": "最小化" }, "–"), bX = h("button", { class: "x", title: "閉じる", "aria-label": "閉じる" }, "×");
     const bar = h("div", { class: "win-title" }, h("span", { class: "t" }, title), bMin, bX);
     const el = h("div", { class: "win", style: `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px` },
       bar, h("div", { class: "win-body" }, body));
@@ -187,7 +187,7 @@
       list.replaceChildren(...(rows.length ? rows : [h("div", { class: "adm-empty small" }, "まだありません")]).map(e => {
         if (!e.eid) return e;
         const s = status(e.eid);
-        return h("div", { class: "adm-row" + (selId === e.eid ? " sel" : ""), onclick: () => { selId = e.eid; S.click(); renderAdmin(); } },
+        return h("div", { class: "adm-row" + (selId === e.eid ? " sel" : ""), tabindex: "0", role: "button", onkeydown: ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); selId = e.eid; S.click(); renderAdmin(); } }, onclick: () => { selId = e.eid; S.click(); renderAdmin(); } },
           h("div", { class: "r1" }, h("span", { class: "ttl" }, e.title), h("span", { class: "st " + s }, statusLabel(s))),
           h("div", { class: "r2" }, h("span", {}, (tab === "hist" ? e.day + "日目　" : "") + e.author), h("span", {}, e.time)));
       }));
@@ -377,7 +377,7 @@
   function buildIcons() {
     badgeFns = [];
     const mk = (label, glyph, color, fn, withBadge, badgeFn) => {
-      const el = h("div", { class: "icon" }, h("div", { class: "glyph", style: "background:" + color }, glyph), label);
+      const el = h("div", { class: "icon", tabindex: "0", role: "button", "aria-label": label, onkeydown: ev => { if (ev.key === "Enter") fn(); } }, h("div", { class: "glyph", style: "background:" + color, "aria-hidden": "true" }, glyph), label);
       el.addEventListener("click", () => { document.querySelectorAll(".icon").forEach(i => i.classList.remove("sel")); el.classList.add("sel"); S.click(); });
       el.addEventListener(TOUCH() ? "click" : "dblclick", fn);
       if (TOUCH()) el.addEventListener("dblclick", () => {});
