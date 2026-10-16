@@ -269,3 +269,14 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
   .adm-row,.ml-row,.sn-item{padding-top:12px;padding-bottom:12px}
   .sr-sg,.sr-hist{padding-top:10px;padding-bottom:10px}
 }
+
+/* 検索結果ページの反応・コメント */
+.sr-pmeta{font-size:12px;color:var(--muted);margin-bottom:10px}
+.sr-rx{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
+.rx{font-size:13px;padding:5px 12px}
+.rx.on{background:#e6effd;border-color:#2f6fdd;color:#1a4fa0}
+.sr-cm-h{font-size:13px;font-weight:700;margin:16px 0 6px;color:#33405a;border-top:1px solid var(--line);padding-top:10px}
+.sr-cm{padding:8px 0;border-bottom:1px solid #eceff5;font-size:14px;line-height:1.75}
+.sr-cm-top{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--muted)}
+.sr-cm-top b{color:#33405a}.sr-cm-no{color:#2f6fdd}.sr-cm-t{margin-left:auto}
+.sr-relitem{padding:6px 0;color:#1a4fa0;cursor:pointer;font-size:14px}.sr-relitem:hover{text-decoration:underline}

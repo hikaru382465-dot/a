@@ -101,8 +101,19 @@ window.Apps = (function () {
     }
     function page(r, q) {
       api.S.click();
+      const ex = E().pageExtra[r.u] || { views: 300 + (r.u.length * 37) % 900, bm: 5, cm: [] };
+      const cms = ex.cm.filter(c => !c[3] || day() >= c[3]);
+      const siblings = (runSearch(q) || []).filter(x => x.u !== r.u);
+      const react = (label, n) => { const b = h("button", { class: "btn rx" }, label + "　" + n); let on = false; b.addEventListener("click", () => { on = !on; b.classList.toggle("on", on); b.textContent = label + "　" + (n + (on ? 1 : 0)); api.S.click(); }); return b; };
       main.replaceChildren(h("button", { class: "btn", onclick: () => go(q) }, "← 検索結果にもどる"),
-        h("div", { class: "sr-page" }, h("div", { class: "sr-u" }, r.u), h("h3", {}, r.t), r.page.map(t => h("p", {}, t))));
+        h("div", { class: "sr-page" }, h("div", { class: "sr-u" }, r.u), h("h3", {}, r.t),
+          h("div", { class: "sr-pmeta" }, "閲覧数 " + ex.views.toLocaleString() + "　ブックマーク " + ex.bm),
+          r.page.map(t => h("p", {}, t)),
+          h("div", { class: "sr-rx" }, react("役に立った", Math.round(ex.views / 60)), react("こわい", Math.round(ex.views / 45)), react("ブックマーク", ex.bm)),
+          h("div", { class: "sr-cm-h" }, "コメント（" + cms.length + "）"),
+          cms.length ? cms.map((c, i) => h("div", { class: "sr-cm" + (c[3] ? " odd" : "") },
+            h("div", { class: "sr-cm-top" }, h("span", { class: "sr-cm-no" }, (i + 1) + "."), h("b", {}, c[0]), h("span", { class: "sr-cm-t" }, c[2])), h("div", {}, c[1]))) : h("div", { class: "cm-none" }, "まだコメントはありません"),
+          siblings.length ? h("div", { class: "sr-rel" }, h("div", { class: "sr-cm-h" }, "関連ページ"), siblings.map(x => h("div", { class: "sr-relitem", tabindex: "0", role: "button", onclick: () => page(x, q), onkeydown: ev => { if (ev.key === "Enter") page(x, q); } }, x.t))) : null));
     }
     function showSugg() {
       const base = SD.suggest.concat(day() >= 3 ? SD.suggestOdd : []);
