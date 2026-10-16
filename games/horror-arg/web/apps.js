@@ -14,17 +14,20 @@ window.Apps = (function () {
     const st = api.state();
     const list = h("div", { class: "ml-list" }), view = h("div", { class: "ml-view" });
     let sel = null;
+    var wrap;
     function paint() {
       const ms = visibleMails().slice().sort((a, b) => b.day - a.day || (b.id < a.id ? -1 : 1));
       list.replaceChildren(...ms.map(m => h("div", { class: "ml-row" + (sel === m.id ? " sel" : "") + (st.mailRead[m.id] ? "" : " unread"), onclick: () => {
         sel = m.id; st.mailRead[m.id] = true; api.save(); api.S.click(); paint(); api.refreshBadges();
       } }, h("div", { class: "ml-from" }, m.from), h("div", { class: "ml-sub" }, m.subject), h("div", { class: "ml-time" }, m.time))));
       const m = ms.find(x => x.id === sel);
-      view.replaceChildren(m ? h("div", {},
+      if (wrap) wrap.classList.toggle("has-sel", !!m);
+      view.replaceChildren(m ? h("div", {}, h("button", { class: "btn back", onclick: () => { sel = null; paint(); } }, "← 一覧"),
         h("h3", {}, m.subject), h("div", { class: "ml-meta" }, "差出人：" + m.from + "　<" + m.addr + ">"), h("div", { class: "ml-meta" }, m.time),
         h("div", { class: "ml-body" }, m.body.map(t => h("p", {}, t)))) : h("div", { class: "adm-empty" }, "メールを選んでください"));
     }
-    api.openWin("mail", "メール", h("div", { class: "ml" }, list, view), { w: 760, h: 440, x: 150, y: 60 });
+    wrap = h("div", { class: "ml" }, list, view);
+    api.openWin("mail", "メール", wrap, { w: 760, h: 440, x: 150, y: 60 });
     paint();
   }
 

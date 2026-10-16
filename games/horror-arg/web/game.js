@@ -108,7 +108,7 @@
       S.click();
     });
     bar.addEventListener("pointerdown", ev => {
-      if (ev.target.tagName === "BUTTON") return;
+      if (ev.target.tagName === "BUTTON" || window.innerWidth < 760) return;
       const sx = ev.clientX - el.offsetLeft, sy = ev.clientY - el.offsetTop;
       const mv = e => {
         el.style.left = Math.max(-el.offsetWidth + 80, Math.min(dw - 80, e.clientX - sx)) + "px";
@@ -176,8 +176,10 @@
     const bCmp = h("button", { class: "btn", onclick: () => { S.click(); openCompare(); } }, "類似チェック");
     const bEnd = h("button", { class: "btn primary", onclick: () => endDay() }, finalDay ? "最後の審査を確定" : "本日の審査を終了");
     const bottom = h("div", { class: "adm-bottom" }, bPend, h("span", { class: "sp" }), bCmp, bEnd);
+    const mainEl = h("div", { class: "adm-main" });
     const body = h("div", { style: "display:flex;flex-direction:column;height:100%" },
-      top, h("div", { class: "adm-main" }, h("div", { class: "adm-left" }, h("div", { class: "tabs" }, bTab1, bTab2), list), detail), bottom);
+      top, mainEl, bottom);
+    mainEl.append(h("div", { class: "adm-left" }, h("div", { class: "tabs" }, bTab1, bTab2), list), detail);
 
     renderAdmin = function () {
       bTab1.classList.toggle("on", tab === "today"); bTab2.classList.toggle("on", tab === "hist");
@@ -190,6 +192,7 @@
           h("div", { class: "r2" }, h("span", {}, (tab === "hist" ? e.day + "日目　" : "") + e.author), h("span", {}, e.time)));
       }));
       const e = rows.find(x => x.eid === selId);
+      mainEl.classList.toggle("has-sel", !!e);
       if (!e) {
         detail.replaceChildren(h("div", { class: "adm-empty" }, "一覧から投稿を選んでください"));
       } else {
@@ -228,7 +231,7 @@
             e.last ? null : h("button", { class: "btn hold", onclick: () => dec("hold") }, "保留"),
             h("span", { class: "note" }, e.last ? "この投稿の判断で、結末が決まります。" : "承認すると、外部の公開サイトに掲載されます。"));
         detail.replaceChildren(
-          h("div", { class: "det-head" }, h("h2", {}, e.title), meta), bodyEl, foot);
+          h("div", { class: "det-head" }, h("button", { class: "btn back", onclick: () => { selId = null; S.click(); renderAdmin(); } }, "← 一覧"), h("h2", {}, e.title), meta), bodyEl, foot);
         window.Gimmicks.onDetail(e, { bodyEl, bApprove: tab === "today" ? bApprove : null });
       }
       const n = pendingCount(), shown = window.Gimmicks.shownPending(n);
@@ -365,6 +368,7 @@
   }
 
   // ---------- デスクトップのアイコン ----------
+  const TOUCH = () => matchMedia("(pointer: coarse)").matches || window.innerWidth < 760;
   let badgeFns = [];
   function updateBadge() {
     if (badgeEl) { const n = window.Gimmicks.shownPending(pendingCount()); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; }
@@ -375,7 +379,8 @@
     const mk = (label, glyph, color, fn, withBadge, badgeFn) => {
       const el = h("div", { class: "icon" }, h("div", { class: "glyph", style: "background:" + color }, glyph), label);
       el.addEventListener("click", () => { document.querySelectorAll(".icon").forEach(i => i.classList.remove("sel")); el.classList.add("sel"); S.click(); });
-      el.addEventListener("dblclick", fn);
+      el.addEventListener(TOUCH() ? "click" : "dblclick", fn);
+      if (TOUCH()) el.addEventListener("dblclick", () => {});
       if (withBadge) { badgeEl = h("span", { class: "badge" }, "0"); el.append(badgeEl); }
       if (badgeFn) { const b = h("span", { class: "badge" }, "0"); el.append(b); const f = () => { const n = badgeFn(); b.textContent = n; b.style.display = n ? "" : "none"; }; badgeFns.push(f); f(); }
       return el;
@@ -459,9 +464,13 @@
     box.append(h("div", { class: "big", style: "margin-top:26px" }, D.endingNames[kind]));
     const got = Object.keys(D.endingNames).map(k => (state.endings[k] ? "● " : "○ ") + D.endingNames[k]).join("　");
     box.append(h("div", { class: "dim" }, "到達したエンディング：" + got));
-    box.append(h("button", { class: "btn", style: "margin-top:20px", onclick: () => {
-      const keep = state.endings; state = fresh(); state.endings = keep; save(); location.href = location.pathname;
-    } }, "最初からやり直す"));
+    box.append(h("button", { class: "btn", style: "margin-top:20px", onclick: restart }, "最初からやり直す"));
+  }
+
+  function restart() {
+    state = Object.assign(fresh(), { endings: state.endings });
+    state.queue = D.posts.filter(p => p.day === 1).map(makeEntry);
+    save(); showLogin();
   }
 
   // ---------- ログイン画面と起動 ----------
@@ -493,7 +502,7 @@
     buildIcons(); S.startAmbient(); window.Gimmicks.start();
     await sleep(1400); S.notify();
     const retries = state.queue.filter(e => e.retryN > 0).length;
-    toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面をダブルクリックで開いてください。");
+    toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面を開いてください。（パソコンはダブルクリック、スマホはタップ）");
     if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
     const um = window.Apps.unread();
     if (um) setTimeout(() => { S.notify(); toast("新着メール", um + "件の未読メールがあります。"); }, 600);
@@ -503,7 +512,7 @@
   }
 
   $("#login-btn").addEventListener("click", boot);
-  $("#login-reset").addEventListener("click", () => { state = Object.assign(fresh(), { endings: state.endings }); save(); location.href = location.pathname; });
+  $("#login-reset").addEventListener("click", restart);
   $("#tb-mute").addEventListener("click", e => { const m = S.toggleMute(); e.currentTarget.classList.toggle("off", m); });
   window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden") && document.activeElement.tagName !== "BUTTON") boot(); });
   $("#login-site").textContent = D.siteName + "　管理画面";
