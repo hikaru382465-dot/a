@@ -108,7 +108,7 @@
     return list.length ? list[0][0] : 'iwashi';
   };
   S.addDex = function (s, id) {
-    s.fishdex = s.fishdex || {}; const first = !s.fishdex[id]; s.fishdex[id] = (s.fishdex[id] || 0) + 1;
+    S.tally(s, 'fish', id); s.fishdex = s.fishdex || {}; const first = !s.fishdex[id]; s.fishdex[id] = (s.fishdex[id] || 0) + 1;
     if (first) s.events.push({ e: 'fishnew', id });
     return D.FISH[id].star >= 3 ? 2 : 0;      // めずらしい魚は、魚が2匹おまけ（合わせて3匹）
   };
@@ -147,7 +147,7 @@
   S.craft = function (s, id) {
     const r = D.RECIPES.find(x => x.id === id); if (!r) return false;
     const c = S.canCraft(s, r); if (!c.ok) { s.events.push({ e: c.why === 'locked' ? 'locked' : 'short' }); return false; }
-    S.pay(s, costOf(s, r));
+    S.pay(s, costOf(s, r)); S.tally(s, 'craft', r.id);
     if (r.special === 'fix') { s.dur[r.tool] = 100; s.events.push({ e: 'fixed', k: r.tool }); }
     else if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
     else if (r.special === 'rod') { s.tools.push('rod'); s.events.push({ e: 'crafted', k: 'rod' }); }
@@ -361,7 +361,7 @@
   S.plotUse = function (s, o) {
     const P = D.PLOT, C = D.CROPS, cr = o.c && C[o.c];
     if (cr && o.p >= cr.sec) {
-      const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
+      const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; S.tally(s, 'veg', n); const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
       const back = S.rand() < P.seedBack; if (back) s.inv.seed = (s.inv.seed || 0) + 1;
       s.events.push({ e: 'plotharvest', c: o.c, n, back }); if (first) s.events.push({ e: 'cropnew', id: o.c }); o.c = null; o.p = 0; o.w = 0; return true;
     }
@@ -414,6 +414,24 @@
     if (!s.player.inHut) return false; const k = ['grilled', 'dried', 'veg', 'fish', 'coconut'].find(q => (s.inv[q] || 0) > 0);
     if (!k) { s.events.push({ e: 'hutnofood' }); return false; } return S.use(s, k);
   };
+  // 日記：その日のできごとを数えておいて、小屋の中で「日記を書く」と1日1回、1行たまる
+  S.tally = function (s, k, v) { const t = s.tally || (s.tally = { fish: {}, veg: 0, craft: [], scene: [] });
+    if (k === 'fish') t.fish[v] = (t.fish[v] || 0) + 1; else if (k === 'veg') t.veg += v; else if (k === 'craft') t.craft.push(v); else if (k === 'scene') t.scene.push(v); };
+  S.diaryText = function (s) {
+    const t = s.tally || { fish: {}, veg: 0, craft: [], scene: [] }, wx = D.WEATHER[s.weather.id].name, bits = [], ids = Object.keys(t.fish), n = ids.reduce((a, i) => a + t.fish[i], 0);
+    if (n) { const top = ids.sort((a, b) => t.fish[b] - t.fish[a])[0]; bits.push(n === 1 ? `${D.FISH[top].name}が1匹つれた。` : `魚が${n}匹とれた。いちばん多いのは${D.FISH[top].name}。`); }
+    if (t.veg) bits.push(`畑から野菜を${t.veg}つとった。`);
+    if (t.craft.length) { const r = D.RECIPES.find(x => x.id === t.craft[t.craft.length - 1]); bits.push(`${r && r.name ? r.name : 'あたらしいもの'}を作った。`); }
+    if (t.scene.length) bits.push('はじめて見る景色があった。');
+    if (!bits.length) bits.push(['なにもしない日。それも、わるくない。', 'のんびり波を見ていた。', '相棒と、ぼーっとして過ごした。'][s.clock.day % 3]);
+    if (s.buddy.mood >= 70) bits.push('相棒は楽しそうだった。'); else if (s.buddy.mood < 30) bits.push('相棒は、すこし元気がなかった。');
+    return `${wx}。` + bits.join('');
+  };
+  S.writeDiary = function (s) {
+    if (!s.player.inHut) return false; if (s.diaryDay === s.clock.day) { s.events.push({ e: 'diarydone' }); return false; }
+    s.diary = s.diary || []; s.diary.push({ day: s.clock.day, text: S.diaryText(s) }); if (s.diary.length > 200) s.diary.shift();
+    s.diaryDay = s.clock.day; s.tally = null; s.calm = Math.min(100, (s.calm || 0) + 10); s.buddy.mood = Math.min(100, s.buddy.mood + 5); s.events.push({ e: 'diarywrote' }); return true;
+  };
   S.isNight = s => s.clock.t >= 0.78 || s.clock.t < 0.2;
   S.sleepHut = function (s) {
     if (!s.player.inHut) return false;
@@ -431,7 +449,7 @@
     const L = s.look, K = D.LOOK;
     if (!L) { s.calm = Math.max(0, (s.calm || 0) - K.decay * dt); return; }
     if (s.player.path.length || s.player.task || !s.objects.some(o => o.id === L.id)) { S.stopLook(s); return; }
-    const sk = S.sceneKey(s); if (!s.scenes[sk]) { s.scenes[sk] = 1; s.events.push({ e: 'scenenew', k: sk }); }
+    const sk = S.sceneKey(s); if (!s.scenes[sk]) { S.tally(s, 'scene', sk); s.scenes[sk] = 1; s.events.push({ e: 'scenenew', k: sk }); }
     L.t += dt; s.calm = Math.min(100, (s.calm || 0) + K.gain * dt); s.buddy.mood = Math.min(100, s.buddy.mood + K.buddyBonus * dt);
     L.gift -= dt; if (L.gift <= 0) { L.gift = K.giftSec * (0.8 + S.rand() * 0.5); const k = K.gifts[Math.floor(S.rand() * K.gifts.length)]; s.inv[k] = (s.inv[k] || 0) + 1; s.events.push({ e: 'lookgift', k }); }
   }
@@ -573,5 +591,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);
