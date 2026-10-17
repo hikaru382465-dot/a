@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **実機テスト2（2026-10-17）**：①中に入ると壁をすり抜けて外に出られた→原因は「自分で動かす歩き」が、ふさがれたとき当たり判定を無視して進めるため。閉じ込めの間は、ボックスの中（`TRAP_MARGIN`=壁から28cm）に位置を押さえるようにした（`clamp_in_booth`）。②金庫のダイヤル：回す間、視野をせまくしてアップにする（`DIAL_FOV`=30、`DIAL_ZOOM_TIME`）。つまみの回りもなめらかにした（目標の数字を追いかける）。終わると視野が元に戻る。未確認（実機で）。
+
 - **実機テストの結果（2026-10-17）**：入る・閉じ込め・金庫ダイヤル（はずれ→正解→鍵と10円②）・謎1/8・幽霊の場面1・自分で動かす歩き（MANUAL_WALK が自動で効く）は動いた。足元診断の「impact_normal が無い」エラー（UE5.8 の HitResult の読み方の違い）は `diag_floor` を直した（to_tuple 優先）。次：電話・ふた・木の当たり判定・PUZZLE_COUNT=8の確認。幽霊は仮のまま（`Ghost_rigged.fbx` の入れ替えは、テストのあと）。
 
 - **幽霊の3D化（進行中）**：HY 3D Global の出力を受け取り済み（元は46万面・元ファイルは履歴にだけ残る）。`assets/unreal/ghost/Ghost.fbx`（2.5万面・身長160cm・足元が原点・Z上）と4枚の質感（albedo/normal/roughness/metallic、2048）。色は確認済み。`Ghost_rigged.fbx` は骨4本（root/spine/neck/head）＋口を本物の穴にして口の中・上下の歯・舌を作り込んだ版（`blender/ghost_face.py`。ふだんは口が閉じ、表情キー JawOpen=あごが耳の近くを軸に回って下がる本物の開き方（上唇・上の歯は動かない） / Smile=にっこり / Grin=歯を見せて笑う〔本物の口に似せた：なめらかな口の形・四角い丸み歯・赤い唇を肌の絵に塗った〕。肌の絵は `Ghost_albedo.png` を差し替え済み）＋首かしげアニメ2本：「Ghost_HeadTilt」（90度）と「Ghost_HeadTilt_Natural」（約40度・肩は水平・首から傾く。ひかるの参考絵どおり）。UE では「Import Morph Targets」をオン、材質は5つ（肌/口の中/歯/舌/歯ぐき。口の中と歯は頂点カラー「Col」で色づけ＝UEの材質に VertexColor ノードをつなぐ。取り込みで Vertex Color を「Replace」）。歯は写真に合わせ前歯が大きく犬歯がとがる形。笑うとほっぺが上がる・唇にふくらみと影の線あり・ほお／あご／唇は Smooth ブラシ相当のなめらか処理と膨らみ済み（手でのスカルプトは Blender で `ghost_face.py` の出力を開いて追加可）。次：Unreal に入れて仮の `Ghost` と入れ替え、歩きは Mixamo。
