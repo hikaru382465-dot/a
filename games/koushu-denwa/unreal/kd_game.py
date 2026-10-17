@@ -43,6 +43,9 @@ BOOK_LABEL = "book"            # 本の名前（アウトライナーの名前�
 SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
 SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=左へ回して止める／R=右）。新聞の「19-3-8」と、液晶の「ヒダリ ミギ ヒダリ」
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
+TRAP_MARGIN = 28.0             # 閉じ込められている間、壁から この距離（cm）より外へは出られない（すり抜け止め）
+DIAL_FOV = 30.0                # 金庫のダイヤルを回す間の、視野の角度（小さいほどアップ。ふだんは約90）
+DIAL_ZOOM_TIME = 0.45          # アップになるまでの時間（秒）
 DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
 START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・地面の下）に、入口の正面から何cm 離して立たせるか
 ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩けるようにする（テンプレのキャラは W A S D だけ）。↑前 ↓後ろ ←左へ →右へ
@@ -240,7 +243,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -623,6 +626,9 @@ class Game:
             self.diag_floor(loc)
         self.tick_arrows()
         self.tick_manual(dt)
+        self.clamp_in_booth(loc)
+        self.tick_dial_anim(dt)
+        self.tick_fov(dt)
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
@@ -854,6 +860,8 @@ class Game:
             log("  (ダイヤルのほうを向けません) %s" % e)
         self.lock_input(True)
         self.state, self.state_t = "SAFE", 0.0
+        self.dial_raw = float(self.dial_value)
+        self.dial_disp = float(self.dial_value)
         self.dial_dir, self.dial_entries, self.dial_acc = None, [], 0.0
         self.key_left, self.key_right, self.key_quit = unreal.Key(), unreal.Key(), unreal.Key()
         self.key_left.set_editor_property("key_name", "Left")
@@ -866,13 +874,71 @@ class Game:
         self.state, self.state_t = "TRAPPED", 0.0
 
     def set_dial(self, v):
+        old = self.dial_value
         self.dial_value = v % 100
+        d = self.dial_value - old
+        if d > 50:
+            d -= 100
+        elif d < -50:
+            d += 100
+        self.dial_raw = getattr(self, "dial_raw", float(old)) + d            # 100を越えても、つながって回る数
+        if not hasattr(self, "dial_disp"):
+            self.dial_disp = float(old)
+
+    def apply_knob(self):
         if self.dial_knob is not None and self.dial_knob_rot is not None:
             r = self.dial_knob_rot
             try:
-                self.dial_knob.set_actor_rotation(unreal.Rotator(r.roll, r.pitch + DIAL_SIGN * self.dial_value * 3.6, r.yaw), False)
+                self.dial_knob.set_actor_rotation(unreal.Rotator(r.roll, r.pitch + DIAL_SIGN * getattr(self, "dial_disp", 0.0) * 3.6, r.yaw), False)
             except Exception as e:  # noqa
                 log("  (ダイヤルを回せません) %s" % e)
+
+    def tick_dial_anim(self, dt):
+        """つまみの見た目を、目標の数字へ、なめらかに追いかけさせる（カクカクしない）"""
+        raw = getattr(self, "dial_raw", None)
+        if raw is None:
+            return
+        disp = getattr(self, "dial_disp", raw)
+        if abs(raw - disp) > 0.01:
+            disp += (raw - disp) * min(1.0, dt * 22.0)
+            self.dial_disp = disp
+            self.apply_knob()
+
+    def tick_fov(self, dt):
+        """ダイヤルを回す間は、視野をせまくして、アップにする（終わると元に戻す）"""
+        try:
+            cam = getattr(self, "_cam", None)
+            if cam is None:
+                cam = self.pawn.get_component_by_class(unreal.CameraComponent) if self.pawn is not None else None
+                self._cam = cam or False
+                if cam:
+                    self.fov_base = float(cam.get_editor_property("field_of_view"))
+                    self.fov_cur = self.fov_base
+            if not cam:
+                return
+            tgt = DIAL_FOV if self.state == "SAFE" else self.fov_base
+            if abs(self.fov_cur - tgt) > 0.05:
+                self.fov_cur += (tgt - self.fov_cur) * min(1.0, dt / max(0.05, DIAL_ZOOM_TIME) * 3.0)
+                cam.set_editor_property("field_of_view", self.fov_cur)
+        except Exception as e:  # noqa
+            if not getattr(self, "_fov_err", False):
+                self._fov_err = True
+                log("  (視野を変えられません) %s" % e)
+
+    def clamp_in_booth(self, loc):
+        """閉じ込められている間は、壁の外へ出られない（自分で動かす歩きが、当たり判定を無視して、壁をすり抜けるため）"""
+        if self.state not in ("CLOSING", "TRAPPED", "SAFE", "PHONE", "READING") or self.pawn is None:
+            return
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)         # 入口の向き（奥行き）
+        tx, ty = math.cos(th), math.sin(th)          # 横
+        rx, ry = loc.x - self.cx, loc.y - self.cy
+        tn, tt = rx * nx + ry * ny, rx * tx + ry * ty
+        ln, lt = max(12.0, self.half_n - TRAP_MARGIN), max(12.0, self.half_t - TRAP_MARGIN)
+        cn, ct = max(-ln, min(ln, tn)), max(-lt, min(lt, tt))
+        if abs(cn - tn) > 0.1 or abs(ct - tt) > 0.1:
+            nxp, nyp = self.cx + nx * cn + tx * ct, self.cy + ny * cn + ty * ct
+            self.pawn.set_actor_location(unreal.Vector(nxp, nyp, loc.z), False, False)
 
     def tick_safe(self, dt):
         try:
@@ -933,9 +999,22 @@ class Game:
             if hit is None or isinstance(hit, bool):
                 log("診断: 足元に何もありません（地面なし？）")
                 return
-            nrm = hit.get_editor_property("impact_normal") if hasattr(hit, "get_editor_property") else hit.impact_normal
-            pt = hit.get_editor_property("impact_point") if hasattr(hit, "get_editor_property") else hit.impact_point
-            act = hit.get_editor_property("actor") if hasattr(hit, "get_editor_property") else None
+            nrm = pt = act = None
+            try:                                  # UE 5.8: to_tuple() の順番 = (…, location, impact_point, normal, impact_normal, phys_mat, hit_actor, …)
+                tp = hit.to_tuple()
+                pt, nrm, act = tp[5], tp[7], tp[9]
+            except Exception:
+                for nm_n, nm_p, nm_a in (("impact_normal", "impact_point", "hit_actor"), ("impact_normal", "impact_point", "actor")):
+                    try:
+                        nrm = getattr(hit, nm_n, None) or hit.get_editor_property(nm_n)
+                        pt = getattr(hit, nm_p, None) or hit.get_editor_property(nm_p)
+                        act = getattr(hit, nm_a, None)
+                        break
+                    except Exception:
+                        continue
+            if nrm is None or pt is None:
+                log("診断: 足元に当たりました（細かい情報は読めません）")
+                return
             ang = math.degrees(math.acos(max(-1.0, min(1.0, nrm.z))))
             log("診断: 足元の地面: %s 高さ=%.0f 坂の角度=%.0f度（歩けるのは %.0f度まで）" % (label_of(act) if act else "?", pt.z, ang, WALKABLE_ANGLE if WALKABLE_ANGLE > 0 else 44.8))
         except Exception as e:  # noqa
