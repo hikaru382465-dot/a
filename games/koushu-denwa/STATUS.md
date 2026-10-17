@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **実機テスト3（2026-10-17）**：①ガラスの文字を、ほかの言葉と交差してぐちゃぐちゃに重なる「なぐり書き」にした（主役の言葉は中央でいちばん濃い）。②金庫のダイヤルがアップで見えない（画面は金庫の上面だけ）→ 原因の有力：金庫の向きが手で変わり、つまみに向けたカメラがずれる。直し：`setup_game_fp.py` がつまみのおもて側に専用カメラ `KD_DialCam`（`DIAL_CAM_DIST`=30cm・`DIAL_CAM_FOV`=42）を置き、回す間は `set_view_target_with_blend` でその画面に切りかえる（終わると元に戻る）。専用カメラが無いときは、前のやり方（向きを変えて視野をせばめる）に自動で戻る。③触れる範囲を縮めた：`ITEM_RANGE` 200→110、`READ_RANGE` 240→150、`ENTER_RANGE` 260→170、見る向きの正確さ `LOOK_CONE`（0.93→0.96、新設）。未確認（実機で。`setup_game_fp.py` を実行し直して、`kd_game.py` を実行）。
+
 - **ガラスの文字：Yuji Boku（筆）に差し替えた**（`assets/fonts/glass_YujiBoku-Regular.ttf`。ゆがみ・かすれ・垂れはそのまま）。Unrealへは、Pull → `setup_game_fp.py` を実行し直す。
 - **ガラスの文字のフォント（前の案）**：ゴシック体に「手書きのゆがみ・かすれ・垂れ」をかけた雰囲気にした。好きなフォント（筆・手書き）は `assets/fonts/` に入れると、`make_glass_texts()` がそれを使う（`glass` を名前に入れると優先。OFLなど商用OKのものだけ）。
 

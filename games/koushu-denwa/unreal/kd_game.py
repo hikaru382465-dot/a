@@ -56,11 +56,12 @@ PHONE_BACK = 25.0              # 電話機の「触る点」：奥の壁から�
 PHONE_Z = -30.0                # 電話機の「触る点」の高さ（ボックスの中心から。－が下）。電話機が見えている高さに合わせる
 HATCH_Z = -105.0               # 電話の下のふたの高さ（ボックスの中心から）。足元近くを見て E
 PHONE_COIN_COST = 1            # 電話をかけるときの10円の枚数
-ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
-READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
+ITEM_RANGE = 110.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
+READ_RANGE = 150.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
 READ_DIST = 45.0               # 新聞を、目からこの距離（cm）に出す
-ENTER_RANGE = 260.0            # 入口の前のこの距離（cm）まで近づくと「Eで入る」が出る
+LOOK_CONE = 0.96               # 見ている向きが、物のほうへ、どれだけ正確に向いているか（1に近いほど、ちゃんと見ないと反応しない。0.93=約21度 0.96=約16度）
+ENTER_RANGE = 170.0            # 入口の前のこの距離（cm）まで近づくと「Eで入る」が出る
 ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
 ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
 ENTER_FADE_IN = 1.4            # 明るくなるまでの時間（秒）
@@ -137,6 +138,10 @@ SETTINGS_DESCR = {
     "HATCH_Z": "電話の下のふたの高さ（ボックスの中心から）",
     "PHONE_COIN_COST": "電話1回に必要な10円の枚数",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
+    "LOOK_CONE": "見ている向きの正確さ（1に近いほど、物をちゃんと見ないと「Eで…」が出ない。0.93=ゆるい 0.96=ふつう 0.98=きびしい）",
+    "TRAP_MARGIN": "閉じ込められている間、壁から何cm内側までしか歩けないか（壁のすり抜け止め）",
+    "DIAL_FOV": "ダイヤル専用カメラが無いときの、視野の角度（小さいほどアップ）",
+    "DIAL_ZOOM_TIME": "ダイヤルの画面に切りかわるまでの時間（秒）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
     "READ_DIST": "手に取った新聞を、目からどれだけ離すか（cm）",
@@ -243,7 +248,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -366,6 +371,8 @@ class Game:
         self.safe = next((v for k, v in low if SAFE_LABEL.lower() in k and "KD" not in label_of(v) and not k.startswith("dialsafe")), None)
         self.dial_body = found.get("DialSafe_Body")                  # ダイヤル式の金庫（本体と、回るつまみ）
         self.dial_knob = found.get("DialSafe_Knob")
+        self.dial_cam = found.get("KD_DialCam")                      # ダイヤル専用のカメラ（setup_game_fp.py が置く）
+        self.safe_cam_on = False
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
         self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
         self.hatch_open = False
@@ -853,11 +860,19 @@ class Game:
     def begin_safe(self):
         """金庫のダイヤルを回す場面。歩く・見回すを止めて、ダイヤルのほうを向く"""
         eye, _rot = self.eye_info()
-        try:
-            tgt = (self.dial_knob or self.dial_body).get_actor_location()
-            self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, tgt))
-        except Exception as e:  # noqa
-            log("  (ダイヤルのほうを向けません) %s" % e)
+        self.safe_cam_on = False
+        if self.dial_cam is not None:                          # 専用カメラの画面に切りかえる（つまみのおもて側から、アップ）
+            self.safe_cam_on = self.set_view(self.dial_cam, DIAL_ZOOM_TIME)
+            if self.safe_cam_on:
+                log("ダイヤル専用カメラに切りかえました")
+        if not self.safe_cam_on:
+            if self.dial_cam is None:
+                log("ダイヤル専用カメラ（KD_DialCam）が無いので、金庫のほうを向いて視野をせばめます。setup_game_fp.py をもう一度実行すると、専用カメラができます")
+            try:
+                tgt = (self.dial_knob or self.dial_body).get_actor_location()
+                self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, tgt))
+            except Exception as e:  # noqa
+                log("  (ダイヤルのほうを向けません) %s" % e)
         self.lock_input(True)
         self.state, self.state_t = "SAFE", 0.0
         self.dial_raw = float(self.dial_value)
@@ -869,7 +884,22 @@ class Game:
         self.key_quit.set_editor_property("key_name", "Q")
         log("金庫のダイヤルを回し始めました")
 
+    def set_view(self, target, t):
+        """画面（カメラ）を、target の見ている画面に、t 秒かけて切りかえる。成功なら True"""
+        try:
+            try:
+                self.pc.set_view_target_with_blend(target, float(t), unreal.ViewTargetBlendFunction.VTBLEND_CUBIC, 2.0, False)
+            except Exception:  # noqa
+                self.pc.set_view_target_with_blend(target, float(t))
+            return True
+        except Exception as e:  # noqa
+            log("  (画面を切りかえられません) %s" % e)
+            return False
+
     def end_safe(self):
+        if getattr(self, "safe_cam_on", False):
+            self.set_view(self.pawn, 0.45)
+            self.safe_cam_on = False
         self.lock_input(False)
         self.state, self.state_t = "TRAPPED", 0.0
 
@@ -916,7 +946,7 @@ class Game:
                     self.fov_cur = self.fov_base
             if not cam:
                 return
-            tgt = DIAL_FOV if self.state == "SAFE" else self.fov_base
+            tgt = DIAL_FOV if (self.state == "SAFE" and not getattr(self, "safe_cam_on", False)) else self.fov_base
             if tgt != getattr(self, "_fov_log", None):
                 self._fov_log = tgt
                 log("視野（アップ）: %.0f → %.0f にします" % (self.fov_cur, tgt))
@@ -1170,7 +1200,7 @@ class Game:
         if dist > rng:
             return False
         f = unreal.MathLibrary.get_forward_vector(rot)
-        return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > 0.93
+        return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > LOOK_CONE
 
     def prompt_item(self, text, key):
         if int(self.t * 4) == getattr(self, "_p_" + key, -1):
@@ -1201,12 +1231,12 @@ class Game:
                 return
         if self.state == "TRAPPED":
             hp, pp = self.hatch_point(), self.phone_point()
-            if not self.hatch_open and self.looking_at_pt(hp, ITEM_RANGE + 60.0, 0.95):
+            if not self.hatch_open and self.looking_at_pt(hp, ITEM_RANGE + 30.0, 0.96):
                 self.prompt_item("[%s] 電話の下のふたを開ける" % ENTER_KEY, "HATCH")
                 if pressed:
                     self.open_hatch()
                     return
-            elif self.looking_at_pt(pp, ITEM_RANGE + 60.0, 0.93):
+            elif self.looking_at_pt(pp, ITEM_RANGE + 30.0, 0.95):
                 self.prompt_item("[%s] 電話をかける" % ENTER_KEY, "PHONE")
                 if pressed:
                     self.begin_phone()
