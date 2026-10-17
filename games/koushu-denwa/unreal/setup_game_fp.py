@@ -43,6 +43,8 @@ BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高
 SAFE_BACK = -28.0                    # ダイヤル式の金庫を、ボックスの中心から奥（入口の反対）へ何cm（－が奥）
 SAFE_SIDE = 22.0                     # 金庫を、中心から横へ何cm（＋は入口に向かって左）
 SAFE_SCALE = 1.6                     # 金庫の大きさ（1.0 = 本物の手提げ金庫 幅36cm。見やすいよう 1.6 で幅58cm）
+DIAL_CAM_DIST = 30.0                 # 金庫のダイヤルを回すとき、専用カメラを、つまみの前（おもて側）から何cm 離すか（小さいほどアップ）
+DIAL_CAM_FOV = 42.0                  # そのカメラの視野の角度（小さいほどアップ）
 SAFE_TURN = 0.0                      # 金庫の向き（入口の向きから何度まわすか）
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
@@ -190,7 +192,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -1288,6 +1290,17 @@ def s_safe():
     setp(kc, "mobility", unreal.ComponentMobility.MOVABLE)
     kn.set_actor_scale3d(unreal.Vector(S, S, S))
     tag_actor(kn, "DialSafe_Knob")
+    # ダイヤル専用のカメラ：つまみのおもて側（f の向き）に置いて、つまみを見る。回している間、この画面になる（プレイヤーの位置と関係なく、アップで見える）
+    d = DIAL_CAM_DIST
+    camx, camy, camz = kx + f[0] * d, ky + f[1] * d, kz + 0.12 * d
+    cyaw = math.degrees(math.atan2(-f[1], -f[0]))
+    cpitch = -math.degrees(math.atan2(0.12 * d, d))
+    cam = spawn(unreal.CameraActor, (camx, camy, camz), (0, cpitch, cyaw))
+    try:
+        cam.get_component_by_class(unreal.CameraComponent).set_editor_property("field_of_view", float(DIAL_CAM_FOV))
+    except Exception as e:  # noqa
+        log("  (ダイヤルのカメラの視野を設定できません) %s" % e)
+    tag_actor(cam, "KD_DialCam")
     log("手提げ金庫を置きました: (%.0f,%.0f) 向き=%.0f度・倍率 %.1f（奥へ %.0fcm・横へ %.0fcm）" % (px, py, yaw, S, SAFE_BACK, SAFE_SIDE))
 
 

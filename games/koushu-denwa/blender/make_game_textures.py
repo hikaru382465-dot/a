@@ -117,26 +117,51 @@ def _noise(h, w, cell, amp):
     return (np.asarray(im, np.float32) / 255.0 * 2 - 1) * amp
 
 
+def _layer(text, size, angle, W, H, f, cx, cy):
+    """1つの言葉を、たて書きで、中心 (cx,cy) のまわりに、角度 angle で書いた L 画像（0〜255）"""
+    lines = text.split('\n')
+    n_max = max(len(l.replace(' ', '')) for l in lines)
+    wid = int(len(lines) * (size + 20) + size)
+    hei = int(n_max * (size + 8) + size)
+    can = Image.new('L', (wid, hei), 0)
+    for li, ln in enumerate(lines):
+        x = wid // 2 + (len(lines) - 1) * (size // 2 + 10) - li * (size + 20)
+        y = size // 2 + int(R.integers(-8, 9))
+        for ch in ln.replace(' ', ''):
+            cell = Image.new('L', (size * 2, size * 2), 0)
+            ImageDraw.Draw(cell).text((size, size), ch, font=f, fill=255, anchor='mm')
+            cell = cell.rotate(float(R.uniform(-9, 9)), resample=Image.BICUBIC)
+            k = float(R.uniform(0.9, 1.1))
+            cell = cell.resize((int(cell.width * k), int(cell.height * k)), Image.BICUBIC)
+            can.paste(255, (int(x + R.integers(-7, 8) - cell.width // 2), int(y - cell.height // 2 + size // 2)), cell)
+            y += size + 6 + int(R.integers(-6, 7))
+    can = can.rotate(angle, resample=Image.BICUBIC, expand=True)
+    out = Image.new('L', (W, H), 0)
+    out.paste(can, (int(cx - can.width // 2), int(cy - can.height // 2)), can)
+    return np.asarray(out, np.float32) / 255.0
+
+
 def glass_text(idx, text):
-    """ガラスに浮かぶ文字だけ（紙なし・透明な背景）。手書きのように文字がゆがみ、ふちがかすれ、ところどころ垂れる。うっすら白く光り、赤いにじみが出る"""
+    """ガラスに浮かぶ文字だけ（紙なし・透明な背景）。ほかの言葉と交差して、ぐちゃぐちゃに重なる（なぐり書き）。手書きのようにゆがみ、ふちがかすれ、ところどころ垂れる。うっすら白く光り、赤いにじみが出る"""
     W, H = 512, 704
     lines = text.split('\n')
     size = 130 if len(lines) == 1 else 104
     size = min(size, (704 - 150) // max(len(l.replace(' ', '')) for l in lines) - 6)       # 下にはみ出さない
     f, custom = _glass_font(size)
-    mask = Image.new('L', (W, H), 0)
-    for li, ln in enumerate(lines):
-        cx = W // 2 + (len(lines) - 1) * (size // 2 + 6) - li * (size + 20)
-        y = 80 + int(R.integers(-10, 10))
-        for ch in ln.replace(' ', ''):
-            cell = Image.new('L', (size * 2, size * 2), 0)
-            ImageDraw.Draw(cell).text((size, size), ch, font=f, fill=255, anchor='mm')
-            cell = cell.rotate(float(R.uniform(-7, 7)), resample=Image.BICUBIC)
-            k = float(R.uniform(0.92, 1.08))
-            cell = cell.resize((int(cell.width * k), int(cell.height * k)), Image.BICUBIC)
-            mask.paste(255, (int(cx + R.integers(-6, 7) - cell.width // 2), int(y + size // 2 - cell.height // 2)), cell)
-            y += size + 6 + int(R.integers(-5, 6))
-    m = np.asarray(mask, np.float32) / 255.0
+    m = np.zeros((H, W), np.float32)
+    # ぐちゃぐちゃ：ほかの言葉を、ばらばらの大きさ・角度・位置で、何枚も重ねる（主役より、少しうすい）
+    others = [t for j, t in enumerate(POSTER_TEXTS) if j != idx]
+    for _ in range(int(R.integers(5, 8))):
+        t = others[int(R.integers(0, len(others)))]
+        sz = int(R.integers(62, 125))
+        fo, _c = _glass_font(sz)
+        cx, cy = int(R.integers(60, W - 60)), int(R.integers(110, H - 110))
+        ang = float(R.uniform(-60, 60)) if R.random() < 0.7 else float(R.choice([90, -90, 180]))
+        lay = _layer(t, sz, ang, W, H, fo, cx, cy) * float(R.uniform(0.5, 0.85))
+        m = np.maximum(m, lay)
+    # 主役の言葉：中央あたり、いちばん濃く（読める）
+    main = _layer(text, size, float(R.uniform(-6, 6)), W, H, f, W // 2 + int(R.integers(-30, 31)), H // 2 + int(R.integers(-30, 31)))
+    m = np.maximum(m, main)
     # 手書きのゆがみ（文字ぜんたいを、なめらかにゆらす）
     dx, dy = _noise(H, W, 60, 4.0), _noise(H, W, 60, 4.0)
     yy, xx_ = np.mgrid[0:H, 0:W]
@@ -144,9 +169,10 @@ def glass_text(idx, text):
     sy = np.clip((yy + dy).astype(int), 0, H - 1)
     m = m[sy, sx]
     # 太さのむら＋ふちのかすれ
-    mb = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.2)), np.float32) / 255.0
+    mi_ = Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))          # 線を少し太く（細い筆でも、ガラスで見えるように）
+    mb = np.asarray(mi_.filter(ImageFilter.GaussianBlur(2.0)), np.float32) / 255.0
     rough = mb + _noise(H, W, 5, 0.22) * (1 - np.abs(mb * 2 - 1)) + _noise(H, W, 90, 0.12)
-    m = np.clip((rough - 0.42) * 5.0, 0, 1)
+    m = np.clip((rough - 0.28) * 4.0, 0, 1)
     # 垂れ（文字の下のはしから、ところどころ細く垂れる）
     mi = (m > 0.5)
     below = mi[:-1] & ~mi[1:]
