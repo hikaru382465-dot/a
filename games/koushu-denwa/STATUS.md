@@ -91,7 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
-- **ガラスの文字のフォント**：ゴシック体に「手書きのゆがみ・かすれ・垂れ」をかけた雰囲気にした。好きなフォント（筆・手書き）は `assets/fonts/` に入れると、`make_glass_texts()` がそれを使う（`glass` を名前に入れると優先。OFLなど商用OKのものだけ）。
+- **ガラスの文字：Yuji Boku（筆）に差し替えた**（`assets/fonts/glass_YujiBoku-Regular.ttf`。ゆがみ・かすれ・垂れはそのまま）。Unrealへは、Pull → `setup_game_fp.py` を実行し直す。
+- **ガラスの文字のフォント（前の案）**：ゴシック体に「手書きのゆがみ・かすれ・垂れ」をかけた雰囲気にした。好きなフォント（筆・手書き）は `assets/fonts/` に入れると、`make_glass_texts()` がそれを使う（`glass` を名前に入れると優先。OFLなど商用OKのものだけ）。
 
 - **ガラスの張り紙を「紙なしの文字」に変えた（未確認）**：ひかるの希望。公衆電話の中に出る12枚は、紙をやめて、ガラスに浮かぶ文字だけ（うす白く光り、赤いにじみ・背景は透明）。画像は `glass_01〜12.png`（`blender/make_game_textures.py` の `make_glass_texts`）。材質は半透明・光るだけ（`GLASS_GLOW`=6）。血の目の写真（`poster_eye.jpg`）と、電話機の上の手がかり（`poster_hint.png`）は紙のまま。反映は `setup_game_fp.py` を実行し直す。次：暗い間だけ見える光る数字（張り紙の順番の謎）を、この文字に付ける。
 
