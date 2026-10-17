@@ -17,10 +17,15 @@ def components(mask, minpx=50, reach=2):
                             if 0 <= Y < h and 0 <= X < w and mask[Y, X] and not lab[Y, X]: lab[Y, X] = n; q.append((Y, X)); pts.append((Y, X))
                 if len(pts) >= minpx: out.append(pts)
     return out
-def cut_checker(path, box, shrink=2, blank=None, colors=28, pocket=0, fringe=0, pocket_min=80, trim=True):
+def cut_checker(path, box, shrink=2, blank=None, colors=28, pocket=0, fringe=0, pocket_min=80, trim=True, bgthr=(205, 28), seam=False):
     """外のふちとつながった白っぽい所だけを消して切り出す（絵の中の白は残る）。いちばん大きいかたまりだけ残す。"""
     im = Image.open(path).convert('RGB').crop(box); a = np.array(im).astype(int); h, w = a.shape[:2]
-    bgl = (a.min(axis=2) > 205) & ((a.max(axis=2) - a.min(axis=2)) < 28)
+    if seam:      # 絵の中を横切る、うすい白い線（AI絵のつなぎ目）を、上のとなりの色でうめる
+        _b = (a.min(axis=2) > bgthr[0]) & ((a.max(axis=2) - a.min(axis=2)) < bgthr[1])
+        for y in range(4, h - 4):
+            line = _b[y] & ~_b[y - 3] & ~_b[y + 3] & ~_b[y - 4] & ~_b[y + 4]
+            if line.sum() > 25: a[y, line] = a[y - 3, line]
+    bgl = (a.min(axis=2) > bgthr[0]) & ((a.max(axis=2) - a.min(axis=2)) < bgthr[1])
     if blank: bgl[blank[1]:, blank[0]:] = True
     om = np.zeros((h, w), bool); q = deque()
     for x in range(w):

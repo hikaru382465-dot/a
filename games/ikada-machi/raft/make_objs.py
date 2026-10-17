@@ -195,12 +195,22 @@ _en = entry(_hn); _en['hi'] = 3; _en['ppu'] = out['hut'][0].get('ppu'); out['hut
 # 小屋の中の絵（入ったときに出す）と、ベッドで足パタパタの8コマ：別ファイル hut_art.js（部屋の絵の上に、%の位置で重ねる）
 _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1536, 1024), shrink=1, trim=False); _bx = _ti.getchannel('A').getbbox(); _ti = _ti.crop(_bx); IW, IH = _ti.size      # 余白は切りおとす（ベッドの位置は、この切りおとし分をひく）
 _ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
-_runs = [(28, 273), (296, 540), (563, 806), (829, 1072), (1096, 1339), (1362, 1607), (1631, 1877), (1900, 2140)]
-_fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'bed_sheet1.png', ((a + b) // 2 - 135, 220, (a + b) // 2 + 135, 500), shrink=1, fringe=1, trim=False) for a, b in _runs]
+_runs = [(116, 417), (652, 955), (1180, 1519), (1681, 2021), (2250, 2553), (2786, 3093), (3320, 3621), (3860, 4157)]      # 相棒だけ（ベッドなし）の足パタパタ。ベッドは部屋の絵の1枚のまま
+_fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'girl_sheet.png', ((a + b) // 2 - 210, 420, (a + b) // 2 + 210, 1000), shrink=1, fringe=1, trim=False, bgthr=(238, 14), seam=True) for a, b in _runs]
+def _align(frames, top=0.36):      # コマごとのずれを、頭・体の上の部分の「重さの中心」をそろえて直す（足は動いてよいので、見ない）
+    import numpy as _np
+    def cen(f):
+        a = _np.array(f.getchannel('A')) > 128; h = a.shape[0]; ys, xs = _np.where(a[:int(h * top)]); return xs.mean(), ys.mean()
+    cx0, cy0 = cen(frames[0]); out = [frames[0]]
+    for f in frames[1:]:
+        cx, cy = cen(f); dx, dy = int(round(cx0 - cx)), int(round(cy0 - cy)); a = _np.array(f)
+        out.append(Image.fromarray(_np.roll(_np.roll(a, dy, 0), dx, 1), 'RGBA'))
+    return out
+_fr = _align(_fr)
 _bb = None
 for _f in _fr:
     _b = _f.getchannel('A').getbbox(); _bb = _b if _bb is None else (min(_bb[0], _b[0]), min(_bb[1], _b[1]), max(_bb[2], _b[2]), max(_bb[3], _b[3]))
-_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 1.4, 230 - _bx[0], 262 - _bx[1]       # 部屋の絵のベッドに合わせる大きさと位置（元の絵の画素）
+_fr = [_f.crop(_bb) for _f in _fr]; _S, _OX, _OY = 0.62, 335 - _bx[0], 306 - _bx[1]       # 部屋のベッドの上にのせる大きさと位置（元の絵の画素）
 _frs = []
 for _f in _fr:
     _g = _f.resize((int(_f.width * _S / 2), int(_f.height * _S / 2)), Image.NEAREST); _gb = io.BytesIO(); _g.save(_gb, 'PNG', optimize=True)
