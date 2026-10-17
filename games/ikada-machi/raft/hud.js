@@ -204,7 +204,10 @@ window.RAFT.parts.hud = function (c) {
   }
   const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
   $('bLookStop').onclick = () => sim.stopLook(s);
-  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s); $('bHutDiary').onclick = () => sim.writeDiary(s); $('bHutRead').onclick = () => { const ds = $('diary'), l = s.diary || []; $('diaryList').innerHTML = l.length ? l.slice().reverse().map(d => `<div class="dd"><b>${d.day}日目</b> ${d.text}</div>`).join('') : '<div class="dd">まだ、なにも書いていない。</div>'; ds.style.display = 'flex'; }; $('diaryClose').onclick = () => { $('diary').style.display = 'none'; };
+  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s); $('bHutDiary').onclick = () => sim.writeDiary(s); let dpg = 0; const showPage = dir => { const l = s.diary || [], pg = $('diaryPage'); $('diaryNum').textContent = l.length ? `${dpg + 1} / ${l.length}` : ''; pg.innerHTML = l.length ? `<b>${l[dpg].day}日目</b><p>${l[dpg].text}</p>` : '<p>まだ、なにも書いていない。</p>'; pg.className = ''; void pg.offsetWidth; if (dir) pg.className = dir > 0 ? 'flipL' : 'flipR'; $('diaryPrev').style.opacity = dpg > 0 ? 1 : 0.3; $('diaryNext').style.opacity = dpg < l.length - 1 ? 1 : 0.3; };
+  $('bHutRead').onclick = () => { dpg = Math.max(0, (s.diary || []).length - 1); showPage(0); $('diary').style.display = 'flex'; };
+  $('diaryPrev').onclick = () => { if (dpg > 0) { dpg--; showPage(-1); } }; $('diaryNext').onclick = () => { if (dpg < (s.diary || []).length - 1) { dpg++; showPage(1); } };
+  $('diaryClose').onclick = () => { $('diary').style.display = 'none'; };
   $('bBoatClose').onclick = () => { $('boatbox').style.display = 'none'; };
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
