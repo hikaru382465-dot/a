@@ -499,7 +499,7 @@
     }
     await sleep(500);
     bs.classList.add("hidden"); $("#screen-desk").classList.remove("hidden");
-    buildIcons(); S.startAmbient(); window.Gimmicks.start();
+    buildIcons(); S.startAmbient(); S.setDay(state.day); window.Gimmicks.start();
     await sleep(1400); S.notify();
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面を開いてください。（パソコンはダブルクリック、スマホはタップ）");

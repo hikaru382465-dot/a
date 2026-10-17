@@ -280,3 +280,6 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 .sr-cm-top{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--muted)}
 .sr-cm-top b{color:#33405a}.sr-cm-no{color:#2f6fdd}.sr-cm-t{margin-left:auto}
 .sr-relitem{padding:6px 0;color:#1a4fa0;cursor:pointer;font-size:14px}.sr-relitem:hover{text-decoration:underline}
+
+.site-ext{margin:6px 18px 0;font-size:13px;color:#6b5b3e}.site-ext a{color:#8f4a25}
+a.ext{display:inline-block;text-decoration:none;margin:8px 0}

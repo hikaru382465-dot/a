@@ -26,6 +26,7 @@ window.Gimmicks = (function () {
     every("clock", 45000, 80000, clockGlitch);
     every("windowReturn", 40000, 90000, windowReturn);
     every("windowNudge", 25000, 45000, windowNudge);
+    every("ambientEvent", 35000, 75000, ambientEvent);
   }
   function stop() {
     active = false; timers.forEach(clearTimeout); timers = [];
@@ -104,7 +105,7 @@ window.Gimmicks = (function () {
     const w = api.wins();
     Object.keys(w).forEach(k => { if (w[k].min) { w[k].min = false; w[k].el.style.display = "flex"; } });
     if (!w.memo && Math.random() < 0.6) {
-      api.openMemo();
+      api.openMemo(); api.S.creak();
       const m = api.wins().memo;
       if (m) { m.el.style.zIndex = 3; m.el.classList.add("inactive"); m.tb.classList.remove("active"); }
     }
@@ -121,6 +122,13 @@ window.Gimmicks = (function () {
     setTimeout(() => { el.style.transition = ""; }, 250);
   }
 
+  // 10. 環境の音：壁をたたく／きしむ／ささやき（5日目は鼓動も）
+  function ambientEvent() {
+    const S = api.S, pool = ["knock", "creak", "whisper"];
+    if (day() >= 5) pool.push("heartbeat", "heartbeat");
+    S[pool[Math.floor(Math.random() * pool.length)]]();
+  }
+
   // 6. ブラウザの題名が一瞬変わる
   function titleBlip() {
     document.title = day() >= 4 ? "02:41" : "みている";
@@ -132,6 +140,7 @@ window.Gimmicks = (function () {
   async function clockGlitch() {
     const el = api.clockEl(), m = api.clockMin();
     const f = x => String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
+    api.S.tickBack();
     el.classList.add("flick");
     el.textContent = f(m - 1); await new Promise(r => setTimeout(r, 800));
     el.textContent = "02:41"; await new Promise(r => setTimeout(r, 800));
@@ -142,7 +151,7 @@ window.Gimmicks = (function () {
 
   function fire(name) {
     const was = active; active = true;
-    ({ silentNotify: () => api.S.notify(), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
+    ({ silentNotify: () => api.S.notify(), ambientEvent, title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
     if (!was) active = false;
   }
   return { bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };

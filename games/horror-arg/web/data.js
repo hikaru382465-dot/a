@@ -8,6 +8,8 @@
 // （確認：ブラウザの開発者ツールで checkHeads() を実行すると、ずれが出る）
 window.GAME_DATA = {
   siteName: "夜ばなし投稿館（仮）",
+  // 外の公開サイト（ARGの本物の側）。いまは非公開ページ。Steam版では本物のURLに替える
+  externalUrl: "https://claude.ai/artifact/KS4JomkiykW6ebpH7qTMae",
   adminName: "新管理人",
   clockStart: "02:41",
   // ギミックがいつから起きるか（N日目から）。大きくするほど遅くなる。99で無効
@@ -21,7 +23,8 @@ window.GAME_DATA = {
     silentNotify: 4,  // 音だけの通知
     flee: 4,          // 承認ボタンが逃げる
     windowNudge: 4,   // 窓が少しだけずれる
-    buttonLabel: 5    // 最後の投稿で「承認」が「あなた」になる
+    buttonLabel: 5,   // 最後の投稿で「承認」が「あなた」になる
+    ambientEvent: 3   // 環境の音（壁をたたく・きしむ・ささやき。5日目は鼓動も）
   },
   // 読んでいる最中に入れ替わる言葉（[元, 後]）。書き出し（1段落目）は変えない
   swaps: {

@@ -67,8 +67,40 @@ window.Snd = (function () {
       s.connect(f); f.connect(g); g.connect(master);
       hum.connect(hg); hg.connect(master);
       s.start(); hum.start();
-      ambient = { s, hum };
+      ambient = { s, hum, g, f, hg };
     },
+    // 日が進むほど、環境音が少しだけ低く・大きくなる
+    setDay(d) {
+      if (!ambient) return;
+      const t = ctx.currentTime + 1.5;
+      ambient.g.gain.linearRampToValueAtTime(0.05 + 0.014 * d, t);
+      ambient.f.frequency.linearRampToValueAtTime(150 - 12 * d, t);
+      ambient.hg.gain.linearRampToValueAtTime(0.008 + 0.005 * d, t);
+    },
+    // 壁をたたく音（低い、3回）
+    knock() { if (!ok()) return; [0, 0.24, 0.52].forEach(t => { tone(85, t, 0.16, "sine", 0.22, 48); burst(t, 0.05, 0.08, "lowpass", 300); }); },
+    // きしむ音（床・ドア）
+    creak() {
+      if (!ok()) return;
+      const t = ctx.currentTime, o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(130, t + 0.5); o.frequency.linearRampToValueAtTime(88, t + 1.0);
+      f.type = "lowpass"; f.frequency.value = 420;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+      o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + 1.2);
+    },
+    // 息のようなささやき（帯域をしぼったノイズ）
+    whisper() {
+      if (!ok()) return;
+      const t = ctx.currentTime, s = ctx.createBufferSource(); s.buffer = noiseBuf(1.6);
+      const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3;
+      f.frequency.setValueAtTime(1400, t); f.frequency.linearRampToValueAtTime(2600, t + 0.8); f.frequency.linearRampToValueAtTime(1800, t + 1.5);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+      s.connect(f); f.connect(g); g.connect(master); s.start(t);
+    },
+    // 時計が戻る音（下がる3回の刻み）
+    tickBack() { if (!ok()) return; [0, 0.1, 0.2].forEach((t, i) => { burst(t, 0.03, 0.14, "highpass", 2200); tone(1300 - i * 250, t, 0.05, "square", 0.025); }); },
+    // 鼓動
+    heartbeat() { if (!ok()) return; [0, 0.9, 1.8].forEach(t => { tone(62, t, 0.22, "sine", 0.2, 44); tone(58, t + 0.2, 0.22, "sine", 0.14, 42); }); },
     toggleMute() {
       muted = !muted;
       if (master) master.gain.value = muted ? 0 : 0.7;

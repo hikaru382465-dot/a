@@ -52,6 +52,7 @@ window.Apps = (function () {
         h("div", { class: "site-cm" }, h("div", { class: "site-cm-h" }, "読者コメント（" + cs.length + "）"),
           cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"))));
     });
+    if (api.D.externalUrl) body.append(h("div", { class: "site-ext" }, "外のサイトでも読めます：", h("a", { href: api.D.externalUrl, target: "_blank", rel: "noopener" }, "夜ばなし投稿館（外のサイトを開く）")));
     api.openWin("site", "公開サイト（読者に見える画面）", h("div", { class: "site-wrap" }, body), { w: 680, h: 500, x: 220, y: 40 });
   }
   // 承認から少し後に、読者コメントが届く（音と通知）
@@ -109,6 +110,7 @@ window.Apps = (function () {
         h("div", { class: "sr-page" }, h("div", { class: "sr-u" }, r.u), h("h3", {}, r.t),
           h("div", { class: "sr-pmeta" }, "閲覧数 " + ex.views.toLocaleString() + "　ブックマーク " + ex.bm),
           r.page.map(t => h("p", {}, t)),
+          r.link ? h("a", { class: "btn primary ext", href: api.D.externalUrl + "#" + r.link.hash, target: "_blank", rel: "noopener" }, r.link.label) : null,
           h("div", { class: "sr-rx" }, react("役に立った", Math.round(ex.views / 60)), react("こわい", Math.round(ex.views / 45)), react("ブックマーク", ex.bm)),
           h("div", { class: "sr-cm-h" }, "コメント（" + cms.length + "）"),
           cms.length ? cms.map((c, i) => h("div", { class: "sr-cm" + (c[3] ? " odd" : "") },
