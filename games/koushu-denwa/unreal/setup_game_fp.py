@@ -633,6 +633,15 @@ def s_center_marker():
     tag_actor(a, "KD_BoothCenter")
     setp(a.get_component_by_class(unreal.StaticMeshComponent), "mobility", unreal.ComponentMobility.MOVABLE)
     a.set_actor_hidden_in_game(True)
+    # 中の「歩ける広さ」の印：ガラスの内がわの半分の幅・奥行き(cm)を、大きさに入れておく（kd_game.py が読む。壁ぎわの歩きがガタガタしないように）
+    gh = glass_halves()
+    in_n, in_t = (gh[0] - 1.5, gh[1] - 1.5) if gh else (half_n - WALL_INSET, half_t - WALL_INSET)
+    b = spawn(unreal.StaticMeshActor, g["center"], (0, 0, yaw0))
+    b.set_actor_scale3d(unreal.Vector(in_t, in_n, 1.0))
+    tag_actor(b, "KD_BoothInner")
+    setp(b.get_component_by_class(unreal.StaticMeshComponent), "mobility", unreal.ComponentMobility.MOVABLE)
+    b.set_actor_hidden_in_game(True)
+    log("中の歩ける広さ（ガラスの内がわ）: 横 ±%.1fcm・奥行き ±%.1fcm" % (in_t, in_n))
 
 
 def s_collision():
@@ -1353,6 +1362,8 @@ def s_safe():
     except Exception as e:  # noqa
         log("  (ダイヤルのカメラの視野を設定できません) %s" % e)
     tag_actor(cam, "KD_DialCam")
+    pcam = spawn(unreal.CameraActor, g["center"], (0, 0, 0))                       # 電話機を回す（押す）ときの専用カメラ。置き場所と向きは、kd_game.py が電話機の位置に合わせて動かす
+    tag_actor(pcam, "KD_PhoneCam")
     # 開いた状態の金庫：下の箱（上が開いている）とふた。はじめは隠しておき、金庫が開いたときに kd_game.py が、本体とつまみを隠して、これを出す（ふたが回って開く）
     base_mesh = import_fit("DialSafeBase.fbx", "SafeBase", 36.0)
     lid_mesh = import_fit("DialSafeLid.fbx", "SafeLid", 36.2, collision=False)
