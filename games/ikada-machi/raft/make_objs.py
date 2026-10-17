@@ -197,6 +197,41 @@ _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1
 _ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
 _runs = [(116, 417), (652, 955), (1180, 1519), (1681, 2021), (2250, 2553), (2786, 3093), (3320, 3621), (3860, 4157)]      # 相棒だけ（ベッドなし）の足パタパタ。ベッドは部屋の絵の1枚のまま
 _fr = [cutlib.cut_checker(here.parent / 'art' / 'hut' / 'girl_sheet.png', ((a + b) // 2 - 210, 420, (a + b) // 2 + 210, 1000), shrink=1, fringe=1, trim=False, bgthr=(238, 14), seam=True) for a, b in _runs]
+def _peel(f, n=4, lo=200, sat=40):      # ふちに残った白っぽい背景を、外から内へ数ピクセルだけはがす（目のハイライトは中なので残る）
+    import numpy as _np
+    a = _np.array(f); al = a[..., 3] > 128
+    for _ in range(n):
+        near = _np.zeros_like(al)
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)): near |= ~_np.roll(_np.roll(al, dy, 0), dx, 1)
+        rgb = a[..., :3].astype(int); lt = (rgb.min(2) >= lo) & (rgb.max(2) - rgb.min(2) <= sat)
+        kill = al & near & lt; al &= ~kill
+    a[..., 3] = _np.where(al, a[..., 3], 0); return Image.fromarray(a, 'RGBA')
+def _specks(f, r=16, lo=185, minpx=60):      # 外にぽつんと近い白い点と、そのまわりの小さなかけらを消す
+    import numpy as _np
+    a = _np.array(f); al = a[..., 3] > 128
+    out = ~al
+    for _ in range(r):
+        o2 = out.copy()
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1): o2 |= _np.roll(_np.roll(out, dy, 0), dx, 1)
+        out = o2
+    rgb = a[..., :3].astype(int); lt = (rgb.min(2) >= lo) & (rgb.max(2) - rgb.min(2) <= 45)
+    h = a.shape[0]; reg = _np.zeros_like(al); reg[int(h * 0.2):int(h * 0.6), int(a.shape[1] * 0.5):] = True
+    al &= ~(out & lt & reg)
+    seen = _np.zeros_like(al)
+    for y, x in zip(*_np.where(al)):
+        if seen[y, x]: continue
+        st = [(y, x)]; seen[y, x] = True; comp = []
+        while st:
+            cy, cx = st.pop(); comp.append((cy, cx))
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    ny, nx = cy + dy, cx + dx
+                    if 0 <= ny < al.shape[0] and 0 <= nx < al.shape[1] and al[ny, nx] and not seen[ny, nx]: seen[ny, nx] = True; st.append((ny, nx))
+        if len(comp) < minpx:
+            for cy, cx in comp: al[cy, cx] = False
+    a[..., 3] = _np.where(al, a[..., 3], 0); return Image.fromarray(a, 'RGBA')
+_fr = [_specks(_peel(f)) for f in _fr]
 def _align(frames, top=0.36):      # コマごとのずれを、頭・体の上の部分の「重さの中心」をそろえて直す（足は動いてよいので、見ない）
     import numpy as _np
     def cen(f):
