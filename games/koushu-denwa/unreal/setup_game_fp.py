@@ -35,6 +35,8 @@ FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ�
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
+RESET_POSTERS = True                 # True: ガラスの文字・目の写真の位置は、実行のたびに、ガラスの面から計算し直す（手で動かした位置は覚えない）。手で動かした位置を残したいなら False
+GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面から内側へ何cm 離して貼るか（浮いて見えるなら小さく。ガラスにめり込むなら大きく）
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
 GLASS_GLOW = 6.0                     # ガラスの文字の光り方（大きいほど、暗い中で白く光る）
 GLASS_SCALE = 1.3                    # ガラスの文字の大きさ（1.0 = 横50×縦70cm の板。1.3 で 65×91cm。大きいほどガラスいっぱいに出る）
@@ -193,7 +195,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "POSTER_SCALE", "GLASS_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "POSTER_SCALE", "GLASS_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -297,7 +299,7 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid", "DialSafe_Key", "DialSafe_Coin") and not lab.startswith("Board_Pin_") \
+            if lab.startswith(KEEP_PREFIX) and not (RESET_POSTERS and lab.startswith("Poster_")) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid", "DialSafe_Key", "DialSafe_Coin") and not lab.startswith("Board_Pin_") \
                     and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
@@ -483,7 +485,7 @@ SLOTS = [("R", -40, 125, 1.0), ("R", 5, 160, 1.0), ("R", 45, 115, 1.0), ("R", -5
          ("L", -45, 150, 1.0), ("L", 42, 160, 1.0), ("L", -5, 195, 1.0),
          ("F", -45, 130, 1.0), ("F", 40, 155, 1.0), ("F", 0, 195, 1.0),
          ("B", -46, 120, 1.0), ("B", 46, 150, 1.0)]
-HINT_SLOT = ("B", 0, 185, 1.0)        # 電話機の真上
+HINT_SLOT = ("B", 0, 185, 0.5)       # 電話機の真上（ガラスの文字としては小さめ）
 EYE_SLOT = ("L", 0, 140, 1.6)         # 左の壁の真ん中に、少し大きく
 
 
@@ -809,22 +811,69 @@ HINT_SLOT = ("B", 0, 185, 1.0)        # 電話機の真上
 EYE_SLOT = ("L", 0, 140, 1.5)         # 左の壁の真ん中に、大きく
 
 
+def glass_halves():
+    """ガラスの面の位置：ボックス中心から、入口方向(n)と側面方向(t)へ、それぞれ何cm か（ガラスの外がわの面）。測れなければ None"""
+    key = "glass_halves"
+    if key in STATE:
+        return STATE[key]
+    g = STATE["geo"]
+    cx, cy, _cz = g["center"]
+    n, t = g["n"], g["t"]
+    mx_n = mx_t = None
+    for c in STATE["booth"].get_components_by_class(unreal.StaticMeshComponent):
+        mesh = c.get_editor_property("static_mesh")
+        if mesh is None or "glass" not in mesh.get_name().lower():
+            continue
+        b = None
+        for getter in (lambda: c.get_editor_property("bounds"), lambda: c.bounds):
+            try:
+                b = getter()
+                break
+            except Exception:  # noqa
+                continue
+        if b is None:
+            continue
+        try:
+            o, e = b.origin, b.box_extent
+            dn = (o.x - cx) * n[0] + (o.y - cy) * n[1]
+            dt = (o.x - cx) * t[0] + (o.y - cy) * t[1]
+            hn = abs(n[0]) * e.x + abs(n[1]) * e.y
+            ht = abs(t[0]) * e.x + abs(t[1]) * e.y
+            v_n, v_t = max(abs(dn - hn), abs(dn + hn)), max(abs(dt - ht), abs(dt + ht))
+            mx_n = v_n if mx_n is None else max(mx_n, v_n)
+            mx_t = v_t if mx_t is None else max(mx_t, v_t)
+        except Exception as ex:  # noqa
+            log("  (ガラスの大きさを読めません) %s" % ex)
+    STATE[key] = (mx_n, mx_t) if (mx_n and mx_t) else None
+    half_n, half_t = front_half()
+    if STATE[key]:
+        log("ガラスの面の位置: 前後 ±%.1fcm・左右 ±%.1fcm（ボックスぜんたいは 前後 ±%.1f・左右 ±%.1f）→ ガラスの面から内側へ %.1fcm に貼ります" % (mx_n, mx_t, half_n, half_t, GLASS_GAP))
+    else:
+        log("ガラスの面の位置を測れなかったので、ボックスの外形から %.0fcm 内側（WALL_INSET）に貼ります。浮いて見えるなら、WALL_INSET を小さくしてください" % WALL_INSET)
+    return STATE[key]
+
+
 def wall_pose_rel(wall, u, z):
     """壁の名前から、世界座標と、張り紙の面が内側を向く yaw を返す。張り紙の板は yaw=0 で +Y 向き"""
     g = STATE["geo"]
     half_n, half_t = front_half()
     n = g["n"]
     zmin = g["zmin"]
+    gh = glass_halves()
+    if gh:                                                                  # ガラスの面にぴったり貼る（浮かない）
+        wn, wt = gh[0] - GLASS_GAP, gh[1] - GLASS_GAP
+    else:
+        wn, wt = half_n - WALL_INSET, half_t - WALL_INSET
     if wall == "B":
-        d, s, inward = -(half_n - WALL_INSET), u, (n[0], n[1])            # 奥の壁：面は入口側（+n）を向く
+        d, s, inward = -wn, u, (n[0], n[1])            # 奥の壁：面は入口側（+n）を向く
     elif wall == "F":
-        d, s, inward = (half_n - WALL_INSET - 3.0), -u, (-n[0], -n[1])
+        d, s, inward = wn, -u, (-n[0], -n[1])
     elif wall == "R":
         t = g["t"]
-        d, s, inward = u, half_t - WALL_INSET, (-t[0], -t[1])
+        d, s, inward = u, wt, (-t[0], -t[1])
     else:
         t = g["t"]
-        d, s, inward = u, -(half_t - WALL_INSET), (t[0], t[1])
+        d, s, inward = u, -wt, (t[0], t[1])
     # 面の向き inward を向く yaw（板は yaw=0 で +Y 向き）
     yaw = math.degrees(math.atan2(inward[1], inward[0])) - 90.0
     if wall in ("R", "L"):
