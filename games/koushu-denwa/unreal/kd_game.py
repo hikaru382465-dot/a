@@ -46,6 +46,9 @@ DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キー�
 TRAP_MARGIN = 28.0             # 閉じ込められている間、壁から この距離（cm）より外へは出られない（すり抜け止め）
 DIAL_FOV = 30.0                # 金庫のダイヤルを回す間の、視野の角度（小さいほどアップ。ふだんは約90）
 DIAL_ZOOM_TIME = 0.45          # アップになるまでの時間（秒）
+SAFE_LID_ANGLE = 105.0           # 金庫が開いたとき、ふたが何度まで開くか
+SAFE_LID_TIME = 0.9            # ふたが開くのにかかる時間（秒）
+SAFE_LID_SIGN = -1.0           # ふたが下へ回ってしまうときは 1.0 にする
 DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
 START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・地面の下）に、入口の正面から何cm 離して立たせるか
 ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩けるようにする（テンプレのキャラは W A S D だけ）。↑前 ↓後ろ ←左へ →右へ
@@ -139,6 +142,9 @@ SETTINGS_DESCR = {
     "PHONE_COIN_COST": "電話1回に必要な10円の枚数",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
     "LOOK_CONE": "見ている向きの正確さ（1に近いほど、物をちゃんと見ないと「Eで…」が出ない。0.93=ゆるい 0.96=ふつう 0.98=きびしい）",
+    "SAFE_LID_ANGLE": "金庫が開いたとき、ふたが開く角度（度）",
+    "SAFE_LID_TIME": "ふたが開くのにかかる時間（秒）",
+    "SAFE_LID_SIGN": "ふたの開く向き（下へ回るなら 1.0 に）",
     "TRAP_MARGIN": "閉じ込められている間、壁から何cm内側までしか歩けないか（壁のすり抜け止め）",
     "DIAL_FOV": "ダイヤル専用カメラが無いときの、視野の角度（小さいほどアップ）",
     "DIAL_ZOOM_TIME": "ダイヤルの画面に切りかわるまでの時間（秒）",
@@ -248,7 +254,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -371,6 +377,10 @@ class Game:
         self.safe = next((v for k, v in low if SAFE_LABEL.lower() in k and "KD" not in label_of(v) and not k.startswith("dialsafe")), None)
         self.dial_body = found.get("DialSafe_Body")                  # ダイヤル式の金庫（本体と、回るつまみ）
         self.dial_knob = found.get("DialSafe_Knob")
+        self.safe_base = found.get("DialSafe_Base")                  # 開いた状態の金庫（下の箱とふた）
+        self.safe_lid = found.get("DialSafe_Lid")
+        self.lid_rot0 = self.safe_lid.get_actor_rotation() if self.safe_lid is not None else None
+        self.lid_t = -1.0
         self.dial_cam = found.get("KD_DialCam")                      # ダイヤル専用のカメラ（setup_game_fp.py が置く）
         self.safe_cam_on = False
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
@@ -635,6 +645,7 @@ class Game:
         self.tick_manual(dt)
         self.clamp_in_booth(loc)
         self.tick_dial_anim(dt)
+        self.tick_lid(dt)
         self.tick_fov(dt)
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
@@ -884,6 +895,40 @@ class Game:
         self.key_quit.set_editor_property("key_name", "Q")
         log("金庫のダイヤルを回し始めました")
 
+    def open_safe_visual(self):
+        """金庫が開いた：閉じた本体とつまみを隠し、開いた箱を出して、ふたを回して開く"""
+        if getattr(self, "safe_base", None) is None or getattr(self, "safe_lid", None) is None:
+            log("開いた金庫（DialSafe_Base / DialSafe_Lid）が無いので、見た目は閉じたままです。setup_game_fp.py をもう一度実行してください")
+            return
+        try:
+            for a in (self.dial_body, self.dial_knob):
+                if a is not None:
+                    a.set_actor_hidden_in_game(True)
+            self.safe_base.set_actor_hidden_in_game(False)
+            self.safe_lid.set_actor_hidden_in_game(False)
+            self.lid_t = 0.0
+            log("金庫のふたを開けます")
+        except Exception as e:  # noqa
+            log("  (開いた金庫を出せません) %s" % e)
+
+    def tick_lid(self, dt):
+        if getattr(self, "lid_t", -1.0) < 0.0 or getattr(self, "safe_lid", None) is None or getattr(self, "lid_rot0", None) is None:
+            return
+        self.lid_t += dt
+        k = min(1.0, self.lid_t / max(0.1, SAFE_LID_TIME))
+        e = 1.0 - (1.0 - k) ** 3
+        if k >= 1.0:
+            e = 1.0
+        r = self.lid_rot0
+        try:
+            self.safe_lid.set_actor_rotation(unreal.Rotator(r.roll + SAFE_LID_SIGN * SAFE_LID_ANGLE * e, r.pitch, r.yaw), False)
+        except Exception as ex:  # noqa
+            log("  (ふたを回せません) %s" % ex)
+            self.lid_t = -1.0
+            return
+        if k >= 1.0:
+            self.lid_t = -1.0
+
     def set_view(self, target, t):
         """画面（カメラ）を、target の見ている画面に、t 秒かけて切りかえる。成功なら True"""
         try:
@@ -1018,6 +1063,7 @@ class Game:
             self.safe_open = True
             self.has_key = True
             self.coins += 1
+            self.open_safe_visual()
             self.end_safe()
             screen(self.world, "ガチャン。金庫が開いた！ 小さな鍵と10円を手に入れた（10円 %d枚）" % self.coins, (255, 240, 160), 6.0)
             log("金庫が開きました（鍵・10円②）")
