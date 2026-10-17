@@ -933,9 +933,22 @@ class Game:
             if hit is None or isinstance(hit, bool):
                 log("診断: 足元に何もありません（地面なし？）")
                 return
-            nrm = hit.get_editor_property("impact_normal") if hasattr(hit, "get_editor_property") else hit.impact_normal
-            pt = hit.get_editor_property("impact_point") if hasattr(hit, "get_editor_property") else hit.impact_point
-            act = hit.get_editor_property("actor") if hasattr(hit, "get_editor_property") else None
+            nrm = pt = act = None
+            try:                                  # UE 5.8: to_tuple() の順番 = (…, location, impact_point, normal, impact_normal, phys_mat, hit_actor, …)
+                tp = hit.to_tuple()
+                pt, nrm, act = tp[5], tp[7], tp[9]
+            except Exception:
+                for nm_n, nm_p, nm_a in (("impact_normal", "impact_point", "hit_actor"), ("impact_normal", "impact_point", "actor")):
+                    try:
+                        nrm = getattr(hit, nm_n, None) or hit.get_editor_property(nm_n)
+                        pt = getattr(hit, nm_p, None) or hit.get_editor_property(nm_p)
+                        act = getattr(hit, nm_a, None)
+                        break
+                    except Exception:
+                        continue
+            if nrm is None or pt is None:
+                log("診断: 足元に当たりました（細かい情報は読めません）")
+                return
             ang = math.degrees(math.acos(max(-1.0, min(1.0, nrm.z))))
             log("診断: 足元の地面: %s 高さ=%.0f 坂の角度=%.0f度（歩けるのは %.0f度まで）" % (label_of(act) if act else "?", pt.z, ang, WALKABLE_ANGLE if WALKABLE_ANGLE > 0 else 44.8))
         except Exception as e:  # noqa
