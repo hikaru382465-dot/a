@@ -36,6 +36,7 @@ FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
+GLASS_GLOW = 6.0                     # ガラスの文字の光り方（大きいほど、暗い中で白く光る）
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
@@ -189,7 +190,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -368,7 +369,7 @@ def mk_task(filename, dest, scale=None, fbx_ui=None):
 
 def s_poster_textures():
     d = tex_game_dir()
-    names = sorted(f for f in os.listdir(d) if f.startswith("poster_") and f.lower().endswith((".png", ".jpg")))
+    names = sorted(f for f in os.listdir(d) if (f.startswith("poster_") or f.startswith("glass_")) and f.lower().endswith((".png", ".jpg")))
     if not names:
         raise RuntimeError("張り紙の画像がありません: %s" % d)
     import_tasks([mk_task(os.path.join(d, f), GAME_DIR + "/Textures/Game") for f in names])
@@ -451,10 +452,19 @@ def s_poster_materials():
     for f in STATE["poster_files"]:
         base = os.path.splitext(f)[0]                      # poster_01
         tex = unreal.EditorAssetLibrary.load_asset("%s/Textures/Game/%s" % (GAME_DIR, base))
-        m = new_material("M_" + "".join(w.capitalize() for w in base.split("_")))      # M_Poster01
+        m = new_material("M_" + "".join(w.capitalize() for w in base.split("_")))      # M_Poster01 / M_Glass01
         setp(m, "two_sided", True)
         t = xx(m, unreal.MaterialExpressionTextureSample, -800, 0)
         t.set_editor_property("texture", tex)
+        if base.startswith("glass_"):                       # ガラスの文字：紙なし。背景は透明、文字だけがうっすら光る
+            setp(m, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+            setp(m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+            mel.connect_material_property(mulx(m, t, cst(m, GLASS_GLOW, 100), 0), "", MP.MP_EMISSIVE_COLOR)
+            mel.connect_material_property(t, "A", MP.MP_OPACITY)
+            mel.recompile_material(m)
+            unreal.EditorAssetLibrary.save_loaded_asset(m)
+            mats[base] = m
+            continue
         mel.connect_material_property(mulx(m, t, cst(m, 0.8, -100), 0), "", MP.MP_BASE_COLOR)
         mel.connect_material_property(mulx(m, t, cst(m, POSTER_GLOW, 100), 150), "", MP.MP_EMISSIVE_COLOR)
         mel.connect_material_property(cst(m, 0.9, 300), "", MP.MP_ROUGHNESS)
@@ -826,7 +836,7 @@ def s_posters():
     mesh = STATE["poster_mesh"]
     mats = STATE["poster_mats"]
     rng = random.Random(714)
-    normal = ["poster_%02d" % i for i in range(1, 13)]
+    normal = ["glass_%02d" % i for i in range(1, 13)]
     rng.shuffle(normal)
     plan = [("Poster_%02d" % (i + 1), normal[i], SLOTS[i]) for i in range(len(SLOTS))]
     plan.append(("Poster_Hint", "poster_hint", HINT_SLOT))
