@@ -78,7 +78,12 @@ button.on{background:#6b4231;color:#fff}
 #hutWrap{position:relative;width:min(96vw,calc(58vh*1.25));aspect-ratio:1223/982}
 #hutview #hutImg{width:100%;height:100%;display:block;image-rendering:auto}
 #hutview #hutBed{position:absolute;image-rendering:auto;display:none}
-#diary{position:fixed;inset:0;margin:auto;height:fit-content;width:min(380px,90vw);max-height:min(60vh,460px);display:none;flex-direction:column;gap:8px;background:#f3e6c8;color:#4a3320;border-radius:10px;padding:14px;z-index:30;box-shadow:0 6px 30px #0008}#diaryBook{perspective:900px;min-height:200px}#diaryPage{min-height:200px;padding:14px;font-size:15px;line-height:1.9;background:repeating-linear-gradient(#fbf1d8 0 28px,#e3cfa3 28px 29px);border-radius:4px 10px 10px 4px;box-shadow:inset 6px 0 10px #0002}#diaryPage p{margin:6px 0}.flipL{transform-origin:left center;animation:fl .35s ease-out}.flipR{transform-origin:right center;animation:fr .35s ease-out}@keyframes fl{from{transform:rotateY(70deg);opacity:.3}to{transform:none;opacity:1}}@keyframes fr{from{transform:rotateY(-70deg);opacity:.3}to{transform:none;opacity:1}}
+#diary{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#000c;z-index:30;--W:min(96vw,520px);--u:calc(var(--W)*3.38/1536)}
+#diaryBook{position:relative;width:var(--W);height:calc(var(--u)*610 + var(--W)*.06);background-size:calc(var(--u)*1536) auto;background-repeat:no-repeat;background-position:calc(var(--W)*.06 - var(--u)*725) calc(var(--W)*.03 - var(--u)*125);image-rendering:auto}
+#diaryPage{position:absolute;left:calc(var(--W)*.06 + var(--u)*45);top:calc(var(--W)*.03 + var(--u)*125);width:calc(var(--u)*320);height:calc(var(--u)*470);overflow:hidden;color:#4a3320;font-size:calc(var(--u)*21);line-height:calc(var(--u)*26.5);transform:rotate(-7deg);transform-origin:0 0}
+#diaryPage b{font-size:calc(var(--u)*24)}#diaryPage p{margin:0}
+.flipL{transform-origin:left center;animation:fl .35s ease-out}.flipR{transform-origin:right center;animation:fr .35s ease-out}@keyframes fl{from{opacity:0;margin-left:30px}to{opacity:1;margin-left:0}}@keyframes fr{from{opacity:0;margin-left:-30px}to{opacity:1;margin-left:0}}
+#diaryNum{color:#e9d9b4}
 #hutbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #lookbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
@@ -146,7 +151,7 @@ button.on{background:#6b4231;color:#fff}
 <script src="data.js"></script><script src="net_art.js"></script><script src="sim.js"></script>
 <script src="camera.js"></script><script src="water.js"></script><script src="light.js"></script>
 <script src="floor.js"></script><script src="buddy.js"></script><script src="chars.js"></script><script src="items.js"></script><script src="objs_art.js"></script><script src="splash_art.js"></script><script src="poses_art.js"></script><script src="emotes_art.js"></script><script src="objects.js"></script><script src="drift.js"></script><script src="boat.js"></script>
-<script src="scenes_art.js"></script><script src="fish_art.js"></script><script src="crops_art.js"></script><script src="hut_art.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
+<script src="scenes_art.js"></script><script src="fish_art.js"></script><script src="crops_art.js"></script><script src="hut_art.js"></script><script src="diary_art.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
