@@ -917,6 +917,9 @@ class Game:
             if not cam:
                 return
             tgt = DIAL_FOV if self.state == "SAFE" else self.fov_base
+            if tgt != getattr(self, "_fov_log", None):
+                self._fov_log = tgt
+                log("視野（アップ）: %.0f → %.0f にします" % (self.fov_cur, tgt))
             if abs(self.fov_cur - tgt) > 0.05:
                 self.fov_cur += (tgt - self.fov_cur) * min(1.0, dt / max(0.05, DIAL_ZOOM_TIME) * 3.0)
                 cam.set_editor_property("field_of_view", self.fov_cur)

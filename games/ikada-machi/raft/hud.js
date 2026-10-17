@@ -204,7 +204,10 @@ window.RAFT.parts.hud = function (c) {
   }
   const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
   $('bLookStop').onclick = () => sim.stopLook(s);
-  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s);
+  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s); $('bHutDiary').onclick = () => sim.writeDiary(s); let dpg = 0; const showPage = dir => { const l = s.diary || [], pg = $('diaryPage'); $('diaryNum').textContent = l.length ? `${dpg + 1} / ${l.length}` : ''; pg.innerHTML = l.length ? `<b>${l[dpg].day}日目</b><p>${l[dpg].text}</p>` : '<p>まだ、なにも書いていない。</p>'; pg.className = ''; void pg.offsetWidth; if (dir) pg.className = dir > 0 ? 'flipL' : 'flipR'; $('diaryPrev').style.opacity = dpg > 0 ? 1 : 0.3; $('diaryNext').style.opacity = dpg < l.length - 1 ? 1 : 0.3; };
+  $('bHutRead').onclick = () => { dpg = Math.max(0, (s.diary || []).length - 1); showPage(0); $('diary').style.display = 'flex'; };
+  $('diaryPrev').onclick = () => { if (dpg > 0) { dpg--; showPage(-1); } }; $('diaryNext').onclick = () => { if (dpg < (s.diary || []).length - 1) { dpg++; showPage(1); } };
+  $('diaryClose').onclick = () => { $('diary').style.display = 'none'; };
   $('bBoatClose').onclick = () => { $('boatbox').style.display = 'none'; };
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
@@ -231,7 +234,8 @@ window.RAFT.parts.hud = function (c) {
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
     bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
-    hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', hutnofood: () => '食べ物がない（焼き魚・干物・野菜・魚・ヤシの実）', hutnotnight: () => '眠れるのは、夜だけ', hutslept2: () => 'この夜は、もう眠った', hutnosleep: () => 'おなか・のどが空いていて、眠れない（20以上で眠れる）', hutwake: () => 'ぐっすり眠った。朝になった',
+    hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',
+    hutnofood: () => '食べ物がない（焼き魚・干物・野菜・魚・ヤシの実）', hutnotnight: () => '眠れるのは、夜だけ', hutslept2: () => 'この夜は、もう眠った', hutnosleep: () => 'おなか・のどが空いていて、眠れない（20以上で眠れる）', hutwake: () => 'ぐっすり眠った。朝になった',
     hutbusy: () => '網か釣りざおを出している間は、入れない',
     plotplant: () => '種をまいた。何が育つかな？ もう一度タップで、水をやる', plotwater: () => '水をやった（貯水槽の水を1つ使った）', plotnowater: () => '貯水槽に水がない。雨か、ろ過器で水をためよう', plotnoseed: () => '種袋がない。網でひろえることがある',
     plotgrow: e => `育っているところ。あと約${e.left}秒`, plotharvest: e => `${D.CROPS[e.c].name}をしゅうかく！ 野菜+${e.n}${e.back ? '・種が1つ戻った' : ''}`, cropnew: e => `新しい作物：${D.CROPS[e.id].name}`,

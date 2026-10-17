@@ -96,6 +96,92 @@ def poster(idx, text, kind='text'):
 POSTER_TEXTS = ['かえして', 'みてる', 'でられない', 'うしろ', 'たすけて', 'あけて', 'まってた', 'ずっと\nここに', 'なんで\nきたの', 'みぃつけた', 'いっしょに', 'こっちを\nみて']
 
 
+def _glass_font(size):
+    """ガラスの文字のフォント。assets/fonts/ に好きなフォント（.ttf/.otf）を入れると、それを使う（名前に glass が入っていれば優先）"""
+    fd = os.path.join(os.path.dirname(M.OUT), 'fonts')
+    cands = []
+    if os.path.isdir(fd):
+        cands = sorted(f for f in os.listdir(fd) if f.lower().endswith(('.ttf', '.otf')))
+        cands.sort(key=lambda f: 0 if 'glass' in f.lower() else 1)
+    from PIL import ImageFont
+    if cands:
+        return ImageFont.truetype(os.path.join(fd, cands[0]), size), True
+    return F(size), False
+
+
+def _noise(h, w, cell, amp):
+    """なめらかなノイズ（-amp〜amp）"""
+    gh, gw = max(2, h // cell + 2), max(2, w // cell + 2)
+    g = (R.random((gh, gw)) * 2 - 1).astype(np.float32)
+    im = Image.fromarray(((g * 0.5 + 0.5) * 255).astype(np.uint8)).resize((w, h), Image.BICUBIC)
+    return (np.asarray(im, np.float32) / 255.0 * 2 - 1) * amp
+
+
+def glass_text(idx, text):
+    """ガラスに浮かぶ文字だけ（紙なし・透明な背景）。手書きのように文字がゆがみ、ふちがかすれ、ところどころ垂れる。うっすら白く光り、赤いにじみが出る"""
+    W, H = 512, 704
+    lines = text.split('\n')
+    size = 130 if len(lines) == 1 else 104
+    size = min(size, (704 - 150) // max(len(l.replace(' ', '')) for l in lines) - 6)       # 下にはみ出さない
+    f, custom = _glass_font(size)
+    mask = Image.new('L', (W, H), 0)
+    for li, ln in enumerate(lines):
+        cx = W // 2 + (len(lines) - 1) * (size // 2 + 6) - li * (size + 20)
+        y = 80 + int(R.integers(-10, 10))
+        for ch in ln.replace(' ', ''):
+            cell = Image.new('L', (size * 2, size * 2), 0)
+            ImageDraw.Draw(cell).text((size, size), ch, font=f, fill=255, anchor='mm')
+            cell = cell.rotate(float(R.uniform(-7, 7)), resample=Image.BICUBIC)
+            k = float(R.uniform(0.92, 1.08))
+            cell = cell.resize((int(cell.width * k), int(cell.height * k)), Image.BICUBIC)
+            mask.paste(255, (int(cx + R.integers(-6, 7) - cell.width // 2), int(y + size // 2 - cell.height // 2)), cell)
+            y += size + 6 + int(R.integers(-5, 6))
+    m = np.asarray(mask, np.float32) / 255.0
+    # 手書きのゆがみ（文字ぜんたいを、なめらかにゆらす）
+    dx, dy = _noise(H, W, 60, 4.0), _noise(H, W, 60, 4.0)
+    yy, xx_ = np.mgrid[0:H, 0:W]
+    sx = np.clip((xx_ + dx).astype(int), 0, W - 1)
+    sy = np.clip((yy + dy).astype(int), 0, H - 1)
+    m = m[sy, sx]
+    # 太さのむら＋ふちのかすれ
+    mb = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.2)), np.float32) / 255.0
+    rough = mb + _noise(H, W, 5, 0.22) * (1 - np.abs(mb * 2 - 1)) + _noise(H, W, 90, 0.12)
+    m = np.clip((rough - 0.42) * 5.0, 0, 1)
+    # 垂れ（文字の下のはしから、ところどころ細く垂れる）
+    mi = (m > 0.5)
+    below = mi[:-1] & ~mi[1:]
+    ys, xs = np.nonzero(below)
+    if len(ys):
+        for j in R.choice(len(ys), size=min(len(ys), 7 if not custom else 6), replace=False):
+            y0, x0 = ys[j], xs[j]
+            ln = int(R.integers(22, 78))
+            w = int(R.integers(1, 3))
+            for t in range(ln):
+                a_ = 1.0 - t / ln
+                yy0 = y0 + t
+                if yy0 >= H:
+                    break
+                m[yy0, max(0, x0 - w):x0 + w + 1] = np.maximum(m[yy0, max(0, x0 - w):x0 + w + 1], a_ ** 0.6)
+    soft = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.9)), np.float32) / 255.0
+    glow = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(13)), np.float32) / 255.0
+    rgb = np.zeros((H, W, 3), np.float32)
+    rgb[...] = np.array([150, 20, 20], np.float32)
+    rgb = rgb * (1 - soft[..., None]) + np.array([240, 232, 226], np.float32) * soft[..., None]
+    alpha = np.clip(soft * 0.92 + glow * 0.55, 0, 1)
+    img = np.zeros((H, W, 4), np.uint8)
+    img[..., :3] = rgb.clip(0, 255).astype(np.uint8)
+    img[..., 3] = (alpha * 255).astype(np.uint8)
+    return Image.fromarray(img, 'RGBA')
+
+
+def make_glass_texts():
+    for i, t in enumerate(POSTER_TEXTS):
+        im = glass_text(i, t)
+        p = os.path.join(OUT, 'glass_%02d.png' % (i + 1))
+        im.save(p, optimize=True)
+        print('保存', 'game/glass_%02d.png' % (i + 1), im.size, os.path.getsize(p) // 1024, 'KB')
+
+
 def make_posters():
     for i, t in enumerate(POSTER_TEXTS):
         kind = 'eyes' if i == 1 else ('missing' if i == 6 else 'text')
@@ -258,5 +344,5 @@ def make_lcds():
 
 
 if __name__ == '__main__':
-    make_posters(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
+    make_posters(); make_glass_texts(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
     print('完了')
