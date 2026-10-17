@@ -87,6 +87,8 @@ POSTER_STEP = 0.35                         # 張り紙が1枚ずつ貼られて�
 PUZZLE_COUNT = 8                           # 謎の数（この数だけ解くと、演出の強さが最後の段階まで進む）
 PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この時間（秒）たつと、幽霊が1段階ずつ近づく（演出の予備は使わない）
 FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
+GHOST_YAW = 0.0                           # 幽霊の向きの補正（度）。幽霊が、プレイヤーに背中を向けるなら 180、横を向くなら 90 か -90
+GHOST_Z = 0.0                             # 幽霊の足の高さの補正（cm）。浮くなら－、地面にめり込むなら＋
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 FLASH_OUTSIDE = 1.0            # 外にいるときの、懐中電灯の明るさの倍率（まぶしいときは小さく。0.5 で半分）
@@ -176,6 +178,8 @@ SETTINGS_DESCR = {
     "POSTER_FRAC": "張り紙が何割まで貼られるか（演出の強さ1〜4ごと）",
     "PUZZLE_COUNT": "謎の数（演出の強さが最後まで進む謎の数）",
     "PRESSURE_INTERVAL": "謎が進まないとき、幽霊が1段階近づくまでの秒数",
+    "GHOST_YAW": "幽霊の向きの補正（度）。背中を向けるなら 180",
+    "GHOST_Z": "幽霊の足の高さの補正（cm）。浮くなら－",
     "DEAD_DIST": "失敗のとき、幽霊が目の前に出る距離（cm）",
     "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
     "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
@@ -270,7 +274,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -548,8 +552,20 @@ class Game:
             return
         fx = self.cx if face_x is None else face_x
         fy = self.cy if face_y is None else face_y
-        yaw = math.degrees(math.atan2(fy - y, fx - x))
-        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, 0.0), unreal.Rotator(0, 0, yaw), False, False)
+        yaw = math.degrees(math.atan2(fy - y, fx - x)) + GHOST_YAW
+        gz = 0.0
+        try:                                                                  # 足の高さ＝いま立っている地面（体の中心の高さ − カプセルの半分の高さ）
+            cap = self.pawn.get_component_by_class(unreal.CapsuleComponent)
+            gz = self.pawn.get_actor_location().z - float(cap.get_scaled_capsule_half_height())
+        except Exception:  # noqa
+            gz = 0.0
+        try:
+            real = self.ghost.get_component_by_class(unreal.SkeletalMeshComponent) is not None          # 本物のモデル（足元が原点）か、仮の筒（中心が原点）か
+        except Exception:  # noqa
+            real = False
+        if not real:
+            gz += 80.0
+        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, gz + GHOST_Z), unreal.Rotator(0, 0, yaw), False, False)
         self.ghost.set_actor_hidden_in_game(False)
         if self.ghost_head is not None:
             self.ghost_head.set_actor_hidden_in_game(False)

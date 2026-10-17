@@ -35,6 +35,8 @@ FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ�
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
+GHOST_MODEL = True                   # True: 本物の幽霊のモデル（assets/unreal/ghost/Ghost_rigged.fbx）を置く。取り込みに失敗したら、仮の姿（黒い筒＋白い頭）を置く。False: いつも仮の姿
+GHOST_HEIGHT = 160.0                 # 幽霊の身長（cm）。取り込み後に測って、この高さに合わせる
 RESET_POSTERS = True                 # True: ガラスの文字・目の写真の位置は、実行のたびに、ガラスの面から計算し直す（手で動かした位置は覚えない）。手で動かした位置を残したいなら False
 GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面から内側へ何cm 離して貼るか（浮いて見えるなら小さく。ガラスにめり込むなら大きく）
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
@@ -195,7 +197,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "POSTER_SCALE", "GLASS_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -489,8 +491,151 @@ HINT_SLOT = ("B", 0, 185, 0.5)       # 電話機の真上（ガラスの文字�
 EYE_SLOT = ("L", 0, 140, 1.6)         # 左の壁の真ん中に、少し大きく
 
 
+def ghost_textures():
+    d = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "ghost")
+    dest = GAME_DIR + "/Textures/Ghost"
+    tasks = [mk_task(os.path.join(d, "Ghost_%s.png" % k), dest) for k in ("albedo", "normal", "roughness", "metallic") if os.path.exists(os.path.join(d, "Ghost_%s.png" % k))]
+    import_tasks(tasks)
+    tx = {}
+    for k in ("albedo", "normal", "roughness", "metallic"):
+        a = unreal.EditorAssetLibrary.load_asset("%s/Ghost_%s" % (dest, k))
+        if a is None:
+            continue
+        if k == "normal":
+            setp(a, "compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+            setp(a, "srgb", False)
+            setp(a, "flip_green_channel", True)                      # Blender（OpenGL）→ Unreal（DirectX）の向きの違いを直す
+        elif k in ("roughness", "metallic"):
+            setp(a, "srgb", False)
+        unreal.EditorAssetLibrary.save_loaded_asset(a)
+        tx[k] = a
+    return tx
+
+
+def ghost_materials(tx):
+    """幽霊の材質5つ（Blenderの穴の順：肌・口の中・歯・舌・歯ぐき）"""
+    skin = new_material("M_GhostSkin")
+    setp(skin, "two_sided", True)                                    # 髪の面が、うらから見ても消えないように
+    t = xx(skin, unreal.MaterialExpressionTextureSample, -900, 0)
+    setp(t, "texture", tx["albedo"])
+    mel.connect_material_property(t, "", MP.MP_BASE_COLOR)
+    if "normal" in tx:
+        tn = xx(skin, unreal.MaterialExpressionTextureSample, -900, 300)
+        setp(tn, "texture", tx["normal"])
+        setp(tn, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+        mel.connect_material_property(tn, "", MP.MP_NORMAL)
+    if "roughness" in tx:
+        tr = xx(skin, unreal.MaterialExpressionTextureSample, -900, 600)
+        setp(tr, "texture", tx["roughness"])
+        setp(tr, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+        mel.connect_material_property(tr, "R", MP.MP_ROUGHNESS)
+    mel.connect_material_property(cst(skin, 0.0, 900), "", MP.MP_METALLIC)
+    mel.recompile_material(skin)
+    unreal.EditorAssetLibrary.save_loaded_asset(skin)
+
+    def vcol_material(name, rough, glow):
+        m = new_material(name)
+        vc = xx(m, unreal.MaterialExpressionVertexColor, -800, 0)             # Blender で付けた頂点カラー「Col」（口の中の赤みと、歯の黄ばみ）
+        mel.connect_material_property(vc, "RGB", MP.MP_BASE_COLOR)
+        if glow > 0:
+            mel.connect_material_property(mulx(m, vc, cst(m, glow, 100), 150), "", MP.MP_EMISSIVE_COLOR)      # 暗い中でも、口の中がうっすら見える
+        mel.connect_material_property(cst(m, rough, 300), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(m)
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+        return m
+
+    def const_material(name, col, rough):
+        m = new_material(name)
+        c = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 0)
+        setp(c, "constant", unreal.LinearColor(col[0], col[1], col[2], 1.0))
+        mel.connect_material_property(c, "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(cst(m, rough, 240), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(m)
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+        return m
+    return [skin, vcol_material("M_GhostMouth", 0.45, 0.06), vcol_material("M_GhostTeeth", 0.15, 0.0),
+            const_material("M_GhostTongue", (0.66, 0.27, 0.29), 0.4), const_material("M_GhostGum", (0.62, 0.22, 0.25), 0.35)]
+
+
+def import_ghost_fbx(fbx, dest, scale):
+    ui = unreal.FbxImportUI()
+    setp(ui, "import_mesh", True)
+    setp(ui, "import_as_skeletal", True)
+    setp(ui, "import_animations", True)
+    setp(ui, "import_materials", False)
+    setp(ui, "import_textures", False)
+    setp(ui, "automated_import_should_detect_type", False)
+    setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_SKELETAL_MESH)
+    d = ui.get_editor_property("skeletal_mesh_import_data")
+    setp(d, "import_morph_targets", True)                                        # 表情（口を開ける・にっこり・歯を見せて笑う）
+    setp(d, "import_uniform_scale", float(scale))
+    try:
+        setp(d, "vertex_color_import_option", unreal.VertexColorImportOption.REPLACE)       # 口の中・歯の色（頂点カラー）を使う
+    except Exception as e:  # noqa
+        log("  (頂点カラーの取り込み設定できず) %s" % e)
+    import_tasks([mk_task(fbx, dest, fbx_ui=ui)])
+    sk = None
+    anims = []
+    for p_ in unreal.EditorAssetLibrary.list_assets(dest, recursive=True, include_folder=False):
+        a = unreal.EditorAssetLibrary.load_asset(p_)
+        if isinstance(a, unreal.SkeletalMesh):
+            sk = a
+        elif isinstance(a, unreal.AnimSequence):
+            anims.append(a)
+    return sk, anims
+
+
+def s_ghost_model():
+    """本物の幽霊（Ghost_rigged.fbx）：骨つき・表情つきのモデルを取り込んで、Ghost として置く"""
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "ghost", "Ghost_rigged.fbx")
+    if not os.path.exists(fbx):
+        raise RuntimeError("Ghost_rigged.fbx がありません: %s" % fbx)
+    dest = GAME_DIR + "/Ghost"
+    tx = ghost_textures()
+    if "albedo" not in tx:
+        raise RuntimeError("幽霊の肌の絵（Ghost_albedo.png）がありません")
+    sk, anims = import_ghost_fbx(fbx, dest, 100.0)
+    if sk is None:
+        raise RuntimeError("幽霊のスケルタルメッシュを取り込めませんでした")
+    h = sk.get_bounds().box_extent.z * 2.0
+    log("幽霊の高さ（取り込み直後）: %.0fcm（%.0f が正常）" % (h, GHOST_HEIGHT))
+    if h > 1.0 and abs(h - GHOST_HEIGHT) > GHOST_HEIGHT * 0.08:
+        sk, anims = import_ghost_fbx(fbx, dest, 100.0 * GHOST_HEIGHT / h)
+        log("幽霊を、倍率 %.2f で取り込み直しました: 高さ %.0fcm" % (100.0 * GHOST_HEIGHT / h, sk.get_bounds().box_extent.z * 2.0))
+    mats = ghost_materials(tx)
+    a = spawn(unreal.SkeletalMeshActor, (0, 3000, 0))
+    comp = a.get_component_by_class(unreal.SkeletalMeshComponent)
+    try:
+        comp.set_skeletal_mesh_asset(sk)
+    except Exception:  # noqa
+        comp.set_editor_property("skeletal_mesh_asset", sk)
+    for i, m in enumerate(mats):
+        comp.set_material(i, m)
+    nat = next((x for x in anims if "Natural" in x.get_name() and "Face" not in x.get_name()), None) or (anims[0] if anims else None)
+    if nat is not None:
+        try:
+            comp.set_animation_mode(unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+            comp.set_animation(nat)
+            comp.play(True)
+        except Exception as e:  # noqa
+            log("  (幽霊のアニメを設定できません) %s" % e)
+    try:
+        comp.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    except Exception:  # noqa
+        pass
+    tag_actor(a, "Ghost")
+    a.set_actor_hidden_in_game(True)
+    log("本物の幽霊を置きました（骨 %s・アニメ %d本・材質 %d）。最初は見えません" % ("あり", len(anims), len(mats)))
+
+
 def s_ghost():
-    """幽霊（仮の姿）：黒い体＋白い頭。あとで Blender / Mixamo のモデルに替える"""
+    """幽霊（仮の姿）：黒い体＋白い頭。本物のモデルが取り込めたら、そちらを置く（GHOST_MODEL）"""
+    if GHOST_MODEL:
+        try:
+            s_ghost_model()
+            return
+        except Exception as e:  # noqa
+            log("本物の幽霊を置けなかったので、仮の姿にします: %s" % e)
     cyl = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
     sph = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Sphere")
     body_m = new_material("M_GhostBody")
