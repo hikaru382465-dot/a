@@ -297,7 +297,7 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob") and not lab.startswith("Board_Pin_") \
+            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid") and not lab.startswith("Board_Pin_") \
                     and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
@@ -842,7 +842,7 @@ def s_posters():
     normal = ["glass_%02d" % i for i in range(1, 13)]
     rng.shuffle(normal)
     plan = [("Poster_%02d" % (i + 1), normal[i], SLOTS[i]) for i in range(len(SLOTS))]
-    plan.append(("Poster_Hint", "poster_hint", HINT_SLOT))
+    plan.append(("Poster_Hint", "glass_hint", HINT_SLOT))
     if "poster_eye" in mats:
         plan.append(("Poster_Eye", "poster_eye", EYE_SLOT))
     n = 0
@@ -1242,6 +1242,7 @@ def s_safe_materials():
     STATE["M_KDSafeWood"] = wood_material("M_KDSafeWood", "safe_wood", 1.0)             # 木目プリントの塗装（傷とはがれつき）
     STATE["M_KDNickel"] = pbr("M_KDNickel", (0.72, 0.72, 0.75), 1.0, 0.3)               # ニッケルめっき（取っ手・ダイヤル）
     STATE["M_KDBlack"] = pbr("M_KDBlack", (0.02, 0.02, 0.02), 0.0, 0.5)
+    STATE["M_KDSafeInner"] = pbr("M_KDSafeInner", (0.22, 0.02, 0.03), 0.0, 0.9)           # 開いた金庫の内張り（くすんだ赤）
     pm = new_material("M_KDSafePlate")                                                  # 銘板（黒いエナメルに銀の文字）
     t = tex_param(pm, "Tex", unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_plate"), -800, 0)
     mel.connect_material_property(t, "", MP.MP_BASE_COLOR)
@@ -1302,6 +1303,32 @@ def s_safe():
     except Exception as e:  # noqa
         log("  (ダイヤルのカメラの視野を設定できません) %s" % e)
     tag_actor(cam, "KD_DialCam")
+    # 開いた状態の金庫：下の箱（上が開いている）とふた。はじめは隠しておき、金庫が開いたときに kd_game.py が、本体とつまみを隠して、これを出す（ふたが回って開く）
+    base_mesh = import_fit("DialSafeBase.fbx", "SafeBase", 36.0)
+    lid_mesh = import_fit("DialSafeLid.fbx", "SafeLid", 36.2, collision=False)
+    base = spawn(unreal.StaticMeshActor, (px, py, gz), (0, 0, yaw - 90.0))
+    bsc = base.get_component_by_class(unreal.StaticMeshComponent)
+    bsc.set_static_mesh(base_mesh)
+    for i, key in enumerate(("M_KDSafeWood", "M_KDNickel", "M_KDSafePlate", "M_KDBlack", "M_KDSafeInner")):
+        bsc.set_material(i, STATE[key])
+    setp(bsc, "mobility", unreal.ComponentMobility.MOVABLE)
+    base.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(base, "DialSafe_Base")
+    hx, hy, hz = px - f[0] * 12.0 * S, py - f[1] * 12.0 * S, gz + 10.4 * S                    # うしろのちょうつがい（本体の原点から：うしろへ12cm・高さ10.4cm）
+    lid = spawn(unreal.StaticMeshActor, (hx, hy, hz), (0, 0, yaw - 90.0))
+    lc = lid.get_component_by_class(unreal.StaticMeshComponent)
+    lc.set_static_mesh(lid_mesh)
+    for i, key in enumerate(("M_KDSafeWood", "M_KDNickel", "M_KDSafePlate", "M_KDBlack", "M_KDSafeInner")):
+        lc.set_material(i, STATE[key])
+    setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
+    lid.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(lid, "DialSafe_Lid")
+    for a_ in (base, lid):
+        a_.set_actor_hidden_in_game(True)
+        try:
+            a_.set_is_temporarily_hidden_in_editor(True)
+        except Exception:  # noqa
+            pass
     log("手提げ金庫を置きました: (%.0f,%.0f) 向き=%.0f度・倍率 %.1f（奥へ %.0fcm・横へ %.0fcm）" % (px, py, yaw, S, SAFE_BACK, SAFE_SIDE))
 
 

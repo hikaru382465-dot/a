@@ -141,44 +141,23 @@ def _layer(text, size, angle, W, H, f, cx, cy):
     return np.asarray(out, np.float32) / 255.0
 
 
-def glass_text(idx, text):
-    """ガラスに浮かぶ文字だけ（紙なし・透明な背景）。ほかの言葉と交差して、ぐちゃぐちゃに重なる（なぐり書き）。手書きのようにゆがみ、ふちがかすれ、ところどころ垂れる。うっすら白く光り、赤いにじみが出る"""
-    W, H = 512, 704
-    lines = text.split('\n')
-    size = 130 if len(lines) == 1 else 104
-    size = min(size, (704 - 150) // max(len(l.replace(' ', '')) for l in lines) - 6)       # 下にはみ出さない
-    f, custom = _glass_font(size)
-    m = np.zeros((H, W), np.float32)
-    # ぐちゃぐちゃ：ほかの言葉を、ばらばらの大きさ・角度・位置で、何枚も重ねる（主役より、少しうすい）
-    others = [t for j, t in enumerate(POSTER_TEXTS) if j != idx]
-    for _ in range(int(R.integers(5, 8))):
-        t = others[int(R.integers(0, len(others)))]
-        sz = int(R.integers(62, 125))
-        fo, _c = _glass_font(sz)
-        cx, cy = int(R.integers(60, W - 60)), int(R.integers(110, H - 110))
-        ang = float(R.uniform(-60, 60)) if R.random() < 0.7 else float(R.choice([90, -90, 180]))
-        lay = _layer(t, sz, ang, W, H, fo, cx, cy) * float(R.uniform(0.5, 0.85))
-        m = np.maximum(m, lay)
-    # 主役の言葉：中央あたり、いちばん濃く（読める）
-    main = _layer(text, size, float(R.uniform(-6, 6)), W, H, f, W // 2 + int(R.integers(-30, 31)), H // 2 + int(R.integers(-30, 31)))
-    m = np.maximum(m, main)
-    # 手書きのゆがみ（文字ぜんたいを、なめらかにゆらす）
-    dx, dy = _noise(H, W, 60, 4.0), _noise(H, W, 60, 4.0)
+def _glass_finish(m, custom, amp=4.0, drips=7):
+    """文字のマスク m（0〜1）に、手書きのゆがみ・太さのむら・かすれ・垂れ・光を付けて、透明な背景の画像にする"""
+    H, W = m.shape
+    dx, dy = _noise(H, W, 60, amp), _noise(H, W, 60, amp)
     yy, xx_ = np.mgrid[0:H, 0:W]
     sx = np.clip((xx_ + dx).astype(int), 0, W - 1)
     sy = np.clip((yy + dy).astype(int), 0, H - 1)
     m = m[sy, sx]
-    # 太さのむら＋ふちのかすれ
     mi_ = Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))          # 線を少し太く（細い筆でも、ガラスで見えるように）
     mb = np.asarray(mi_.filter(ImageFilter.GaussianBlur(2.0)), np.float32) / 255.0
     rough = mb + _noise(H, W, 5, 0.22) * (1 - np.abs(mb * 2 - 1)) + _noise(H, W, 90, 0.12)
     m = np.clip((rough - 0.28) * 4.0, 0, 1)
-    # 垂れ（文字の下のはしから、ところどころ細く垂れる）
     mi = (m > 0.5)
     below = mi[:-1] & ~mi[1:]
     ys, xs = np.nonzero(below)
-    if len(ys):
-        for j in R.choice(len(ys), size=min(len(ys), 7 if not custom else 6), replace=False):
+    if len(ys) and drips > 0:
+        for j in R.choice(len(ys), size=min(len(ys), drips), replace=False):
             y0, x0 = ys[j], xs[j]
             ln = int(R.integers(22, 78))
             w = int(R.integers(1, 3))
@@ -200,12 +179,58 @@ def glass_text(idx, text):
     return Image.fromarray(img, 'RGBA')
 
 
+def glass_text(idx, text):
+    """ガラスに浮かぶ文字だけ（紙なし・透明な背景）。ほかの言葉と交差して、板いっぱいに、ぐちゃぐちゃに散らばって重なる（なぐり書き）"""
+    W, H = 512, 704
+    lines = text.split('\n')
+    size = 130 if len(lines) == 1 else 104
+    size = min(size, (704 - 150) // max(len(l.replace(' ', '')) for l in lines) - 6)       # 下にはみ出さない
+    f, custom = _glass_font(size)
+    m = np.zeros((H, W), np.float32)
+    # ほかの言葉を、板いっぱいに散らす：板を 3列×5行 に分け、そのうちのいくつかの区画の中に、ばらばらの大きさ・角度で置く
+    others = [t for j, t in enumerate(POSTER_TEXTS) if j != idx]
+    cells = [(c, r) for c in range(3) for r in range(5)]
+    R.shuffle(cells)
+    for (c, r) in cells[:int(R.integers(9, 12))]:
+        t = others[int(R.integers(0, len(others)))]
+        sz = int(R.integers(58, 120))
+        fo, _c = _glass_font(sz)
+        cx = int((c + 0.5) * W / 3 + R.integers(-45, 46))
+        cy = int((r + 0.5) * H / 5 + R.integers(-50, 51))
+        cx, cy = max(40, min(W - 40, cx)), max(70, min(H - 70, cy))
+        ang = float(R.uniform(-60, 60)) if R.random() < 0.7 else float(R.choice([90, -90, 180]))
+        lay = _layer(t, sz, ang, W, H, fo, cx, cy) * float(R.uniform(0.5, 0.9))
+        m = np.maximum(m, lay)
+    # 主役の言葉：板のどこかに、いちばん濃く（読める）
+    main = _layer(text, size, float(R.uniform(-8, 8)), W, H, f, W // 2 + int(R.integers(-90, 91)), H // 2 + int(R.integers(-110, 111)))
+    m = np.maximum(m, main)
+    return _glass_finish(m, custom)
+
+
+def glass_hint():
+    """電話機の上の、手がかり（「あの日をおして（4けた）」）。ここだけは、ぐちゃぐちゃにせず、読める。ガラスに浮かぶ文字"""
+    W, H = 512, 704
+    f, custom = _glass_font(104)
+    m = np.zeros((H, W), np.float32)
+    m = np.maximum(m, _layer('あの日を', 104, 0.0, W, H, f, W // 2 + 85, 250))
+    m = np.maximum(m, _layer('おして', 104, 0.0, W, H, f, W // 2 - 85, 290))
+    small, _c = _glass_font(52)
+    t = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(t).text((W // 2, 590), '（4けた）', font=small, fill=255, anchor='mm')
+    m = np.maximum(m, np.asarray(t, np.float32) / 255.0)
+    return _glass_finish(m, custom, amp=2.0, drips=3)
+
+
 def make_glass_texts():
     for i, t in enumerate(POSTER_TEXTS):
         im = glass_text(i, t)
         p = os.path.join(OUT, 'glass_%02d.png' % (i + 1))
         im.save(p, optimize=True)
         print('保存', 'game/glass_%02d.png' % (i + 1), im.size, os.path.getsize(p) // 1024, 'KB')
+    im = glass_hint()
+    p = os.path.join(OUT, 'glass_hint.png')
+    im.save(p, optimize=True)
+    print('保存', 'game/glass_hint.png', im.size, os.path.getsize(p) // 1024, 'KB')
 
 
 def make_posters():
