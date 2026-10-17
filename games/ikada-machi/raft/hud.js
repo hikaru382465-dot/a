@@ -204,7 +204,7 @@ window.RAFT.parts.hud = function (c) {
   }
   const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
   $('bLookStop').onclick = () => sim.stopLook(s);
-  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s);
+  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s); $('bHutDiary').onclick = () => sim.writeDiary(s); $('bHutRead').onclick = () => { const ds = $('diary'), l = s.diary || []; $('diaryList').innerHTML = l.length ? l.slice().reverse().map(d => `<div class="dd"><b>${d.day}日目</b> ${d.text}</div>`).join('') : '<div class="dd">まだ、なにも書いていない。</div>'; ds.style.display = 'flex'; }; $('diaryClose').onclick = () => { $('diary').style.display = 'none'; };
   $('bBoatClose').onclick = () => { $('boatbox').style.display = 'none'; };
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
@@ -231,7 +231,8 @@ window.RAFT.parts.hud = function (c) {
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
     bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
-    hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', hutnofood: () => '食べ物がない（焼き魚・干物・野菜・魚・ヤシの実）', hutnotnight: () => '眠れるのは、夜だけ', hutslept2: () => 'この夜は、もう眠った', hutnosleep: () => 'おなか・のどが空いていて、眠れない（20以上で眠れる）', hutwake: () => 'ぐっすり眠った。朝になった',
+    hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',
+    hutnofood: () => '食べ物がない（焼き魚・干物・野菜・魚・ヤシの実）', hutnotnight: () => '眠れるのは、夜だけ', hutslept2: () => 'この夜は、もう眠った', hutnosleep: () => 'おなか・のどが空いていて、眠れない（20以上で眠れる）', hutwake: () => 'ぐっすり眠った。朝になった',
     hutbusy: () => '網か釣りざおを出している間は、入れない',
     plotplant: () => '種をまいた。何が育つかな？ もう一度タップで、水をやる', plotwater: () => '水をやった（貯水槽の水を1つ使った）', plotnowater: () => '貯水槽に水がない。雨か、ろ過器で水をためよう', plotnoseed: () => '種袋がない。網でひろえることがある',
     plotgrow: e => `育っているところ。あと約${e.left}秒`, plotharvest: e => `${D.CROPS[e.c].name}をしゅうかく！ 野菜+${e.n}${e.back ? '・種が1つ戻った' : ''}`, cropnew: e => `新しい作物：${D.CROPS[e.id].name}`,
