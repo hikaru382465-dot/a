@@ -96,6 +96,42 @@ def poster(idx, text, kind='text'):
 POSTER_TEXTS = ['かえして', 'みてる', 'でられない', 'うしろ', 'たすけて', 'あけて', 'まってた', 'ずっと\nここに', 'なんで\nきたの', 'みぃつけた', 'いっしょに', 'こっちを\nみて']
 
 
+def glass_text(idx, text):
+    """ガラスに浮かぶ文字だけ（紙なし・透明な背景）。ナレーションふうに、うっすら白く光り、赤いにじみが出る"""
+    W, H = 512, 704
+    lines = text.split('\n')
+    size = 130 if len(lines) == 1 else 104
+    size = min(size, (704 - 150) // max(len(l.replace(' ', '')) for l in lines) - 6)       # 下にはみ出さない
+    f = F(size)
+    mask = Image.new('L', (W, H), 0)
+    d = ImageDraw.Draw(mask)
+    for li, ln in enumerate(lines):
+        cx = W // 2 + (len(lines) - 1) * (size // 2 + 6) - li * (size + 20)
+        vertical(d, cx + int(R.integers(-5, 6)), 80 + int(R.integers(-10, 10)), ln.replace(' ', ''), f, 255, gap=6)
+    glow = mask.filter(ImageFilter.GaussianBlur(14))
+    soft = mask.filter(ImageFilter.GaussianBlur(1.2))
+    img = np.zeros((H, W, 4), np.uint8)
+    g = np.asarray(glow, np.float32) / 255.0
+    m = np.asarray(soft, np.float32) / 255.0
+    drip = np.asarray(Image.fromarray((np.asarray(mask) > 40).astype(np.uint8) * 255).filter(ImageFilter.GaussianBlur(3)), np.float32) / 255.0
+    # 文字：うす白（ほんの少し赤） ／ まわり：赤いにじみ
+    rgb = np.zeros((H, W, 3), np.float32)
+    rgb[...] = np.array([150, 20, 20], np.float32)
+    rgb = rgb * (1 - m[..., None]) + np.array([245, 238, 232], np.float32) * m[..., None]
+    alpha = np.clip(m * 0.95 + g * 0.55, 0, 1)
+    img[..., :3] = rgb.clip(0, 255).astype(np.uint8)
+    img[..., 3] = (alpha * 255).astype(np.uint8)
+    return Image.fromarray(img, 'RGBA')
+
+
+def make_glass_texts():
+    for i, t in enumerate(POSTER_TEXTS):
+        im = glass_text(i, t)
+        p = os.path.join(OUT, 'glass_%02d.png' % (i + 1))
+        im.save(p, optimize=True)
+        print('保存', 'game/glass_%02d.png' % (i + 1), im.size, os.path.getsize(p) // 1024, 'KB')
+
+
 def make_posters():
     for i, t in enumerate(POSTER_TEXTS):
         kind = 'eyes' if i == 1 else ('missing' if i == 6 else 'text')
@@ -258,5 +294,5 @@ def make_lcds():
 
 
 if __name__ == '__main__':
-    make_posters(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
+    make_posters(); make_glass_texts(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
     print('完了')
