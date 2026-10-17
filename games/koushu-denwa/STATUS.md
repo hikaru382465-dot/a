@@ -91,6 +91,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
+- **金庫が開くときの演出（未確認）**：①箱の中に、小さな鍵（`SafeKey.fbx`・真鍮）と10円②（`DialSafe_Key`/`DialSafe_Coin`）が見え、4.5秒あとに、手に入れたので消える。②音を合成して足した（`blender/make_sounds.py`）：`safe_click`（ダイヤル1目盛り）・`latch`（番号が1つ合うごと）・`safe_clunk`（開く瞬間のガチャン）・`safe_creak`（ふたがきしむ）。本物の音に替えるなら Freesound（safe dial click／metal hinge）の無料素材を、同じ名前の wav で `assets/sounds/` に上書きする。反映は `setup_game_fp.py` を実行し直し（効果音も取り込み直す）。
+
 - **実機テスト4（2026-10-17）**：①**金庫の「開いた状態」**を作った：`DialSafeBase.fbx`（上が開いた箱・赤い内張り）＋`DialSafeLid.fbx`（ふた。原点＝うしろのちょうつがい）。`setup_game_fp.py` が隠して置き（`DialSafe_Base`/`DialSafe_Lid`）、金庫が開くと `kd_game.py` が閉じた本体とつまみを隠し、ふたを `SAFE_LID_ANGLE`(105度)・`SAFE_LID_TIME`(0.9秒) で回して開く。ふたが下へ回るなら `SAFE_LID_SIGN` を 1.0 に。②ガラスの文字を、板いっぱいに散らした（真ん中に寄らない）。③「あの日をおして（4けた）」を紙から、ガラスの文字（`glass_hint.png`。ここだけ読める）に変えた＝浮いて見えた紙がなくなる。血の目の写真だけが紙のまま。未確認（実機で）。
 
 - **ガラスの文字を大きくした**：`GLASS_SCALE`（初期値1.3＝65×91cm。紙の `POSTER_SCALE`=0.5 とは別）。`setup_game_fp.py` を実行し直すと反映。

@@ -379,6 +379,9 @@ class Game:
         self.dial_knob = found.get("DialSafe_Knob")
         self.safe_base = found.get("DialSafe_Base")                  # 開いた状態の金庫（下の箱とふた）
         self.safe_lid = found.get("DialSafe_Lid")
+        self.safe_key = found.get("DialSafe_Key")                    # 開いた金庫の中の、鍵と10円（見せて、すぐ消す）
+        self.safe_coin = found.get("DialSafe_Coin")
+        self.lid_pending, self.loot_t = -1.0, -1.0
         self.lid_rot0 = self.safe_lid.get_actor_rotation() if self.safe_lid is not None else None
         self.lid_t = -1.0
         self.dial_cam = found.get("KD_DialCam")                      # ダイヤル専用のカメラ（setup_game_fp.py が置く）
@@ -457,7 +460,7 @@ class Game:
             if msc.x > 5.0 and msc.y > 5.0:           # setup_game_fp.py が印の大きさに入れた、ボックスの半分の幅・奥行き(cm)
                 self.half_t, self.half_n = msc.x, msc.y
         self.snd = {}
-        for nm in ("door_open", "door_close", "latch"):
+        for nm in ("door_open", "door_close", "latch", "safe_click", "safe_clunk", "safe_creak"):
             try:
                 self.snd[nm] = unreal.EditorAssetLibrary.load_asset("%s/%s" % (SOUND_DIR, nm))
             except Exception:  # noqa
@@ -699,7 +702,7 @@ class Game:
         return self.cx + nx * (self.half_n + 40.0), self.cy + ny * (self.half_n + 40.0), (nx, ny)
 
     def play(self, name):
-        snd = self.snd.get(name)
+        snd = getattr(self, "snd", {}).get(name)
         if snd is not None:
             try:
                 unreal.GameplayStatics.play_sound_2d(self.world, snd, 1.0, 1.0, 0.0)
@@ -906,12 +909,30 @@ class Game:
                     a.set_actor_hidden_in_game(True)
             self.safe_base.set_actor_hidden_in_game(False)
             self.safe_lid.set_actor_hidden_in_game(False)
-            self.lid_t = 0.0
+            for a in (self.safe_key, self.safe_coin):
+                if a is not None:
+                    a.set_actor_hidden_in_game(False)
+            self.play("safe_clunk")
+            self.lid_pending, self.loot_t = 0.35, 0.0                 # 少しあとに、ふたがきしんで開く。鍵と10円は、見せたあと消える
             log("金庫のふたを開けます")
         except Exception as e:  # noqa
             log("  (開いた金庫を出せません) %s" % e)
 
     def tick_lid(self, dt):
+        if getattr(self, "loot_t", -1.0) >= 0.0:                 # 鍵と10円は、手に入れたので、数秒見せたあと消す
+            self.loot_t += dt
+            if self.loot_t > 4.5:
+                for a in (getattr(self, "safe_key", None), getattr(self, "safe_coin", None)):
+                    if a is not None:
+                        a.set_actor_hidden_in_game(True)
+                self.loot_t = -1.0
+        if getattr(self, "lid_pending", -1.0) >= 0.0:
+            self.lid_pending -= dt
+            if self.lid_pending <= 0.0:
+                self.lid_pending = -1.0
+                self.lid_t = 0.0
+                self.play("safe_creak")
+            return
         if getattr(self, "lid_t", -1.0) < 0.0 or getattr(self, "safe_lid", None) is None or getattr(self, "lid_rot0", None) is None:
             return
         self.lid_t += dt
@@ -1028,6 +1049,7 @@ class Game:
                     self.dial_acc = 0.0
                     self.dial_dir = "L" if down_l else "R"
                     self.set_dial(self.dial_value + (1 if down_l else -1))
+                    self.play("safe_click")
             else:
                 self.dial_acc = DIAL_STEP_TIME
             if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_quit):
@@ -1059,6 +1081,7 @@ class Game:
             self.dial_entries = []
             return
         screen(self.world, "カチッ（%d/%d）" % (k, len(want)), (200, 255, 200), 1.5)
+        self.play("latch")
         if k == len(want):
             self.safe_open = True
             self.has_key = True

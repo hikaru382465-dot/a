@@ -297,7 +297,7 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid") and not lab.startswith("Board_Pin_") \
+            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid", "DialSafe_Key", "DialSafe_Coin") and not lab.startswith("Board_Pin_") \
                     and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
@@ -1242,6 +1242,7 @@ def s_safe_materials():
     STATE["M_KDSafeWood"] = wood_material("M_KDSafeWood", "safe_wood", 1.0)             # 木目プリントの塗装（傷とはがれつき）
     STATE["M_KDNickel"] = pbr("M_KDNickel", (0.72, 0.72, 0.75), 1.0, 0.3)               # ニッケルめっき（取っ手・ダイヤル）
     STATE["M_KDBlack"] = pbr("M_KDBlack", (0.02, 0.02, 0.02), 0.0, 0.5)
+    STATE["M_KDBrass"] = pbr("M_KDBrass", (0.78, 0.58, 0.22), 1.0, 0.35)                     # 小さな鍵：真鍮
     STATE["M_KDSafeInner"] = pbr("M_KDSafeInner", (0.22, 0.02, 0.03), 0.0, 0.9)           # 開いた金庫の内張り（くすんだ赤）
     pm = new_material("M_KDSafePlate")                                                  # 銘板（黒いエナメルに銀の文字）
     t = tex_param(pm, "Tex", unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_plate"), -800, 0)
@@ -1323,7 +1324,30 @@ def s_safe():
     setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
     lid.set_actor_scale3d(unreal.Vector(S, S, S))
     tag_actor(lid, "DialSafe_Lid")
-    for a_ in (base, lid):
+    # 箱の中に置く、小さな鍵と10円②（金庫が開いたとき、kd_game.py が一瞬だけ見せて、手に入れたことにして消す）
+    key_mesh = import_fit("SafeKey.fbx", "SafeKey", 6.9, collision=False)
+    right_ = (f[1], -f[0])
+    fz = gz + 2.5 * S                                                                          # 箱の底の上（底から 2.5cm・倍率つき）
+    key = spawn(unreal.StaticMeshActor, (px - right_[0] * 6.0 * S - f[0] * 2.0 * S, py - right_[1] * 6.0 * S - f[1] * 2.0 * S, fz), (0, 0, yaw - 90.0 + 25.0))
+    kcc = key.get_component_by_class(unreal.StaticMeshComponent)
+    kcc.set_static_mesh(key_mesh)
+    kcc.set_material(0, STATE["M_KDBrass"])
+    setp(kcc, "mobility", unreal.ComponentMobility.MOVABLE)
+    key.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(key, "DialSafe_Key")
+    cyl_ = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
+    coin2 = spawn(unreal.StaticMeshActor, (px + right_[0] * 6.5 * S + f[0] * 1.0 * S, py + right_[1] * 6.5 * S + f[1] * 1.0 * S, fz + 0.4), (0, 0, 0))
+    cc2 = coin2.get_component_by_class(unreal.StaticMeshComponent)
+    cc2.set_static_mesh(cyl_)
+    cc2.set_material(0, STATE["M_KDCoin"])
+    setp(cc2, "mobility", unreal.ComponentMobility.MOVABLE)
+    try:
+        cc2.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    except Exception:  # noqa
+        pass
+    coin2.set_actor_scale3d(unreal.Vector(0.05, 0.05, 0.004))
+    tag_actor(coin2, "DialSafe_Coin")
+    for a_ in (base, lid, key, coin2):
         a_.set_actor_hidden_in_game(True)
         try:
             a_.set_is_temporarily_hidden_in_editor(True)

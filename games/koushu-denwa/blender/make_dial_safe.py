@@ -6,7 +6,8 @@
   つまみの位置（本体の原点から・メートル）：右へ +0.04、前へ 0.134、高さ 0.060
   DialSafeBase.fbx … 「開いた金庫」の下の箱（上が開いて、中に黒赤の内張り）。DialSafe.fbx と同じ原点・同じ向き
   DialSafeLid.fbx  … 「開いた金庫」のふた（取っ手・銘板つき）。原点＝うしろのちょうつがい（本体の原点から：うしろへ D/2・高さ SEAM）。Unrealで Roll（X軸まわり）で開く
-使い方：python make_dial_safe.py     出力：assets/unreal/DialSafe.fbx, SafeDial.fbx, DialSafeBase.fbx, DialSafeLid.fbx
+  SafeKey.fbx … 金庫の中の小さな鍵（真鍮。ふちの輪＋軸＋ギザギザ。平らに置ける向き。長さ6cm、中心が原点）
+使い方：python make_dial_safe.py     出力：assets/unreal/DialSafe.fbx, SafeDial.fbx, DialSafeBase.fbx, DialSafeLid.fbx, SafeKey.fbx
 """
 import bpy, bmesh, math, os, random
 from mathutils import Vector
@@ -258,3 +259,17 @@ for sx in (-1, 1):
     parts.append(box('corner', (0.016, 0.006, 0.05), (sx * (W / 2 - 0.008), fy - 0.002, SEAM + 0.04), 1, ms, 0.002))
 translate_parts(parts, (0, -D / 2, -SEAM))          # 原点を、うしろのちょうつがいに
 join_export(parts, 'DialSafeLid', 'DialSafeLid.fbx')
+
+
+# ================= 金庫の中の小さな鍵（床に平らに置く。長さ約6cm）=================
+new_scene()
+ms = mats(['Brass'])
+parts = []
+bpy.ops.mesh.primitive_torus_add(major_radius=0.0105, minor_radius=0.0038, major_segments=28, minor_segments=10, location=(0, 0, 0))
+ring_ = bpy.context.active_object
+ring_.name = 'bow'
+parts.append(finish(ring_, ms, 0, 0.0, (-0.0235, 0, 0.0038)))
+parts.append(box('shaft', (0.040, 0.0065, 0.0065), (0.0095, 0, 0.0033), 0, ms, 0.0012))
+for i, (xx_, hh) in enumerate(((0.022, 0.011), (0.0285, 0.0075), (0.0125, 0.0085))):
+    parts.append(box('bit%d' % i, (0.0045, hh, 0.0055), (xx_, -hh / 2 - 0.003, 0.003), 0, ms, 0.0008))
+join_export(parts, 'SafeKey', 'SafeKey.fbx')
