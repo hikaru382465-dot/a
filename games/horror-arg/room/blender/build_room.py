@@ -90,6 +90,11 @@ def make_materials():
     M["jacket"] = mat("jacket", base=(0.06, 0.07, 0.09), rough=0.9)
     M["backpack"] = mat("backpack", base=(0.03, 0.04, 0.05), rough=0.8)
 make_materials()
+# 汚しの共通グループ（SubstanceWear）で、材質をすべてプロシージャルに置きかえる。画像を使う版は --legacy
+STAGE = int(argv[argv.index("--stage") + 1]) if "--stage" in argv else 4
+if "--legacy" not in argv:
+    sys.path.insert(0, str(HERE))
+    import materials_proc; materials_proc.apply(M, STAGE)
 
 # ---------------- 部品の作り方 ----------------
 def link(o):
@@ -399,7 +404,7 @@ if "--render" in argv:
     samples = int(argv[argv.index("--samples") + 1]) if "--samples" in argv else 48
     scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = samples
     scene.cycles.use_denoising = True; scene.cycles.max_bounces = 6
-    scene.render.resolution_x, scene.render.resolution_y = 960, 720
+    scene.render.resolution_x, scene.render.resolution_y = (int(argv[argv.index('--res') + 1]), int(argv[argv.index('--res') + 2])) if '--res' in argv else (960, 720)
     scene.view_settings.view_transform = "Filmic" if "Filmic" in bpy.types.ColorManagedViewSettings.bl_rna.properties["view_transform"].enum_items.keys() else "Standard"
     scene.view_settings.exposure = float(argv[argv.index("--exposure") + 1]) if "--exposure" in argv else 0.0
     which = argv[argv.index("--cams") + 1].split(",") if "--cams" in argv else list(CAMS)
