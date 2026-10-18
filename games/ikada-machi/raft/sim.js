@@ -7,6 +7,15 @@
   S.rand = Math.random;
   S.KEY = 'ikada-save-v4';
 
+  // 住人：4人ぶんの状態（trades＝取引の回数／live＝住んでいるか）。x,z,path,dir,act はキャラとして動かすため
+  S.newRes = function () { const r = {}; Object.keys(D.BOAT.RES).forEach(id => { r[id] = { trades: 0, live: false, x: 3.5, z: 3.5, dir: 'down', path: [], act: null, wanderT: 3, giftDay: 0 }; }); return r; };
+  S.liveRes = s => Object.keys(s.res).filter(k => s.res[k].live);
+  S.hutCount = s => s.objects.filter(o => o.k === 'hut').length;
+  S.hutFree = s => S.hutCount(s) - S.liveRes(s).length;
+  S.freeFloor = function (s) {      // 住人を置く、空いている床
+    const cells = s.raft.cells.filter(c => free(s, c[0], c[1])); if (!cells.length) return null; return cells[Math.floor(S.rand() * cells.length)];
+  };
+  S.placeRes = function (s, r) { const c = S.freeFloor(s); if (c) { r.x = c[0] + 0.5; r.z = c[1] + 0.5; } r.path = []; r.act = null; };
   S.newState = function () {
     return {
       v: 4, raftRev: 1, objRev: 1, uid: 1, events: [],
@@ -21,7 +30,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}, dishdex: {}, sleepNight: -1
+      res: S.newRes(), drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}, dishdex: {}, sleepNight: -1
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -189,7 +198,7 @@
     if (!hit) return false; x = hit[0]; z = hit[1];
     s.inv[k]--;
     if (k === 'floor') { s.raft.cells.push([x, z]); s.raftRev++; }
-    else { s.objects.push({ id: s.uid++, k, x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); }
+    else { s.objects.push({ id: s.uid++, k, x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); S.liveRes(s).forEach(k => { s.res[k].path = []; }); }
     s.events.push({ e: 'placed', k }); return true;
   };
   // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
@@ -341,7 +350,15 @@
     const b = s.boat; if (!b || b.phase !== 'stay' || b.done[i]) return false; const dl = D.BOAT.RES[b.res].deals[i];
     if (!S.canPay(s, dl.want)) { s.events.push({ e: 'short' }); return false; }
     S.pay(s, dl.want); Object.keys(dl.give).forEach(k => { s.inv[k] = (s.inv[k] || 0) + dl.give[k]; });
-    b.done[i] = true; b.thanks = true; s.events.push({ e: 'traded' }); if (b.done.every(x => x)) b.left = Math.min(b.left, 5); return true;
+    b.done[i] = true; b.thanks = true; s.events.push({ e: 'traded' });
+    const r = s.res[b.res]; r.trades++; if (!r.live && r.trades >= D.BOAT.RES[b.res].ask) { b.ask = true; b.left = Math.max(b.left, 40); s.events.push({ e: 'resask', id: b.res }); }
+    if (b.done.every(x => x) && !b.ask) b.left = Math.min(b.left, 5); return true;
+  };
+  S.invite = function (s, yes) {      // 「ここに住んでいい？」への答え
+    const b = s.boat; if (!b || !b.ask) return false;
+    if (!yes) { b.ask = false; b.left = Math.min(b.left, 5); return true; }
+    if (S.hutFree(s) <= 0) { s.events.push({ e: 'nohut' }); return false; }
+    const r = s.res[b.res]; r.live = true; S.placeRes(s, r); b.ask = false; b.phase = 'leave'; s.events.push({ e: 'resjoin', id: b.res }); return true;
   };
   S.callBoat = function (s) { if (s.boat) { s.events.push({ e: 'boatalready' }); return false; } if (s.weather.id === 'storm') { s.events.push({ e: 'boatnostorm' }); return false; } s.boatForce = true; return true; };
   S.boatLeave = function (s) { const b = s.boat; if (b && b.phase !== 'leave') b.phase = 'leave'; };
@@ -350,7 +367,9 @@
     let b = s.boat;
     if (!b && s.weather.id !== 'storm' && (s.boatForce || (s.boatDay !== s.clock.day && s.clock.t >= B.FROM && s.clock.t <= B.TO))) {
       s.boatForce = false;
-      const ids = Object.keys(B.RES).filter(k => k !== s.lastRes), id = ids[Math.floor(S.rand() * ids.length)];
+      let ids = Object.keys(B.RES).filter(k => !s.res[k].live && k !== s.lastRes); if (!ids.length) ids = Object.keys(B.RES).filter(k => !s.res[k].live);
+      if (!ids.length) { s.boatDay = s.clock.day; return; }
+      const id = ids[Math.floor(S.rand() * ids.length)];
       const px = -f.z, pz = f.x, rad = Math.max(bb.w, bb.d) / 2 + B.OFFSET, R = 9;
       const tx = cx + px * rad, tz = cz + pz * rad;
       s.boat = b = { res: id, phase: 'come', x: tx - f.x * R, z: tz - f.z * R, tx, tz, left: B.STAY, done: B.RES[id].deals.map(() => false), thanks: false };
@@ -479,11 +498,29 @@
     for (const k of list) { r -= wt(k); if (r <= 0) return k; }
     return list[0];
   }
-  function nextWeather(s) {
+  function rollWeather(s) {
     const ids = Object.keys(D.WEATHER).filter(k => k !== s.weather.id), df = D.DIFF, d = s.clock.day - 1;
     const wt = k => k === 'storm' ? Math.min(df.stormMax, df.stormBase + d * df.stormPerDay) : k === 'sunny' ? Math.max(df.sunnyMin, df.sunnyBase - d * 0.4) : D.WEATHER[k].w;
     let tot = 0; ids.forEach(k => tot += wt(k));
     let r = S.rand() * tot, id = ids[0]; for (const k of ids) { r -= wt(k); if (r <= 0) { id = k; break; } }
+    return id;
+  }
+  // 住人：うろうろ歩く／座る。クロは毎朝、粘土かガラスをくれる
+  function resStep(s, dt) {
+    const P = D.RESIDENT.perk;
+    Object.keys(s.res).forEach(id => {
+      const r = s.res[id]; if (!r.live) return;
+      if (!free(s, Math.floor(r.x), Math.floor(r.z)) && !r.path.length) S.placeRes(s, r);
+      if (r.act) { r.act.t -= dt; if (r.act.t <= 0) r.act = null; }
+      else if (r.path.length) {
+        const tgt = r.path[0], tx = tgt[0] + 0.5, tz = tgt[1] + 0.5, dx = tx - r.x, dz = tz - r.z, d = Math.hypot(dx, dz), step = 1.4 * dt;
+        if (d > 0.01) r.dir = dirOf(dx, dz); if (d <= step) { r.x = tx; r.z = tz; r.path.shift(); if (!r.path.length && S.rand() < 0.45) r.act = { type: 'sit', t: 6 + S.rand() * 10 }; } else { r.x += dx / d * step; r.z += dz / d * step; }
+      } else { r.wanderT -= dt; if (r.wanderT <= 0) { r.wanderT = 4 + S.rand() * 8; const c = S.freeFloor(s); if (c) S.walkTo(s, c[0], c[1], r); } }
+      if (id === 'kuro' && r.giftDay !== s.clock.day && s.clock.t > 0.06) { r.giftDay = s.clock.day; const k = P.kuro.gift[(s.clock.day) % P.kuro.gift.length]; s.inv[k] = (s.inv[k] || 0) + 1; s.events.push({ e: 'resgift', id, k }); }
+    });
+  }
+  function nextWeather(s) {
+    const id = s.weather.nx || rollWeather(s);
     s.weather = { id, left: 60 + S.rand() * 60 };
     s.events.push({ e: 'weather', id });
   }
@@ -492,6 +529,7 @@
     // 時計・天気
     s.clock.t += dt / D.DAY_SEC; if (s.clock.t >= 1) { s.clock.t -= 1; s.clock.day++; }
     s.weather.left -= dt; if (s.weather.left <= 0) nextWeather(s);
+    if (s.res.pipi.live && !s.weather.nx && s.weather.left < D.RESIDENT.perk.pipi.warn) { s.weather.nx = rollWeather(s); if (s.weather.nx === 'storm') s.events.push({ e: 'stormsoon' }); }      // ピピ：嵐の前に知らせる
     s.current.ang = Math.sin(s.clock.day * 1.7 + s.clock.t * 6.28) * 0.35;
     const W = D.WEATHER[s.weather.id];
     // おなか・のどのかわき（0で止まる。死なない）
@@ -503,7 +541,7 @@
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
     s.objects.forEach(o => { if (o.k !== 'oven') return;     // かまど：材料がそろえば、ごちそうから順に作る
       if (!o.cook && S.ovOutN(o) < D.OVEN.maxOut) { const d = S.ovNext(o); if (d) { o.iv = (o.iv || 0) - (d.need.veg || 0); o.ifi = (o.ifi || 0) - (d.need.fish || 0); o.iw = (o.iw || 0) - (d.need.wood || 0); o.cook = { d: d.id, t: 0 }; s.events.push({ e: 'cookstart', d: d.id }); } }
-      if (o.cook) { o.cook.t += dt; const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
+      if (o.cook) { o.cook.t += dt * (s.res.kuro.live ? D.RESIDENT.perk.kuro.cookMul : 1); const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
     s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
       if (o.k !== 'campfire') return; delete o.cook;
       if (!S.cfBurning(o)) { o.burn = false; return; }
@@ -567,7 +605,7 @@
       const off = (S.rand() - 0.5) * 2 * Math.min(R * 0.7, 6);
       s.drift.push({ id: s.uid++, k: pickItem(s), x: cx - f.x * R - f.z * off, z: cz - f.z * R + f.x * off, born: 0 });
     }
-    boatStep(s, dt, f, bb); lookStep(s, dt); hutStep(s, dt); buddyHutStep(s);
+    resStep(s, dt); boatStep(s, dt, f, bb); lookStep(s, dt); hutStep(s, dt); buddyHutStep(s);
     const v = W.speed, rests = [];
     ['player', 'buddy'].forEach(w => {
       const K = kit(s, w), cast = K.net.cast, nl = netNow(s, w), ow = K.actor; if (!cast) return;
@@ -612,5 +650,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

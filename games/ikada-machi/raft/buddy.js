@@ -7,7 +7,7 @@ window.RAFT.parts.buddy = function (c) {
   const shadowCv = (() => { const [cv, g] = I.canvas(32, 16); g.fillStyle = 'rgba(20,10,40,.5)'; g.beginPath(); g.ellipse(16, 8, 15, 7, 0, 0, 6.3); g.fill(); return cv; })();
   const shadowTex = c.tex(shadowCv);
   const DIRS = ['down', 'up', 'left', 'right'];
-  function makeChar(name, actor) {
+  function makeChar(name, actor, tint) {
     const set = CA && CA[name]; if (!set) return null;
     const ch = { actor, tex: {}, ready: false };
     let left = 0;
@@ -17,9 +17,11 @@ window.RAFT.parts.buddy = function (c) {
     ch.mesh = new THREE.Mesh(g, ch.mat); ch.mesh.rotation.y = c.cam.yaw; ch.mesh.visible = false; group.add(ch.mesh);
     ch.sh = new THREE.Mesh(new THREE.PlaneGeometry(0.8 * K, 0.4 * K), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
     ch.sh.rotation.x = -Math.PI / 2; ch.sh.rotation.z = Math.PI / 4; group.add(ch.sh);
+    if (tint) ch.mat.color.set(tint);      // 住人の仮の絵：色違い（本物の絵が届いたら、差しかえる）
     ch.set = set; return ch;
   }
   const chars = [makeChar('boy', s.player), makeChar('girl', s.buddy)].filter(Boolean);
+  const RA = R.resArt || {}; Object.keys(R.data.BOAT.RES).forEach(id => { const rs = R.data.BOAT.RES[id], ch = makeChar(RA[id] ? id : rs.base, s.res[id], RA[id] ? null : rs.tint); if (ch) { ch.resId = id; chars.push(ch); } });      // 住人（ひかるの絵 R.resArt があればそれ）
   // 相棒のしぐさ（poses_art.js）：釣り・座る・寝る・水を飲む・やったー！ など。1枚絵なので、左向きは左右反転
   const PA = R.poseArt, poseTex = {};
   if (PA) Object.keys(PA.poses).forEach(k => { const f = PA.poses[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; poseTex[k] = tx; }; im.src = f.src; });
@@ -49,12 +51,15 @@ window.RAFT.parts.buddy = function (c) {
   const scr = (x, y, z, e) => { const v = new THREE.Vector3(x, y, z).project(c.camera), rc = el.getBoundingClientRect(); return Math.hypot(e.clientX - (rc.left + (v.x + 1) / 2 * rc.width), e.clientY - (rc.top + (1 - v.y) / 2 * rc.height)); };
   const hitBuddy = e => { const ch = s.buddy, d = scr(ch.x, 0.55, ch.z, e); if (d >= 30) return false;
     return !s.objects.some(o => { const [fw, fd] = R.sim.sizeOf(o); return scr(o.x + fw / 2, 0.4, o.z + fd / 2, e) < d + (fw > 1 || fd > 1 ? 40 : 6); }); };
+  const hitRes = e => { let best = null, bd = 30; S_liveIds().forEach(id => { const r = s.res[id], d = scr(r.x, 0.55, r.z, e); if (d < bd) { bd = d; best = id; } }); return best; };
+  const S_liveIds = () => R.sim.liveRes(s);
   const power = () => { const p = ((performance.now() - aimT0) / 1000 / GAUGE_SEC) % 2; return p < 1 ? p : 2 - p; };
   const setAim = (p, pw) => { const t = R.sim.throwTarget(s, p.x, p.z, pw); c.aim.x = t.x; c.aim.z = t.z; c.aim.power = pw; c.aim.px = p.x; c.aim.pz = p.z; };
   el.addEventListener('pointerdown', e => {
     if (c.ui && c.ui.open) return;
     if (c.pinching) { down = null; return; }
     if (!c.mode.place && s.boat && s.boat.phase === 'stay' && scr(s.boat.x, 0.35, s.boat.z, e) < 55) { down = { x: e.clientX, y: e.clientY, boat: true }; return; }      // 船をタップ：交渉
+    if (!c.mode.place && !s.net.cast && !s.rod) { const rid = hitRes(e); if (rid) { down = { x: e.clientX, y: e.clientY, res: rid }; return; } }      // 住人をタップ：おしゃべり
     if (!c.mode.place && !s.net.cast && !s.rod && hitBuddy(e)) { down = { x: e.clientX, y: e.clientY, buddy: true }; return; }     // 相棒をタップ：お願いの画面
     const p = world(e); down = { x: e.clientX, y: e.clientY, p, aim: false };
     if (!p || c.mode.place) return;
@@ -70,6 +75,7 @@ window.RAFT.parts.buddy = function (c) {
     const d = down; down = null; c.aim.active = false;
     if (!d || c.pinching) return;
     if (d.boat) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openBoat(); return; }
+    if (d.res) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openTalk(d.res); return; }
     if (d.buddy) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openJobs(); return; }
     if (d.aim) { const p = d.p; if (p) R.sim.throwNet(s, p.x, p.z, power()); return; }
     if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
@@ -85,6 +91,7 @@ window.RAFT.parts.buddy = function (c) {
     if (down && down.aim && down.p) setAim(down.p, power());
     chars.forEach(ch => {
       if (!ch.ready) return; const a = ch.actor, walking = a.path.length > 0, dir = a.dir || 'down';
+      if (a.live === false) { ch.mesh.visible = false; ch.sh.visible = false; return; }
       if (a.inHut) { ch.mesh.visible = false; ch.sh.visible = false; if (ch.actor === s.buddy) { /* 相棒が中にいる：吹き出しは屋根の上へ（次の段階） */ } return; } ch.sh.visible = true;
       if (ch.actor === s.buddy && PA) {
         const bu = s.buddy; if ((bu.cheer || 0) !== cheerId) { cheerId = bu.cheer || 0; cheerT = 1.1; } cheerT = Math.max(0, cheerT - dt);
@@ -121,10 +128,10 @@ window.RAFT.parts.buddy = function (c) {
         }
       }
       if (ch.actor === s.buddy) { ch.mesh.rotation.z = 0; emoteTop = 0.2 + (ch.set[dir][0].h) / (CA.ppu / K) / Math.cos(c.cam.pitch); }
-      const fr = walking ? Math.floor(t * 8) % 4 : (a.act ? Math.floor(t * 4) % 2 : 0), f = ch.set[dir][fr], tx = ch.tex[dir][fr];
+      const sitting = !walking && a.act && a.act.type === 'sit', fr = walking ? Math.floor(t * 8) % 4 : (sitting ? 0 : a.act ? Math.floor(t * 4) % 2 : 0), f = ch.set[dir][fr], tx = ch.tex[dir][fr];
       if (!tx) return;
       ch.mat.map = tx; ch.mat.needsUpdate = false;
-      const bob = walking ? (ch.actor === s.buddy ? Math.abs(Math.sin(t * 12.5)) * 0.025 : 0) : (a.act ? Math.abs(Math.sin(t * 14)) * 0.04 : 0);
+      const bob = walking ? (ch.actor === s.buddy ? Math.abs(Math.sin(t * 12.5)) * 0.025 : 0) : (sitting ? -0.05 : a.act ? Math.abs(Math.sin(t * 14)) * 0.04 : 0);
       ch.mesh.scale.set(f.w / (CA.ppu / K), f.h / (CA.ppu / K) / Math.cos(c.cam.pitch), 1);
       ch.mesh.position.set(a.x, 0.2 + bob, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
     });

@@ -230,13 +230,25 @@ window.RAFT.parts.hud = function (c) {
       const its = (o, chk) => Object.keys(o).map(k => `<div class="it${chk && (s.inv[k] || 0) < o[k] ? ' no' : ''}"><canvas width="32" height="32" data-k="${k}"></canvas><i>×${o[k]}${chk ? '/' + (s.inv[k] || 0) : ''}</i></div>`).join('');
       return `<div class="deal"><div class="its">${its(dl.want, true)}</div><span class="ar">→</span><div class="its">${its(dl.give, false)}</div><button data-d="${i}" ${sim.dealOk(s, i) ? '' : 'disabled'}>${b.done[i] ? '済み' : '交換する'}</button></div>`;
     }).join('');
-    const line = b.phase === 'leave' ? 'また来るよ。' : b.thanks ? R_.thanks : R_.hello;
-    const html = `${R_.name}|${line}|${rows}|${b.phase}`;
+    const line = b.ask ? D.RESIDENT.ask[b.res] : b.phase === 'leave' ? 'また来るよ。' : b.thanks ? R_.thanks : R_.hello;
+    const askRow = b.ask ? `<div class="askrow"><span style="flex:1;font-size:12px;opacity:.8">小屋の空き：${sim.hutFree(s)}</span><button data-a="1">いいよ</button><button data-a="0">またこんど</button></div>` : '';
+    const html = `${R_.name}|${line}|${rows}${askRow}|${b.phase}|${sim.hutFree(s)}`;
     if (html === lastBoat) return; lastBoat = html;
-    $('boatName').textContent = R_.name; $('boatLine').textContent = line; $('boatDeals').innerHTML = rows;
+    $('boatName').textContent = R_.name; $('boatLine').textContent = line; $('boatDeals').innerHTML = rows + askRow;
     $('boatDeals').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
-    $('boatDeals').querySelectorAll('button').forEach(bt => bt.onclick = () => { sim.deal(s, +bt.dataset.d); refresh(); lastBoat = ''; boatPanel(); });
+    $('boatDeals').querySelectorAll('button[data-d]').forEach(bt => bt.onclick = () => { sim.deal(s, +bt.dataset.d); refresh(); lastBoat = ''; boatPanel(); });
+    $('boatDeals').querySelectorAll('button[data-a]').forEach(bt => bt.onclick = () => { sim.invite(s, bt.dataset.a === '1'); refresh(); lastBoat = ''; boatPanel(); });
   }
+  // 住人のおしゃべり：開いたときに1回だけ、天気・時間で選ぶ
+  function openTalk(id) {
+    const T = D.RESIDENT.talk[id], rs = D.BOAT.RES[id], pick = a => a[Math.floor(Math.random() * a.length)];
+    const night = sim.isNight(s), L = s.weather.id === 'storm' ? pick(T.storm) : night ? pick(T.night) : pick(T.day);
+    const perk = { kuro: 'いっしょに住むと：毎朝、粘土かガラスをくれる。かまどの料理が少し速くなる', pipi: 'いっしょに住むと：嵐が来る前に、知らせてくれる', toto: '（これからの暮らしで、できることが増える）', mina: '（これからの暮らしで、できることが増える）' }[id];
+    $('resName').textContent = rs.name; $('resLine').textContent = L; $('resPerk').textContent = (s.res[id].live ? '住んでいる：' : '') + perk.replace('いっしょに住むと：', '');
+    const F = window.RAFT.resArt && window.RAFT.resArt[id] && window.RAFT.resArt[id].face; $('resFace').style.display = F ? 'block' : 'none'; if (F) $('resFace').src = F;
+    $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'none'; $('boatbox').style.display = 'none'; $('resbox').style.display = 'block'; closeSheet();
+  }
+  $('bResClose').onclick = () => { $('resbox').style.display = 'none'; };
   const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
   $('bLookStop').onclick = () => sim.stopLook(s);
   $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s); let pmode = 'raft'; document.querySelectorAll('#photoPick button').forEach(b => { b.onclick = () => { pmode = b.dataset.m; document.querySelectorAll('#photoPick button').forEach(x => x.classList.toggle('on', x === b)); }; });
@@ -260,7 +272,7 @@ window.RAFT.parts.hud = function (c) {
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
-  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat };
+  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat, openTalk };
   // ---- ボタン ----
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
@@ -284,6 +296,7 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    resask: e => `${D.BOAT.RES[e.id].name}が、何か言いたそう…（船をタップ）`, resjoin: e => `${D.BOAT.RES[e.id].name}が、イカダに住みはじめた！`, nohut: () => '小屋が足りない（小屋を置くと、住める人が増える）', stormsoon: () => 'ピピ「もうすぐ嵐が来るよ！」', resgift: e => `クロが、${nameOf(e.k)}をくれた`,
     cookstart: e => `${nameOf(e.d)}を作りはじめた`, cooked: e => `${nameOf(e.d)}ができた！`, ovengot: () => '料理を持ち物に入れた',
     bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
     hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',

@@ -68,6 +68,10 @@ button.on{background:#6b4231;color:#fff}
 #helpbox ul{margin:0;padding-left:1.2em}
 #zoom{position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px}
 #zoom button{width:40px;height:40px;border-radius:50%;padding:0;font-size:18px;opacity:.85}
+#resbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#resbox h2{margin:0 0 4px;font-size:15px}#resLine{margin:6px 0;padding:8px 10px;background:#0003;border-radius:8px;font-size:14px}#resPerk{font-size:12px;opacity:.85}
+#resFace{float:right;width:70px;margin:-26px 0 4px 8px;border-radius:10px;background:#3b2448;border:1px solid #caa97e}
+.askrow{display:flex;gap:8px;justify-content:flex-end;margin:6px 0}
 #boatbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(380px,90vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #boatbox h2{margin:0 0 4px;font-size:15px}
 #boatLine{margin:2px 0 8px;padding:6px 10px;background:#0003;border-radius:8px;font-size:13px}
@@ -145,6 +149,7 @@ body:not(.debug) .dbg{display:none}
 <div id="cfHint">タップ＝1つ　ドラッグ＝全部（持ち物の下の枠 ⇄ 焚き火の枠）</div>
 <div id="cfInv" data-drop="inv"><div class="cslot" id="iFish" data-item="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cslot" id="iWood" data-item="wood"><canvas width="32" height="32"></canvas><i></i><small>木くず</small></div><div class="cslot" id="iGrilled" data-item="grilled"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div style="margin-top:8px;text-align:right"><button id="bCfClose">閉じる</button></div></div>
+<div id="resbox"><h2 id="resName"></h2><img id="resFace" alt="" style="display:none"><div id="resLine"></div><div id="resPerk"></div><div style="margin-top:8px;text-align:right"><button id="bResClose">閉じる</button></div></div>
 <div id="boatbox"><h2 id="boatName"></h2><div id="boatLine"></div><div id="boatDeals"></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bBoatBye">さよなら（船が去る）</button><button id="bBoatClose">閉じる</button></div></div>
 <div id="helpbox"><h2 id="helpTitle">あそびかた</h2><ul>
 <li>右下の「持ち物」から、網を選んで手に持つ</li>
