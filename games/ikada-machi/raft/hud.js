@@ -79,7 +79,16 @@ window.RAFT.parts.hud = function (c) {
     const hint = f ? [f.time ? { dawn: '朝', day: '昼', dusk: '夕方', night: '夜' }[f.time] + 'に多い' : '', f.wx ? { calm: '凪', storm: '嵐', sunny: '晴れ' }[f.wx] + 'の日に多い' : '', f.by === 'rod' ? '釣りざおで' : f.by === 'net' ? '網で' : '', 'Lv' + f.lv + 'の網から'].filter(Boolean).join('・') : '';
     $('detail').innerHTML = f ? `<div style="height:66px;display:flex;align-items:center;justify-content:center;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px">${img(sel, on, 56)}</div><p><b>${on ? f.name : '？？？'}</b>　<span class="tag">${stars}</span></p><p>${on ? f.tip : '釣ったり、網でとると、見つかる。'}</p><p class="why">${on ? 'とった数：' + dex[sel] + '　（' + hint + '）' : hint}</p>` : '';
   }
+  function renderDishes() {
+    const DA = (window.RAFT.dishArt && window.RAFT.dishArt.art) || {}, ids = D.DISHES.map(d => d.id), dex = s.dishdex || {}, got = ids.filter(k => dex[k]).length;
+    const img = (k, on, h) => DA[k] ? `<img src="${DA[k][0].src}" style="width:100%;height:${h}px;object-fit:contain;${on ? '' : 'filter:brightness(0);opacity:.28;'}">` : '';
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">作った料理 ${got} / ${ids.length}</div>` + ids.map(k => { const on = dex[k]; return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}" style="aspect-ratio:1.3">${img(k, on, 40)}<span class="nm">${on ? D.ITEMS[k].name : '？？？'}</span></button>`; }).join('');
+    $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
+    const d = D.DISHES.find(x => x.id === sel), it = d && D.ITEMS[sel], on = d && dex[sel], nm = { veg: '野菜', wood: '木くず', fish: '魚' };
+    $('detail').innerHTML = d ? `<div style="height:76px;display:flex;align-items:center;justify-content:center;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px">${img(sel, on, 66)}</div><p><b>${on ? it.name : '？？？'}</b></p><p>${on ? it.tip : 'かまどで作ると、見つかる。'}</p><p class="why">${on ? `おなか +${it.food}${it.mood ? '　ほっと +' + it.mood : ''}　作った数：${dex[sel]}` : ''}${on || true ? '<br>材料：' + Object.keys(d.need).map(k => nm[k] + d.need[k]).join('・') + '　' + d.sec + '秒' : ''}</p>` : '';
+  }
   function renderBook() {
+    if (tab === 'dish') { if (!D.DISHES.some(x => x.id === sel)) sel = D.DISHES[0].id; renderDishes(); return; }
     if (tab === 'fish') { if (!D.FISH[sel]) sel = Object.keys(D.FISH)[0]; renderFish(); return; }
     if (tab === 'scene') { if (!D.SCENES[sel]) sel = Object.keys(D.SCENES)[0]; renderScenes(); return; }
     const list = tab === 'inv' ? slots() : recipes();
@@ -109,7 +118,7 @@ window.RAFT.parts.hud = function (c) {
     d.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
     if (onclick) $('act').onclick = onclick;
   }
-  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); $('tFish').classList.toggle('on', t === 'fish'); renderBook(); }
+  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); $('tFish').classList.toggle('on', t === 'fish'); $('tDish').classList.toggle('on', t === 'dish'); paint($('tDish').querySelector('canvas'), 'soup'); renderBook(); }
   function openSheet(t) { cancelPlace(); c.ui.open = true; $('sheet').classList.add('open'); setTab(t || tab); }
   function closeSheet() { c.ui.open = false; $('sheet').classList.remove('open'); }
   // ---- 置くモード ----
@@ -256,7 +265,7 @@ window.RAFT.parts.hud = function (c) {
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
   document.querySelectorAll('.tab canvas').forEach(cv => paint(cv, cv.dataset.k));
-  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene'); $('tFish').onclick = () => setTab('fish');
+  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene'); $('tFish').onclick = () => setTab('fish'); $('tDish').onclick = () => setTab('dish');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
   $('bDemo').onclick = () => { sim.demoSet(s); $('helpbox').style.display = 'none'; toast('置き物を全部ならべた（テスト）。広いイカダにするので、セーブを消したいときは「?new」をつけて開く', 4000); };
@@ -279,6 +288,7 @@ window.RAFT.parts.hud = function (c) {
     hutbusy: () => '網か釣りざおを出している間は、入れない',
     plotplant: () => '種をまいた。何が育つかな？ もう一度タップで、水をやる', plotwater: () => '水をやった（貯水槽の水を1つ使った）', plotnowater: () => '貯水槽に水がない。雨か、ろ過器で水をためよう', plotnoseed: () => '種袋がない。網でひろえることがある',
     plotgrow: e => `育っているところ。あと約${e.left}秒`, plotharvest: e => `${D.CROPS[e.c].name}をしゅうかく！ 野菜+${e.n}${e.back ? '・種が1つ戻った' : ''}`, cropnew: e => `新しい作物：${D.CROPS[e.id].name}`,
+    dishnew: e => `新しい料理：${D.ITEMS[e.id].name}（図鑑にのった）`,
     fishnew: e => `新しい魚：${D.FISH[e.id].name}（図鑑にのった）`,
     rackhang: e => `魚を1匹つるした（${e.n}/${e.max}）。しばらくすると干物になる`, rackdone: e => `干物を${e.n}個とった`, racknone: () => '魚を持って、もう一度タップすると、つるせる',
     rackfull: e => `干し魚だなはいっぱい。あと約${e.left}秒で干物`, rackwait: e => `干しているところ。あと約${e.left}秒（魚がまだあれば、足せる）`,

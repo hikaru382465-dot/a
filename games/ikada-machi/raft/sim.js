@@ -21,7 +21,7 @@
       // player＝ひかるが操作する男の子、buddy＝自動で動く相棒の女の子。dir は絵の向き（down 前／up 後／left／right）
       player: { x: 1.5, z: 1.5, dir: 'down', path: [], task: null, act: null },
       buddy: { x: 0.5, z: 1.5, dir: 'down', path: [], task: null, act: null, eatT: 4, wanderT: 3, job: null, mood: 80, jobT: 0, spot: null, line: null, fx: null, viewT: 0, net: { lv: 1, cast: null }, dur: { net: 100, rod: 100 }, hasRod: false },
-      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}, sleepNight: -1
+      drift: [], spawnT: 2, rainT: 0, view: { r: 9 }, boat: null, boatDay: 0, lastRes: null, look: null, calm: 0, scenes: {}, fishdex: {}, cropdex: {}, dishdex: {}, sleepNight: -1
     };
   };
   S.has = (s, x, z) => s.raft.cells.some(c => c[0] === x && c[1] === z);
@@ -503,7 +503,7 @@
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
     s.objects.forEach(o => { if (o.k !== 'oven') return;     // かまど：材料がそろえば、ごちそうから順に作る
       if (!o.cook && S.ovOutN(o) < D.OVEN.maxOut) { const d = S.ovNext(o); if (d) { o.iv = (o.iv || 0) - (d.need.veg || 0); o.ifi = (o.ifi || 0) - (d.need.fish || 0); o.iw = (o.iw || 0) - (d.need.wood || 0); o.cook = { d: d.id, t: 0 }; s.events.push({ e: 'cookstart', d: d.id }); } }
-      if (o.cook) { o.cook.t += dt; const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
+      if (o.cook) { o.cook.t += dt; const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
     s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
       if (o.k !== 'campfire') return; delete o.cook;
       if (!S.cfBurning(o)) { o.burn = false; return; }
@@ -612,5 +612,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);
