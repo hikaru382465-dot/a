@@ -76,3 +76,16 @@ def cut_plane(path, box, shrink=1, thr=34):
     if shrink != 1: img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
     al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
     return img
+
+
+# 緑の背景（白いノイズつき）の絵：外から塗りつぶして背景をぬく。戻り値＝(RGB配列, 前景マスク)
+import numpy as _np
+from PIL import Image as _Image
+def key_green(path):
+    """緑・白いノイズ（まわりの緑とつながるもの）だけを背景にして、外から塗りつぶす。皿の中の白は、輪郭でさえぎられるので残る。"""
+    a = _np.array(_Image.open(path).convert('RGB')).astype(int); r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    bgc = ((g > r + 40) & (g > b + 40)) | ((a.min(2) >= 232) & ((r - b) < 14))
+    bg = _np.zeros_like(bgc); bg[0, :] = bgc[0, :]; bg[-1, :] = bgc[-1, :]; bg[:, 0] |= bgc[:, 0]; bg[:, -1] |= bgc[:, -1]; prev = -1
+    while bg.sum() != prev:
+        prev = bg.sum(); nb = bg.copy(); nb[1:] |= bg[:-1]; nb[:-1] |= bg[1:]; nb[:, 1:] |= bg[:, :-1]; nb[:, :-1] |= bg[:, 1:]; bg = nb & bgc
+    return a, ~bg

@@ -4,14 +4,7 @@ from PIL import Image
 here = pathlib.Path(__file__).parent; sys.path.insert(0, str(here)); import cutlib
 SRC = here.parent / 'art' / 'food' / 'dishes_green.png'      # 緑の背景（白いつぶつぶのノイズつき）の絵。湯気（クリーム色）まで切りぬける
 import numpy as np
-def key_green(path):
-    """緑・白いノイズ（まわりの緑とつながるもの）だけを背景にして、外から塗りつぶす。皿の中の白は、輪郭でさえぎられるので残る。"""
-    a = np.array(Image.open(path).convert('RGB')).astype(int); r, g, b = a[..., 0], a[..., 1], a[..., 2]
-    bgc = ((g > r + 40) & (g > b + 40)) | ((a.min(2) >= 232) & ((r - b) < 14))
-    bg = np.zeros_like(bgc); bg[0, :] = bgc[0, :]; bg[-1, :] = bgc[-1, :]; bg[:, 0] |= bgc[:, 0]; bg[:, -1] |= bgc[:, -1]; prev = -1
-    while bg.sum() != prev:
-        prev = bg.sum(); nb = bg.copy(); nb[1:] |= bg[:-1]; nb[:-1] |= bg[1:]; nb[:, 1:] |= bg[:, :-1]; nb[:, :-1] |= bg[:, 1:]; bg = nb & bgc
-    return a, ~bg
+key_green = cutlib.key_green
 def drop_small(fg, minpx):
     seen = np.zeros_like(fg); H, W = fg.shape
     for y0, x0 in zip(*np.where(fg)):

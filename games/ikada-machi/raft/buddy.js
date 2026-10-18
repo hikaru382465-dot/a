@@ -124,7 +124,7 @@ window.RAFT.parts.buddy = function (c) {
       const fr = walking ? Math.floor(t * 8) % 4 : (a.act ? Math.floor(t * 4) % 2 : 0), f = ch.set[dir][fr], tx = ch.tex[dir][fr];
       if (!tx) return;
       ch.mat.map = tx; ch.mat.needsUpdate = false;
-      const bob = walking ? 0 : (a.act ? Math.abs(Math.sin(t * 14)) * 0.04 : 0);
+      const bob = walking ? (ch.actor === s.buddy ? Math.abs(Math.sin(t * 12.5)) * 0.045 : 0) : (a.act ? Math.abs(Math.sin(t * 14)) * 0.04 : 0);
       ch.mesh.scale.set(f.w / (CA.ppu / K), f.h / (CA.ppu / K) / Math.cos(c.cam.pitch), 1);
       ch.mesh.position.set(a.x, 0.2 + bob, a.z); ch.mesh.visible = true; ch.sh.position.set(a.x + 0.04, 0.215, a.z + 0.04);
     });
