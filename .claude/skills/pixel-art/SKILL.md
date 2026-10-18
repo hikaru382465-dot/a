@@ -33,6 +33,7 @@ description: ひかるのドット絵づくりの技術一式（パレット制�
 | 白い市松背景のAI絵シート（catalog2）から切り出す | `games/ikada-machi/raft/cutlib.py` の `cut_checker(path, box, shrink, blank)` | 外のふちとつながった白っぽい所だけ消す→いちばん大きいかたまり。となりの絵が入るときは `blank` で消す。`shrink=3` で置き物（約30px）、`shrink=2` でアイテム（約45px）。暗い面や輪郭も欠けない |
 | 魚などをまとめて切り出して図鑑にする | `games/ikada-machi/raft/make_fish.py`（`BOX` に id と範囲を足すだけ）→ `fish_art.js` | 範囲は少し広めに（細いひげ・尾が欠ける）。となりの絵が入っても、いちばん大きいかたまりだけ残る。`SHRINK` は1で約510KB、1.5で約250KB |
 | AI絵のカタログから置き物を切り出す（イカダの海暮らし） | `games/ikada-machi/raft/make_objs.py`（`icon()`／輪郭が暗い物・光のにじみがある物は `plane_cut()`） | 背景が光でにじむ絵は `plane_cut` のほうが欠けない。`ppu`＝1マスに対する大きさ（幅がマスの約0.8倍になるように、`objects.js` の `PPU_OF`）。暗い輪郭は `cutout()` だと欠けやすい |
+| 同じキャラの表情違い（横並び6枚）から、気分で顔を出し分ける＋まばたき（イカダの海暮らし） | `games/ikada-machi/raft/make_faces.py`（`cut_checker`で6枚を同じ大きさに切る→眠い顔の目を `BOX` だけ合成してまばたき）→ `faces_art.js`（WebP） | まばたきは、目の帯だけをぼかしてはる（箱の上を髪にかぶせない）。目が閉じている顔（にっこり・眠い）はまばたき不要。PNGだと600KBなのでWebP（約140KB） |
 
 ## 失敗から学んだこと（同じ失敗をしない）
 - **ランダムなノイズで質感を出すと「ポツポツ」になる**。手描きタイル、または高さ場・面ごとのかげで出す。

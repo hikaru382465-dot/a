@@ -87,7 +87,7 @@ button.on{background:#6b4231;color:#fff}
 #hutbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #lookbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
-#jobbox h2{margin:0 0 4px;font-size:15px}
+#buddyFace{float:right;width:84px;height:auto;margin:-24px 0 4px 8px;border-radius:10px;background:#3b2448;border:1px solid #caa97e}#jobbox h2{margin:0 0 4px;font-size:15px}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #cfbox h2{margin:0 0 4px;font-size:15px}
 #cfRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 8px;background:#0003;border-radius:10px}
@@ -125,7 +125,7 @@ button.on{background:#6b4231;color:#fff}
 <button id="bClose" aria-label="閉じる">×</button>
 <div id="pages"><div class="page" id="pageL"><div id="grid"></div></div><div class="page" id="pageR"><div id="detail"></div></div></div>
 </div></div>
-<div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
+<div id="jobbox"><h2>相棒にお願い</h2><img id="buddyFace" alt=""><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
 <div id="cfbox"><h2>焚き火</h2><div id="cfState"></div>
 <div id="cfRow"><div class="cslot" id="sFish" data-drop="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cplus">＋</div><div class="cslot" id="sWood" data-drop="wood"><div class="cwrap"><canvas width="32" height="32"></canvas><b id="woodDim"></b></div><i></i><small>燃料</small></div><div class="carrow"><div class="bar" style="width:70px;height:9px"><i id="cfBar" style="width:0"></i></div><span id="cfFire">🔥</span></div><div class="cslot out" id="sOut" data-drop="out"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div id="cfHint">タップ＝1つ　ドラッグ＝全部（持ち物の下の枠 ⇄ 焚き火の枠）</div>
@@ -151,7 +151,7 @@ button.on{background:#6b4231;color:#fff}
 <script src="data.js"></script><script src="net_art.js"></script><script src="sim.js"></script>
 <script src="camera.js"></script><script src="water.js"></script><script src="light.js"></script>
 <script src="floor.js"></script><script src="buddy.js"></script><script src="chars.js"></script><script src="items.js"></script><script src="objs_art.js"></script><script src="splash_art.js"></script><script src="poses_art.js"></script><script src="emotes_art.js"></script><script src="objects.js"></script><script src="drift.js"></script><script src="boat.js"></script>
-<script src="scenes_art.js"></script><script src="fish_art.js"></script><script src="crops_art.js"></script><script src="hut_art.js"></script><script src="diary_art.js"></script><script src="wxicon.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
+<script src="scenes_art.js"></script><script src="fish_art.js"></script><script src="crops_art.js"></script><script src="hut_art.js"></script><script src="diary_art.js"></script><script src="wxicon.js"></script><script src="faces_art.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';

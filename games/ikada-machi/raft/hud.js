@@ -5,7 +5,7 @@ window.RAFT.parts.hud = function (c) {
   c.mode = c.mode || { place: null };
   c.ui = c.ui || { open: false };
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
-  let tab = 'inv', sel = null;
+  let tab = 'inv', sel = null; const fc = { shock: 0, happy: 0 };
   const times = [[0.2, '朝'], [0.62, '昼'], [0.78, '夕'], [1.01, '夜']];
   const timeName = t => times.find(x => t < x[0])[1];
   const toast = (msg, ms) => { const e = $('toast'); if (!msg) { e.style.opacity = 0; return; } e.textContent = msg; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, ms || 2400); };
@@ -298,6 +298,9 @@ window.RAFT.parts.hud = function (c) {
     }
     if ($('cfbox').style.display === 'block') cfPanel();
     if ($('boatbox').style.display === 'block') boatPanel();
+    if ($('jobbox').style.display === 'block') { const F = window.RAFT.faces, bu = s.buddy; if (F) { if (bu.cheer && bu.cheer !== fc.cheer) { fc.cheer = bu.cheer; fc.happy = t + 3.5; } if (s.weather.id === 'storm' && fc.wx !== 'storm') fc.shock = t + 2.5; fc.wx = s.weather.id;
+      let n = bu.job === 'rest' && sim.isNight(s) ? 'sleepy' : t < fc.shock ? 'surprise' : t < fc.happy ? 'happy' : s.weather.id === 'storm' || bu.mood < 30 ? 'sad' : bu.mood >= 70 ? 'smile' : 'normal';
+      if (fc.blinkAt === undefined || t > fc.blinkAt + 0.14) fc.blinkAt = t + 2.5 + Math.random() * 3.5; if (t > fc.blinkAt && F.img[n + '_blink']) n += '_blink'; if (fc.n !== n) { fc.n = n; $('buddyFace').src = F.img[n]; } } }
     if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }
     acc += dt; if (acc > 10) { acc = 0; sim.save(s); }
     if (!update.first) { update.first = true; toast('右下の「持ち物」から、網を持って、海を押してみよう', 4000); }
