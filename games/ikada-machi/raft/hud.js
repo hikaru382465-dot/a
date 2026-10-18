@@ -173,6 +173,21 @@ window.RAFT.parts.hud = function (c) {
     setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
     $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;
   }
+  // かまどの料理
+  let ovId = null, ovSig = '';
+  function ovPanel(force) {
+    const o = s.objects.find(x => x.id === ovId && x.k === 'oven'); if (!o) { $('ovbox').style.display = 'none'; return; }
+    const sig = JSON.stringify([s.inv.veg | 0, s.inv.wood | 0, s.inv.fish | 0, o.cook && o.cook.d, o.done, !!iconOf('nabe')]);
+    if (sig !== ovSig || force) { ovSig = sig; const nm = { veg: '野菜', wood: '木くず', fish: '魚' };
+      $('ovState').textContent = o.done ? `${nameOf(o.done)}ができた！` : o.cook ? `${nameOf(o.cook.d)}を作っています…` : '作りたい料理を選んでください（木くずは燃料）';
+      $('ovList').innerHTML = D.DISHES.map(d => { const it = D.ITEMS[d.id], ok = sim.canPay(s, d.need), mine = o.cook && o.cook.d === d.id, fin = o.done === d.id;
+        const need = Object.keys(d.need).map(k => `<span class="${(s.inv[k] || 0) >= d.need[k] ? '' : 'no'}">${nm[k]}${d.need[k]}（${s.inv[k] || 0}）</span>`).join('　');
+        return `<div class="dish" data-d="${d.id}">${mine || fin ? '<div class="stm"><b></b><b></b><b></b></div>' : ''}<canvas width="112" height="88"></canvas><div class="tx"><b>${it.name}</b><small>おなか +${it.food}${it.mood ? '　ほっと +' + it.mood : ''}　${d.sec}秒</small><small>${need}</small>${mine ? '<div class="bar"><i class="ovbar" style="width:0"></i></div>' : ''}</div>${fin ? '<button class="ovget">取り出す</button>' : `<button class="ovmk"${ok && !o.cook && !o.done ? '' : ' disabled style="opacity:.4"'}>作る</button>`}</div>`; }).join('');
+      $('ovList').querySelectorAll('.dish').forEach(el => { paint(el.querySelector('canvas'), el.dataset.d); const mk = el.querySelector('.ovmk'), gt = el.querySelector('.ovget');
+        if (mk) mk.onclick = () => { if (sim.cookStart(s, ovId, el.dataset.d)) refresh(); ovPanel(true); }; if (gt) gt.onclick = () => { sim.ovenTake(s, ovId); refresh(); ovPanel(true); }; }); }
+    const bar = $('ovList').querySelector('.ovbar'); if (bar && o.cook) bar.style.width = (o.cook.t / D.DISHES.find(x => x.id === o.cook.d).sec * 100) + '%';
+  }
+  const openOv = id => { ovId = id; ovSig = ''; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'block'; ovPanel(true); };
   const openCf = id => { cfId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'block'; cfPanel(); };
   // 動かす：from='inv'（持ち物→焚き火）／'slot'（焚き火→持ち物）。n＝1 か 'all'
   const cfMove = (what, from, n) => { const ok = from === 'inv' ? sim.cfPut(s, cfId, what, n) : sim.cfTake(s, cfId, what, n); if (ok) refresh(); cfPanel(); };
@@ -192,6 +207,7 @@ window.RAFT.parts.hud = function (c) {
   wire(slotEl.fish, { what: 'fish', icon: 'fish', tap: () => cfMove('fish', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('fish', 'slot', 'all'); } });
   wire(slotEl.wood, { what: 'wood', icon: 'wood', tap: () => cfMove('wood', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('wood', 'slot', 'all'); } });
   wire(slotEl.out, { what: 'out', icon: 'grilled', tap: () => cfMove('out', 'slot', 'all'), drop: to => { if (to === 'inv' || to === null) cfMove('out', 'slot', 'all'); } });
+  $('bOvClose').onclick = () => { $('ovbox').style.display = 'none'; };
   $('bCfClose').onclick = () => { $('cfbox').style.display = 'none'; };
   // ---- 船の住人との交渉 ----
   let lastBoat = '';
@@ -252,6 +268,7 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    ovenshort: () => '材料がたりない', ovenbusy: () => 'いま料理中。できたら取り出そう', cookstart: e => `${nameOf(e.d)}を作りはじめた`, cooked: e => `${nameOf(e.d)}ができた！`, ovengot: e => `${nameOf(e.d)}を持ち物に入れた`,
     bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
     hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',
     hutnofood: () => '食べ物がない（焼き魚・干物・野菜・魚・ヤシの実）', hutnotnight: () => '眠れるのは、夜だけ', hutslept2: () => 'この夜は、もう眠った', hutnosleep: () => 'おなか・のどが空いていて、眠れない（20以上で眠れる）', hutwake: () => 'ぐっすり眠った。朝になった',
@@ -275,6 +292,7 @@ window.RAFT.parts.hud = function (c) {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
+      if (e.e === 'oven') { openOv(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
       if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fishnew', 'plotharvest', 'plotplant', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
@@ -303,6 +321,7 @@ window.RAFT.parts.hud = function (c) {
       $('lookTx').textContent = line; $('calmFill').style.width = s.calm + '%';
     }
     if ($('cfbox').style.display === 'block') cfPanel();
+    if ($('ovbox').style.display === 'block') ovPanel();
     if ($('boatbox').style.display === 'block') boatPanel();
     { const F = window.RAFT.faces; if (F) { const n = faceNow(s, t); if ($('jobbox').style.display === 'block' && fc.job !== n) { fc.job = n; $('buddyFace').src = F.img[n]; } if (s.player.inHut && fc.hut !== n) { fc.hut = n; $('hutFace').src = F.img[n]; } } }
     if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }

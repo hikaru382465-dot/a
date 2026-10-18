@@ -11,6 +11,10 @@ window.RAFT.data = {
     seed:    { name: '種袋',     lv: 2, w: 0.9, tip: '畑にまく。何が育つかは、お楽しみ' },
     veg:     { name: '野菜',     lv: 0, w: 0, food: 8, drink: 3, tip: '畑でとれた。そのままだと少し。料理すると、もっと戻る' },
     dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
+    yakiyasai: { name: '焼き野菜', lv: 0, w: 0, food: 35, tip: 'かまどで作る。おなかがしっかり戻る' },
+    soup:    { name: '野菜スープ', lv: 0, w: 0, food: 50, mood: 5, tip: 'かまどで作る。おなかが戻って、ほっとする' },
+    tsukeni: { name: '魚の煮つけ', lv: 0, w: 0, food: 65, mood: 10, tip: 'かまどで作る。ごちそう。機嫌もよくなる' },
+    nabe:    { name: '海鮮鍋',   lv: 0, w: 0, food: 90, mood: 20, tip: 'かまどで作る。いちばんのごちそう' },
     grilled: { name: '焼き魚',   lv: 0, w: 0, food: 40, tip: '食べると、おなかがしっかり戻る' },
     coconut: { name: 'ヤシの実', lv: 1, w: 2, food: 8, drink: 28, tip: '飲むとのどが戻る（おなかも少し）' },
     rope:    { name: '縄',       lv: 2, w: 3, tip: '作る材料' },
@@ -25,7 +29,7 @@ window.RAFT.data = {
     campfire: { name: '焚き火',  lv: 0, w: 0, place: true, tip: '置いて、タップ。魚と木くずを入れると焼ける' },
     seat:    { name: '見晴らしいす', lv: 0, w: 0, place: true, tip: '置いて、タップで座る。景色を眺めて、ほっとする' },
     rack:    { name: '干し魚だな', lv: 0, w: 0, place: true, tip: '飾り。イカダが漁師の家らしくなる' },
-    oven:    { name: 'かまど',   lv: 0, w: 0, place: true, tip: '飾り。石のかまど（焼くのは焚き火で）' },
+    oven:    { name: 'かまど',   lv: 0, w: 0, place: true, tip: '置いて、タップ。野菜や魚で料理ができる（焼き魚は焚き火で）' },
     crate:   { name: '木箱',     lv: 0, w: 0, place: true, tip: '飾り。荷物を置いた感じになる' },
     chest:   { name: '宝箱',     lv: 0, w: 0, place: true, tip: '飾り。かっこいい箱' },
     plot:    { name: '畑', lv: 0, w: 0, place: true, tip: '置いて、タップ。種袋をまくと、野菜が育つ' },
@@ -51,7 +55,7 @@ window.RAFT.data = {
     { id: 'crate', out: 'crate', cost: { wood: 5 }, need: 'bench', tip: '木の箱を飾る' },
     { id: 'chest', out: 'chest', cost: { wood: 6, iron: 2 }, need: 'bench', tip: '鉄で補強した宝箱' },
     { id: 'plot', out: 'plot', cost: { wood: 5, cloth: 1 }, need: 'bench', tip: '畑を置く。種袋をまくと野菜が育つ' },
-    { id: 'oven', out: 'oven', cost: { wood: 2, clay: 6, iron: 1 }, need: 'bench', tip: '粘土で作る石のかまど（飾り）' },
+    { id: 'oven', out: 'oven', cost: { wood: 2, clay: 6, iron: 1 }, need: 'bench', tip: '粘土で作る石のかまど。料理ができる' },
     { id: 'barrel', out: 'barrel', cost: { wood: 6, iron: 1 }, need: 'bench', tip: '木の樽を作る' },
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
     { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
@@ -78,6 +82,12 @@ window.RAFT.data = {
   // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
   DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
   RACK: { sec: 45, max: 3 },     // 干し魚だな：1匹が干物になる秒数・かけられる数
+  DISHES: [      // かまどの料理。need＝材料（木くずは燃料）／sec＝できるまでの秒数
+    { id: 'yakiyasai', need: { veg: 1, wood: 1 }, sec: 8 },
+    { id: 'soup', need: { veg: 2, wood: 1 }, sec: 10 },
+    { id: 'tsukeni', need: { fish: 1, veg: 1, wood: 1 }, sec: 12 },
+    { id: 'nabe', need: { fish: 2, veg: 2, wood: 2 }, sec: 16 }
+  ],
   COOK: { sec: 12, perWood: 3, maxFish: 8, maxWood: 8, maxOut: 16 },   // 1匹12秒・木くず1個で3匹ぶん・各枠の上限
   // 船の住人との交渉：夕方に、嵐でなければ、1日に1回まで船が来る。1つの船に2つの取引。1つずつ、1回だけ
   BOAT: {

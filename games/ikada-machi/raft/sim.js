@@ -126,6 +126,7 @@
     a = a || s.player; const it = D.ITEMS[k]; if (!it || (s.inv[k] || 0) <= 0 || (!it.food && !it.drink)) return false;
     s.inv[k]--;
     if (it.food) s.needs.hunger = clamp(s.needs.hunger + it.food, 0, 100);
+    if (it.mood) { s.buddy.mood = clamp(s.buddy.mood + it.mood, 0, 100); if (a !== s.buddy) s.calm = Math.min(100, (s.calm || 0) + it.mood); }
     if (it.drink) s.needs.thirst = clamp(s.needs.thirst + it.drink, 0, 100);
     { const d = a === s.buddy ? 1.6 : 0.5; a.act = { type: 'eat', kind: it.drink ? 'drink' : 'eat', t: d, dur: d }; } s.events.push({ e: it.drink ? 'drink' : 'eat', k }); return true;
   };
@@ -304,6 +305,17 @@
     const m = all ? o[key] : Math.min(n, o[key]); s.inv[k] = (s.inv[k] || 0) + m; o[key] -= m; if (what === 'fish' && !o.fi) o.p = 0; return true;
   };
   S.cfBurning = o => (o.fi || 0) > 0 && ((o.fl || 0) > 0 || (o.fw || 0) > 0) && (o.go || 0) < D.COOK.maxOut;
+  // かまど：料理を1つずつ作る。材料を入れると、秒数のあと「できた」になり、取り出すと持ち物に入る
+  S.cookStart = function (s, id, dish) {
+    const o = s.objects.find(x => x.id === id && x.k === 'oven'), d = D.DISHES.find(x => x.id === dish); if (!o || !d) return false;
+    if (o.cook || o.done) { s.events.push({ e: 'ovenbusy' }); return false; }
+    if (!S.canPay(s, d.need)) { s.events.push({ e: 'ovenshort' }); return false; }
+    S.pay(s, d.need); o.cook = { d: dish, t: 0 }; s.events.push({ e: 'cookstart', d: dish }); return true;
+  };
+  S.ovenTake = function (s, id) {
+    const o = s.objects.find(x => x.id === id && x.k === 'oven'); if (!o || !o.done) return false;
+    s.inv[o.done] = (s.inv[o.done] || 0) + 1; s.events.push({ e: 'ovengot', d: o.done }); o.done = null; return true;
+  };
   // 相棒の道具（ひかるの道具とは別）：網を強く・釣りざおを作る・直す
   S.buddyTool = function (s, act) {
     const bu = s.buddy; let cost, ok = true;
@@ -411,7 +423,7 @@
   }
   // 小屋の中でできること：「ごはん」（持ち物の食べ物を1つ）／「朝まで眠る」（夜だけ。1晩に1回。おなか・のどが20以上のとき。朝までの時間が一気にすすむ）
   S.hutEat = function (s) {
-    if (!s.player.inHut) return false; const k = ['grilled', 'dried', 'veg', 'fish', 'coconut'].find(q => (s.inv[q] || 0) > 0);
+    if (!s.player.inHut) return false; const k = ['grilled', 'dried', 'yakiyasai', 'soup', 'tsukeni', 'nabe', 'veg', 'fish', 'coconut'].find(q => (s.inv[q] || 0) > 0);
     if (!k) { s.events.push({ e: 'hutnofood' }); return false; } return S.use(s, k);
   };
   // 日記：その日のできごとを数えておいて、小屋の中で「日記を書く」と1日1回、1行たまる
@@ -484,6 +496,7 @@
     const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
     const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
+    s.objects.forEach(o => { if (o.k === 'oven' && o.cook) { o.cook.t += dt; const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.done = o.cook.d; o.cook = null; s.events.push({ e: 'cooked', d: o.done }); } } });
     s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
       if (o.k !== 'campfire') return; delete o.cook;
       if (!S.cfBurning(o)) { o.burn = false; return; }
@@ -527,6 +540,7 @@
         const t = a.task; a.task = null; const o = s.objects.find(x => x.id === t.id);
         if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
         else if (o && o.k === 'campfire' && a === b) s.events.push({ e: 'campfire', id: o.id });
+        else if (o && o.k === 'oven' && a === b) s.events.push({ e: 'oven', id: o.id });
         else if (o && o.k === 'seat' && a === b) S.startLook(s, o);
         else if (o && o.k === 'rack' && a === b) S.rackUse(s, o);
         else if (o && o.k === 'plot' && a === b) S.plotUse(s, o);

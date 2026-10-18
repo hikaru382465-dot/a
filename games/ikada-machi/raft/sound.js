@@ -69,9 +69,12 @@ window.RAFT.parts.sound = function (c) {
     netlv: t => [523, 659, 784, 1047].forEach((f, i) => tone(t + i * 0.09, f, f, 0.22, 'sine', 0.22)),
     equip: t => tone(t, 900, 1200, 0.06, 'square', 0.1),
     no: t => tone(t, 220, 160, 0.15, 'sawtooth', 0.1),
-    thunder: t => noise(t, 1.6, 'lowpass', 420, 60, 0.6)
+    thunder: t => noise(t, 1.6, 'lowpass', 420, 60, 0.6),
+    sizzle: t => { noise(t, 0.9, 'highpass', 5200, 3000, 0.28); noise(t + 0.05, 0.7, 'bandpass', 2600, 1800, 0.18, 0.8); },
+    ding: t => { tone(t, 1568, 1568, 0.7, 'sine', 0.22); tone(t + 0.02, 2349, 2349, 0.5, 'sine', 0.1); tone(t + 0.28, 1568, 1568, 0.7, 'sine', 0.18); },
+    ovget: t => { tone(t, 300, 520, 0.1, 'sine', 0.22); tone(t + 0.08, 420, 760, 0.1, 'sine', 0.2); }
   };
-  const map = { throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', crafted: 'built', placed: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', locked: 'no', tankempty: 'no', miss: 'no', filtered: 'caught', rodcast: 'splash', bite: 'caught', fished: 'haul', rodempty: 'equip', grilled: 'caught', bcrafted: 'built', traded: 'built', boatarrive: 'equip', tear: 'no', broken: 'no', fixed: 'built', weak: 'no' };
+  const map = { cookstart: 'sizzle', cooked: 'ding', ovengot: 'ovget', throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', crafted: 'built', placed: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', locked: 'no', tankempty: 'no', miss: 'no', filtered: 'caught', rodcast: 'splash', bite: 'caught', fished: 'haul', rodempty: 'equip', grilled: 'caught', bcrafted: 'built', traded: 'built', boatarrive: 'equip', tear: 'no', broken: 'no', fixed: 'built', weak: 'no' };
   const rec = {
     splash: () => shot(pick(['splash', 'splash2', 'splash3']), 0.9, 0.95 + Math.random() * 0.1),
     caught: () => shot(pick(['bubble1', 'bubble2', 'bubble3']), 1.4, 0.9 + Math.random() * 0.3),
@@ -91,7 +94,7 @@ window.RAFT.parts.sound = function (c) {
     }
   };
   const T = { sunny: [0.09, 0], calm: [0.05, 0], storm: [0.2, 0.12] };
-  let waveT = 1, dragG = null, rainG = null;
+  let waveT = 1, dragG = null, rainG = null, simG = null, popT = 0;
   const WV = { sunny: 0.55, calm: 0.35, storm: 0.9 };
   return { update(t, dt) {
     if (!ctx) return; const w = T[s.weather.id] || T.sunny, now = ctx.currentTime, back = s.net.cast && s.net.cast.phase === 'back';
@@ -102,6 +105,8 @@ window.RAFT.parts.sound = function (c) {
     if (rainG) rainG.gain.setTargetAtTime(s.weather.id === 'storm' ? 0.5 : 0, now, 0.8);
     swish.gain.setTargetAtTime(!dragG && back ? 0.22 : 0, now, 0.08);
     if (dragG) dragG.gain.setTargetAtTime(back ? 0.7 : 0, now, 0.08);
+    { const cooking = s.objects.some(o => o.k === 'oven' && o.cook); if (!simG) { simG = loop('lowpass', 700, 1.2, 0); } simG.gain.setTargetAtTime(cooking ? 0.07 : 0, now, 0.3);      // かまどの、ぐつぐつ
+      popT -= dt; if (cooking && popT <= 0) { popT = 0.15 + Math.random() * 0.5; const f = 260 + Math.random() * 380; tone(now, f, f * 1.8, 0.07, 'sine', 0.1); } }
     waveT -= dt; if (waveT <= 0 && buf.wave1) { wave(WV[s.weather.id] || 0.5); waveT = 1.2 + Math.random() * 2.8; }
   } };
 };
