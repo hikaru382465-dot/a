@@ -4,6 +4,11 @@ from PIL import Image, ImageFilter
 here = pathlib.Path(__file__).parent; sys.path.insert(0, str(here)); import cutlib
 fr = [cutlib.cut_checker(here.parent / 'art' / 'face' / 'faces.png', (10 + 360 * i - 5, 150, 10 + 360 * i + 345, 560), shrink=1, fringe=1, trim=False, bgthr=(238, 14), seam=True) for i in range(6)]
 BOX = (148, 188, 282, 230)
+def clean(f):      # 右の髪のすきまに残った、白い背景の切れはし（まわりが暗い線で囲まれて、つながらず残る）を消す
+    import numpy as np
+    a = np.array(f); rgb = a[..., :3].astype(int); lt = (rgb.min(2) >= 195) & (rgb.max(2) - rgb.min(2) <= 55); reg = np.zeros(lt.shape, bool); reg[165:305, 262:] = True
+    a[..., 3] = np.where(lt & reg, 0, a[..., 3]); return Image.fromarray(a, 'RGBA')
+fr = [clean(f) for f in fr]
 def blink(base, src):
     m = Image.new('L', base.size, 0); m.paste(255, BOX); m = m.filter(ImageFilter.GaussianBlur(2)); o = base.copy(); o.paste(src, (0, 0), m); return o
 names = ['normal', 'smile', 'happy', 'sad', 'surprise', 'sleepy']
