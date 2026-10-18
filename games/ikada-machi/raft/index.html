@@ -90,10 +90,11 @@ button.on{background:#6b4231;color:#fff}
 #hutFace{width:72px;height:auto;margin:-46px 0 -2px;align-self:flex-end;border-radius:10px;background:#3b2448;border:1px solid #caa97e}#buddyFace{float:right;width:84px;height:auto;margin:-24px 0 4px 8px;border-radius:10px;background:#3b2448;border:1px solid #caa97e}#jobbox h2{margin:0 0 4px;font-size:15px}
 #ovbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(380px,90vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.5;z-index:20}
 #ovbox h2{margin:0 0 4px;font-size:15px}
-.dish{position:relative;display:flex;align-items:center;gap:10px;padding:6px 8px;margin:6px 0;border:1px solid #6b4231;border-radius:8px;background:#150a1c}
-.dish canvas{width:56px;height:44px;flex:none;image-rendering:auto}.dish .tx{flex:1}.dish .tx small{display:block;color:#cdb98f}.dish .no{color:#e0848a}
-.dish button{padding:6px 10px}.dish .bar{margin-top:3px}
-.stm{position:absolute;left:18px;top:-8px;width:40px;height:30px;pointer-events:none}.stm b{position:absolute;bottom:0;width:9px;height:9px;border-radius:50%;background:#f3e8cf;opacity:0;animation:stm 2s ease-in infinite}.stm b:nth-child(1){left:6px}.stm b:nth-child(2){left:18px;animation-delay:.6s}.stm b:nth-child(3){left:28px;animation-delay:1.2s}
+#ovRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 6px;background:#0003;border-radius:10px}
+#ovInv{display:flex;gap:8px;padding:8px;background:#0003;border-radius:10px;min-height:76px;align-items:center}
+.cslot.ov{width:56px;height:62px}.cslot.ov canvas{width:44px;height:36px;image-rendering:auto}
+#ovRow .carrow{position:relative;width:70px}#ovNow{font-size:11px;text-align:center;line-height:1.2;min-height:13px}
+.stm{position:absolute;left:14px;top:-22px;width:40px;height:30px;pointer-events:none}.stm b{position:absolute;bottom:0;width:9px;height:9px;border-radius:50%;background:#f3e8cf;opacity:0;animation:stm 2s ease-in infinite}.stm b:nth-child(1){left:6px}.stm b:nth-child(2){left:18px;animation-delay:.6s}.stm b:nth-child(3){left:28px;animation-delay:1.2s}
 @keyframes stm{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:.85}100%{transform:translateY(-26px) scale(1.5);opacity:0}}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #cfbox h2{margin:0 0 4px;font-size:15px}
@@ -133,7 +134,11 @@ button.on{background:#6b4231;color:#fff}
 <div id="pages"><div class="page" id="pageL"><div id="grid"></div></div><div class="page" id="pageR"><div id="detail"></div></div></div>
 </div></div>
 <div id="jobbox"><h2>相棒にお願い</h2><img id="buddyFace" alt=""><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
-<div id="ovbox"><h2>かまど</h2><div id="ovState"></div><div id="ovList"></div><div style="margin-top:8px;text-align:right"><button id="bOvClose">閉じる</button></div></div>
+<div id="ovbox"><h2>かまど</h2><div id="ovState"></div>
+<div id="ovRow"><div class="cslot ov" id="oVeg" data-drop="ovveg"><canvas width="64" height="64"></canvas><i></i><small>野菜</small></div><div class="cslot ov" id="oFish" data-drop="ovfish"><canvas width="64" height="64"></canvas><i></i><small>魚</small></div><div class="cslot ov" id="oWood" data-drop="ovwood"><canvas width="64" height="64"></canvas><i></i><small>燃料</small></div><div class="carrow"><div class="stm" id="ovSteam" style="display:none"><b></b><b></b><b></b></div><div class="bar" style="width:62px;height:9px"><i id="ovBar" style="width:0"></i></div><span id="ovNow">🍲</span></div><div class="cslot ov out" id="oOut" data-drop="ovout"><canvas width="64" height="64"></canvas><i></i><small>できた</small></div></div>
+<div id="cfHint">タップ＝1つ　ドラッグ＝全部　材料がそろうと、いちばんごちそうな料理を作る</div>
+<div id="ovInv" data-drop="ovinv"><div class="cslot ov" id="ivVeg"><canvas width="64" height="64"></canvas><i></i><small>野菜</small></div><div class="cslot ov" id="ivFish"><canvas width="64" height="64"></canvas><i></i><small>魚</small></div><div class="cslot ov" id="ivWood"><canvas width="64" height="64"></canvas><i></i><small>木くず</small></div></div>
+<div style="margin-top:8px;text-align:right"><button id="bOvClose">閉じる</button></div></div>
 <div id="cfbox"><h2>焚き火</h2><div id="cfState"></div>
 <div id="cfRow"><div class="cslot" id="sFish" data-drop="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cplus">＋</div><div class="cslot" id="sWood" data-drop="wood"><div class="cwrap"><canvas width="32" height="32"></canvas><b id="woodDim"></b></div><i></i><small>燃料</small></div><div class="carrow"><div class="bar" style="width:70px;height:9px"><i id="cfBar" style="width:0"></i></div><span id="cfFire">🔥</span></div><div class="cslot out" id="sOut" data-drop="out"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div id="cfHint">タップ＝1つ　ドラッグ＝全部（持ち物の下の枠 ⇄ 焚き火の枠）</div>

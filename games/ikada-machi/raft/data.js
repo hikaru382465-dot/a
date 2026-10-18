@@ -88,6 +88,7 @@ window.RAFT.data = {
     { id: 'tsukeni', need: { fish: 1, veg: 1, wood: 1 }, sec: 12 },
     { id: 'nabe', need: { fish: 2, veg: 2, wood: 2 }, sec: 16 }
   ],
+  OVEN: { maxIn: 8, maxOut: 16 },
   COOK: { sec: 12, perWood: 3, maxFish: 8, maxWood: 8, maxOut: 16 },   // 1匹12秒・木くず1個で3匹ぶん・各枠の上限
   // 船の住人との交渉：夕方に、嵐でなければ、1日に1回まで船が来る。1つの船に2つの取引。1つずつ、1回だけ
   BOAT: {

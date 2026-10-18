@@ -305,16 +305,21 @@
     const m = all ? o[key] : Math.min(n, o[key]); s.inv[k] = (s.inv[k] || 0) + m; o[key] -= m; if (what === 'fish' && !o.fi) o.p = 0; return true;
   };
   S.cfBurning = o => (o.fi || 0) > 0 && ((o.fl || 0) > 0 || (o.fw || 0) > 0) && (o.go || 0) < D.COOK.maxOut;
-  // かまど：料理を1つずつ作る。材料を入れると、秒数のあと「できた」になり、取り出すと持ち物に入る
-  S.cookStart = function (s, id, dish) {
-    const o = s.objects.find(x => x.id === id && x.k === 'oven'), d = D.DISHES.find(x => x.id === dish); if (!o || !d) return false;
-    if (o.cook || o.done) { s.events.push({ e: 'ovenbusy' }); return false; }
-    if (!S.canPay(s, d.need)) { s.events.push({ e: 'ovenshort' }); return false; }
-    S.pay(s, d.need); o.cook = { d: dish, t: 0 }; s.events.push({ e: 'cookstart', d: dish }); return true;
+  // かまど（焚き火のように）：野菜・魚・燃料（木くず）の枠に入れると、作れる料理のうち、いちばんごちそうなものを自動で作る。できた料理は「できた」の枠から取る
+  const OV_KEY = { veg: 'iv', fish: 'ifi', wood: 'iw' };
+  S.ovPut = function (s, id, what, n) {       // 持ち物 → かまど
+    const o = s.objects.find(x => x.id === id && x.k === 'oven'), key = OV_KEY[what]; if (!o || !key) return false; o[key] = o[key] || 0;
+    const m = Math.min(n === 'all' ? 99 : n, D.OVEN.maxIn - o[key], s.inv[what] || 0); if (m <= 0) return false; o[key] += m; s.inv[what] -= m; return true;
   };
-  S.ovenTake = function (s, id) {
-    const o = s.objects.find(x => x.id === id && x.k === 'oven'); if (!o || !o.done) return false;
-    s.inv[o.done] = (s.inv[o.done] || 0) + 1; s.events.push({ e: 'ovengot', d: o.done }); o.done = null; return true;
+  S.ovTake = function (s, id, what, n) {      // かまど → 持ち物（できた料理を取る／入れた物を戻す）
+    const o = s.objects.find(x => x.id === id && x.k === 'oven'); if (!o) return false;
+    if (what === 'out') { const out = o.out || {}; let any = false; Object.keys(out).forEach(k => { if (out[k] > 0) { s.inv[k] = (s.inv[k] || 0) + out[k]; any = true; } }); o.out = {}; if (any) s.events.push({ e: 'ovengot' }); return any; }
+    const key = OV_KEY[what]; if (!key || !o[key]) return false; const m = (n === undefined || n === 'all') ? o[key] : Math.min(n, o[key]); s.inv[what] = (s.inv[what] || 0) + m; o[key] -= m; return true;
+  };
+  S.ovOutN = o => Object.keys(o.out || {}).reduce((a, k) => a + o.out[k], 0);
+  S.ovNext = function (o) {      // 入っている材料で、いま作れるいちばんごちそうな料理
+    const have = { veg: o.iv || 0, fish: o.ifi || 0, wood: o.iw || 0 };
+    return D.DISHES.slice().reverse().find(d => Object.keys(d.need).every(k => have[k] >= d.need[k])) || null;
   };
   // 相棒の道具（ひかるの道具とは別）：網を強く・釣りざおを作る・直す
   S.buddyTool = function (s, act) {
@@ -496,7 +501,9 @@
     const wm = (s.buddy.job === 'water' && s.buddy.working && !s.buddy.path.length) ? 1 + 0.5 + 0.5 * s.buddy.mood / 100 : 1;
     const tcap = D.ITEMS.tank.cap, tanks = s.objects.filter(o => o.k === 'tank');
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
-    s.objects.forEach(o => { if (o.k === 'oven' && o.cook) { o.cook.t += dt; const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.done = o.cook.d; o.cook = null; s.events.push({ e: 'cooked', d: o.done }); } } });
+    s.objects.forEach(o => { if (o.k !== 'oven') return;     // かまど：材料がそろえば、ごちそうから順に作る
+      if (!o.cook && S.ovOutN(o) < D.OVEN.maxOut) { const d = S.ovNext(o); if (d) { o.iv = (o.iv || 0) - (d.need.veg || 0); o.ifi = (o.ifi || 0) - (d.need.fish || 0); o.iw = (o.iw || 0) - (d.need.wood || 0); o.cook = { d: d.id, t: 0 }; s.events.push({ e: 'cookstart', d: d.id }); } }
+      if (o.cook) { o.cook.t += dt; const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
     s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
       if (o.k !== 'campfire') return; delete o.cook;
       if (!S.cfBurning(o)) { o.burn = false; return; }
