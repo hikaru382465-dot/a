@@ -96,6 +96,7 @@ button.on{background:#6b4231;color:#fff}
 #ovRow .carrow{position:relative;width:70px}#ovNow{font-size:11px;text-align:center;line-height:1.2;min-height:13px}
 .stm{position:absolute;left:14px;top:-22px;width:40px;height:30px;pointer-events:none}.stm b{position:absolute;bottom:0;width:9px;height:9px;border-radius:50%;background:#f3e8cf;opacity:0;animation:stm 2s ease-in infinite}.stm b:nth-child(1){left:6px}.stm b:nth-child(2){left:18px;animation-delay:.6s}.stm b:nth-child(3){left:28px;animation-delay:1.2s}
 @keyframes stm{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:.85}100%{transform:translateY(-26px) scale(1.5);opacity:0}}
+body:not(.debug) .dbg{display:none}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #cfbox h2{margin:0 0 4px;font-size:15px}
 #cfRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 8px;background:#0003;border-radius:10px}
@@ -145,7 +146,7 @@ button.on{background:#6b4231;color:#fff}
 <div id="cfInv" data-drop="inv"><div class="cslot" id="iFish" data-item="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cslot" id="iWood" data-item="wood"><canvas width="32" height="32"></canvas><i></i><small>木くず</small></div><div class="cslot" id="iGrilled" data-item="grilled"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div style="margin-top:8px;text-align:right"><button id="bCfClose">閉じる</button></div></div>
 <div id="boatbox"><h2 id="boatName"></h2><div id="boatLine"></div><div id="boatDeals"></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bBoatBye">さよなら（船が去る）</button><button id="bBoatClose">閉じる</button></div></div>
-<div id="helpbox"><h2>あそびかた</h2><ul>
+<div id="helpbox"><h2 id="helpTitle">あそびかた</h2><ul>
 <li>右下の「持ち物」から、網を選んで手に持つ</li>
 <li>海を押し続ける → ゲージがたまる → 離すと網を投げる</li>
 <li>網が出ている間に画面を押す（または「引き寄せる」）で、引き寄せる</li>
@@ -153,7 +154,7 @@ button.on{background:#6b4231;color:#fff}
 <li>作業台を置くと、貯水槽・ろ過器・網の強化が作れる</li>
 <li>貯水槽は、嵐の雨で水がたまる。タップすると飲む</li>
 <li>ろ過器は、海水から、貯水槽に水を入れる</li></ul>
-<div style="margin-top:8px"><button id="bDemo">【テスト】置き物を全部ならべる</button> <button id="bDexAll">【テスト】図鑑（魚・景色）を全部のせる</button></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bCallBoat">【テスト】船をすぐ呼ぶ</button><button id="bHelpClose">わかった</button></div></div>
+<div id="dbgRow1" class="dbg" style="margin-top:8px"><button id="bDemo">【テスト】置き物を全部ならべる</button> <button id="bDexAll">【テスト】図鑑（魚・景色）を全部のせる</button></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bCallBoat" class="dbg">【テスト】船をすぐ呼ぶ</button><button id="bHelpClose">わかった</button></div></div>
 <canvas id="dragGhost" width="32" height="32"></canvas>
 <div id="hutview"><div id="hutWrap"><img id="hutImg" alt=""><img id="hutBed" alt=""></div></div>
 <div id="hutbar"><img id="hutFace" alt=""><div id="hutTx">小屋の中。ゆっくり休んでいる…</div><div class="lab"><span style="width:6em">ほっとした</span><div class="bar" style="width:110px"><i id="hutCalm" style="width:0"></i></div></div><div id="photoPick"><span>日記の写真</span><button data-m="raft" class="on">いかだ</button><button data-m="buddy">相棒</button><button data-m="hut">小屋</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button id="bHutEat">ごはん</button><button id="bHutDiary">日記を書く</button><button id="bHutRead">日記を読む</button><button id="bHutSleep">朝まで眠る</button><button id="bHutOut">出る</button></div></div>

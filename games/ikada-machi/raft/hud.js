@@ -268,6 +268,9 @@ window.RAFT.parts.hud = function (c) {
   $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene'); $('tFish').onclick = () => setTab('fish'); $('tDish').onclick = () => setTab('dish');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
+  // テスト用ボタンは、ふだんは見えない。「あそびかた」の題を5回すばやくタップするか、URLに ?debug をつけると出る（公開前は、この仕組みごと消してもよい）
+  { let n = 0, tm = 0; const on = () => document.body.classList.add('debug'); if (/[?&]debug/.test(location.search)) on();
+    $('helpTitle').onclick = () => { n++; clearTimeout(tm); tm = setTimeout(() => { n = 0; }, 900); if (n >= 5) { on(); toast('テスト用ボタンを出した'); } }; }
   $('bDemo').onclick = () => { sim.demoSet(s); $('helpbox').style.display = 'none'; toast('置き物を全部ならべた（テスト）。広いイカダにするので、セーブを消したいときは「?new」をつけて開く', 4000); };
   $('bDexAll').onclick = () => { s.inv.seed = (s.inv.seed || 0) + 5; Object.keys(D.FISH).forEach(k => { s.fishdex[k] = s.fishdex[k] || 1; }); Object.keys(D.SCENES).forEach(k => { s.scenes[k] = s.scenes[k] || 1; }); $('helpbox').style.display = 'none'; toast('図鑑を全部のせた（テスト）。持ち物の本で「魚」「景色」を見てね'); };
   $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
