@@ -60,7 +60,7 @@
 
   // ---------- 管理画面の事務的な欄（見せかけの値。投稿者IDから決まる） ----------
   const hashN = (t, m) => String(t).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7) % m;
-  const fakeIp = t => [hashN(t + "a", 200) + 30, hashN(t + "b", 250), hashN(t + "c", 250), hashN(t + "d", 250) + 2].join(".") + "（一部伏せ）";
+  const fakeIp = t => [hashN(t + "a", 200) + 30, hashN(t + "b", 250), hashN(t + "c", 250), hashN(t + "d", 250) + 2].join(".") + "";
 
   // ---------- 時計 ----------
   let clockMin = 0;
@@ -244,7 +244,7 @@
       updateBadge();
       if (n === 0) window.Gimmicks.zeroTrick(bPend, badgeEl);
     };
-    openWin("admin", D.siteName + " 管理画面", body, { w: 880, h: 520, x: 90, y: 20 });
+    openWin("admin", D.siteName.replace("（仮）", "") + " 管理画面", body, { w: 880, h: 520, x: 90, y: 20 });
     renderAdmin();
   }
 

@@ -60,8 +60,8 @@ window.Apps = (function () {
       '<rect x="22" y="10" width="40" height="40" fill="none" stroke="#dde" stroke-width="2"/><path d="M42 10V50M22 30H62" stroke="#dde" stroke-width="1.4"/><circle cx="52" cy="22" r="4" fill="#000" opacity=".7"/>',
       '<path d="M10 56H74M16 48H68M22 40H62M28 32H56" stroke="#dde" stroke-width="2" opacity=".75"/>',
       '<path d="M42 12Q60 12 60 30H24Q24 12 42 12ZM42 30V54Q42 58 38 58" stroke="#cdb" fill="none" stroke-width="2"/>'];
-    const picEl = r => { const n = (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("class", "pub-pic"); s.setAttribute("viewBox", "0 0 84 60"); s.innerHTML = PICS[n]; return s; };
-    const unused = r => { const n = (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; return h("svg", { class: "pub-pic", viewBox: "0 0 84 60", "aria-hidden": "true", innerhtml: "" }); };
+    const picEl = r => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("class", "pub-pic"); s.setAttribute("viewBox", "0 0 84 60"); s.innerHTML = PICS[n]; return s; };
+    const unused = r => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; return h("svg", { class: "pub-pic", viewBox: "0 0 84 60", "aria-hidden": "true", innerhtml: "" }); };
     const thumb = (r, i) => h("div", { class: "pub-thumb t" + r.tone }, picEl(r), i != null ? h("span", { class: "pub-rk" + (i < 3 ? " top" : "") }, String(i + 1)) : null, kindBadge(r));
     function listFor() {
       let r = rows();
@@ -72,7 +72,7 @@ window.Apps = (function () {
       return r;
     }
     function paint() {
-      const tabs = [["rank", "ランキング"], ["new", "新着"], ["hall", "殿堂入り"], ["short", "短編"], ["long", "長編"]];
+      const tabs = [["rank", "ランキング"], ["new", "新着"], ["hall", "殿堂入り"]];
       bar.replaceChildren(
         h("div", { class: "pub-nav" }, h("button", { class: "pub-navbtn", "aria-label": "戻る", onclick: () => { if (sel) { sel = null; paint(); } } }, "‹"), h("button", { class: "pub-navbtn", "aria-label": "更新", onclick: paint }, "↻")),
         h("div", { class: "pub-url" }, h("span", { class: "pub-lock" }, "🔒"), sel ? url + "/story/" + sel.id : url + (tab === "rank" ? "/" : "/" + tab)));
@@ -80,8 +80,10 @@ window.Apps = (function () {
       if (sel) return paintStory();
       view.append(
         h("div", { class: "pub-head" }, h("div", { class: "pub-logo" }, h("span", { class: "red" }, name.slice(0, 4)), name.slice(4)), h("div", { class: "pub-post" }, "怖い話を投稿")),
+        h("div", { class: "pub-search" }, h("span", { class: "pub-sq" }, "キーワードで怖い話を探す"), h("span", { class: "pub-sb" }, "検索")),
         h("div", { class: "pub-tabs" }, tabs.map(([k, l]) => h("button", { class: "pub-tab" + (tab === k ? " on" : ""), onclick: () => { tab = k; paint(); } }, l))),
-        h("div", { class: "pub-cats" }, D3.cats.map((c, i) => h("div", { class: "pub-cat" }, c.length > 2 ? [h("span", { class: i % 3 === 0 ? "red" : "" }, c.slice(0, 2)), c.slice(2)] : h("span", { class: i % 2 ? "" : "red" }, c)))),
+        h("div", { class: "pub-cats" }, D3.cats.slice(0, 8).map((c, i) => h("div", { class: "pub-cat" }, c.length > 2 ? [h("span", { class: "red" }, c.slice(0, 2)), c.slice(2)] : h("span", { class: "red" }, c)))),
+        h("div", { class: "pub-ad" }, h("span", { class: "pub-adl" }, "広告"), h("div", { class: "pub-adt" }, "眠れない夜に。遮光カーテン・防音シート 特集"), h("span", { class: "pub-adb" }, "詳しく見る")),
         h("div", { class: "pub-notice" }, D3.notices.map(n => h("div", { class: "pub-n" }, h("span", { class: "pub-nd" }, "📣 " + n.d), h("span", { class: n.hot ? "pub-nt hot" : "pub-nt" }, n.t)))),
         h("div", { class: "pub-h2" }, h("span", { class: "red" }, "怖い話"), tab === "new" ? "新着" : tab === "hall" ? "殿堂入り" : tab === "rank" ? "ランキング" : tab === "long" ? "長編" : "短編"));
       const list = listFor();
@@ -89,18 +91,23 @@ window.Apps = (function () {
         thumb(r, tab === "new" ? null : i),
         h("div", { class: "pub-info" }, h("div", { class: "pub-t" }, r.title), h("div", { class: "pub-a" }, "投稿者：" + r.author)),
         h("div", { class: "pub-side" }, h("div", { class: "pub-cnt" }, h("span", { class: "fl" }, "🔥"), String(r.fire), h("span", { class: "cmi" }, "💬"), String(r.cm)), h("div", { class: "pub-d" }, r.date)))));
+      view.append(h("div", { class: "pub-pager" }, h("span", { class: "pg on" }, "1"), h("span", { class: "pg" }, "2"), h("span", { class: "pg" }, "3"), h("span", { class: "pg" }, "…"), h("span", { class: "pg" }, "次へ ›"), h("div", { class: "pub-total" }, "全 " + (212 + items.length * 1) + " 件")));
       if (api.D.externalUrl) view.append(h("div", { class: "pub-ext" }, "外のサイトでも読めます：", h("a", { href: api.D.externalUrl, target: "_blank", rel: "noopener" }, name + "（外のサイトを開く）")));
       view.append(h("div", { class: "pub-foot" }, "© " + name + "　運営：管理人室　お問い合わせ　利用規約"));
     }
     function paintStory() {
-      const r = sel, cs = r.mine ? visibleComments(r.e) : D3.legacyCm.slice(0, Math.min(r.cm, 4)).map((c, k) => ({ n: c.n, t: c.t, at: "2026/" + r.date.slice(5, 10) + " " + (22 + k) % 24 + ":" + String(10 + k * 7).padStart(2, "0") }));
+      const r = sel, cs = r.mine ? visibleComments(r.e) : D3.legacyCm.slice(0, Math.min(r.cm, 4)).map((c, k) => ({ n: c.n, t: c.t, at: "2026/" + r.date.slice(5, 10) + " " + String((22 + k) % 24).padStart(2, "0") + ":" + String(10 + k * 7).padStart(2, "0") }));
       view.append(h("div", { class: "pub-story" },
         h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
         h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),
         h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　🔥 " + r.fire),
         r.body.map(t => h("p", {}, t)),
         h("div", { class: "pub-cmh" }, "読者コメント（" + cs.length + "）"),
-        cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません")));
+        cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"),
+        h("div", { class: "pub-form" }, h("div", { class: "pub-input" }, "名前（省略可）"), h("div", { class: "pub-input tall" }, "コメントを書く"), h("span", { class: "pub-sb" }, "投稿する")),
+        h("div", { class: "pub-share" }, h("span", {}, "ツイート"), h("span", {}, "LINEで送る"), h("span", {}, "URLをコピー")),
+        h("div", { class: "pub-rel" }, h("div", { class: "pub-cmh" }, "この話を読んだ人は、こちらも読んでいます"),
+          rows().filter(x => x.id !== r.id).slice(1, 4).map(x => h("div", { class: "pub-relrow", onclick: () => { sel = x; page.scrollTop = 0; paint(); } }, "› " + x.title + "　（" + x.author + "）")))));
     }
     paint();
     api.openWin("site", name + " - ブラウザ", wrap, { w: 460, h: 700, x: 520, y: 8 });
