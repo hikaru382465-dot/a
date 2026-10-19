@@ -7,8 +7,8 @@ window.RAFT.parts.buddy = function (c) {
   const shadowCv = (() => { const [cv, g] = I.canvas(32, 16); g.fillStyle = 'rgba(20,10,40,.5)'; g.beginPath(); g.ellipse(16, 8, 15, 7, 0, 0, 6.3); g.fill(); return cv; })();
   const shadowTex = c.tex(shadowCv);
   const DIRS = ['down', 'up', 'left', 'right'];
-  function makeChar(name, actor, tint) {
-    const set = CA && CA[name]; if (!set) return null;
+  function makeChar(name, actor, tint, own) {
+    const set = own || (CA && CA[name]); if (!set) return null;
     const ch = { actor, tex: {}, ready: false };
     let left = 0;
     DIRS.forEach(d => { ch.tex[d] = []; set[d].forEach((f, i) => { left++; const im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; ch.tex[d][i] = tx; if (--left === 0) ch.ready = true; }; im.src = f.src; }); });
@@ -21,7 +21,7 @@ window.RAFT.parts.buddy = function (c) {
     ch.set = set; return ch;
   }
   const chars = [makeChar('boy', s.player), makeChar('girl', s.buddy)].filter(Boolean);
-  const RA = R.resArt || {}; Object.keys(R.data.BOAT.RES).forEach(id => { const rs = R.data.BOAT.RES[id], ch = makeChar(RA[id] ? id : rs.base, s.res[id], RA[id] ? null : rs.tint); if (ch) { ch.resId = id; chars.push(ch); } });      // 住人（ひかるの絵 R.resArt があればそれ）
+  const RA = R.resArt || {}; Object.keys(R.data.BOAT.RES).forEach(id => { const rs = R.data.BOAT.RES[id], ch = makeChar(rs.base, s.res[id], RA[id] ? null : rs.tint, RA[id]); if (ch) { ch.resId = id; chars.push(ch); } });      // 住人（ひかるの絵 R.resArt があればそれ）
   // 相棒のしぐさ（poses_art.js）：釣り・座る・寝る・水を飲む・やったー！ など。1枚絵なので、左向きは左右反転
   const PA = R.poseArt, poseTex = {};
   if (PA) Object.keys(PA.poses).forEach(k => { const f = PA.poses[k], im = new Image(); im.onload = () => { const tx = new THREE.Texture(im); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true; poseTex[k] = tx; }; im.src = f.src; });

@@ -52,7 +52,7 @@ def tone_light(img):
     k = np.where(m, 1.0, 0.0)[..., None]; g = np.repeat(v[..., None], 3, 2)      # 彩度を下げ、明るさを少し下げる
     out = rgb * (1 - k) + (g + (rgb - g) * 0.8) * 0.965 * k; a[..., :3] = np.clip(out, 0, 1); return Image.fromarray((a * 255).astype(np.uint8), 'RGBA')
 
-def build_green(path, dirs):
+def build_green(path, dirs, tone=True):
     """緑背景の歩く絵（4行×4コマ）。行は上から dirs の順。"""
     import sys; sys.path.insert(0, str(here)); import cutlib
     Ag, fg = cutlib.key_green(path); comps = components(fg, 600)
@@ -68,7 +68,7 @@ def build_green(path, dirs):
             w, h = c - a + 1, e - b + 1; cell = Image.new('RGBA', (w, h), (0, 0, 0, 0)); px = cell.load()
             for (py, pxx) in pts:
                 r_, g_, b_ = Ag[py, pxx]; px[pxx - a, py - b] = (r_, min(g_, max(r_, b_) + 4), b_, 255)      # ふちの緑がかった色をなおす
-            cell = tone_light(cell)      # 明るい色（ずきん・服）だけ、小屋の中の相棒に合わせて、少し白く落ち着かせる
+            if tone: cell = tone_light(cell)      # 明るい色（ずきん・服）だけ、小屋の中の相棒に合わせて、少し白く落ち着かせる
             cell.putalpha(cell.getchannel('A').filter(ImageFilter.MinFilter(3)))
             nw, nh = max(1, round(w * scale)), max(1, round(h * scale)); small = cell.resize((nw, nh), Image.LANCZOS)
             alpha = small.getchannel('A').point(lambda v: 255 if v > 110 else 0); small.putalpha(alpha)
