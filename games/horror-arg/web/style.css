@@ -432,3 +432,6 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .pub-form .pub-sb{align-self:flex-start;border-radius:3px}
 .pub-share{display:flex;gap:8px;margin-top:14px}.pub-share span{font-size:12px;padding:5px 10px;border:1px solid #444;border-radius:3px;color:#cfcfd4}
 .pub-relrow{font-size:13px;padding:6px 0;border-bottom:1px solid #2c2c30;color:#9cc4e6;cursor:pointer}
+#wallpaper.night{background-image:linear-gradient(rgba(6,8,14,.12),rgba(6,8,14,.12)),url(wallpaper_night.jpg);background-position:12% center;filter:none}
+#wallpaper.red{background-image:linear-gradient(rgba(6,8,14,.12),rgba(6,8,14,.12)),url(wallpaper_red.jpg);background-position:12% center;filter:none}
+#wallpaper.lit{background-image:linear-gradient(rgba(6,8,14,.05),rgba(6,8,14,.05)),url(wallpaper_lit.jpg);background-position:left center;filter:none}

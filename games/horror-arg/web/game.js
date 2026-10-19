@@ -62,6 +62,9 @@
   const hashN = (t, m) => String(t).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7) % m;
   const fakeIp = t => [hashN(t + "a", 200) + 30, hashN(t + "b", 250), hashN(t + "c", 250), hashN(t + "d", 250) + 2].join(".") + "";
 
+  // 壁紙：日ごとに変わる（空白＝黄色いもや／night／red／最後の投稿だけ lit）
+  function setWall(k) { $("#wallpaper").className = k || ""; }
+
   // ---------- 時計 ----------
   let clockMin = 0;
   const clockStr = () => String(Math.floor(clockMin / 60) % 24).padStart(2, "0") + ":" + String(clockMin % 60).padStart(2, "0");
@@ -215,6 +218,7 @@
         if (e.origin) meta.append(h("span", {}, "投稿元コード：", h("b", {}, e.origin)));
         const bodyEl = h("div", { class: "det-body" }, e.body.map(t => h("p", {}, t)));
         window.Apps.decorate(e, bodyEl);
+        if (e.last) setWall("lit");
         if (e.photo) {
           const info = h("div", { class: "photo-info hidden" });
           const bInfo = h("button", { class: "btn", style: "margin-top:6px", onclick: () => {
@@ -505,7 +509,7 @@
     }
     await sleep(500);
     bs.classList.add("hidden"); $("#screen-desk").classList.remove("hidden");
-    buildIcons(); S.startAmbient(); S.setDay(state.day); window.Gimmicks.start();
+    setWall(state.day >= 5 ? "red" : state.day >= 3 ? "night" : ""); buildIcons(); S.startAmbient(); S.setDay(state.day); window.Gimmicks.start();
     await sleep(1400); S.notify();
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。");
