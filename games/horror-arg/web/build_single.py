@@ -12,7 +12,7 @@ css = (here / "style.css").read_text(encoding="utf-8")
 body = re.search(r"<body>(.*)</body>", html, re.S).group(1)
 body = re.sub(r"<script src=\"[^\"]+\"></script>\s*", "", body)
 scripts = "\n".join((here / n).read_text(encoding="utf-8") for n in
-                    ["data.js", "data2.js", "sound.js", "apps.js", "gimmicks.js", "game.js"])
+                    ["data.js", "data2.js", "data3.js", "sound.js", "apps.js", "gimmicks.js", "game.js"])
 scripts = scripts.replace("</script", "<\\/script")
 
 page = f"""<title>投稿受付中</title>

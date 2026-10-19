@@ -308,3 +308,106 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .sr-player{position:relative;max-width:360px;margin-bottom:10px}.sr-player .thumb{width:100%;height:auto;border-radius:6px;display:block}
 .sr-bigplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:22px;cursor:pointer;padding-left:4px}
 @media (max-width:760px){.sr-vid{flex-direction:column}.sr-vthumb{flex:none}}
+
+/* ===== 壁紙（夕暮れの家） ===== */
+#wallpaper{position:absolute;inset:0;width:100%;height:100%;display:block}
+.icon{text-shadow:0 1px 3px rgba(0,0,0,.85)}
+.icon .glyph{box-shadow:0 2px 8px rgba(0,0,0,.45)}
+
+/* ===== 管理画面・類似チェックを暗い雰囲気に ===== */
+.w-admin,.w-cmp{--panel:#14171e;--ink:#d9deea;--muted:#8a93a8;--line:#2a303d;background:#14171e}
+.w-admin .win-title,.w-cmp .win-title{background:#0d0f14;color:#c4cbdc}
+.w-admin .adm-top,.w-cmp .cmp-bar{background:#10131a;border-bottom-color:#2a303d;color:#d9deea}
+.w-admin .adm-top .tag{background:#7a2a2a}
+.w-admin .adm-list{background:#0f1218;border-right-color:#2a303d}
+.w-admin .adm-row{border-bottom-color:#1c212c}
+.w-admin .adm-row:hover{background:#171c26}
+.w-admin .adm-row.sel{background:#1d2433;box-shadow:inset 3px 0 0 #b33a3a}
+.w-admin .adm-row .ttl{color:#e4e8f2}
+.w-admin .adm-detail{background:#14171e}
+.w-admin .adm-empty{color:#7c859a}
+.w-admin .det-head{border-bottom-color:#232937}
+.w-admin .det-head h2{color:#eef1f8}
+.w-admin .det-meta b{color:#b9c1d4}
+.w-admin .det-body{color:#d3d9e6}
+.w-admin .det-foot,.w-cmp .cmp-foot{background:#0f1218;border-top-color:#2a303d}
+.w-admin .adm-bottom{background:#0f1218;border-top-color:#2a303d}
+.w-admin .btn,.w-cmp .btn{background:#1c212c;border-color:#323a4a;color:#d9deea}
+.w-admin .btn:hover,.w-cmp .btn:hover{background:#252c3a}
+.w-admin .btn.primary{background:#3a5fa8;border-color:#3a5fa8;color:#fff}
+.w-admin .btn.ok,.w-cmp .btn.ok{background:#2e7d52;border-color:#2e7d52;color:#fff}
+.w-admin .btn.ng,.w-cmp .btn.ng{background:#a8352b;border-color:#a8352b;color:#fff}
+.w-admin .btn.hold{background:#1c212c;border-color:#a8741a;color:#e0b05a}
+.w-admin .tab{color:#9aa3b8}
+.w-admin .tab.on,.w-admin .tab.active{color:#fff}
+.w-cmp .cmp-col{background:#14171e;color:#d3d9e6}
+.w-cmp .cmp-col+.cmp-col{border-left-color:#2a303d}
+.w-cmp .cmp-bar select{background:#1c212c;color:#d9deea;border-color:#323a4a}
+.w-cmp .sent:hover{background:#222a3a}
+.w-cmp .sent.picked{background:#26385c;outline-color:#4d7bd0}
+.w-cmp .sent.match{background:#5a4210;outline-color:#d99a1d;color:#ffe8b8}
+
+/* ===== 公開サイト（ブラウザの中の、夜ばなし投稿館） ===== */
+.w-site{--panel:#1a1a1c;background:#1a1a1c}
+.w-site .win-title{background:#0d0d0f}
+.pub-wrap{display:flex;flex-direction:column;height:100%;background:#1b1b1d;color:#e6e6e6}
+.pub-bar{display:flex;align-items:center;gap:8px;padding:6px 8px;background:#2a2a2e;border-bottom:1px solid #111}
+.pub-nav{display:flex;gap:2px}
+.pub-navbtn{background:none;border:none;color:#c8c8cc;font-size:18px;width:28px;height:26px;border-radius:5px;cursor:pointer}
+.pub-navbtn:hover{background:rgba(255,255,255,.1)}
+.pub-url{flex:1;background:#151517;border-radius:14px;padding:4px 12px;font-size:12px;color:#c9c9cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pub-url .pub-lock{font-size:10px;margin-right:6px;opacity:.7}
+.pub-scroll{flex:1;min-height:0;overflow:auto;user-select:text}
+.pub{padding-bottom:12px}
+.pub .red,.pub-h2 .red{color:#e3201b}
+.pub-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#141416}
+.pub-logo{font-size:21px;font-weight:800;letter-spacing:2px;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif CJK JP",serif;color:#f1f1f1}
+.pub-post{background:#3c83b9;color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:16px;white-space:nowrap}
+.pub-tabs{display:flex;background:#d9d9dc}
+.pub-tab{flex:1;background:none;border:none;padding:10px 2px;font-family:inherit;font-size:13px;font-weight:700;color:#24242a;cursor:pointer}
+.pub-tab.on{background:#fff;box-shadow:inset 0 -3px 0 #3c83b9}
+.pub-cats{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #2c3140;background:linear-gradient(180deg,#0f1524,#1b1816)}
+.pub-cat{padding:12px 2px;text-align:center;font-size:12px;font-weight:700;border-right:1px solid #2c3140;border-bottom:1px solid #2c3140;color:#f0f0f0}
+.pub-cat:nth-child(5n){border-right:none}
+.pub-notice{margin:12px;border:1px solid #333;padding:6px 10px;background:#161618}
+.pub-n{display:flex;gap:10px;font-size:12px;padding:5px 0;align-items:baseline}
+.pub-nd{color:#b9b9be;white-space:nowrap}
+.pub-nt{text-decoration:underline;color:#e3e3e6}.pub-nt.hot{color:#ff8a82}
+.pub-h2{margin:6px 0 0;padding:12px 14px;text-align:center;font-size:18px;font-weight:800;background:#202023;border-bottom:1px solid #3a3a3e}
+.pub-note{margin:14px;font-size:12px;color:#9a9aa2;text-align:center}
+.pub-row{display:flex;align-items:center;gap:10px;padding:12px 12px;border-bottom:1px solid #2c2c30;cursor:pointer}
+.pub-row:hover,.pub-row:focus-visible{background:#232327;outline:none}
+.pub-thumb{position:relative;flex:none;width:84px;height:60px;overflow:hidden;background:#222;border-radius:2px}
+.pub-thumb.t0{background:radial-gradient(circle at 70% 30%,#2f6e8f,#06121b 70%)}
+.pub-thumb.t1{background:radial-gradient(circle at 30% 60%,#5a3d2a,#0c0807 70%)}
+.pub-thumb.t2{background:linear-gradient(135deg,#171a24,#4a4d63 60%,#101015)}
+.pub-thumb.t3{background:radial-gradient(circle at 50% 40%,#6f6f78,#17171b 75%)}
+.pub-thumb.t4{background:linear-gradient(120deg,#33204a,#b0425b 55%,#243b6a)}
+.pub-thumb.t5{background:radial-gradient(circle at 40% 70%,#3d5b3d,#0a100a 70%)}
+.pub-rk{position:absolute;top:0;left:0;min-width:18px;height:18px;line-height:17px;text-align:center;font-size:11px;font-weight:700;color:#d7d7da;border:1px solid #7f9fcb;background:rgba(10,14,22,.6)}
+.pub-rk.top{border-color:#cdb67a;color:#f1dfab}
+.pub-kind{position:absolute;left:0;bottom:0;padding:1px 6px;font-size:12px;font-weight:800;color:#fff}
+.pub-kind.short{background:#d1241d}.pub-kind.long{background:#b39a6a}
+.pub-info{flex:1;min-width:0}
+.pub-t{font-size:15px;font-weight:700;line-height:1.35;color:#f2f2f4}
+.pub-a{font-size:12px;color:#8f8f97;margin-top:6px}
+.pub-side{flex:none;text-align:right}
+.pub-cnt{font-size:13px;color:#e8e8ea;white-space:nowrap}
+.pub-cnt .fl{color:#e0382f;margin-right:4px}.pub-cnt .cmi{margin:0 4px 0 10px;opacity:.7}
+.pub-d{font-size:11px;color:#8a8a92;margin-top:8px;white-space:nowrap}
+.pub-ext{margin:12px 14px 0;font-size:12px;color:#9a9aa2}.pub-ext a{color:#7fb2e0}
+.pub-foot{margin:14px 12px 0;padding-top:10px;border-top:1px solid #2c2c30;font-size:11px;color:#7d7d85;text-align:center}
+.pub-story{padding:12px 16px 20px;line-height:1.95;font-size:15px}
+.pub-back{background:none;border:none;color:#7fb2e0;font-family:inherit;font-size:13px;cursor:pointer;padding:2px 0 8px}
+.pub-s-top{display:flex;align-items:center;gap:8px}
+.pub-s-top .pub-kind{position:static}
+.pub-s-top h2{margin:0;font-size:19px}
+.pub-s-meta{font-size:12px;color:#8f8f97;margin:6px 0 14px}
+.pub-story p{margin:0 0 12px;color:#dcdce0}
+.pub-cmh{margin:18px 0 6px;padding-top:10px;border-top:1px solid #333;font-size:13px;font-weight:700;color:#bdbdc4}
+.pub-story .cm{border-bottom-color:#2c2c30;color:#d6d6da}.pub-story .cm-t{color:#8a8a92}
+.pub-story .cm-none{color:#8a8a92}
+.w-admin .tabs{background:#0f1218;border-bottom-color:#2a303d}
+.w-admin .tab.on{background:#1d2433;box-shadow:inset 0 -2px 0 #b33a3a}
+.w-admin .st{background:#4a5266}
+.w-admin .st.approve{background:#2e7d52}.w-admin .st.reject{background:#a8352b}.w-admin .st.hold{background:#a8741a}

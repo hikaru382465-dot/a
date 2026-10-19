@@ -41,19 +41,60 @@ window.Apps = (function () {
   }
   const visibleComments = e => (E().comments[e.base] || []).filter(c => !c.odd || day() > e.day);
   function openSite() {
-    const items = approvedList();
-    const body = h("div", { class: "site" }, h("div", { class: "site-head" }, h("div", { class: "site-logo" }, api.D.siteName.replace("（仮）", "")), h("div", { class: "site-sub" }, "みんなの怖い話　— 公開中の投稿")));
-    if (!items.length) body.append(h("div", { class: "adm-empty" }, "まだ掲載された投稿はありません。管理画面で「承認」すると、ここに載ります。"));
-    items.forEach(e => {
-      const cs = visibleComments(e);
-      body.append(h("article", { class: "site-post" },
-        h("h3", {}, e.title.replace("【再投稿】", "")), h("div", { class: "site-meta" }, "投稿者：" + e.author + "　" + e.time),
-        e.body.map(t => h("p", {}, t)),
-        h("div", { class: "site-cm" }, h("div", { class: "site-cm-h" }, "読者コメント（" + cs.length + "）"),
-          cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"))));
-    });
-    if (api.D.externalUrl) body.append(h("div", { class: "site-ext" }, "外のサイトでも読めます：", h("a", { href: api.D.externalUrl, target: "_blank", rel: "noopener" }, "夜ばなし投稿館（外のサイトを開く）")));
-    api.openWin("site", "公開サイト（読者に見える画面）", h("div", { class: "site-wrap" }, body), { w: 680, h: 500, x: 220, y: 40 });
+    const D3 = window.GAME_DATA3, items = approvedList();
+    const name = api.D.siteName.replace("（仮）", "");
+    const pubTone = e => (e.base || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 6;
+    const rows = () => items.map(e => ({ id: e.base, title: e.title.replace("【再投稿】", ""), author: e.author, kind: e.body.join("").length > 330 ? "長編" : "短編",
+      fire: 2 + ((e.base || "").charCodeAt(2) || 3) % 4, cm: visibleComments(e).length, date: "2026/10/" + String(10 + e.day).padStart(2, "0") + " " + e.time.replace("今日 ", "").replace(/^(\d)/, "0$1"), tone: pubTone(e), body: e.body, mine: true, e: e }))
+      .concat(D3.legacy.map(l => Object.assign({ mine: false }, l)));
+    let tab = "rank", sel = null, url = "yobanashi-kan.example";
+    const view = h("div", { class: "pub" });
+    const bar = h("div", { class: "pub-bar" });
+    const page = h("div", { class: "pub-scroll" }, view);
+    const wrap = h("div", { class: "pub-wrap" }, bar, page);
+    const kindBadge = r => h("span", { class: "pub-kind " + (r.kind === "長編" ? "long" : "short") }, r.kind);
+    const thumb = (r, i) => h("div", { class: "pub-thumb t" + r.tone }, i != null ? h("span", { class: "pub-rk" + (i < 3 ? " top" : "") }, String(i + 1)) : null, kindBadge(r));
+    function listFor() {
+      let r = rows();
+      if (tab === "rank") r = r.sort((a, b) => b.fire - a.fire);
+      else if (tab === "new") r = r.sort((a, b) => (a.date < b.date ? 1 : -1));
+      else if (tab === "hall") r = r.filter(x => !x.mine).sort((a, b) => b.fire - a.fire).slice(0, 5);
+      else r = r.filter(x => x.kind === (tab === "long" ? "長編" : "短編")).sort((a, b) => b.fire - a.fire);
+      return r;
+    }
+    function paint() {
+      const tabs = [["rank", "ランキング"], ["new", "新着"], ["hall", "殿堂入り"], ["short", "短編"], ["long", "長編"]];
+      bar.replaceChildren(
+        h("div", { class: "pub-nav" }, h("button", { class: "pub-navbtn", "aria-label": "戻る", onclick: () => { if (sel) { sel = null; paint(); } } }, "‹"), h("button", { class: "pub-navbtn", "aria-label": "更新", onclick: paint }, "↻")),
+        h("div", { class: "pub-url" }, h("span", { class: "pub-lock" }, "🔒"), sel ? url + "/story/" + sel.id : url + (tab === "rank" ? "/" : "/" + tab)));
+      view.replaceChildren();
+      if (sel) return paintStory();
+      view.append(
+        h("div", { class: "pub-head" }, h("div", { class: "pub-logo" }, h("span", { class: "red" }, name.slice(0, 4)), name.slice(4)), h("div", { class: "pub-post" }, "怖い話を投稿")),
+        h("div", { class: "pub-tabs" }, tabs.map(([k, l]) => h("button", { class: "pub-tab" + (tab === k ? " on" : ""), onclick: () => { tab = k; paint(); } }, l))),
+        h("div", { class: "pub-cats" }, D3.cats.map((c, i) => h("div", { class: "pub-cat" }, c.length > 2 ? [h("span", { class: i % 3 === 0 ? "red" : "" }, c.slice(0, 2)), c.slice(2)] : h("span", { class: i % 2 ? "" : "red" }, c)))),
+        h("div", { class: "pub-notice" }, D3.notices.map(n => h("div", { class: "pub-n" }, h("span", { class: "pub-nd" }, "📣 " + n.d), h("span", { class: n.hot ? "pub-nt hot" : "pub-nt" }, n.t)))),
+        h("div", { class: "pub-h2" }, h("span", { class: "red" }, "怖い話"), tab === "new" ? "新着" : tab === "hall" ? "殿堂入り" : tab === "rank" ? "ランキング" : tab === "long" ? "長編" : "短編"));
+      const list = listFor();
+      list.forEach((r, i) => view.append(h("div", { class: "pub-row", tabindex: "0", role: "button", onclick: () => { sel = r; page.scrollTop = 0; paint(); }, onkeydown: ev => { if (ev.key === "Enter") { sel = r; paint(); } } },
+        thumb(r, tab === "new" ? null : i),
+        h("div", { class: "pub-info" }, h("div", { class: "pub-t" }, r.title), h("div", { class: "pub-a" }, "投稿者：" + r.author)),
+        h("div", { class: "pub-side" }, h("div", { class: "pub-cnt" }, h("span", { class: "fl" }, "🔥"), String(r.fire), h("span", { class: "cmi" }, "💬"), String(r.cm)), h("div", { class: "pub-d" }, r.date)))));
+      if (api.D.externalUrl) view.append(h("div", { class: "pub-ext" }, "外のサイトでも読めます：", h("a", { href: api.D.externalUrl, target: "_blank", rel: "noopener" }, name + "（外のサイトを開く）")));
+      view.append(h("div", { class: "pub-foot" }, "© " + name + "　運営：管理人室　お問い合わせ　利用規約"));
+    }
+    function paintStory() {
+      const r = sel, cs = r.mine ? visibleComments(r.e) : D3.legacyCm.slice(0, Math.min(r.cm, 4)).map((c, k) => ({ n: c.n, t: c.t, at: "2026/" + r.date.slice(5, 10) + " " + (22 + k) % 24 + ":" + String(10 + k * 7).padStart(2, "0") }));
+      view.append(h("div", { class: "pub-story" },
+        h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
+        h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),
+        h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　🔥 " + r.fire),
+        r.body.map(t => h("p", {}, t)),
+        h("div", { class: "pub-cmh" }, "読者コメント（" + cs.length + "）"),
+        cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません")));
+    }
+    paint();
+    api.openWin("site", name + " - ブラウザ", wrap, { w: 460, h: 700, x: 520, y: 8 });
   }
   // 承認から少し後に、読者コメントが届く（音と通知）
   function onApprove(e) {

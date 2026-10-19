@@ -92,7 +92,7 @@
     o.x = Math.max(0, Math.min(o.x, dw - o.w)); o.y = Math.max(0, Math.min(o.y, dh - o.h));
     const bMin = h("button", { title: "最小化", "aria-label": "最小化" }, "–"), bX = h("button", { class: "x", title: "閉じる", "aria-label": "閉じる" }, "×");
     const bar = h("div", { class: "win-title" }, h("span", { class: "t" }, title), bMin, bX);
-    const el = h("div", { class: "win", style: `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px` },
+    const el = h("div", { class: "win w-" + id, style: `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px` },
       bar, h("div", { class: "win-body" }, body));
     const tb = h("div", { class: "tb-item" }, title);
     $("#desktop").append(el); $("#tb-items").append(tb);
