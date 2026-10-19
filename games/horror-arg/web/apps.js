@@ -53,7 +53,16 @@ window.Apps = (function () {
     const page = h("div", { class: "pub-scroll" }, view);
     const wrap = h("div", { class: "pub-wrap" }, bar, page);
     const kindBadge = r => h("span", { class: "pub-kind " + (r.kind === "長編" ? "long" : "short") }, r.kind);
-    const thumb = (r, i) => h("div", { class: "pub-thumb t" + r.tone }, i != null ? h("span", { class: "pub-rk" + (i < 3 ? " top" : "") }, String(i + 1)) : null, kindBadge(r));
+    const PICS = [
+      '<path d="M28 60V14h28v46M52 38v3" stroke="#bcd" fill="none" stroke-width="2"/>',
+      '<path d="M0 50L30 40H84M0 22L30 30H84" stroke="#ccd" fill="none" stroke-width="1.6" opacity=".7"/><rect x="38" y="30" width="8" height="10" fill="#111"/>',
+      '<circle cx="42" cy="26" r="9" fill="#050505"/><path d="M26 60Q42 34 58 60Z" fill="#050505"/>',
+      '<rect x="22" y="10" width="40" height="40" fill="none" stroke="#dde" stroke-width="2"/><path d="M42 10V50M22 30H62" stroke="#dde" stroke-width="1.4"/><circle cx="52" cy="22" r="4" fill="#000" opacity=".7"/>',
+      '<path d="M10 56H74M16 48H68M22 40H62M28 32H56" stroke="#dde" stroke-width="2" opacity=".75"/>',
+      '<path d="M42 12Q60 12 60 30H24Q24 12 42 12ZM42 30V54Q42 58 38 58" stroke="#cdb" fill="none" stroke-width="2"/>'];
+    const picEl = r => { const n = (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("class", "pub-pic"); s.setAttribute("viewBox", "0 0 84 60"); s.innerHTML = PICS[n]; return s; };
+    const unused = r => { const n = (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; return h("svg", { class: "pub-pic", viewBox: "0 0 84 60", "aria-hidden": "true", innerhtml: "" }); };
+    const thumb = (r, i) => h("div", { class: "pub-thumb t" + r.tone }, picEl(r), i != null ? h("span", { class: "pub-rk" + (i < 3 ? " top" : "") }, String(i + 1)) : null, kindBadge(r));
     function listFor() {
       let r = rows();
       if (tab === "rank") r = r.sort((a, b) => b.fire - a.fire);

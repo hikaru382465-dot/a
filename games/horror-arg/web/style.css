@@ -411,3 +411,10 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .w-admin .tab.on{background:#1d2433;box-shadow:inset 0 -2px 0 #b33a3a}
 .w-admin .st{background:#4a5266}
 .w-admin .st.approve{background:#2e7d52}.w-admin .st.reject{background:#a8352b}.w-admin .st.hold{background:#a8741a}
+.pub-pic{position:absolute;inset:0;width:100%;height:100%;opacity:.85}
+.tb-tray{font-size:12px;opacity:.8}
+.tb-date{font-size:12px;color:#9aa3b8;min-width:34px}
+.w-admin .btn{padding:6px 12px;font-size:13px}
+.w-admin .btn.ok,.w-admin .btn.ng{background:#252b38;border-color:#3a4254;color:#d9deea}
+.w-admin .btn.ok:hover{background:#2e7d52}.w-admin .btn.ng:hover{background:#a8352b}
+.w-admin .det-body::-webkit-scrollbar{width:10px}.w-admin .det-body::-webkit-scrollbar-thumb{background:#3a4254;border-radius:5px}

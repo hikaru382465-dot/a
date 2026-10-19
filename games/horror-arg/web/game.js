@@ -58,6 +58,10 @@
   const pendingCount = () => state.queue.filter(e => status(e.eid) === "pending").length;
   const allEntries = () => state.history.concat(state.queue);
 
+  // ---------- 管理画面の事務的な欄（見せかけの値。投稿者IDから決まる） ----------
+  const hashN = (t, m) => String(t).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7) % m;
+  const fakeIp = t => [hashN(t + "a", 200) + 30, hashN(t + "b", 250), hashN(t + "c", 250), hashN(t + "d", 250) + 2].join(".") + "（一部伏せ）";
+
   // ---------- 時計 ----------
   let clockMin = 0;
   const clockStr = () => String(Math.floor(clockMin / 60) % 24).padStart(2, "0") + ":" + String(clockMin % 60).padStart(2, "0");
@@ -169,7 +173,7 @@
     const bTab2 = h("button", { class: "tab", onclick: () => { tab = "hist"; selId = null; S.click(); renderAdmin(); } }, "過去の投稿");
     const top = h("div", { class: "adm-top" },
       h("span", { class: "site" }, D.siteName), h("span", { class: "tag" }, "管理画面"), h("span", { class: "sp" }),
-      h("span", { class: "who" }, "管理者：" + D.adminName + "　" + state.day + "日目"));
+      h("span", { class: "who" }, "ログイン中：admin_0721"));
     const list = h("div", { class: "adm-list" });
     const detail = h("div", { class: "adm-detail" });
     const bPend = h("span");
@@ -206,7 +210,8 @@
         const cur = status(e.eid);
         const meta = h("div", { class: "det-meta" },
           h("span", {}, "投稿者：", h("b", {}, e.author)), h("span", {}, "ID：", h("b", {}, e.authorId)),
-          h("span", {}, "投稿：", h("b", {}, e.time)), h("span", {}, "端末：", h("b", {}, e.device)));
+          h("span", {}, "投稿：", h("b", {}, e.time)), h("span", {}, "端末：", h("b", {}, e.device)),
+          h("span", {}, "IP：", h("b", {}, fakeIp(e.authorId))), h("span", {}, "過去の投稿：", h("b", {}, 1 + hashN(e.authorId, 9) + "件")), h("span", {}, "通報：", h("b", {}, hashN(e.authorId + "r", 3) + "件")));
         if (e.origin) meta.append(h("span", {}, "投稿元コード：", h("b", {}, e.origin)));
         const bodyEl = h("div", { class: "det-body" }, e.body.map(t => h("p", {}, t)));
         window.Apps.decorate(e, bodyEl);
@@ -229,7 +234,7 @@
             bApprove,
             h("button", { class: "btn ng", onclick: () => dec("reject") }, cur === "reject" ? "却下済み" : "却下"),
             e.last ? null : h("button", { class: "btn hold", onclick: () => dec("hold") }, "保留"),
-            h("span", { class: "note" }, e.last ? "この投稿の判断で、結末が決まります。" : "承認すると、外部の公開サイトに掲載されます。"));
+            e.last ? h("span", { class: "note" }, "この投稿の判断で、結末が決まります。") : null);
         detail.replaceChildren(
           h("div", { class: "det-head" }, h("button", { class: "btn back", onclick: () => { selId = null; S.click(); renderAdmin(); } }, "← 一覧"), h("h2", {}, e.title), meta), bodyEl, foot);
         window.Gimmicks.onDetail(e, { bodyEl, bApprove: tab === "today" ? bApprove : null });
@@ -386,11 +391,12 @@
       return el;
     };
     const box = $("#icons"); box.replaceChildren();
-    box.append(mk("管理画面", "✉", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
+    box.append(mk("管理画面", "▤", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
       mk("引き継ぎメモ", "✎", "linear-gradient(135deg,#d9a93a,#a97a14)", openMemo, false));
     window.Apps.iconDefs().forEach(d => box.append(mk(d.label, d.glyph, d.color, d.fn, false, d.badge)));
     if (state.day >= 2) box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false));
     if (state.day >= 4) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
+    box.append(mk("ダウンロード", "↓", "linear-gradient(135deg,#6b7280,#444a56)", () => {}, false), mk("ごみ箱", "🗑", "linear-gradient(135deg,#59606e,#383d48)", () => {}, false));
     updateBadge();
   }
   function resetDesktop() {
@@ -502,7 +508,7 @@
     buildIcons(); S.startAmbient(); S.setDay(state.day); window.Gimmicks.start();
     await sleep(1400); S.notify();
     const retries = state.queue.filter(e => e.retryN > 0).length;
-    toast("新着", "未審査の投稿が" + pendingCount() + "件あります。管理画面を開いてください。（パソコンはダブルクリック、スマホはタップ）");
+    toast("新着", "未審査の投稿が" + pendingCount() + "件あります。");
     if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
     const um = window.Apps.unread();
     if (um) setTimeout(() => { S.notify(); toast("新着メール", um + "件の未読メールがあります。"); }, 600);
