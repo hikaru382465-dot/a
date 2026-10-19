@@ -435,3 +435,7 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 #wallpaper.night{background-image:linear-gradient(rgba(6,8,14,.12),rgba(6,8,14,.12)),url(wallpaper_night.jpg);background-position:12% center;filter:none}
 #wallpaper.red{background-image:linear-gradient(rgba(6,8,14,.12),rgba(6,8,14,.12)),url(wallpaper_red.jpg);background-position:12% center;filter:none}
 #wallpaper.lit{background-image:linear-gradient(rgba(6,8,14,.05),rgba(6,8,14,.05)),url(wallpaper_lit.jpg);background-position:left center;filter:none}
+#wallpaper.b{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk.jpg);background-position:center;filter:none}
+#wallpaper.b.night{background-image:url(wallpaper_b_night.jpg)}
+#wallpaper.b.red{background-image:url(wallpaper_b_red.jpg)}
+#wallpaper.b.lit{background-image:url(wallpaper_b_lit.jpg)}

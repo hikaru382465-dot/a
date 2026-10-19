@@ -63,7 +63,12 @@
   const fakeIp = t => [hashN(t + "a", 200) + 30, hashN(t + "b", 250), hashN(t + "c", 250), hashN(t + "d", 250) + 2].join(".") + "";
 
   // 壁紙：日ごとに変わる（空白＝黄色いもや／night／red／最後の投稿だけ lit）
-  function setWall(k) { $("#wallpaper").className = k || ""; }
+  let curWall = "", wallB = false;
+  try { wallB = localStorage.getItem("horror-arg-wall") === "b"; } catch (e) {}
+  function setWall(k) { curWall = k || ""; $("#wallpaper").className = (wallB ? "b " : "") + curWall; }
+  function toggleWall() { wallB = !wallB; try { localStorage.setItem("horror-arg-wall", wallB ? "b" : "a"); } catch (e) {} setWall(curWall); }
+
+  $("#tb-wall").addEventListener("click", toggleWall);
 
   // ---------- 時計 ----------
   let clockMin = 0;
