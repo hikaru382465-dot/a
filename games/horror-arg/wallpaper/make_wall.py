@@ -19,7 +19,7 @@ sc.render.resolution_x, sc.render.resolution_y = W, H
 sc.render.filepath = OUT
 sc.view_settings.view_transform = "Filmic" if "Filmic" in [i.identifier for i in bpy.types.ColorManagedViewSettings.bl_rna.properties["view_transform"].enum_items] else "AgX"
 sc.cycles.max_bounces = 4
-sc.view_settings.exposure = float(__import__("os").environ.get("EXPO", "-2.6"))
+sc.view_settings.exposure = float(__import__("os").environ.get("EXPO", {"dusk": "-2.6", "red": "-0.5", "night": "-0.3", "lit": "-0.3"}.get(MOOD, "-2.6")))
 try:
     sc.view_settings.look = "High Contrast" if sc.view_settings.view_transform == "Filmic" else "AgX - High Contrast"
 except TypeError:
@@ -106,7 +106,7 @@ for vt in bm.verts:
 me = bpy.data.meshes.new("ground"); bm.to_mesh(me); bm.free()
 gr = bpy.data.objects.new("ground", me); bpy.context.collection.objects.link(gr)
 for p in gr.data.polygons: p.use_smooth = True
-gm = mat("grass", (0.10, 0.12, 0.035), 0.95); gr.data.materials.append(gm)
+gm = mat("grass", (0.16, 0.19, 0.05), 0.95); gr.data.materials.append(gm)
 
 house(0, 8, 7.0, 5.0, 5.0)
 # 柵
@@ -155,17 +155,19 @@ sky.sky_type = "NISHITA"
 moods = {
   "dusk": dict(el=12, dust=24, ai=1.0, fog=(0.9, 0.72, 0.18), fd=0.012, sun=(1, .8, .45), sunE=3.2, strength=1.0),
   "night": dict(el=-12, dust=2, ai=1.0, fog=(0.10, 0.16, 0.32), fd=0.004, sun=(.4, .55, 1), sunE=0.0, strength=0.5),
-  "red": dict(el=3, dust=30, ai=1.0, fog=(0.60, 0.07, 0.03), fd=0.006, sun=(1, .25, .1), sunE=3, strength=0.9),
+  "red": dict(el=-2, dust=30, ai=1.0, fog=(0.60, 0.07, 0.03), fd=0.006, sun=(1, .25, .1), sunE=1.2, strength=0.9),
 }
 moods["lit"] = dict(moods["night"])
 M = moods[MOOD]
 SUNROT = float(__import__("os").environ.get("SUNROT", "0"))
 sky.sun_size = math.radians(5); sky.sun_intensity = 0.7; sky.sun_elevation = math.radians(M["el"]); sky.sun_rotation = math.radians(SUNROT); sky.dust_density = M["dust"]; sky.air_density = M["ai"]
 bg.inputs["Strength"].default_value = M["strength"]
-TINT = None if __import__("os").environ.get("NOTINT") else {"dusk": (1.0, 0.82, 0.35), "red": (1.0, 0.4, 0.3)}.get(MOOD)
+TINT = None if __import__("os").environ.get("NOTINT") else {"dusk": (1.0, 0.82, 0.35), "red": (1.0, 0.10, 0.04)}.get(MOOD)
 if TINT:
-    mx = nt.nodes.new("ShaderNodeMixRGB"); mx.blend_type = "MULTIPLY"; mx.inputs["Fac"].default_value = 0.85; mx.inputs["Color2"].default_value = (*TINT, 1)
+    mx = nt.nodes.new("ShaderNodeMixRGB"); mx.blend_type = "MULTIPLY"; mx.inputs["Fac"].default_value = 1.0; mx.inputs["Color2"].default_value = (*TINT, 1)
     nt.links.new(sky.outputs["Color"], mx.inputs["Color1"]); nt.links.new(mx.outputs["Color"], bg.inputs["Color"])
+elif MOOD in ("night", "lit"):
+    bg.inputs["Color"].default_value = (0.012, 0.03, 0.12, 1); bg.inputs["Strength"].default_value = 1.0
 else:
     nt.links.new(sky.outputs["Color"], bg.inputs["Color"])
 nt.links.new(bg.outputs["Background"], out.inputs["Surface"])
@@ -176,11 +178,15 @@ if M["sunE"] > 0:
 if MOOD in ("night", "lit"):  # 月
     mo = bpy.data.lights.new("moon", "SUN"); mo.energy = 0.45; mo.color = (.55, .7, 1); mo.angle = math.radians(1.2)
     mob = bpy.data.objects.new("moon", mo); bpy.context.collection.objects.link(mob); mob.rotation_euler = Euler((math.radians(125), 0, math.radians(-25)))
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=9, location=(-60, 230, 120)); mn = bpy.context.object
-    mn.data.materials.append(mat("moon", (0.8, 0.88, 1.0), 1, emit=18))
+    _cam = Vector((-6.5, -11.5, 1.9)); _f = (Vector((0.5, 8, 3.4)) - _cam).normalized(); _l = Vector((-_f.y, _f.x, 0)).normalized()
+    _dir = (_f + 0.36 * _l + 0.33 * Vector((0, 0, 1))).normalized()
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=9, location=_cam + _dir * 230); mn = bpy.context.object
+    mn.data.materials.append(mat("moon", (0.8, 0.88, 1.0), 1, emit=6))
 if MOOD == "red":
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=11, location=(-70, 240, 70)); mn = bpy.context.object
-    mn.data.materials.append(mat("rmoon", (1.0, 0.35, 0.12), 1, emit=22))
+    _cam = Vector((-6.5, -11.5, 1.9)); _f = (Vector((0.5, 8, 3.4)) - _cam).normalized(); _l = Vector((-_f.y, _f.x, 0)).normalized()
+    _dir = (_f + 0.36 * _l + 0.33 * Vector((0, 0, 1))).normalized()
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=9, location=_cam + _dir * 230); mn = bpy.context.object
+    mn.data.materials.append(mat("rmoon", (1.0, 0.3, 0.1), 1, emit=7))
 # 空気のもや（大きな箱）
 bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 60, 40)); fg = bpy.context.object; fg.scale = (500, 400, 90); fg.display_type = "WIRE"
 fm = bpy.data.materials.new("fog"); fm.use_nodes = True; fn = fm.node_tree.nodes; fl = fm.node_tree.links
