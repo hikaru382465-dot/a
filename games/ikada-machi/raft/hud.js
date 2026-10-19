@@ -245,7 +245,7 @@ window.RAFT.parts.hud = function (c) {
     const night = sim.isNight(s), L = s.weather.id === 'storm' ? pick(T.storm) : night ? pick(T.night) : pick(T.day);
     const perk = { kuro: 'いっしょに住むと：毎朝、粘土かガラスをくれる。かまどの料理が少し速くなる', pipi: 'いっしょに住むと：嵐が来る前に、知らせてくれる', toto: '（これからの暮らしで、できることが増える）', mina: '（これからの暮らしで、できることが増える）' }[id];
     $('resName').textContent = rs.name; $('resLine').textContent = L; $('resPerk').textContent = (s.res[id].live ? '住んでいる：' : '') + perk.replace('いっしょに住むと：', '');
-    const F = window.RAFT.resArt && window.RAFT.resArt[id] && window.RAFT.resArt[id].face; $('resFace').style.display = F ? 'block' : 'none'; if (F) $('resFace').src = F;
+    const FS = window.RAFT.resArt && window.RAFT.resArt[id] && window.RAFT.resArt[id].faces, F = FS && (s.weather.id === 'sunny' && !night ? FS[1] : FS[0]); $('resFace').style.display = F ? 'block' : 'none'; if (F) $('resFace').src = F;
     $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'none'; $('boatbox').style.display = 'none'; $('resbox').style.display = 'block'; closeSheet();
   }
   $('bResClose').onclick = () => { $('resbox').style.display = 'none'; };
