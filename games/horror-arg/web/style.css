@@ -439,3 +439,27 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 #wallpaper.b.night{background-image:url(wallpaper_b_night.jpg)}
 #wallpaper.b.red{background-image:url(wallpaper_b_red.jpg)}
 #wallpaper.b.lit{background-image:url(wallpaper_b_lit.jpg)}
+
+/* 管理画面：上の帯のタブ／一覧の表 */
+.adm-top .tabs{display:flex;border:none;background:none;margin-left:6px}
+.adm-top .tab{flex:none;padding:6px 14px;font-size:13px}
+.adm-main:not(.has-sel) .adm-left{display:none}
+.tbl-wrap{display:flex;flex-direction:column;height:100%;min-height:0}
+.tbl-bar,.tbl-foot{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;color:var(--muted)}
+.tbl-bar select,.tbl-bar input,.tbl-foot select{font-family:inherit;font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+.tbl-scroll{flex:1;min-height:0;overflow:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{position:sticky;top:0;background:#eef1f7;text-align:left;font-weight:600;font-size:12px;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:8px;border-bottom:1px solid #e8ebf2;white-space:nowrap}
+.tbl td.ttl{font-weight:600;max-width:210px;overflow:hidden;text-overflow:ellipsis}
+.tbl td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+.tbl td.num{text-align:center}
+.tbl tbody tr{cursor:pointer}.tbl tbody tr:hover,.tbl tbody tr:focus-visible{background:#eef3fc;outline:none}
+.tbl-none{text-align:center;color:var(--muted);padding:26px!important}
+.tbl-count{color:var(--muted)}
+.w-admin .tbl-bar select,.w-admin .tbl-bar input,.w-admin .tbl-foot select{background:#1c212c;color:#d9deea;border-color:#323a4a}
+.w-admin .tbl th{background:#10131a;color:#aab3c8;border-bottom-color:#2a303d}
+.w-admin .tbl td{border-bottom-color:#1c212c;color:#d3d9e6}
+.w-admin .tbl tbody tr:hover,.w-admin .tbl tbody tr:focus-visible{background:#1a2030}
+.w-admin .tbl-scroll{border-color:#2a303d}
+@media (max-width:760px){.adm-top .tabs{width:100%;margin:0}.adm-main:not(.has-sel) .adm-left{display:flex}}

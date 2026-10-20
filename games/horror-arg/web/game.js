@@ -175,12 +175,38 @@
   // ---------- 管理画面 ----------
   let selId = null, tab = "today", renderAdmin = () => {}, badgeEl = null;
   const statusLabel = s => ({ pending: "未審査", approve: "承認", reject: "却下", hold: "保留" }[s]);
+  let fStatus = "all", fQuery = "";
+  const fakeNo = e => "P-" + String(1000 + hashN(e.eid, 8999));
+  function adminTable(rows, pick) {
+    const tbody = h("tbody"), count = h("span", { class: "tbl-count" });
+    const selSt = h("select", { "aria-label": "状態で絞り込み", onchange: ev => { fStatus = ev.target.value; fill(); } },
+      [["all", "すべての状態"], ["pending", "未審査"], ["approve", "承認"], ["reject", "却下"], ["hold", "保留"]].map(([v, l]) => h("option", { value: v }, l)));
+    selSt.value = fStatus;
+    const q = h("input", { class: "tbl-q", type: "search", placeholder: "タイトル・投稿者で検索", value: fQuery, "aria-label": "検索", oninput: ev => { fQuery = ev.target.value; fill(); } });
+    function fill() {
+      const list = rows.filter(e => (fStatus === "all" || status(e.eid) === fStatus) && (!fQuery || (e.title + e.author).includes(fQuery)));
+      tbody.replaceChildren(...list.map(e => { const st = status(e.eid);
+        return h("tr", { tabindex: "0", onclick: () => pick(e), onkeydown: ev => { if (ev.key === "Enter") pick(e); } },
+          h("td", {}, h("input", { type: "checkbox", "aria-label": "選択", onclick: ev => ev.stopPropagation() })),
+          h("td", { class: "mono" }, fakeNo(e)), h("td", { class: "ttl" }, e.title), h("td", {}, e.author), h("td", {}, (tab === "hist" ? e.day + "日目 " : "") + e.time),
+          h("td", {}, e.device), h("td", { class: "num" }, String(hashN(e.authorId + "r", 3))), h("td", {}, h("span", { class: "st " + st }, statusLabel(st)))); }));
+      if (!list.length) tbody.append(h("tr", {}, h("td", { colspan: "8", class: "tbl-none" }, "該当する投稿はありません")));
+      count.textContent = "全 " + rows.length + " 件中 " + list.length + " 件を表示";
+    }
+    fill();
+    return h("div", { class: "tbl-wrap" },
+      h("div", { class: "tbl-bar" }, q, selSt, h("span", { class: "sp" }), count),
+      h("div", { class: "tbl-scroll" }, h("table", { class: "tbl" },
+        h("thead", {}, h("tr", {}, h("th", {}, h("input", { type: "checkbox", "aria-label": "すべて選択" })), ["投稿番号", "タイトル", "投稿者", "投稿日時", "端末", "通報", "状態"].map(t => h("th", {}, t)))), tbody)),
+      h("div", { class: "tbl-foot" }, h("select", { disabled: "", "aria-label": "一括操作" }, h("option", {}, "一括操作を選択")), h("button", { class: "btn", disabled: "" }, "実行"), h("span", { class: "sp" }),
+        h("span", { class: "tbl-pg" }, "20件／ページ　‹　1　›")));
+  }
   function openAdmin() {
     const finalDay = state.queue.some(e => e.last);
     const bTab1 = h("button", { class: "tab on", onclick: () => { tab = "today"; selId = null; S.click(); renderAdmin(); } }, "本日の投稿");
     const bTab2 = h("button", { class: "tab", onclick: () => { tab = "hist"; selId = null; S.click(); renderAdmin(); } }, "過去の投稿");
     const top = h("div", { class: "adm-top" },
-      h("span", { class: "site" }, D.siteName), h("span", { class: "tag" }, "管理画面"), h("span", { class: "sp" }),
+      h("span", { class: "site" }, D.siteName.replace("（仮）", "")), h("span", { class: "tag" }, "管理画面"), h("div", { class: "tabs" }, bTab1, bTab2), h("span", { class: "sp" }),
       h("span", { class: "who" }, "ログイン中：admin_0721"));
     const list = h("div", { class: "adm-list" });
     const detail = h("div", { class: "adm-detail" });
@@ -191,7 +217,7 @@
     const mainEl = h("div", { class: "adm-main" });
     const body = h("div", { style: "display:flex;flex-direction:column;height:100%" },
       top, mainEl, bottom);
-    mainEl.append(h("div", { class: "adm-left" }, h("div", { class: "tabs" }, bTab1, bTab2), list), detail);
+    mainEl.append(h("div", { class: "adm-left" }, list), detail);
 
     renderAdmin = function () {
       bTab1.classList.toggle("on", tab === "today"); bTab2.classList.toggle("on", tab === "hist");
@@ -206,7 +232,7 @@
       const e = rows.find(x => x.eid === selId);
       mainEl.classList.toggle("has-sel", !!e);
       if (!e) {
-        detail.replaceChildren(h("div", { class: "adm-empty" }, "一覧から投稿を選んでください"));
+        detail.replaceChildren(adminTable(rows, x => { selId = x.eid; S.click(); renderAdmin(); }));
       } else {
         const dec = d => {
           state.decisions[e.eid] = d; save();
