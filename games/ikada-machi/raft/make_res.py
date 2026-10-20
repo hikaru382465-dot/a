@@ -3,7 +3,7 @@
 import base64, io, json, pathlib, sys
 here = pathlib.Path(__file__).parent; sys.path.insert(0, str(here))
 import make_chars
-RES = ['toto', 'mina']
+RES = ['toto', 'mina', 'kuro', 'pipi']
 import numpy as np
 from PIL import Image
 import cutlib
