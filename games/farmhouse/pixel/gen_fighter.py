@@ -1,6 +1,6 @@
 """
 武闘家の女の子（A案）正面・軽く構えたポーズ 32×48。python gen_fighter.py
-→ assets/character/fighter_v3.png / fighter_v3_x8.png / fighter_v3_sil.png
+→ assets/character/fighter_v4.png / fighter_v4_x8.png / fighter_v4_sil.png
 全体を文字の格子で1ドットずつ手描き（式・乱数なし）。外がわの1ドット輪郭だけ自動（np.pad→roll）。
 行の書き方：「開始列:文字列」を空白でつなぐ。光は左上。色は palette.json の系統×明るさだけ（約13色）。
 """
@@ -39,11 +39,11 @@ row(6,  "9:DhhHHHhhhhhhhD 24:DHHhD")
 row(7,  "9:DhhhhhhhhhhhhD 24:DHHhD")
 row(8,  "9:DhhhhhhhhhhhhD 24:DHHhD")
 # ---- 前髪（3つの房：真ん中が1ドット長く、左右は短くずらす）・目（上のまつげ1行、黒目は縦2ドット、左上に白い光）
-row(9,  "9:DhhhhhhhhhhhhD 24:DHHhD")
-row(10, "9:Dh 11:DDDD 15:hD 17:DDDD 21:hD 24:DHHhD")
-row(11, "9:Dh 11:swll 15:ss 17:wlls 21:hD 25:DHhD")
-row(12, "9:Dh 11:slll 15:ss 17:llls 21:hD 25:DHhD")
-row(13, "9:Dh 11:ssssssssss 21:hD 26:DHhD")
+row(9,  "9:Dh 11:s 12:DD 14:s 15:hh 17:s 18:DD 20:s 21:hD 24:DHHhD")
+row(10, "9:Dh 11:DDD 15:hD 18:DDD 21:hD 24:DHHhD")
+row(11, "9:Dh 11:s 12:wl 14:w 15:ss 17:w 18:lw 20:s 21:hD 25:DHhD")
+row(12, "9:Dh 11:s 12:ll 14:w 15:ss 17:w 18:ll 20:s 21:hD 25:DHhD")
+row(13, "9:Dh 11:s 12:ll 14:s 15:ss 17:s 18:ll 20:s 21:hD 26:DHhD")
 row(14, "9:Dh 11:ssssssssss 21:hD 26:DHhD")
 row(15, "10:DsttssssttsD 27:DHD")
 row(16, "12:sssmmsss 27:DhD")
@@ -75,31 +75,27 @@ row(42, "9:UUUUZ 18:UUUZ")
 row(43, "8:pooooO 18:ooooOp")
 row(44, "7:pooooOO 18:oooooOp")
 row(45, "7:OOOOOOO 18:OOOOOOO")
-# ---- 帯の結び目とたれ端2本（幅3ドットで斜め、内がわに暗い赤を1列、先は斜めに切る）
-row(27, "15:rrr")
-row(28, "14:Prrrr")
-row(29, "14:rrRrr")
-row(30, "14:rrrRr")
-row(31, "14:RRRRR")
-row(32, "13:rrR 17:Rrr")
-row(33, "13:rrR 17:Rrr")
-row(34, "12:rrR 18:Rrr")
-row(35, "12:rrR 18:Rrr")
-row(36, "11:rrR 19:Rrr")
-row(37, "11:rrR 19:Rrr")
-row(38, "12:rR 20:Rrr")
-row(39, "20:Rr")
-row(40, "21:r")
-# ---- 左うで：肩→上うで→ひじ→斜めの前腕（肌）→手甲→拳（顔の近く、指の線1本）
+# ---- 帯の結び目（左腰）とたれ端2本（腰の高さで短く、片側から）
+row(27, "11:rrr")
+row(28, "10:Prrrr")
+row(29, "10:rrRrr")
+row(30, "10:rrrRr")
+row(31, "10:RRRRR")
+row(32, "9:rrR 11:Rrr")
+row(33, "8:rrR 11:Rrr")
+row(34, "8:rrR 11:Rrr")
+row(35, "7:rrR 12:Rr")
+row(36, "7:rrR")
+row(37, "7:rR")
+# ---- 左うで：肩→上うで→ひじ→斜めの前腕（肌）→手甲（太く：上は明るく下は暗く）→拳（指の線1本）
 row(15, "5:SSts"); row(16, "5:SSts"); row(17, "5:sstt")
-row(18, "4:PrrrR"); row(19, "4:PrrrR 9:ss"); row(20, "5:RRR 8:st")
-row(21, "5:ss 8:st"); row(22, "6:ss 8:st"); row(23, "6:st 8:st"); row(24, "6:sstt")
-# ---- 右うで：上うで→ひじ→手首にそう手甲→2×2の拳（腰の前、低くにぎる）
+row(19, "9:ss"); row(20, "8:st"); row(21, "8:st"); row(22, "5:ss 8:st"); row(23, "6:ss 8:st"); row(24, "6:sstt")
+row(18, "4:PPPPP"); row(19, "4:rrrrR"); row(20, "4:rrrR"); row(21, "4:RRRR")
+# ---- 右うで：上うで→ひじを曲げ、手甲のついた前腕をみぞおちの前へ→2×2の拳
 row(19, "21:sss")
-for y in range(20, 26): row(y, "22:st")
-row(26, "22:stt")
-row(27, "23:rrR"); row(28, "22:PrrR"); row(29, "22:rrRR")
-row(30, "21:Ss"); row(31, "21:tt")
+for y in range(20, 24): row(y, "22:st")
+row(24, "19:PPPPP"); row(25, "19:rrrrr"); row(26, "19:rrrrR"); row(27, "19:RRRRR")
+row(25, "17:Ss"); row(26, "17:st")
 
 def build():
     a = np.zeros((H, W, 4), np.uint8)
@@ -125,11 +121,11 @@ def outline(a):
 
 if __name__ == "__main__":
     a = outline(build())
-    Image.fromarray(a).save(os.path.join(OUT, "fighter_v3.png"))
+    Image.fromarray(a).save(os.path.join(OUT, "fighter_v4.png"))
     im = Image.fromarray(a)
     bg = Image.new("RGBA", (W, H), (46, 50, 72, 255)); bg.alpha_composite(im)
-    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v3_x8.png"))
+    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v4_x8.png"))
     sil = np.zeros_like(a); sil[a[..., 3] > 0] = (240, 240, 240, 255)
     sb = Image.new("RGBA", (W, H), (46, 50, 72, 255)); sb.alpha_composite(Image.fromarray(sil))
-    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v3_sil.png"))
+    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v4_sil.png"))
     print("ok", a[..., 3].astype(bool).sum())
