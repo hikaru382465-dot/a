@@ -102,7 +102,7 @@ window.RAFT.parts.hud = function (c) {
     let html = `<div class="big"><canvas width="128" height="128" data-k="${o.k}"></canvas><div><b>${o.name}</b>${o.t === 'tool' ? (o.hand ? '<br><span class="tag">手に持っている</span>' : '') : o.t === 'recipe' ? '' : `<br><span class="tag">×${o.n}</span>`}</div></div>`;
     let btn = '', onclick = null;
     if (o.t === 'recipe') {
-      const cost = o.net ? (o.nx ? o.nx.cost : null) : o.r.cost, tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.r.tip;
+      const cost = o.net ? (o.nx ? sim.discount(s, o.nx.cost) : null) : sim.costOf(s, o.r), tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.r.tip;
       html += `<p>${tip}</p>` + (cost ? '<ul class="cost">' + Object.keys(cost).map(k => `<li class="${(s.inv[k] || 0) >= cost[k] ? '' : 'no'}">${nameOf(k)}　${s.inv[k] || 0} / ${cost[k]}</li>`).join('') + '</ul>' : '');
       const why = { locked: '作業台を置くと作れる', have: r_have(o), max: 'これ以上は強くできない', full: 'まだ新品同様', short: '材料がたりない' }[o.ck.why];
       if (why) html += `<p class="why">${why}</p>`;
@@ -242,9 +242,12 @@ window.RAFT.parts.hud = function (c) {
   // 住人のおしゃべり：開いたときに1回だけ、天気・時間で選ぶ
   function openTalk(id) {
     const T = D.RESIDENT.talk[id], rs = D.BOAT.RES[id], pick = a => a[Math.floor(Math.random() * a.length)];
-    const night = sim.isNight(s), L = s.weather.id === 'storm' ? pick(T.storm) : night ? pick(T.night) : pick(T.day);
-    const perk = { kuro: 'いっしょに住むと：毎朝、粘土かガラスをくれる。かまどの料理が少し速くなる', pipi: 'いっしょに住むと：嵐が来る前に、知らせてくれる', toto: '（これからの暮らしで、できることが増える）', mina: '（これからの暮らしで、できることが増える）' }[id];
-    $('resName').textContent = rs.name; $('resLine').textContent = L; $('resPerk').textContent = (s.res[id].live ? '住んでいる：' : '') + perk.replace('いっしょに住むと：', '');
+    const night = sim.isNight(s), hi = sim.hist(s), L = s.weather.id === 'storm' ? pick(T.storm) : night ? pick(T.night) : hi.cooked ? pick(T.cooked) : (hi.fish || 0) >= 4 ? pick(T.fish) : hi.farm ? pick(T.farm) : hi.prev && hi.prev.storm ? pick(T.after) : pick(T.day);
+    const perk = { kuro: 'いっしょに住むと：毎朝、粘土かガラスをくれる。かまどの料理が少し速くなる', pipi: 'いっしょに住むと：嵐が来る前に、知らせてくれる', toto: 'いっしょに住むと：1日1回ずつ、魚や焼き魚を、布や縄に安く交換してくれる', mina: 'いっしょに住むと：鉄や石を使う物が、材料1つぶん安く作れる' }[id];
+    $('resName').textContent = rs.name;
+    { const dl = id === 'toto' && s.res.toto.live ? D.RESIDENT.perk.toto.deals : []; const its = o => Object.keys(o).map(k => `${nameOf(k)}×${o[k]}`).join('・');
+      $('resDeals').innerHTML = dl.map((d, i) => `<div class="deal"><span style="flex:1;font-size:12px">${its(d.want)} → ${its(d.give)}<small style="display:block;opacity:.7">1日1回</small></span><button data-i="${i}" ${(s.res.toto.dealDay || {})[i] === s.clock.day || !sim.canPay(s, d.want) ? 'disabled' : ''}>${(s.res.toto.dealDay || {})[i] === s.clock.day ? '済み' : '交換する'}</button></div>`).join('');
+      $('resDeals').querySelectorAll('button').forEach(bt => bt.onclick = () => { sim.resDeal(s, +bt.dataset.i); refresh(); openTalk(id); }); } $('resLine').textContent = L; $('resPerk').textContent = (s.res[id].live ? '住んでいる：' : '') + perk.replace('いっしょに住むと：', '');
     const FS = window.RAFT.resArt && window.RAFT.resArt[id] && window.RAFT.resArt[id].faces, F = FS && (s.weather.id === 'sunny' && !night ? FS[1] : FS[0]); $('resFace').style.display = F ? 'block' : 'none'; if (F) $('resFace').src = F;
     $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'none'; $('boatbox').style.display = 'none'; $('resbox').style.display = 'block'; closeSheet();
   }
@@ -296,7 +299,7 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
-    resask: e => `${D.BOAT.RES[e.id].name}が、何か言いたそう…（船をタップ）`, resjoin: e => `${D.BOAT.RES[e.id].name}が、イカダに住みはじめた！`, nohut: () => '小屋が足りない（小屋を置くと、住める人が増える）', stormsoon: () => 'ピピ「もうすぐ嵐が来るよ！」', resgift: e => `クロが、${nameOf(e.k)}をくれた`,
+    dealdone: () => '今日の交換は、もう済んだ', resask: e => `${D.BOAT.RES[e.id].name}が、何か言いたそう…（船をタップ）`, resjoin: e => `${D.BOAT.RES[e.id].name}が、イカダに住みはじめた！`, nohut: () => '小屋が足りない（小屋を置くと、住める人が増える）', stormsoon: () => 'ピピ「もうすぐ嵐が来るよ！」', resgift: e => `クロが、${nameOf(e.k)}をくれた`,
     cookstart: e => `${nameOf(e.d)}を作りはじめた`, cooked: e => `${nameOf(e.d)}ができた！`, ovengot: () => '料理を持ち物に入れた',
     bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
     hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',

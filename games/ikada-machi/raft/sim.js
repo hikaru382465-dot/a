@@ -117,7 +117,7 @@
     return list.length ? list[0][0] : 'iwashi';
   };
   S.addDex = function (s, id) {
-    S.tally(s, 'fish', id); s.fishdex = s.fishdex || {}; const first = !s.fishdex[id]; s.fishdex[id] = (s.fishdex[id] || 0) + 1;
+    S.tally(s, 'fish', id); S.note(s, 'fish'); s.fishdex = s.fishdex || {}; const first = !s.fishdex[id]; s.fishdex[id] = (s.fishdex[id] || 0) + 1;
     if (first) s.events.push({ e: 'fishnew', id });
     return D.FISH[id].star >= 3 ? 2 : 0;      // めずらしい魚は、魚が2匹おまけ（合わせて3匹）
   };
@@ -142,7 +142,20 @@
   S.canPay = (s, cost) => Object.keys(cost).every(k => (s.inv[k] || 0) >= cost[k]);
   S.pay = (s, cost) => Object.keys(cost).forEach(k => s.inv[k] -= cost[k]);
   S.nextNet = s => D.NET_LV[s.net.lv];       // 次のレベル（なければ undefined）
-  const costOf = (s, r) => r.special === 'net' ? (S.nextNet(s) ? S.nextNet(s).cost : null) : r.cost;
+  // ミナが住んでいれば、鉄・石を使う物は、その材料が1つ少なくて済む
+  S.discount = function (s, cost) { if (!cost || !s.res.mina.live) return cost; const o = {}; Object.keys(cost).forEach(k => { const n = D.RESIDENT.perk.mina.off.includes(k) ? Math.max(0, cost[k] - 1) : cost[k]; if (n > 0) o[k] = n; }); return o; };
+  const costOf = (s, r) => S.discount(s, r.special === 'net' ? (S.nextNet(s) ? S.nextNet(s).cost : null) : r.cost);
+  S.costOf = costOf;
+  // その日にあったこと（住人の会話に使う）。日がかわると、昨日ぶんが prev に残る
+  S.note = function (s, k) { const d = s.clock.day; let h = s.hist; if (!h || h.day !== d) { h = s.hist = { day: d, prev: h && h.day === d - 1 ? { storm: h.storm || 0 } : {} }; } h[k] = (h[k] || 0) + 1; };
+  S.hist = function (s) { const h = s.hist; return h && h.day === s.clock.day ? h : { day: s.clock.day, prev: h && h.day === s.clock.day - 1 ? { storm: h.storm || 0 } : {} }; };
+  // トト：1日に1回ずつ、安く交換してくれる
+  S.resDeal = function (s, i) {
+    const r = s.res.toto; if (!r.live) return false; const dl = D.RESIDENT.perk.toto.deals[i]; r.dealDay = r.dealDay || {};
+    if (r.dealDay[i] === s.clock.day) { s.events.push({ e: 'dealdone' }); return false; }
+    if (!S.canPay(s, dl.want)) { s.events.push({ e: 'short' }); return false; }
+    S.pay(s, dl.want); Object.keys(dl.give).forEach(k => { s.inv[k] = (s.inv[k] || 0) + dl.give[k]; }); r.dealDay[i] = s.clock.day; s.events.push({ e: 'traded' }); return true;
+  };
   // 作れるか：{ ok, why }  why = 'locked'（作業台がいる）／'short'（材料がたりない）／'max'／'have'（もうある）
   S.canCraft = function (s, r) {
     const cost = costOf(s, r);
@@ -397,7 +410,7 @@
   S.plotUse = function (s, o) {
     const P = D.PLOT, C = D.CROPS, cr = o.c && C[o.c];
     if (cr && o.p >= cr.sec) {
-      const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; S.tally(s, 'veg', n); const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
+      const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; S.tally(s, 'veg', n); S.note(s, 'farm'); const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
       const back = S.rand() < P.seedBack; if (back) s.inv.seed = (s.inv.seed || 0) + 1;
       s.events.push({ e: 'plotharvest', c: o.c, n, back }); if (first) s.events.push({ e: 'cropnew', id: o.c }); o.c = null; o.p = 0; o.w = 0; return true;
     }
@@ -521,7 +534,7 @@
   }
   function nextWeather(s) {
     const id = s.weather.nx || rollWeather(s);
-    s.weather = { id, left: 60 + S.rand() * 60 };
+    s.weather = { id, left: 60 + S.rand() * 60 }; if (id === 'storm') S.note(s, 'storm');
     s.events.push({ e: 'weather', id });
   }
 
@@ -541,7 +554,7 @@
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
     s.objects.forEach(o => { if (o.k !== 'oven') return;     // かまど：材料がそろえば、ごちそうから順に作る
       if (!o.cook && S.ovOutN(o) < D.OVEN.maxOut) { const d = S.ovNext(o); if (d) { o.iv = (o.iv || 0) - (d.need.veg || 0); o.ifi = (o.ifi || 0) - (d.need.fish || 0); o.iw = (o.iw || 0) - (d.need.wood || 0); o.cook = { d: d.id, t: 0 }; s.events.push({ e: 'cookstart', d: d.id }); } }
-      if (o.cook) { o.cook.t += dt * (s.res.kuro.live ? D.RESIDENT.perk.kuro.cookMul : 1); const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
+      if (o.cook) { o.cook.t += dt * (s.res.kuro.live ? D.RESIDENT.perk.kuro.cookMul : 1); const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; S.note(s, 'cooked'); s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
     s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
       if (o.k !== 'campfire') return; delete o.cook;
       if (!S.cfBurning(o)) { o.burn = false; return; }
