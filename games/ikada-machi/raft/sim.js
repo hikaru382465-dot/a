@@ -43,6 +43,8 @@
   S.speed = s => D.WEATHER[s.weather.id].speed;
 
   // 置き物の大きさ（マス）：data.js の ITEMS[k].size＝[横x, 縦z]。置いた位置(x,z)は、左上（x・zが小さいほう）の角
+  // 小屋の見た目：まだ置いていない見た目から、ランダムに選ぶ（全部出たら、全体からランダム）
+  S.pickHutLook = function (s) { const used = new Set(s.objects.filter(o => o.k === 'hut').map(o => o.hv || 0)), all = []; for (let i = 0; i < D.HUT_N; i++) all.push(i); const pool = all.filter(i => !used.has(i)); const a = pool.length ? pool : all; return a[Math.floor(S.rand() * a.length)]; };
   S.sizeOf = o => (D.ITEMS[o.k] && D.ITEMS[o.k].size) || [1, 1];      // 小屋の見た目ちがい（hutw・huts）は、置くとき k='hut'、hv=見た目の番号になる
   S.footprint = o => { const [fw, fd] = S.sizeOf(o), out = []; for (let i = 0; i < fw; i++) for (let j = 0; j < fd; j++) out.push([o.x + i, o.z + j]); return out; };
   S.objAt = (s, x, z) => s.objects.find(o => { const [fw, fd] = S.sizeOf(o); return x >= o.x && x < o.x + fw && z >= o.z && z < o.z + fd; }) || null;
@@ -211,7 +213,7 @@
     if (!hit) return false; x = hit[0]; z = hit[1];
     s.inv[k]--;
     if (k === 'floor') { s.raft.cells.push([x, z]); s.raftRev++; }
-    else { const it = D.ITEMS[k] || {}; s.objects.push({ id: s.uid++, k: it.as || k, hv: it.hv || 0, x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); S.liveRes(s).forEach(k => { s.res[k].path = []; }); }
+    else { const it = D.ITEMS[k] || {}; s.objects.push({ id: s.uid++, k: it.as || k, hv: it.rnd ? S.pickHutLook(s) : (it.hv || 0), x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); S.liveRes(s).forEach(k => { s.res[k].path = []; }); }
     s.events.push({ e: 'placed', k }); return true;
   };
   // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
