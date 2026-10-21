@@ -101,6 +101,7 @@ button.on{background:#6b4231;color:#fff}
 .stm{position:absolute;left:14px;top:-22px;width:40px;height:30px;pointer-events:none}.stm b{position:absolute;bottom:0;width:9px;height:9px;border-radius:50%;background:#f3e8cf;opacity:0;animation:stm 2s ease-in infinite}.stm b:nth-child(1){left:6px}.stm b:nth-child(2){left:18px;animation-delay:.6s}.stm b:nth-child(3){left:28px;animation-delay:1.2s}
 @keyframes stm{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:.85}100%{transform:translateY(-26px) scale(1.5);opacity:0}}
 body:not(.debug) .dbg{display:none}
+#hpicks{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:6px 0}#detail .hpick{min-height:0;height:60px;padding:2px;border:3px solid #c9a98c;border-radius:8px;background:#fff6;color:#4a3320;display:flex;align-items:center;justify-content:center;align-self:auto;font-size:13px}#detail .hpick.auto{grid-column:1/-1;height:36px}#detail .hpick img{max-width:100%;max-height:50px;image-rendering:auto}#detail .hpick.sel{border-color:#d9623b;background:#f7c9a8}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #cfbox h2{margin:0 0 4px;font-size:15px}
 #cfRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 8px;background:#0003;border-radius:10px}
