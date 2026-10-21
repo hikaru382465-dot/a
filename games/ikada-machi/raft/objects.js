@@ -59,11 +59,12 @@ window.RAFT.parts.objects = function (c) {
       const a = art[o.k]; if (!a) return;
       const [fw, fd] = R.sim.sizeOf(o), cx = o.x + fw / 2, cz = o.z + fd / 2;
       const sf = (SHIFT_OF[o.k] || 0) * 0.7071;      // 台つきの絵は、カメラのほうへずらして、台の中心を床の中心に合わせる（浮いて見えないように）
-      const m = c.sprite(a[0].cv, { x: cx + sf, y: TOP, z: cz + sf, ppu: a[0].ppu, smooth: a[0].hi }); group.add(m);
+      const base = o.k === 'hut' && a.length > 2 * (o.hv || 0) ? 2 * (o.hv || 0) : 0;      // 小屋の見た目ちがい：[昼0, 夜0, 昼1, 夜1, …]
+      const m = c.sprite(a[base].cv, { x: cx + sf, y: TOP, z: cz + sf, ppu: a[base].ppu, smooth: a[base].hi }); group.add(m);
       const tex = a.map(f => c.tex(f.cv, { smooth: f.hi }));
       const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(cx, TOP + 0.004, cz); sh.rotation.y = Math.PI / 4; sh.scale.setScalar((SH_OF[o.k] || 0.9) * (fw > 1 || fd > 1 ? 2.2 : 1)); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
-      const it = { m, tex, o, last: -1 };
+      const it = { m, tex, o, last: -1, base };
       if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
       items.set(o.id, it);
     });
@@ -78,7 +79,7 @@ window.RAFT.parts.objects = function (c) {
       let idx = 0;
       if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / D.ITEMS.tank.cap * 3));
       else if (it.o.k === 'filter') idx = (it.o.p > 0 && Math.floor(t * 2) % 2) ? 1 : 0;
-      else if (it.o.k === 'hut') idx = (s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > 1 ? 1 : 0;
+      else if (it.o.k === 'hut') idx = it.base + ((s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > it.base + 1 ? 1 : 0);
       else if (it.o.k === 'plot') { const cr = it.o.c && D.CROPS[it.o.c]; if (cr) { const f = it.o.p / cr.sec; idx = f >= 1 ? 4 + Math.max(0, (R.cropIds || []).indexOf(it.o.c)) : f < 0.12 ? 1 : f < 0.4 ? 2 : 3; } }
       if (idx !== it.last) { it.m.material.map = it.tex[idx]; it.last = idx; }
     });

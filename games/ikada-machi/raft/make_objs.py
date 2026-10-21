@@ -192,6 +192,29 @@ for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', '
 _hd = Image.open(io.BytesIO(base64.b64decode(out['hut'][0]['src'].split(',')[1]))).convert('RGBA')
 _hn = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'night_src.png', (120, 140, 830, 790), shrink=1, pocket=3000, fringe=2, pocket_min=60).resize(_hd.size, Image.BOX)
 _en = entry(_hn); _en['hi'] = 3; _en['ppu'] = out['hut'][0].get('ppu'); out['hut'] = [out['hut'][0], _en]
+# 小屋の見た目ちがい（ひかるの絵：緑背景、左＝昼・右＝夜）。hut の配列は [昼0, 夜0, 昼1, 夜1, 昼2, 夜2]。見た目の番号は、置いた物の hv
+def _hut_variant(path, W=226):
+    import make_chars
+    A, fg = cutlib.key_green(path); H0, W0 = fg.shape; half = W0 // 2; res = []
+    box = None
+    for x0, x1 in ((0, half), (half, W0)):
+        m = fg[:, x0:x1].copy(); comps = make_chars.components(m, 3000); big = max(comps, key=len)
+        mask = np.zeros_like(m); [mask.__setitem__(p, True) for p in big]
+        ys, xs = np.where(mask); b = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+        sub = A[:, x0:x1].astype(np.uint8).copy(); r_, g_, b_ = sub[..., 0].astype(int), sub[..., 1].astype(int), sub[..., 2].astype(int)
+        sub[..., 1] = np.minimum(g_, np.maximum(r_, b_) + 4)      # ふちの緑をなおす
+        im = Image.fromarray(np.dstack([sub, (mask * 255).astype(np.uint8)]), 'RGBA').crop(b); res.append(im)
+    d = res[0]; Hh = round(W * d.height / d.width)
+    outs = []
+    for im in res:
+        im = im.resize((W, Hh), Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
+        e = entry(im); e['hi'] = W / 151 * 3; outs.append(e)
+    return outs
+_vh = []
+for _f in ('hut_wood.png', 'hut_stone.png'):
+    _vh += _hut_variant(here.parent / 'art' / 'hut' / _f)
+out['hut'] = out['hut'] + _vh
+out['icons']['hutw'] = [_vh[0]]; out['icons']['huts'] = [_vh[2]]; out['hutw'] = out['icons']['hutw']; out['huts'] = out['icons']['huts']
 # 小屋の中の絵（入ったときに出す）と、ベッドで足パタパタの8コマ：別ファイル hut_art.js（部屋の絵の上に、%の位置で重ねる）
 _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1536, 1024), shrink=1, trim=False); _bx = _ti.getchannel('A').getbbox(); _ti = _ti.crop(_bx); IW, IH = _ti.size      # 余白は切りおとす（ベッドの位置は、この切りおとし分をひく）
 _ti2 = _ti.resize((IW // 2, IH // 2), Image.BOX); _bf = io.BytesIO(); _ti2.save(_bf, 'PNG', optimize=True)
