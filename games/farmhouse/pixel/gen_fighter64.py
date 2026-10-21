@@ -1,6 +1,6 @@
 """
 武闘家の女の子 64×80 V2「羽織がなびく・片腕を高く上げ、もう片腕は前へ構える」立ち絵。python gen_fighter64.py
-→ assets/character/fighter64_v5.png / fighter64_v5_x8.png / fighter64_v5_sil.png
+→ assets/character/fighter64_v6.png / fighter64_v6_x8.png / fighter64_v6_sil.png
 やり方：多角形で「明・中・暗」の大きな面を作る（光は左上）→ 顔・拳・帯の結び目は文字の格子で1ドットずつ →
 素材ごとの濃い色で縁取り（np.pad→roll）→ ところどころ縁取りを切って明るくする。乱数なし。
 色は palette.json の系統×明るさだけ（20色）。
@@ -58,20 +58,26 @@ FK = {'s': ('k5', 'skin'), 't': ('k3', 'skin'), 'u': ('k3', 'skin'), 'P': ('r6',
 # =====================================================================
 # 1) 羽織：後ろへなびく大きな青い面（肩から放射する斜めのひだ）
 # =====================================================================
-cape = polymask([(38, 28), (45, 28), (51, 34), (57, 42), (62, 52), (62, 62), (62, 69), (61, 74), (58, 68), (56, 75), (54, 69), (53, 73),
-                 (54, 64), (50, 56), (46, 48), (42, 40), (40, 34)])
+cape = polymask([(38, 28), (45, 28), (51, 34), (57, 42), (62, 52), (62, 62), (62, 68), (60, 76), (58, 69), (56, 77), (54, 69), (53, 75), (52, 67),
+                 (53, 64), (50, 56), (46, 48), (42, 40), (40, 34)])
 put(cape, 'b3', 'haori')
 O = (37, 28)
 def sector(p, q, tok):
     poly([O, p, q], tok, 'haori', cape)
 sector((45, 28), (51, 34), 'b4'); sector((51, 34), (57, 42), 'b2'); sector((57, 42), (62, 52), 'b3')
-sector((62, 52), (62, 62), 'b4'); sector((62, 62), (61, 74), 'b2'); sector((61, 74), (56, 75), 'b3'); sector((56, 75), (53, 73), 'b2')
+sector((62, 52), (62, 62), 'b4')
 poly([(46, 28), (51, 33), (52, 35), (47, 29)], 'b5', 'haori', cape)          # 暗い面のすぐ隣に、明るい細い面
 poly([(60, 50), (62, 55), (62, 57), (60, 54)], 'b5', 'haori', cape)
-# すそ：とがった先3つ。先ごとに明るい面と暗い面（2色）
-poly([(62, 66), (62, 69), (61, 74), (60, 70)], 'b4', 'haori', cape); poly([(60, 70), (61, 74), (58, 68), (59, 66)], 'b2', 'haori', cape)
-poly([(58, 68), (56, 75), (57, 70)], 'b4', 'haori', cape); poly([(57, 70), (56, 75), (54, 69)], 'b2', 'haori', cape)
-poly([(54, 69), (53, 73), (54, 65)], 'b4', 'haori', cape); poly([(54, 69), (53, 73), (55, 70)], 'b2', 'haori', cape)
+# すそ：とがった三角3つ。左を明るく、右を暗く（暗い紺の縁は自動）。縦の線は使わない
+poly([(52, 66), (62, 65), (62, 68), (52, 68)], 'b2', 'haori', cape)                       # すその折り返しの影（段）
+def tip(L, A, R):
+    poly([L, (A[0], L[1]), A], 'b4', 'haori', cape)
+    poly([(A[0], R[1]), R, A], 'b2', 'haori', cape)
+tip((58, 69), (60, 76), (62, 68)); tip((54, 69), (56, 77), (58, 69)); tip((52, 67), (53, 75), (54, 69))
+# 肩の折り返し：上の端に暗い紺の帯、すぐ下に明るい水色の線
+tb = cape & ~shift(cape, 0, 1) & (xx <= 56)
+put(tb, 'b0', 'haori')
+put(shift(tb, 0, 1) & cape & ~tb & (xx <= 56), 'b5', 'haori')
 poly([(38, 36), (44, 40), (48, 52), (44, 46), (40, 42)], 'b2', 'haori', cape)  # 体の後ろの影
 
 # =====================================================================
@@ -109,8 +115,8 @@ grid(6, 6, [
     ".ssTsTsTt",
     "sssTsTsTt",
     "sTTTssstt",
-    "ssssssstt",
-    ".tsssstt.",
+    "sTTsssstt",
+    ".TTssstt.",
     "..PPPPPr.",
     "..rrrrrR.",
 ], FK, 'skin')
@@ -163,6 +169,8 @@ put(edge_br(cap, 3), 'h2', 'hair', cap); put(edge_br(cap, 1), 'h1', 'hair', cap)
 put(edge_tl(cap, 3) & (xx < 31) & (yy < 14), 'h6', 'hair', cap)
 line((26, 3), (20, 11), 'h3', 'hair', T == ID['h6']); line((27, 3), (21, 11), 'h3', 'hair', T == ID['h6'])
 line((30, 4), (27, 10), 'h2', 'hair', T == ID['h3']); line((36, 4), (35, 11), 'h2', 'hair', T == ID['h3'])
+for pts in (((31, 4), (34, 4), (37, 6)), ((27, 6), (30, 5), (33, 5)), ((36, 9), (38, 11))):   # 頭の丸みにそった明るい房
+    for a, b in zip(pts[:-1], pts[1:]): line(a, b, 'h6', 'hair', T == ID['h3'])
 poly([(17, 18), (21, 18), (21, 27), (19, 30), (17, 25)], 'h2', 'hair')
 poly([(38, 18), (42, 18), (42, 25), (40, 30), (38, 27)], 'h1', 'hair')
 poly([(17, 18), (18, 18), (18, 24), (17, 23)], 'h3', 'hair')
@@ -308,12 +316,12 @@ def render(t):
     return a
 
 def save(a):
-    im = Image.fromarray(a); im.save(os.path.join(OUT, "fighter64_v5.png"))
+    im = Image.fromarray(a); im.save(os.path.join(OUT, "fighter64_v6.png"))
     bg = Image.new("RGBA", (W, H), (46, 50, 72, 255)); bg.alpha_composite(im)
-    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v5_x8.png"))
+    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v6_x8.png"))
     sil = np.zeros_like(a); sil[a[..., 3] > 0] = (240, 240, 240, 255)
     sb = Image.new("RGBA", (W, H), (46, 50, 72, 255)); sb.alpha_composite(Image.fromarray(sil))
-    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v5_sil.png"))
+    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v6_sil.png"))
 
 def lonely(t):
     out = []
