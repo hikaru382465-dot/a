@@ -1,6 +1,6 @@
 """
 武闘家の女の子（A案）正面・軽く構えたポーズ 32×48。python gen_fighter.py
-→ assets/character/fighter_v4.png / fighter_v4_x8.png / fighter_v4_sil.png
+→ assets/character/fighter_v5.png / fighter_v5_x8.png / fighter_v5_sil.png
 全体を文字の格子で1ドットずつ手描き（式・乱数なし）。外がわの1ドット輪郭だけ自動（np.pad→roll）。
 行の書き方：「開始列:文字列」を空白でつなぐ。光は左上。色は palette.json の系統×明るさだけ（約13色）。
 """
@@ -24,7 +24,7 @@ KEY = {
     # 赤（手甲・帯・3色）
     'P': ('G', 5), 'r': ('G', 4), 'R': ('G', 2),
     # 靴
-    'o': ('D', 3), 'O': ('D', 1), 'p': ('D', 5),
+    'o': ('D', 3), 'O': ('D', 1), 'p': ('D', 5), 'u': ('A', 3),
 }
 G = {}
 def row(y, spec): G[y] = G.get(y, "") + " " + spec
@@ -46,7 +46,7 @@ row(12, "9:Dh 11:s 12:ll 14:w 15:ss 17:w 18:ll 20:s 21:hD 25:DHhD")
 row(13, "9:Dh 11:s 12:ll 14:s 15:ss 17:s 18:ll 20:s 21:hD 26:DHhD")
 row(14, "9:Dh 11:ssssssssss 21:hD 26:DHhD")
 row(15, "10:DsttssssttsD 27:DHD")
-row(16, "12:sssmmsss 27:DhD")
+row(16, "12:sssmmsss 17:s 27:DhD")
 row(17, "14:ssss 27:DD")
 row(18, "14:sstt")
 # ---- ノースリーブ道着の胴（V字のえりは濃い線）
@@ -95,7 +95,15 @@ row(18, "4:PPPPP"); row(19, "4:rrrrR"); row(20, "4:rrrR"); row(21, "4:RRRR")
 row(19, "21:sss")
 for y in range(20, 24): row(y, "22:st")
 row(24, "19:PPPPP"); row(25, "19:rrrrr"); row(26, "19:rrrrR"); row(27, "19:RRRRR")
-row(25, "17:Ss"); row(26, "17:st")
+row(23, "17:Ssu"); row(24, "17:stu"); row(25, "17:ZZ"); row(26, "18:Z")
+
+# ---- 道着の立体感：右端の灰色の影、帯の下・ひざ・腰の斜めのしわ
+for y in (19, 20, 21, 22, 23): row(y, "19:Z")
+row(25, "13:U"); row(26, "14:U")
+row(33, "16:U"); row(34, "17:U"); row(35, "18:U")
+row(38, "10:U"); row(39, "11:U")
+row(38, "19:U"); row(39, "20:U")
+row(16, "14:s 15:mm 17:s")
 
 def build():
     a = np.zeros((H, W, 4), np.uint8)
@@ -121,11 +129,11 @@ def outline(a):
 
 if __name__ == "__main__":
     a = outline(build())
-    Image.fromarray(a).save(os.path.join(OUT, "fighter_v4.png"))
+    Image.fromarray(a).save(os.path.join(OUT, "fighter_v5.png"))
     im = Image.fromarray(a)
     bg = Image.new("RGBA", (W, H), (46, 50, 72, 255)); bg.alpha_composite(im)
-    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v4_x8.png"))
+    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v5_x8.png"))
     sil = np.zeros_like(a); sil[a[..., 3] > 0] = (240, 240, 240, 255)
     sb = Image.new("RGBA", (W, H), (46, 50, 72, 255)); sb.alpha_composite(Image.fromarray(sil))
-    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v4_sil.png"))
+    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v5_sil.png"))
     print("ok", a[..., 3].astype(bool).sum())
