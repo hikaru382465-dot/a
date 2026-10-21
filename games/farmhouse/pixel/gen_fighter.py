@@ -1,6 +1,6 @@
 """
 武闘家の女の子（A案）正面・軽く構えたポーズ 32×48。python gen_fighter.py
-→ assets/character/fighter_v6.png / fighter_v6_x8.png / fighter_v6_sil.png
+→ assets/character/fighter_v7.png / fighter_v7_x8.png / fighter_v7_sil.png
 全体を文字の格子で1ドットずつ手描き（式・乱数なし）。外がわの1ドット輪郭だけ自動（np.pad→roll）。
 行の書き方：「開始列:文字列」を空白でつなぐ。光は左上。色は palette.json の系統×明るさだけ（約13色）。
 """
@@ -35,12 +35,12 @@ row(2,  "23:DhHHhD")
 row(3,  "22:DhhHHhhD")
 row(4,  "12:DhhhhhhhhD 22:rP 24:DHHhhD")
 row(5,  "10:DhhHHhhhhhhD 22:Rr 24:DHHhhD")
-row(6,  "9:DhhHHHhhhhhhhD 24:DHHhD")
-row(7,  "9:DhhhhhhhhhhhhD 24:DHHhD")
-row(8,  "9:DhhhhhhhhhhhhD 11:sD 19:Ds 24:DHHhD")
+row(6,  "9:DhhHHHhhhhhhhD 24:DHhhD")
+row(7,  "9:DhhhhhhhhhhhhD 24:DHhhD")
+row(8,  "9:DhhhhhhhhhhhhD 11:sD 19:Ds 24:DHhhD")
 # ---- 前髪（3つの房：真ん中が1ドット長く、左右は短くずらす）・目（上のまつげ1行、黒目は縦2ドット、左上に白い光）
-row(9,  "9:Dh 11:ss 13:DD 15:hh 17:DD 19:ss 21:hD 24:DHHhD")
-row(10, "9:Dh 11:DDD 15:hD 18:DDD 21:hD 24:DHHhD")
+row(9,  "9:Dh 11:ss 13:DD 15:hh 17:DD 19:ss 21:hD 24:DHhhD")
+row(10, "9:Dh 11:DDD 15:hD 18:DDD 21:hD 24:DHhhD")
 row(11, "9:Dh 11:s 12:wl 14:w 15:ss 17:w 18:lw 20:s 21:hD 25:DHhD")
 row(12, "9:Dh 11:s 12:ll 14:w 15:ss 17:w 18:ll 20:s 21:hD 25:DHhD")
 row(13, "9:Dh 11:s 12:ll 14:s 15:ss 17:s 18:ll 20:s 21:hD 26:DHhD")
@@ -68,9 +68,9 @@ row(35, "9:WWWWWUUUUUUUZZ")
 row(36, "9:WWWWWZ 17:WWUUZZ")
 row(37, "9:WWWWWZ 17:WWUUZZ")
 row(38, "9:WWWWWZ 17:WWUUZZ")
-row(39, "9:WWWWUZ 17:WUUUZZ")
-row(40, "9:WWWUZ 18:WUUUZ")
-row(41, "9:WWUUZ 18:WUUZ")
+row(39, "9:WWWWWZ 17:WUUUZZ")
+row(40, "9:WWWWZ 18:WUUUZ")
+row(41, "9:WWWUZ 18:WUUZ")
 row(42, "9:UUUUZ 18:UUUZ")
 row(43, "8:pooooO 18:ooooOp")
 row(44, "7:pooooOO 18:oooooOp")
@@ -98,13 +98,14 @@ row(24, "19:PPPPP"); row(25, "19:rrrrr"); row(26, "19:rrrrR"); row(27, "19:RRRRR
 row(23, "17:Ssu"); row(24, "17:stu"); row(25, "17:ZZ"); row(26, "18:Z")
 
 # ---- 道着の立体感：右端の灰色の影、帯の下・ひざ・腰の斜めのしわ
-for y in (19, 20, 21, 22, 23): row(y, "20:Z")
+for y in (19, 20, 21): row(y, "20:Z")
+for y in (22, 23): row(y, "19:ZZ")
 row(27, "14:UUUUU")
 row(25, "13:U"); row(26, "14:U")
 row(33, "16:U"); row(34, "17:U"); row(35, "18:U")
-row(37, "10:U"); row(38, "11:U"); row(39, "12:U")
-row(37, "21:U"); row(38, "20:U"); row(39, "19:U")
-for y in range(37, 42): row(y, "9:U")
+row(37, "10:U"); row(38, "11:U")
+row(37, "21:Z"); row(38, "20:Z")
+for y in range(38, 42): row(y, "9:U")
 for y in (35, 36, 37): row(y, "23:Z")
 row(16, "14:s 15:mm 17:s")
 
@@ -132,11 +133,11 @@ def outline(a):
 
 if __name__ == "__main__":
     a = outline(build())
-    Image.fromarray(a).save(os.path.join(OUT, "fighter_v6.png"))
+    Image.fromarray(a).save(os.path.join(OUT, "fighter_v7.png"))
     im = Image.fromarray(a)
     bg = Image.new("RGBA", (W, H), (46, 50, 72, 255)); bg.alpha_composite(im)
-    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v6_x8.png"))
+    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v7_x8.png"))
     sil = np.zeros_like(a); sil[a[..., 3] > 0] = (240, 240, 240, 255)
     sb = Image.new("RGBA", (W, H), (46, 50, 72, 255)); sb.alpha_composite(Image.fromarray(sil))
-    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v6_sil.png"))
+    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v7_sil.png"))
     print("ok", a[..., 3].astype(bool).sum())
