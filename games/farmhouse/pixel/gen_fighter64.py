@@ -1,6 +1,6 @@
 """
 武闘家の女の子 64×80 V2「羽織がなびく・片腕を高く上げ、もう片腕は前へ構える」立ち絵。python gen_fighter64.py
-→ assets/character/fighter64_v6.png / fighter64_v6_x8.png / fighter64_v6_sil.png
+→ assets/character/fighter64_v7.png / fighter64_v7_x8.png / fighter64_v7_sil.png
 やり方：多角形で「明・中・暗」の大きな面を作る（光は左上）→ 顔・拳・帯の結び目は文字の格子で1ドットずつ →
 素材ごとの濃い色で縁取り（np.pad→roll）→ ところどころ縁取りを切って明るくする。乱数なし。
 色は palette.json の系統×明るさだけ（20色）。
@@ -58,7 +58,7 @@ FK = {'s': ('k5', 'skin'), 't': ('k3', 'skin'), 'u': ('k3', 'skin'), 'P': ('r6',
 # =====================================================================
 # 1) 羽織：後ろへなびく大きな青い面（肩から放射する斜めのひだ）
 # =====================================================================
-cape = polymask([(38, 28), (45, 28), (51, 34), (57, 42), (62, 52), (62, 62), (62, 68), (60, 76), (58, 69), (56, 77), (54, 69), (53, 75), (52, 67),
+cape = polymask([(38, 28), (42, 28), (46, 29), (49, 32), (52, 36), (57, 42), (62, 52), (62, 62), (62, 71), (60, 77), (58, 72), (56, 78), (54, 72), (53, 76), (52, 70),
                  (53, 64), (50, 56), (46, 48), (42, 40), (40, 34)])
 put(cape, 'b3', 'haori')
 O = (37, 28)
@@ -69,15 +69,16 @@ sector((62, 52), (62, 62), 'b4')
 poly([(46, 28), (51, 33), (52, 35), (47, 29)], 'b5', 'haori', cape)          # 暗い面のすぐ隣に、明るい細い面
 poly([(60, 50), (62, 55), (62, 57), (60, 54)], 'b5', 'haori', cape)
 # すそ：とがった三角3つ。左を明るく、右を暗く（暗い紺の縁は自動）。縦の線は使わない
-poly([(52, 66), (62, 65), (62, 68), (52, 68)], 'b2', 'haori', cape)                       # すその折り返しの影（段）
+poly([(52, 67), (62, 66), (62, 70), (52, 70)], 'b2', 'haori', cape)                       # すその折り返しの影（段）
 def tip(L, A, R):
     poly([L, (A[0], L[1]), A], 'b4', 'haori', cape)
     poly([(A[0], R[1]), R, A], 'b2', 'haori', cape)
-tip((58, 69), (60, 76), (62, 68)); tip((54, 69), (56, 77), (58, 69)); tip((52, 67), (53, 75), (54, 69))
+tip((58, 72), (60, 77), (62, 71)); tip((54, 72), (56, 78), (58, 72)); tip((52, 70), (53, 76), (54, 72))
 # 肩の折り返し：上の端に暗い紺の帯、すぐ下に明るい水色の線
-tb = cape & ~shift(cape, 0, 1) & (xx <= 56)
+tb = cape & ~shift(cape, 0, 2) & (xx <= 56)
 put(tb, 'b0', 'haori')
 put(shift(tb, 0, 1) & cape & ~tb & (xx <= 56), 'b5', 'haori')
+put(shift(tb, 0, 2) & cape & ~tb & ~shift(tb, 0, 1) & (xx <= 56) & (yy < 33), 'b4', 'haori')
 poly([(38, 36), (44, 40), (48, 52), (44, 46), (40, 42)], 'b2', 'haori', cape)  # 体の後ろの影
 
 # =====================================================================
@@ -149,6 +150,7 @@ fo = limbmask([(39, 41), (30, 41)], 6); put(fo, 'k3', 'skin'); put(fo & shift(fo
 poly([(20, 37), (30, 38), (30, 45), (20, 46)], 'r4', 'red')
 poly([(20, 37), (30, 38), (30, 39), (20, 38)], 'r6', 'red')
 poly([(20, 44), (30, 44), (30, 45), (20, 46)], 'r2', 'red')
+grid(5, 9, ["TTTT", "TssT", "TssT", "TTT."], FK, 'skin')
 grid(12, 37, [
     ".ssssss.",
     "ssssssst",
@@ -169,8 +171,13 @@ put(edge_br(cap, 3), 'h2', 'hair', cap); put(edge_br(cap, 1), 'h1', 'hair', cap)
 put(edge_tl(cap, 3) & (xx < 31) & (yy < 14), 'h6', 'hair', cap)
 line((26, 3), (20, 11), 'h3', 'hair', T == ID['h6']); line((27, 3), (21, 11), 'h3', 'hair', T == ID['h6'])
 line((30, 4), (27, 10), 'h2', 'hair', T == ID['h3']); line((36, 4), (35, 11), 'h2', 'hair', T == ID['h3'])
-for pts in (((31, 4), (34, 4), (37, 6)), ((27, 6), (30, 5), (33, 5)), ((36, 9), (38, 11))):   # 頭の丸みにそった明るい房
-    for a, b in zip(pts[:-1], pts[1:]): line(a, b, 'h6', 'hair', T == ID['h3'])
+# 頭の上半分に大きな明るい面（つや）と、丸みにそった弓形の房の線3本
+hairc = cap & (T > 0)
+gloss = polymask([(24, 9), (26, 6), (30, 3), (36, 3), (38, 5), (34, 6), (30, 7), (27, 10)])
+put(gloss, 'b3', 'hair', hairc)
+put(polymask([(27, 7), (30, 5), (34, 4), (35, 5), (31, 6), (28, 8)]), 'b4', 'hair', hairc)      # つやの中の最も明るい所
+for pts, tok in ((((19, 15), (19, 11), (21, 8), (24, 6)), 'b3'), (((22, 15), (22, 12), (24, 9)), 'h6'), (((38, 7), (41, 9), (42, 12)), 'h6')):
+    for a, b in zip(pts[:-1], pts[1:]): line(a, b, tok, 'hair', hairc)
 poly([(17, 18), (21, 18), (21, 27), (19, 30), (17, 25)], 'h2', 'hair')
 poly([(38, 18), (42, 18), (42, 25), (40, 30), (38, 27)], 'h1', 'hair')
 poly([(17, 18), (18, 18), (18, 24), (17, 23)], 'h3', 'hair')
@@ -223,7 +230,7 @@ FACE20[16] = R20('..ggg', 'sss', 'sPPs', 'sstt', 'ggg..'[:5]) if False else R20(
 grid(20, 11, FACE20, FACE_KEY, 'skin')
 
 # ---- ポニーテール（高い位置から右へ大きくなびく）。面：明るい筋・ふつう・暗い下がわ
-CP = [(41, 8, 3), (46, 4.5, 4), (52, 6, 4.5), (56, 12, 4.4), (57, 19, 3.8), (56, 25, 2.6), (55, 29, 1.2), (54.5, 31, 0.5)]
+CP = [(41, 8, 3), (46, 4.5, 4), (52, 6, 4.5), (56, 12, 4.4), (57, 19, 3.8), (56, 24, 2.6), (55, 27, 1.2), (54.5, 29, 0.5)]
 def pony_path(off):
     pts = []
     for (x0, y0, r0), (x1, y1, r1) in zip(CP[:-1], CP[1:]):
@@ -316,12 +323,12 @@ def render(t):
     return a
 
 def save(a):
-    im = Image.fromarray(a); im.save(os.path.join(OUT, "fighter64_v6.png"))
+    im = Image.fromarray(a); im.save(os.path.join(OUT, "fighter64_v7.png"))
     bg = Image.new("RGBA", (W, H), (46, 50, 72, 255)); bg.alpha_composite(im)
-    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v6_x8.png"))
+    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v7_x8.png"))
     sil = np.zeros_like(a); sil[a[..., 3] > 0] = (240, 240, 240, 255)
     sb = Image.new("RGBA", (W, H), (46, 50, 72, 255)); sb.alpha_composite(Image.fromarray(sil))
-    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v6_sil.png"))
+    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter64_v7_sil.png"))
 
 def lonely(t):
     out = []
