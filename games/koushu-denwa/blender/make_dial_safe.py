@@ -4,7 +4,10 @@
                  材質の穴：0=木目プリント 1=ニッケル（取っ手・ねじ・ちょうつがい） 2=銘板 3=黒（すきま・ダイヤル受け・足）
   SafeDial.fbx … ダイヤルのつまみ（中心が原点。Unrealで Pitch（Y軸まわり）で回す）  穴：0=ニッケル 1=黒
   つまみの位置（本体の原点から・メートル）：右へ +0.04、前へ 0.134、高さ 0.060
-使い方：python make_dial_safe.py     出力：assets/unreal/DialSafe.fbx, SafeDial.fbx
+  DialSafeBase.fbx … 「開いた金庫」の下の箱（上が開いて、中に黒赤の内張り）。DialSafe.fbx と同じ原点・同じ向き
+  DialSafeLid.fbx  … 「開いた金庫」のふた（取っ手・銘板つき）。原点＝うしろのちょうつがい（本体の原点から：うしろへ D/2・高さ SEAM）。Unrealで Roll（X軸まわり）で開く
+  SafeKey.fbx … 金庫の中の小さな鍵（真鍮。ふちの輪＋軸＋ギザギザ。平らに置ける向き。長さ6cm、中心が原点）
+使い方：python make_dial_safe.py     出力：assets/unreal/DialSafe.fbx, SafeDial.fbx, DialSafeBase.fbx, DialSafeLid.fbx, SafeKey.fbx
 """
 import bpy, bmesh, math, os, random
 from mathutils import Vector
@@ -182,3 +185,91 @@ for i in range(30):                                              # ふちのギ�
     o = box('rib', (0.0035, 0.018, 0.005), (math.cos(a) * 0.0275, -0.009, math.sin(a) * 0.0275), 0, ms, 0.0003, rot=(0, -a, 0))
     parts.append(o)
 join_export(parts, 'SafeDial', 'SafeDial.fbx')
+
+
+# ================= 開いた金庫：下の箱（上が開いている）=================
+def translate_parts(parts, d):
+    for o in parts:
+        for v in o.data.vertices:
+            v.co += Vector(d)
+
+
+T = 0.012                                    # 壁の厚さ
+new_scene()
+ms = mats(['Wood', 'Nickel', 'Plate', 'Black', 'Inner'])
+parts = []
+low_h = SEAM - Z0 - 0.002
+zc = Z0 + low_h / 2
+bottom = box('bottom', (W, D, T), (0, 0, Z0 + T / 2), 0, ms, 0.003)
+finish_uv(bottom, 0.36)
+parts.append(bottom)
+for sx in (-1, 1):                           # 左右の壁
+    w_ = box('wallX', (T, D, low_h), (sx * (W / 2 - T / 2), 0, zc), 0, ms, 0.003)
+    finish_uv(w_, 0.36)
+    parts.append(w_)
+for sy in (-1, 1):                           # 前・うしろの壁
+    w_ = box('wallY', (W - 2 * T, T, low_h), (0, sy * (D / 2 - T / 2), zc), 0, ms, 0.003)
+    finish_uv(w_, 0.36)
+    parts.append(w_)
+# 内張り（くすんだ赤黒。壁の内がわと底）
+inn_h = low_h - T
+parts.append(box('innerBottom', (W - 2 * T - 0.002, D - 2 * T - 0.002, 0.003), (0, 0, Z0 + T + 0.0015), 4, ms, 0.0005))
+for sx in (-1, 1):
+    parts.append(box('innerX', (0.003, D - 2 * T - 0.002, inn_h), (sx * (W / 2 - T - 0.0015), 0, Z0 + T + inn_h / 2), 4, ms, 0.0005))
+for sy in (-1, 1):
+    parts.append(box('innerY', (W - 2 * T - 0.002, 0.003, inn_h), (0, sy * (D / 2 - T - 0.0015), Z0 + T + inn_h / 2), 4, ms, 0.0005))
+# ふちの金具（ニッケルの細いふち）と足
+for sx in (-1, 1):                           # ふちの金具（ニッケルの細い枠。真ん中は開いている）
+    parts.append(box('rimX', (0.004, D - 0.002, 0.003), (sx * (W / 2 - 0.002), 0, SEAM - 0.001), 1, ms, 0.0005))
+for sy in (-1, 1):
+    parts.append(box('rimY', (W - 0.002, 0.004, 0.003), (0, sy * (D / 2 - 0.002), SEAM - 0.001), 1, ms, 0.0005))
+for sx in (-1, 1):
+    for sy in (-1, 1):
+        parts.append(box('foot', (0.03, 0.03, Z0), (sx * 0.15, sy * 0.095, Z0 / 2), 3, ms, 0.002))
+# ダイヤル受け・鍵穴のふた・ちょうつがい（下の半分）：閉じた金庫と同じ位置
+parts.append(box('escutcheon', (0.085, 0.010, 0.085), (DX, fy - 0.005, DZ), 3, ms, 0.008))
+parts.append(cyl('ring', 0.037, 0.004, (DX, fy - 0.012, DZ), 1, ms, 36))
+for sx in (-1, 1):
+    parts.append(cyl('plug', 0.017, 0.006, (sx * 0.145, fy - 0.003, 0.050), 3, ms, 20))
+    parts.append(cyl('plugDisc', 0.011, 0.004, (sx * 0.145, fy - 0.008, 0.050), 1, ms, 20))
+    parts.append(box('hingeLow', (0.045, 0.010, 0.02), (sx * 0.11, D / 2 + 0.003, SEAM - 0.012), 1, ms, 0.002))
+join_export(parts, 'DialSafeBase', 'DialSafeBase.fbx')
+
+# ================= 開いた金庫：ふた（原点＝ちょうつがい）=================
+new_scene()
+ms = mats(['Wood', 'Nickel', 'Plate', 'Black', 'Inner'])
+parts = []
+lid_h = H - SEAM - 0.002 + Z0
+lid = box('lid', (W + 0.002, D + 0.002, lid_h), (0, 0, SEAM + 0.002 + lid_h / 2), 0, ms, 0.014)
+finish_uv(lid, 0.36)
+parts.append(lid)
+parts.append(box('lidInner', (W - 0.02, D - 0.02, 0.003), (0, 0, SEAM + 0.0035), 4, ms, 0.0005))      # ふたの裏の内張り
+top = Z0 + (SEAM - Z0 - 0.002) + 0.002 + lid_h
+for sx in (-1, 1):
+    parts.append(cyl('post', 0.0075, 0.022, (sx * 0.055, 0.0, top + 0.009), 1, ms, 14, 'Z', 0.001))
+    parts.append(cyl('postCap', 0.011, 0.005, (sx * 0.055, 0.0, top + 0.002), 1, ms, 14, 'Z', 0.001))
+parts.append(box('barMid', (0.082, 0.011, 0.007), (0, 0, top + 0.027), 1, ms, 0.0025))
+for sx in (-1, 1):
+    parts.append(box('barEnd', (0.034, 0.011, 0.007), (sx * 0.066, 0.0, top + 0.022), 1, ms, 0.0025, rot=(0, sx * math.radians(-28), 0)))
+plate = box('plate', (0.115, 0.004, 0.045), (0.065, fy - 0.003, SEAM + 0.040), 2, ms, 0.0005)
+plate_uv(plate)
+parts.append(plate)
+for sx in (-1, 1):
+    parts.append(box('hingeUp', (0.045, 0.010, 0.02), (sx * 0.11, D / 2 + 0.003, SEAM + 0.012), 1, ms, 0.002))
+    parts.append(box('corner', (0.016, 0.006, 0.05), (sx * (W / 2 - 0.008), fy - 0.002, SEAM + 0.04), 1, ms, 0.002))
+translate_parts(parts, (0, -D / 2, -SEAM))          # 原点を、うしろのちょうつがいに
+join_export(parts, 'DialSafeLid', 'DialSafeLid.fbx')
+
+
+# ================= 金庫の中の小さな鍵（床に平らに置く。長さ約6cm）=================
+new_scene()
+ms = mats(['Brass'])
+parts = []
+bpy.ops.mesh.primitive_torus_add(major_radius=0.0105, minor_radius=0.0038, major_segments=28, minor_segments=10, location=(0, 0, 0))
+ring_ = bpy.context.active_object
+ring_.name = 'bow'
+parts.append(finish(ring_, ms, 0, 0.0, (-0.0235, 0, 0.0038)))
+parts.append(box('shaft', (0.040, 0.0065, 0.0065), (0.0095, 0, 0.0033), 0, ms, 0.0012))
+for i, (xx_, hh) in enumerate(((0.022, 0.011), (0.0285, 0.0075), (0.0125, 0.0085))):
+    parts.append(box('bit%d' % i, (0.0045, hh, 0.0055), (xx_, -hh / 2 - 0.003, 0.003), 0, ms, 0.0008))
+join_export(parts, 'SafeKey', 'SafeKey.fbx')

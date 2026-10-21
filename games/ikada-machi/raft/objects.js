@@ -39,11 +39,14 @@ window.RAFT.parts.objects = function (c) {
     I.dot(g, 17, 21 + (f ? 2 : 0), P.blue3); if (f) I.dot(g, 17, 20, P.blue2);
     return outline(cv, g);
   }
-  const mk = (cv, ppu) => ({ cv, ppu });
+  const mk = (cv, ppu, hi) => ({ cv, ppu, hi });
   const art = { bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
   // ひかるの絵（objs_art.js）。読み込めたら、コードで描いた仮の絵のかわりに使う
   const OA = R.objArt; let oaLeft = 0;
-  if (OA) ['bench', 'tank', 'filter', 'campfire', 'seat'].forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ['bench', 'tank', 'filter', 'campfire', 'seat'].forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], kk === 'campfire' ? 44 : kk === 'seat' ? 36 : 34)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
+  const SH_OF = { campfire: 1.15, bench: 1.3, rack: 1.15, oven: 0.95, crate: 0.8, chest: 0.9, plot: 1.05, seat: 0.7, barrel: 0.8, bed: 1.15, shelf: 0.9, windmill: 0.9, hut: 1.5 };      // 足もとの影の大きさ（物ごと）
+  const SHIFT_OF = { hut: 2.0 };
+  const PPU_OF = { bench: 36, tank: 36, filter: 34, campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36, barrel: 34, bed: 30, shelf: 34, windmill: 36, hut: 15.4 }, ART_KEYS = ['bench', 'tank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'];
+  if (OA) ART_KEYS.forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], (PPU_OF[kk] || 34) * (f2.hi ? f2.hi : 1), !!f2.hi)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
   const glowTex = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,190,100,1)'); gr.addColorStop(.4, 'rgba(255,130,50,.4)'); gr.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c.tex(cv); })();
   const shGeo = new THREE.PlaneGeometry(0.85, 0.85); shGeo.rotateX(-Math.PI / 2);
   const shTex = (() => { const [cv, g] = I.canvas(32, 32), gr = g.createRadialGradient(16, 16, 2, 16, 16, 16); gr.addColorStop(0, 'rgba(18,10,28,.55)'); gr.addColorStop(.7, 'rgba(18,10,28,.35)'); gr.addColorStop(1, 'rgba(18,10,28,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
@@ -54,9 +57,11 @@ window.RAFT.parts.objects = function (c) {
     while (group.children.length) group.remove(group.children[0]); items.clear();
     s.objects.forEach(o => {
       const a = art[o.k]; if (!a) return;
-      const m = c.sprite(a[0].cv, { x: o.x + 0.5, y: TOP, z: o.z + 0.5, ppu: a[0].ppu }); group.add(m);
-      const tex = a.map(f => c.tex(f.cv));
-      const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(o.x + 0.5, TOP + 0.004, o.z + 0.5); sh.rotation.y = Math.PI / 4; sh.scale.setScalar(o.k === 'campfire' ? 1.15 : o.k === 'bench' ? 1.3 : 0.9); group.add(sh);     // 足もとの影（浮いて見えないように）
+      const [fw, fd] = R.sim.sizeOf(o), cx = o.x + fw / 2, cz = o.z + fd / 2;
+      const sf = (SHIFT_OF[o.k] || 0) * 0.7071;      // 台つきの絵は、カメラのほうへずらして、台の中心を床の中心に合わせる（浮いて見えないように）
+      const m = c.sprite(a[0].cv, { x: cx + sf, y: TOP, z: cz + sf, ppu: a[0].ppu, smooth: a[0].hi }); group.add(m);
+      const tex = a.map(f => c.tex(f.cv, { smooth: f.hi }));
+      const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(cx, TOP + 0.004, cz); sh.rotation.y = Math.PI / 4; sh.scale.setScalar((SH_OF[o.k] || 0.9) * (fw > 1 || fd > 1 ? 2.2 : 1)); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
       const it = { m, tex, o, last: -1 };
       if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
@@ -73,6 +78,8 @@ window.RAFT.parts.objects = function (c) {
       let idx = 0;
       if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / D.ITEMS.tank.cap * 3));
       else if (it.o.k === 'filter') idx = (it.o.p > 0 && Math.floor(t * 2) % 2) ? 1 : 0;
+      else if (it.o.k === 'hut') idx = (s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > 1 ? 1 : 0;
+      else if (it.o.k === 'plot') { const cr = it.o.c && D.CROPS[it.o.c]; if (cr) { const f = it.o.p / cr.sec; idx = f >= 1 ? 4 + Math.max(0, (R.cropIds || []).indexOf(it.o.c)) : f < 0.12 ? 1 : f < 0.4 ? 2 : 3; } }
       if (idx !== it.last) { it.m.material.map = it.tex[idx]; it.last = idx; }
     });
   } };

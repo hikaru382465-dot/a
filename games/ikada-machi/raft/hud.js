@@ -5,13 +5,19 @@ window.RAFT.parts.hud = function (c) {
   c.mode = c.mode || { place: null };
   c.ui = c.ui || { open: false };
   c.aim = c.aim || { active: false, x: 0, z: 0, power: 0 };
-  let tab = 'inv', sel = null;
+  let tab = 'inv', sel = null; const fc = { shock: 0, happy: 0 };
+  const faceNow = (s, t) => {      // 相棒の表情：気分・天気・夜・釣れたときで決める。まばたきは数秒おき
+    const F = window.RAFT.faces, bu = s.buddy; if (!F) return 'normal';
+    if (bu.cheer && bu.cheer !== fc.cheer) { fc.cheer = bu.cheer; fc.happy = t + 3.5; } if (s.weather.id === 'storm' && fc.wx !== 'storm') fc.shock = t + 2.5; fc.wx = s.weather.id;
+    let n = bu.job === 'rest' && sim.isNight(s) ? 'sleepy' : t < fc.shock ? 'surprise' : t < fc.happy ? 'happy' : s.weather.id === 'storm' || bu.mood < 30 ? 'sad' : bu.mood >= 70 ? 'smile' : 'normal';
+    if (fc.blinkAt === undefined || t > fc.blinkAt + 0.14) fc.blinkAt = t + 2.5 + Math.random() * 3.5; if (t > fc.blinkAt && F.img[n + '_blink']) n += '_blink'; fc.n = n; return n; };
+  
   const times = [[0.2, '朝'], [0.62, '昼'], [0.78, '夕'], [1.01, '夜']];
   const timeName = t => times.find(x => t < x[0])[1];
   const toast = (msg, ms) => { const e = $('toast'); if (!msg) { e.style.opacity = 0; return; } e.textContent = msg; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, ms || 2400); };
   const iconOf = k => c.itemIcon ? c.itemIcon(k) : null;
   const paint = (cv, k) => { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); const ic = k && iconOf(k); if (!ic) return; g.imageSmoothingEnabled = false;
-    let sc = Math.min(cv.width / ic.width, cv.height / ic.height); if (sc >= 1) sc = Math.floor(sc);
+    let sc = Math.min(cv.width / ic.width, cv.height / ic.height); if (sc >= 1) sc = Math.floor(sc); else g.imageSmoothingEnabled = true;
     const w = Math.round(ic.width * sc), h = Math.round(ic.height * sc); g.drawImage(ic, Math.round((cv.width - w) / 2), Math.round((cv.height - h) / 2), w, h); };
   const nameOf = k => (D.ITEMS[k] || D.TOOLS[k] || {}).name || k;
 
@@ -64,17 +70,36 @@ window.RAFT.parts.hud = function (c) {
     const v = D.SCENES[sel], on = v && s.scenes[sel], g = v ? v[2].split(',') : [];
     $('detail').innerHTML = v ? `${on ? `<canvas id="scCv" width="192" height="108" data-k="${sel}" style="width:100%;image-rendering:pixelated;border-radius:6px;border:3px solid #5a3425;box-sizing:border-box;display:block"></canvas>` : '<div style="height:90px;border-radius:6px;background:#0004"></div>'}<p><b>${on ? v[0] : '？？？'}</b></p><p>${on ? v[1] : '見晴らしいすに座ると、見つかる。時間や天気で景色がかわる。'}</p>` : '';
   }
+  function renderFish() {
+    const FA = (window.RAFT && window.RAFT.fishArt) || {}, ids = Object.keys(D.FISH), dex = s.fishdex || {}, got = ids.filter(k => dex[k]).length;
+    const img = (k, on, h) => FA[k] ? `<img src="${FA[k].src}" style="width:100%;height:${h}px;object-fit:contain;${on ? '' : 'filter:brightness(0);opacity:.28;'}">` : '';
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">見つけた魚 ${got} / ${ids.length}</div>` + ids.map(k => { const f = D.FISH[k], on = dex[k]; return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}" style="aspect-ratio:1.6">${img(k, on, 30)}<span class="nm">${on ? f.name : '？？？'}</span></button>`; }).join('');
+    $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
+    const f = D.FISH[sel], on = f && dex[sel], stars = f ? '★'.repeat(f.star) + '☆'.repeat(3 - f.star) : '';
+    const hint = f ? [f.time ? { dawn: '朝', day: '昼', dusk: '夕方', night: '夜' }[f.time] + 'に多い' : '', f.wx ? { calm: '凪', storm: '嵐', sunny: '晴れ' }[f.wx] + 'の日に多い' : '', f.by === 'rod' ? '釣りざおで' : f.by === 'net' ? '網で' : '', 'Lv' + f.lv + 'の網から'].filter(Boolean).join('・') : '';
+    $('detail').innerHTML = f ? `<div style="height:66px;display:flex;align-items:center;justify-content:center;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px">${img(sel, on, 56)}</div><p><b>${on ? f.name : '？？？'}</b>　<span class="tag">${stars}</span></p><p>${on ? f.tip : '釣ったり、網でとると、見つかる。'}</p><p class="why">${on ? 'とった数：' + dex[sel] + '　（' + hint + '）' : hint}</p>` : '';
+  }
+  function renderDishes() {
+    const DA = (window.RAFT.dishArt && window.RAFT.dishArt.art) || {}, ids = D.DISHES.map(d => d.id), dex = s.dishdex || {}, got = ids.filter(k => dex[k]).length;
+    const img = (k, on, h) => DA[k] ? `<img src="${DA[k][0].src}" style="width:100%;height:${h}px;object-fit:contain;${on ? '' : 'filter:brightness(0);opacity:.28;'}">` : '';
+    $('grid').innerHTML = `<div class="hint" style="grid-column:1/-1">作った料理 ${got} / ${ids.length}</div>` + ids.map(k => { const on = dex[k]; return `<button class="slot${k === sel ? ' sel' : ''}" data-key="${k}" style="aspect-ratio:1.3">${img(k, on, 40)}<span class="nm">${on ? D.ITEMS[k].name : '？？？'}</span></button>`; }).join('');
+    $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
+    const d = D.DISHES.find(x => x.id === sel), it = d && D.ITEMS[sel], on = d && dex[sel], nm = { veg: '野菜', wood: '木くず', fish: '魚' };
+    $('detail').innerHTML = d ? `<div style="height:76px;display:flex;align-items:center;justify-content:center;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px">${img(sel, on, 66)}</div><p><b>${on ? it.name : '？？？'}</b></p><p>${on ? it.tip : 'かまどで作ると、見つかる。'}</p><p class="why">${on ? `おなか +${it.food}${it.mood ? '　ほっと +' + it.mood : ''}　作った数：${dex[sel]}` : ''}${on || true ? '<br>材料：' + Object.keys(d.need).map(k => nm[k] + d.need[k]).join('・') + '　' + d.sec + '秒' : ''}</p>` : '';
+  }
   function renderBook() {
+    if (tab === 'dish') { if (!D.DISHES.some(x => x.id === sel)) sel = D.DISHES[0].id; renderDishes(); return; }
+    if (tab === 'fish') { if (!D.FISH[sel]) sel = Object.keys(D.FISH)[0]; renderFish(); return; }
     if (tab === 'scene') { if (!D.SCENES[sel]) sel = Object.keys(D.SCENES)[0]; renderScenes(); return; }
     const list = tab === 'inv' ? slots() : recipes();
     if (!list.some(o => o.key === sel)) sel = list.length ? list[0].key : null;
     const fill = Math.max(12, Math.ceil(list.length / 4) * 4) - list.length;
-    $('grid').innerHTML = list.map(o => `<button class="slot${o.key === sel ? ' sel' : ''}${o.hand ? ' hand' : ''}${o.ck && o.ck.why === 'locked' ? ' lock' : ''}" data-key="${o.key}"><canvas width="32" height="32" data-k="${o.k}"></canvas><span class="nm">${o.name}</span>${o.n !== '' ? `<span class="n">${o.n}</span>` : ''}</button>`).join('') + '<div class="slot empty"></div>'.repeat(fill);
+    $('grid').innerHTML = list.map(o => `<button class="slot${o.key === sel ? ' sel' : ''}${o.hand ? ' hand' : ''}${o.ck && o.ck.why === 'locked' ? ' lock' : ''}" data-key="${o.key}"><canvas width="128" height="128" data-k="${o.k}"></canvas><span class="nm">${o.name}</span>${o.n !== '' ? `<span class="n">${o.n}</span>` : ''}</button>`).join('') + '<div class="slot empty"></div>'.repeat(fill);
     $('grid').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
     $('grid').querySelectorAll('button.slot').forEach(b => b.onclick = () => { sel = b.dataset.key; renderBook(); });
     const o = list.find(x => x.key === sel), d = $('detail');
     if (!o) { d.innerHTML = '<div class="hint">まだ何も持っていません。<br>網を投げて、物をあつめよう。</div>'; return; }
-    let html = `<div class="big"><canvas width="56" height="56" data-k="${o.k}"></canvas><div><b>${o.name}</b>${o.t === 'tool' ? (o.hand ? '<br><span class="tag">手に持っている</span>' : '') : o.t === 'recipe' ? '' : `<br><span class="tag">×${o.n}</span>`}</div></div>`;
+    let html = `<div class="big"><canvas width="128" height="128" data-k="${o.k}"></canvas><div><b>${o.name}</b>${o.t === 'tool' ? (o.hand ? '<br><span class="tag">手に持っている</span>' : '') : o.t === 'recipe' ? '' : `<br><span class="tag">×${o.n}</span>`}</div></div>`;
     let btn = '', onclick = null;
     if (o.t === 'recipe') {
       const cost = o.net ? (o.nx ? o.nx.cost : null) : o.r.cost, tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.r.tip;
@@ -93,14 +118,15 @@ window.RAFT.parts.hud = function (c) {
     d.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
     if (onclick) $('act').onclick = onclick;
   }
-  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); renderBook(); }
+  function setTab(t) { if (t !== tab) sel = null; tab = t; $('tInv').classList.toggle('on', t === 'inv'); $('tCraft').classList.toggle('on', t === 'craft'); $('tScene').classList.toggle('on', t === 'scene'); $('tFish').classList.toggle('on', t === 'fish'); $('tDish').classList.toggle('on', t === 'dish'); paint($('tDish').querySelector('canvas'), 'soup'); renderBook(); }
   function openSheet(t) { cancelPlace(); c.ui.open = true; $('sheet').classList.add('open'); setTab(t || tab); }
   function closeSheet() { c.ui.open = false; $('sheet').classList.remove('open'); }
   // ---- 置くモード ----
   function startPlace(k) {
     const cands = sim.placeCandidates(s, k);
     if (!cands.length) { toast(k === 'floor' ? 'これ以上は広げられない（8×8まで）' : 'イカダがせまくて置けない。まず「床板」で広げよう', 3500); return; }
-    c.mode.place = { k }; c.setHighlight && c.setHighlight(cands); closeSheet(); placeBar();
+    const sz = (D.ITEMS[k] && D.ITEMS[k].size) || [1, 1], shown = {}; cands.forEach(([x0, z0, y]) => { for (let i = 0; i < sz[0]; i++) for (let j = 0; j < sz[1]; j++) shown[(x0 + i) + ',' + (z0 + j)] = [x0 + i, z0 + j, y]; });
+    c.mode.place = { k }; c.setHighlight && c.setHighlight(Object.values(shown)); closeSheet(); placeBar();
   }
   function placeBar() {
     const p = c.mode.place; $('placebar').style.display = p ? 'flex' : 'none';
@@ -156,6 +182,20 @@ window.RAFT.parts.hud = function (c) {
     setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
     $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;
   }
+  // かまど（焚き火と同じ形の画面）
+  let ovId = null;
+  const oe = { veg: $('oVeg'), fish: $('oFish'), wood: $('oWood'), out: $('oOut'), iveg: $('ivVeg'), ifish: $('ivFish'), iwood: $('ivWood') };
+  function ovPanel() {
+    const o = s.objects.find(x => x.id === ovId && x.k === 'oven'); if (!o) { $('ovbox').style.display = 'none'; return; }
+    const cur = o.cook && D.DISHES.find(x => x.id === o.cook.d), nx = sim.ovNext(o), full = sim.ovOutN(o) >= D.OVEN.maxOut;
+    $('ovState').textContent = cur ? `${nameOf(cur.id)}を作っています…` : full ? 'できた料理を取り出してください' : nx ? `${nameOf(nx.id)}が作れる` : (o.iv || o.ifi || o.iw ? '材料がたりない（野菜1・木くず1から作れる）' : '野菜・魚・燃料（木くず）を入れてください');
+    setSlot(oe.veg, 'veg', o.iv || 0); setSlot(oe.fish, 'fish', o.ifi || 0); setSlot(oe.wood, 'wood', o.iw || 0);
+    const outK = sim.ovOutN(o) ? (o.out && o.out[o.lastOut] ? o.lastOut : Object.keys(o.out).find(k => o.out[k] > 0)) : 'nabe'; setSlot(oe.out, outK, sim.ovOutN(o));
+    setSlot(oe.iveg, 'veg', s.inv.veg || 0); setSlot(oe.ifish, 'fish', s.inv.fish || 0); setSlot(oe.iwood, 'wood', s.inv.wood || 0);
+    $('ovBar').style.width = (cur ? o.cook.t / cur.sec * 100 : 0) + '%'; $('ovSteam').style.display = cur ? 'block' : 'none'; $('ovNow').textContent = cur ? nameOf(cur.id) : '';
+  }
+  const ovMove = (what, from, n) => { const ok = from === 'inv' ? sim.ovPut(s, ovId, what, n) : sim.ovTake(s, ovId, what, n); if (ok) refresh(); ovPanel(); };
+  const openOv = id => { ovId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'block'; ovPanel(); };
   const openCf = id => { cfId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'block'; cfPanel(); };
   // 動かす：from='inv'（持ち物→焚き火）／'slot'（焚き火→持ち物）。n＝1 か 'all'
   const cfMove = (what, from, n) => { const ok = from === 'inv' ? sim.cfPut(s, cfId, what, n) : sim.cfTake(s, cfId, what, n); if (ok) refresh(); cfPanel(); };
@@ -175,6 +215,12 @@ window.RAFT.parts.hud = function (c) {
   wire(slotEl.fish, { what: 'fish', icon: 'fish', tap: () => cfMove('fish', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('fish', 'slot', 'all'); } });
   wire(slotEl.wood, { what: 'wood', icon: 'wood', tap: () => cfMove('wood', 'slot', 1), drop: to => { if (to === 'inv' || to === null) cfMove('wood', 'slot', 'all'); } });
   wire(slotEl.out, { what: 'out', icon: 'grilled', tap: () => cfMove('out', 'slot', 'all'), drop: to => { if (to === 'inv' || to === null) cfMove('out', 'slot', 'all'); } });
+  [['veg', 'iveg', 'ovveg'], ['fish', 'ifish', 'ovfish'], ['wood', 'iwood', 'ovwood']].forEach(([k, ik, dk]) => {
+    wire(oe[ik], { what: k, icon: k, tap: () => ovMove(k, 'inv', 1), drop: to => { if (to === dk) ovMove(k, 'inv', 'all'); } });
+    wire(oe[k], { what: k, icon: k, tap: () => ovMove(k, 'slot', 1), drop: to => { if (to === 'ovinv' || to === null) ovMove(k, 'slot', 'all'); } });
+  });
+  wire(oe.out, { what: 'out', icon: 'nabe', tap: () => ovMove('out', 'slot', 'all'), drop: to => { if (to === 'ovinv' || to === null) ovMove('out', 'slot', 'all'); } });
+  $('bOvClose').onclick = () => { $('ovbox').style.display = 'none'; };
   $('bCfClose').onclick = () => { $('cfbox').style.display = 'none'; };
   // ---- 船の住人との交渉 ----
   let lastBoat = '';
@@ -184,27 +230,61 @@ window.RAFT.parts.hud = function (c) {
       const its = (o, chk) => Object.keys(o).map(k => `<div class="it${chk && (s.inv[k] || 0) < o[k] ? ' no' : ''}"><canvas width="32" height="32" data-k="${k}"></canvas><i>×${o[k]}${chk ? '/' + (s.inv[k] || 0) : ''}</i></div>`).join('');
       return `<div class="deal"><div class="its">${its(dl.want, true)}</div><span class="ar">→</span><div class="its">${its(dl.give, false)}</div><button data-d="${i}" ${sim.dealOk(s, i) ? '' : 'disabled'}>${b.done[i] ? '済み' : '交換する'}</button></div>`;
     }).join('');
-    const line = b.phase === 'leave' ? 'また来るよ。' : b.thanks ? R_.thanks : R_.hello;
-    const html = `${R_.name}|${line}|${rows}|${b.phase}`;
+    const line = b.ask ? D.RESIDENT.ask[b.res] : b.phase === 'leave' ? 'また来るよ。' : b.thanks ? R_.thanks : R_.hello;
+    const askRow = b.ask ? `<div class="askrow"><span style="flex:1;font-size:12px;opacity:.8">小屋の空き：${sim.hutFree(s)}</span><button data-a="1">いいよ</button><button data-a="0">またこんど</button></div>` : '';
+    const html = `${R_.name}|${line}|${rows}${askRow}|${b.phase}|${sim.hutFree(s)}`;
     if (html === lastBoat) return; lastBoat = html;
-    $('boatName').textContent = R_.name; $('boatLine').textContent = line; $('boatDeals').innerHTML = rows;
+    $('boatName').textContent = R_.name; $('boatLine').textContent = line; $('boatDeals').innerHTML = rows + askRow;
     $('boatDeals').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
-    $('boatDeals').querySelectorAll('button').forEach(bt => bt.onclick = () => { sim.deal(s, +bt.dataset.d); refresh(); lastBoat = ''; boatPanel(); });
+    $('boatDeals').querySelectorAll('button[data-d]').forEach(bt => bt.onclick = () => { sim.deal(s, +bt.dataset.d); refresh(); lastBoat = ''; boatPanel(); });
+    $('boatDeals').querySelectorAll('button[data-a]').forEach(bt => bt.onclick = () => { sim.invite(s, bt.dataset.a === '1'); refresh(); lastBoat = ''; boatPanel(); });
   }
+  // 住人のおしゃべり：開いたときに1回だけ、天気・時間で選ぶ
+  function openTalk(id) {
+    const T = D.RESIDENT.talk[id], rs = D.BOAT.RES[id], pick = a => a[Math.floor(Math.random() * a.length)];
+    const night = sim.isNight(s), L = s.weather.id === 'storm' ? pick(T.storm) : night ? pick(T.night) : pick(T.day);
+    const perk = { kuro: 'いっしょに住むと：毎朝、粘土かガラスをくれる。かまどの料理が少し速くなる', pipi: 'いっしょに住むと：嵐が来る前に、知らせてくれる', toto: '（これからの暮らしで、できることが増える）', mina: '（これからの暮らしで、できることが増える）' }[id];
+    $('resName').textContent = rs.name; $('resLine').textContent = L; $('resPerk').textContent = (s.res[id].live ? '住んでいる：' : '') + perk.replace('いっしょに住むと：', '');
+    const FS = window.RAFT.resArt && window.RAFT.resArt[id] && window.RAFT.resArt[id].faces, F = FS && (s.weather.id === 'sunny' && !night ? FS[1] : FS[0]); $('resFace').style.display = F ? 'block' : 'none'; if (F) $('resFace').src = F;
+    $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'none'; $('boatbox').style.display = 'none'; $('resbox').style.display = 'block'; closeSheet();
+  }
+  $('bResClose').onclick = () => { $('resbox').style.display = 'none'; };
   const openBoat = () => { if (!s.boat) return; cancelPlace(); closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('boatbox').style.display = 'block'; lastBoat = ''; boatPanel(); };
   $('bLookStop').onclick = () => sim.stopLook(s);
+  $('bHutOut').onclick = () => sim.exitHut(s); $('bHutEat').onclick = () => sim.hutEat(s); $('bHutSleep').onclick = () => sim.sleepHut(s); let pmode = 'raft'; document.querySelectorAll('#photoPick button').forEach(b => { b.onclick = () => { pmode = b.dataset.m; document.querySelectorAll('#photoPick button').forEach(x => x.classList.toggle('on', x === b)); }; });
+  const sticker = (src, cb) => { const done = im => { const o = document.createElement('canvas'); o.width = o.height = 96; const g = o.getContext('2d'), sc = Math.min(70 / im.width, 70 / im.height), w = im.width * sc, h = im.height * sc, x = (96 - w) / 2, y = (96 - h) / 2;
+      const t = document.createElement('canvas'); t.width = t.height = 96; const tg = t.getContext('2d'); tg.drawImage(im, x, y, w, h); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = '#fffaf0'; tg.fillRect(0, 0, 96, 96);
+      for (const r of [6, 4]) for (let k = 0; k < 20; k++) { const a = k * 0.314; g.drawImage(t, Math.cos(a) * r, Math.sin(a) * r); } g.drawImage(im, x, y, w, h); cb(o.toDataURL()); };
+    if (typeof src === 'string') { const im = new Image(); im.onload = () => done(im); im.onerror = () => cb(null); im.src = src; } else done(src); };
+  const starCv = (ch, col) => { const o = document.createElement('canvas'); o.width = o.height = 64; const g = o.getContext('2d'); g.font = 'bold 56px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col; g.fillText(ch, 32, 36); return o; };
+  $('bHutDiary').onclick = () => { const tl = s.tally, srcs = []; if (tl) { const ids = Object.keys(tl.fish).sort((p, q) => tl.fish[q] - tl.fish[p]), FA = window.RAFT.fishArt || {}; if (ids[0] && FA[ids[0]]) srcs.push(FA[ids[0]].src); if (tl.veg && iconOf('veg')) srcs.push(iconOf('veg')); if (tl.craft.length) { const r = D.RECIPES.find(x => x.id === tl.craft[tl.craft.length - 1]); if (r && iconOf(r.out)) srcs.push(iconOf(r.out)); } if (tl.scene.length) srcs.push(starCv('★', '#f2b73c')); }
+    if (s.buddy.mood >= 70) srcs.push(starCv('♥', '#e2607a')); if (!srcs.length) srcs.push(starCv('★', '#f2b73c'));
+    if (!sim.writeDiary(s)) return; const ent = s.diary[s.diary.length - 1]; ent.stk = []; ent.pos = []; for (let n = 0; n < 3; n++) { let best = null, bd = -1; for (let t = 0; t < 30; t++) { const p = { x: Math.round(Math.random() * 235), y: Math.round(178 + Math.random() * 85), r: Math.round(Math.random() * 40 - 20) }, d = ent.pos.length ? Math.min(...ent.pos.map(q => Math.hypot(q.x - p.x, q.y - p.y))) : 99; if (d > bd) { bd = d; best = p; } } ent.pos.push(best); } srcs.slice(0, 3).forEach(sr => sticker(sr, u => { if (u) { ent.stk.push(u); sim.save && sim.save(s); } })); try { c.render(); const g = c.renderer.domElement, W = g.width, H = g.height; let cw = Math.min(W, H * 1.5), cx = W / 2, cy = H / 2;
+      if (pmode !== 'raft') { const hut = s.objects.find(o => o.k === 'hut'), p = pmode === 'buddy' ? s.buddy : hut; if (p) { const v = new c.THREE.Vector3(p.x, pmode === 'buddy' ? 0.6 : 0.9, p.z).project(c.camera); cx = (v.x * 0.5 + 0.5) * W; cy = (-v.y * 0.5 + 0.5) * H; cw = Math.min(W, H * 1.5) * (pmode === 'buddy' ? 0.3 : 0.45); } }
+      const ch = cw / 1.5; cx = Math.max(cw / 2, Math.min(W - cw / 2, cx)); cy = Math.max(ch / 2, Math.min(H - ch / 2, cy));
+      const cv = document.createElement('canvas'); cv.width = 240; cv.height = 160; cv.getContext('2d').drawImage(g, cx - cw / 2, cy - ch / 2, cw, ch, 0, 0, 240, 160); const l = s.diary; if (l.length > 40) l[l.length - 41].stk = null; l[l.length - 1].photo = cv.toDataURL('image/jpeg', 0.7); l[l.length - 1].wx = s.weather.id; l[l.length - 1].face = (fc.n || 'normal').replace('_blink', ''); if (l.length > 40) l[l.length - 41].photo = null; } catch (e) {} };
+  // 日記の天気マーク：茶色いペンの線画（コードで描く）
+  const wxIcon = id => window.RAFT.wxIcon(id); let dpg = 0; const showPage = dir => { const l = s.diary || [], pg = $('diaryPage'); $('diaryNum').textContent = l.length ? `${dpg + 1} / ${l.length}` : ''; pg.innerHTML = l.length ? `<b>${l[dpg].day}日目</b><p>${l[dpg].text}</p>${l[dpg].face && window.RAFT.faces ? `<img class="fc" src="${window.RAFT.faces.img[l[dpg].face]}">` : ''}${l[dpg].wx ? `<img class="wx" src="${wxIcon(l[dpg].wx)}">` : ''}${(l[dpg].stk || []).map((u, i) => `<img class="stk" style="left:calc(var(--u)*${(l[dpg].pos || [])[i] ? l[dpg].pos[i].x : 18 + i * 78});top:calc(var(--u)*${(l[dpg].pos || [])[i] ? l[dpg].pos[i].y : 196});transform:rotate(${(l[dpg].pos || [])[i] ? l[dpg].pos[i].r : 0}deg)" src="${u}">`).join('')}${l[dpg].photo ? `<img class="ph" src="${l[dpg].photo}">` : ''}` : '<p>まだ、なにも書いていない。</p>'; pg.classList.remove('flipL', 'flipR'); void pg.offsetWidth; if (dir) pg.classList.add(dir > 0 ? 'flipL' : 'flipR'); $('diaryPrev').style.opacity = dpg > 0 ? 1 : 0.3; $('diaryNext').style.opacity = dpg < l.length - 1 ? 1 : 0.3; };
+  $('bHutRead').onclick = () => { dpg = Math.max(0, (s.diary || []).length - 1); showPage(0); $('diaryBook').style.backgroundImage = `url(${window.RAFT.diaryArt})`; $('diary').style.display = 'flex'; };
+  $('diaryPrev').onclick = () => { if (dpg > 0) { dpg--; showPage(-1); } }; $('diaryNext').onclick = () => { if (dpg < (s.diary || []).length - 1) { dpg++; showPage(1); } };
+  $('diaryClose').onclick = () => { $('diary').style.display = 'none'; };
   $('bBoatClose').onclick = () => { $('boatbox').style.display = 'none'; };
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
-  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat };
+  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat, openTalk };
   // ---- ボタン ----
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
   document.querySelectorAll('.tab canvas').forEach(cv => paint(cv, cv.dataset.k));
-  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene');
+  $('tInv').onclick = () => setTab('inv'); $('tCraft').onclick = () => setTab('craft'); $('tScene').onclick = () => setTab('scene'); $('tFish').onclick = () => setTab('fish'); $('tDish').onclick = () => setTab('dish');
   $('bPlaceEnd').onclick = cancelPlace;
   $('pull').onclick = () => { sim.recallNet(s); };
+  // テスト用ボタンは、ふだんは見えない。「あそびかた」の題を5回すばやくタップするか、URLに ?debug をつけると出る（公開前は、この仕組みごと消してもよい）
+  { let n = 0, tm = 0; const on = () => document.body.classList.add('debug'); if (/[?&]debug/.test(location.search)) on();
+    $('helpTitle').onclick = () => { n++; clearTimeout(tm); tm = setTimeout(() => { n = 0; }, 900); if (n >= 5) { on(); toast('テスト用ボタンを出した'); } }; }
+  $('bDemo').onclick = () => { sim.demoSet(s); $('helpbox').style.display = 'none'; toast('置き物を全部ならべた（テスト）。広いイカダにするので、セーブを消したいときは「?new」をつけて開く', 4000); };
+  $('bDexAll').onclick = () => { s.inv.seed = (s.inv.seed || 0) + 5; Object.keys(D.FISH).forEach(k => { s.fishdex[k] = s.fishdex[k] || 1; }); Object.keys(D.SCENES).forEach(k => { s.scenes[k] = s.scenes[k] || 1; }); $('helpbox').style.display = 'none'; toast('図鑑を全部のせた（テスト）。持ち物の本で「魚」「景色」を見てね'); };
   $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
   $('bHelp').onclick = () => { $('helpbox').style.display = 'block'; };
   $('bHelpClose').onclick = () => { $('helpbox').style.display = 'none'; };
@@ -216,6 +296,18 @@ window.RAFT.parts.hud = function (c) {
   const rain = $('rain'), rg = rain.getContext('2d'); let rainA = 0;
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
+    resask: e => `${D.BOAT.RES[e.id].name}が、何か言いたそう…（船をタップ）`, resjoin: e => `${D.BOAT.RES[e.id].name}が、イカダに住みはじめた！`, nohut: () => '小屋が足りない（小屋を置くと、住める人が増える）', stormsoon: () => 'ピピ「もうすぐ嵐が来るよ！」', resgift: e => `クロが、${nameOf(e.k)}をくれた`,
+    cookstart: e => `${nameOf(e.d)}を作りはじめた`, cooked: e => `${nameOf(e.d)}ができた！`, ovengot: () => '料理を持ち物に入れた',
+    bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
+    hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',
+    hutnofood: () => '食べ物がない（焼き魚・干物・野菜・魚・ヤシの実）', hutnotnight: () => '眠れるのは、夜だけ', hutslept2: () => 'この夜は、もう眠った', hutnosleep: () => 'おなか・のどが空いていて、眠れない（20以上で眠れる）', hutwake: () => 'ぐっすり眠った。朝になった',
+    hutbusy: () => '網か釣りざおを出している間は、入れない',
+    plotplant: () => '種をまいた。何が育つかな？ もう一度タップで、水をやる', plotwater: () => '水をやった（貯水槽の水を1つ使った）', plotnowater: () => '貯水槽に水がない。雨か、ろ過器で水をためよう', plotnoseed: () => '種袋がない。網でひろえることがある',
+    plotgrow: e => `育っているところ。あと約${e.left}秒`, plotharvest: e => `${D.CROPS[e.c].name}をしゅうかく！ 野菜+${e.n}${e.back ? '・種が1つ戻った' : ''}`, cropnew: e => `新しい作物：${D.CROPS[e.id].name}`,
+    dishnew: e => `新しい料理：${D.ITEMS[e.id].name}（図鑑にのった）`,
+    fishnew: e => `新しい魚：${D.FISH[e.id].name}（図鑑にのった）`,
+    rackhang: e => `魚を1匹つるした（${e.n}/${e.max}）。しばらくすると干物になる`, rackdone: e => `干物を${e.n}個とった`, racknone: () => '魚を持って、もう一度タップすると、つるせる',
+    rackfull: e => `干し魚だなはいっぱい。あと約${e.left}秒で干物`, rackwait: e => `干しているところ。あと約${e.left}秒（魚がまだあれば、足せる）`,
     lookgift: e => `ながめていたら、${nameOf(e.k)}が流れてきた`, scenenew: e => `新しい景色：${D.SCENES[e.k][0]}（図鑑にのった）`,
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
     short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => (e.q === 'great' ? 'ナイス！ ' : '') + `釣れた：${nameOf(e.k)}${e.n > 1 ? ' ×' + e.n : ''}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
@@ -230,8 +322,9 @@ window.RAFT.parts.hud = function (c) {
       c.sfx && c.sfx.onEvent(e);
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
+      if (e.e === 'oven') { openOv(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
-      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
+      if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fishnew', 'plotharvest', 'plotplant', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });
     $('hunger').style.width = s.needs.hunger + '%'; $('thirst').style.width = s.needs.thirst + '%';
     $('hunger').classList.toggle('low', s.needs.hunger < D.NEEDS.low); $('thirst').classList.toggle('low', s.needs.thirst < D.NEEDS.low);
@@ -251,13 +344,16 @@ window.RAFT.parts.hud = function (c) {
     if (s.look && storm) { if (!(update.nl > 0)) update.nl = t + 4 + Math.random() * 6; const ph = t - (update.ls || -99);
       if (t >= update.nl) { update.ls = t; update.nl = t + 10 + Math.random() * 20; setTimeout(() => c.sfx && c.sfx.onEvent({ e: 'weather', id: 'storm' }), 900); }
       if (ph >= 0 && ph < 0.35) { rg.fillStyle = `rgba(235,235,255,${0.5 * (ph < 0.1 ? 1 : 0.5 * (0.35 - ph) / 0.25)})`; rg.fillRect(0, 0, rain.width, rain.height); } }
+    const hb = $('hutbar'); hb.style.display = s.player.inHut ? 'flex' : 'none'; { const hv = $('hutview'), HA = window.RAFT.hutArt; hv.style.display = s.player.inHut && HA ? 'flex' : 'none'; if (HA && !hv.dataset.on) { $('hutImg').src = HA.interior; hv.dataset.on = 1; const bd = $('hutBed'); if (HA.bed) { bd.style.left = HA.bed.x + '%'; bd.style.top = HA.bed.y + '%'; bd.style.width = HA.bed.w + '%'; bd.style.display = 'block'; } } if (HA && HA.bed && s.player.inHut) $('hutBed').src = HA.bed.frames[Math.floor(t * 8) % HA.bed.frames.length]; } if (s.player.inHut) { $('hutCalm').style.width = (s.calm || 0) + '%'; $('bHutSleep').style.opacity = sim.isNight(s) && s.sleepNight !== (s.clock.t >= 0.78 ? s.clock.day : s.clock.day - 1) ? 1 : 0.45; }
     const lk = $('lookbar'); lk.style.display = s.look ? 'flex' : 'none';
     if (s.look) {
       const hr = s.clock.t, w = s.weather.id, line = w === 'storm' ? '雨と風の音…。ここなら、すこし落ち着く。' : hr < 0.2 ? '朝のひかりが、海にひろがっていく。' : hr < 0.62 ? '空が高い。水平線がずっと先まで見える。' : hr < 0.78 ? '空が、だいだい色にそまっていく…。' : '星がきれい。波の音だけがする。';
       $('lookTx').textContent = line; $('calmFill').style.width = s.calm + '%';
     }
     if ($('cfbox').style.display === 'block') cfPanel();
+    if ($('ovbox').style.display === 'block') ovPanel();
     if ($('boatbox').style.display === 'block') boatPanel();
+    { const F = window.RAFT.faces; if (F) { const n = faceNow(s, t); if ($('jobbox').style.display === 'block' && fc.job !== n) { fc.job = n; $('buddyFace').src = F.img[n]; } if (s.player.inHut && fc.hut !== n) { fc.hut = n; $('hutFace').src = F.img[n]; } } }
     if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }
     acc += dt; if (acc > 10) { acc = 0; sim.save(s); }
     if (!update.first) { update.first = true; toast('右下の「持ち物」から、網を持って、海を押してみよう', 4000); }

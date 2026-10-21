@@ -43,17 +43,36 @@ BOOK_LABEL = "book"            # 本の名前（アウトライナーの名前�
 SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
 SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=左へ回して止める／R=右）。新聞の「19-3-8」と、液晶の「ヒダリ ミギ ヒダリ」
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
+TRAP_MARGIN = 3.0              # 閉じ込められている間、ガラスの内がわから、体（PAWN_RADIUS）のほかに、さらにこの距離（cm）あけて止まる（壁ぎわのガタガタ・すり抜け止め）
+PAWN_RADIUS = 22.0             # 体の太さ（カプセルの半径・cm）。ふつうの 34 より細くして、せまい電話ボックスの中を動きやすくする。0 で変えない
+PHONE_CAM_DIST = 55.0          # 電話機を押す間の専用カメラを、電話機から何cm 離すか（小さいほどアップ）
+PHONE_CAM_FOV = 45.0           # そのカメラの視野の角度
+PHONE_KEY_U0 = -6.6            # ボタン（3列×4行）の左はし：電話機の「触る点」から右へ何cm（－が左）
+PHONE_KEY_Z0 = 8.0             # ボタンの上はし：触る点から上へ何cm
+PHONE_KEY_W = 4.4              # ボタン1つの幅（cm）
+PHONE_KEY_H = 3.8              # ボタン1つの高さ（cm）
+PHONE_KEY_DEBUG = True         # True: ボタンの枠と、いま指しているボタンを、画面に線で出す（位置合わせ用。ぴったり合ったら False）
+DIAL_FOV = 30.0                # 金庫のダイヤルを回す間の、視野の角度（小さいほどアップ。ふだんは約90）
+DIAL_ZOOM_TIME = 0.45          # アップになるまでの時間（秒）
+SAFE_LID_ANGLE = 105.0           # 金庫が開いたとき、ふたが何度まで開くか
+SAFE_LID_TIME = 0.9            # ふたが開くのにかかる時間（秒）
+SAFE_LID_SIGN = -1.0           # ふたが下へ回ってしまうときは 1.0 にする
 DIAL_SIGN = 1.0                # ダイヤルの見た目の回る向きが逆なら -1.0 にする
 START_DIST = 1800.0            # 開始位置が遠すぎるとき（空中・地面の下）に、入口の正面から何cm 離して立たせるか
 ARROW_MOVE = True              # 矢印キー（↑↓←→）でも歩けるようにする（テンプレのキャラは W A S D だけ）。↑前 ↓後ろ ←左へ →右へ
 START_POS = []                 # 開始位置を決め打ちにする：[x, y, z]（cm）。[] なら使わない。PlayerStart を動かしても変わらないときに使う（アウトライナーで、置きたい場所の位置の数字をコピー）
 MANUAL_WALK = "auto"           # 歩けないときの、歩く仕組み。"auto"＝動かないときだけ自分で動かす／"on"＝いつも自分で動かす／"off"＝使わない
 WALKABLE_ANGLE = 70.0          # 歩ける坂の角度（度）。テンプレは約45度。急な坂で歩けず、すべって落ちるときに大きくする。0 なら変えない
-ITEM_RANGE = 200.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
-READ_RANGE = 240.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
+PHONE_BACK = 25.0              # 電話機の「触る点」：奥の壁から手前へ何cm
+PHONE_Z = -30.0                # 電話機の「触る点」の高さ（ボックスの中心から。－が下）。電話機が見えている高さに合わせる
+HATCH_Z = -105.0               # 電話の下のふたの高さ（ボックスの中心から）。足元近くを見て E
+PHONE_COIN_COST = 1            # 電話をかけるときの10円の枚数
+ITEM_RANGE = 110.0             # 10円・本に、この距離（cm）まで近づいて見ると「Eで…」が出る
+READ_RANGE = 150.0             # 掲示板の新聞に、この距離（cm）まで近づいて見ると「Eで読む」が出る
 READ_SIZE = 47.0               # 新聞を手に取ったときの、目の前の大きさ（cm。画面の高さに収まるくらい）
 READ_DIST = 45.0               # 新聞を、目からこの距離（cm）に出す
-ENTER_RANGE = 260.0            # 入口の前のこの距離（cm）まで近づくと「Eで入る」が出る
+LOOK_CONE = 0.96               # 見ている向きが、物のほうへ、どれだけ正確に向いているか（1に近いほど、ちゃんと見ないと反応しない。0.93=約21度 0.96=約16度）
+ENTER_RANGE = 170.0            # 入口の前のこの距離（cm）まで近づくと「Eで入る」が出る
 ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
 ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
 ENTER_FADE_IN = 1.4            # 明るくなるまでの時間（秒）
@@ -68,6 +87,8 @@ POSTER_STEP = 0.35                         # 張り紙が1枚ずつ貼られて�
 PUZZLE_COUNT = 8                           # 謎の数（この数だけ解くと、演出の強さが最後の段階まで進む）
 PRESSURE_INTERVAL = 150.0                  # 謎が進まないまま、この時間（秒）たつと、幽霊が1段階ずつ近づく（演出の予備は使わない）
 FLAG_KEY = "P"                             # テスト用：「謎を1つ解いた」ことにするキー（本物の謎ができたら、solve() を呼ぶ）
+GHOST_YAW = 0.0                           # 幽霊の向きの補正（度）。幽霊が、プレイヤーに背中を向けるなら 180、横を向くなら 90 か -90
+GHOST_Z = 0.0                             # 幽霊の足の高さの補正（cm）。浮くなら－、地面にめり込むなら＋
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 FLASH_OUTSIDE = 1.0            # 外にいるときの、懐中電灯の明るさの倍率（まぶしいときは小さく。0.5 で半分）
@@ -125,7 +146,26 @@ SETTINGS_DESCR = {
     "START_POS": "開始位置を決め打ち：[x, y, z]。空 [] なら使わない。PlayerStart を動かしても変わらないとき用",
     "MANUAL_WALK": "歩く仕組み。auto＝キャラが動かないときだけ自分で動かす／on／off",
     "WALKABLE_ANGLE": "歩ける坂の角度（度）。急な坂で歩けないとき大きく。0なら変えない",
+    "PHONE_BACK": "電話機の触る点を、奥の壁から手前へ何cm にするか",
+    "PHONE_Z": "電話機の触る点の高さ（ボックスの中心から。マイナスが下）",
+    "HATCH_Z": "電話の下のふたの高さ（ボックスの中心から）",
+    "PHONE_COIN_COST": "電話1回に必要な10円の枚数",
     "ITEM_RANGE": "10円・本を拾う・開ける距離（cm）",
+    "LOOK_CONE": "見ている向きの正確さ（1に近いほど、物をちゃんと見ないと「Eで…」が出ない。0.93=ゆるい 0.96=ふつう 0.98=きびしい）",
+    "SAFE_LID_ANGLE": "金庫が開いたとき、ふたが開く角度（度）",
+    "SAFE_LID_TIME": "ふたが開くのにかかる時間（秒）",
+    "SAFE_LID_SIGN": "ふたの開く向き（下へ回るなら 1.0 に）",
+    "TRAP_MARGIN": "閉じ込められている間、ガラスの内がわから、体の太さのほかに、あける距離（cm）",
+    "PAWN_RADIUS": "体の太さ（半径・cm）。0で変えない",
+    "PHONE_CAM_DIST": "電話機を押す間のカメラの距離（cm）。小さいほどアップ",
+    "PHONE_CAM_FOV": "電話機カメラの視野の角度",
+    "PHONE_KEY_U0": "電話のボタン（3列×4行）の左はし。触る点から右へ何cm（－が左）",
+    "PHONE_KEY_Z0": "電話のボタンの上はし。触る点から上へ何cm",
+    "PHONE_KEY_W": "ボタン1つの幅（cm）",
+    "PHONE_KEY_H": "ボタン1つの高さ（cm）",
+    "PHONE_KEY_DEBUG": "true: ボタンの枠を線で出す（位置合わせ用）",
+    "DIAL_FOV": "ダイヤル専用カメラが無いときの、視野の角度（小さいほどアップ）",
+    "DIAL_ZOOM_TIME": "ダイヤルの画面に切りかわるまでの時間（秒）",
     "READ_RANGE": "掲示板の新聞を読めるようになる距離（cm）",
     "READ_SIZE": "手に取った新聞の大きさ（cm）。文字が切れるときは小さく",
     "READ_DIST": "手に取った新聞を、目からどれだけ離すか（cm）",
@@ -138,6 +178,8 @@ SETTINGS_DESCR = {
     "POSTER_FRAC": "張り紙が何割まで貼られるか（演出の強さ1〜4ごと）",
     "PUZZLE_COUNT": "謎の数（演出の強さが最後まで進む謎の数）",
     "PRESSURE_INTERVAL": "謎が進まないとき、幽霊が1段階近づくまでの秒数",
+    "GHOST_YAW": "幽霊の向きの補正（度）。背中を向けるなら 180",
+    "GHOST_Z": "幽霊の足の高さの補正（cm）。浮くなら－",
     "DEAD_DIST": "失敗のとき、幽霊が目の前に出る距離（cm）",
     "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
     "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
@@ -232,7 +274,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -355,7 +397,20 @@ class Game:
         self.safe = next((v for k, v in low if SAFE_LABEL.lower() in k and "KD" not in label_of(v) and not k.startswith("dialsafe")), None)
         self.dial_body = found.get("DialSafe_Body")                  # ダイヤル式の金庫（本体と、回るつまみ）
         self.dial_knob = found.get("DialSafe_Knob")
+        self.safe_base = found.get("DialSafe_Base")                  # 開いた状態の金庫（下の箱とふた）
+        self.safe_lid = found.get("DialSafe_Lid")
+        self.safe_key = found.get("DialSafe_Key")                    # 開いた金庫の中の、鍵と10円（見せて、すぐ消す）
+        self.safe_coin = found.get("DialSafe_Coin")
+        self.lid_pending, self.loot_t = -1.0, -1.0
+        self.lid_rot0 = self.safe_lid.get_actor_rotation() if self.safe_lid is not None else None
+        self.lid_t = -1.0
+        self.phone_cam = found.get("KD_PhoneCam")                    # 電話機専用のカメラ（置き場所は begin_phone で、電話機に合わせる）
+        self.phone_cam_on = False
+        self.dial_cam = found.get("KD_DialCam")                      # ダイヤル専用のカメラ（setup_game_fp.py が置く）
+        self.safe_cam_on = False
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
+        self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
+        self.hatch_open = False
         self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
         log("触れる物: 10円=%s 本=%s 金庫=%s" % (label_of(self.coin) if self.coin else "なし", label_of(self.book) if self.book else "なし（BOOK_LABEL を直す）", label_of(self.safe) if self.safe else "なし（SAFE_LABEL を直す）"))
         self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
@@ -426,8 +481,16 @@ class Game:
             msc = marker.get_actor_scale3d()
             if msc.x > 5.0 and msc.y > 5.0:           # setup_game_fp.py が印の大きさに入れた、ボックスの半分の幅・奥行き(cm)
                 self.half_t, self.half_n = msc.x, msc.y
+        self.in_t, self.in_n = max(20.0, self.half_t - 20.0), max(20.0, self.half_n - 20.0)       # 中の歩ける広さ（ガラスの内がわ）。印が無いときは、外形から20cm内側
+        inner = found.get("KD_BoothInner")
+        if inner is not None:
+            isc = inner.get_actor_scale3d()
+            if isc.x > 5.0 and isc.y > 5.0:
+                self.in_t, self.in_n = isc.x, isc.y
+        log("中の歩ける広さ: 横 ±%.0fcm・奥行き ±%.0fcm（体の太さ %.0fcm）" % (self.in_t, self.in_n, PAWN_RADIUS))
+        self.shrink_capsule()
         self.snd = {}
-        for nm in ("door_open", "door_close", "latch"):
+        for nm in ("door_open", "door_close", "latch", "safe_click", "safe_clunk", "safe_creak"):
             try:
                 self.snd[nm] = unreal.EditorAssetLibrary.load_asset("%s/%s" % (SOUND_DIR, nm))
             except Exception:  # noqa
@@ -489,8 +552,20 @@ class Game:
             return
         fx = self.cx if face_x is None else face_x
         fy = self.cy if face_y is None else face_y
-        yaw = math.degrees(math.atan2(fy - y, fx - x))
-        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, 0.0), unreal.Rotator(0, 0, yaw), False, False)
+        yaw = math.degrees(math.atan2(fy - y, fx - x)) + GHOST_YAW
+        gz = 0.0
+        try:                                                                  # 足の高さ＝いま立っている地面（体の中心の高さ − カプセルの半分の高さ）
+            cap = self.pawn.get_component_by_class(unreal.CapsuleComponent)
+            gz = self.pawn.get_actor_location().z - float(cap.get_scaled_capsule_half_height())
+        except Exception:  # noqa
+            gz = 0.0
+        try:
+            real = self.ghost.get_component_by_class(unreal.SkeletalMeshComponent) is not None          # 本物のモデル（足元が原点）か、仮の筒（中心が原点）か
+        except Exception:  # noqa
+            real = False
+        if not real:
+            gz += 80.0
+        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, gz + GHOST_Z), unreal.Rotator(0, 0, yaw), False, False)
         self.ghost.set_actor_hidden_in_game(False)
         if self.ghost_head is not None:
             self.ghost_head.set_actor_hidden_in_game(False)
@@ -613,6 +688,10 @@ class Game:
             self.diag_floor(loc)
         self.tick_arrows()
         self.tick_manual(dt)
+        self.clamp_in_booth(loc, dt)
+        self.tick_dial_anim(dt)
+        self.tick_lid(dt)
+        self.tick_fov(dt)
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
@@ -621,6 +700,8 @@ class Game:
             self.tick_reading()
         elif self.state == "SAFE":
             self.tick_safe(dt)
+        elif self.state == "PHONE":
+            self.tick_phone(dt)
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
@@ -644,6 +725,8 @@ class Game:
                 screen(self.world, "バタン！（とじこめられた）", (255, 120, 120), 4.0)
                 self.fade(False, 0.8)
         elif self.state == "TRAPPED":
+            if getattr(self, "deferred", None):
+                self.on_flag(self.deferred.pop(0))
             self.tick_trapped(dt)
             self.tick_items(loc)
         elif self.state == "DEAD":
@@ -661,7 +744,7 @@ class Game:
         return self.cx + nx * (self.half_n + 40.0), self.cy + ny * (self.half_n + 40.0), (nx, ny)
 
     def play(self, name):
-        snd = self.snd.get(name)
+        snd = getattr(self, "snd", {}).get(name)
         if snd is not None:
             try:
                 unreal.GameplayStatics.play_sound_2d(self.world, snd, 1.0, 1.0, 0.0)
@@ -700,6 +783,253 @@ class Game:
                 self.sway = []
                 return
 
+    def phone_point(self):
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        return unreal.Vector(self.cx - nx * (self.half_n - PHONE_BACK), self.cy - ny * (self.half_n - PHONE_BACK), getattr(self, "cz", 200.0) + PHONE_Z)
+
+    def hatch_point(self):
+        p = self.phone_point()
+        return unreal.Vector(p.x, p.y, getattr(self, "cz", 200.0) + HATCH_Z)
+
+    def looking_at_pt(self, p, rng, thr=0.93):
+        try:
+            eye, rot = self.eye_info()
+            d = unreal.Vector(p.x - eye.x, p.y - eye.y, p.z - eye.z)
+            dist = math.sqrt(d.x * d.x + d.y * d.y + d.z * d.z) or 1.0
+            if dist > rng:
+                return False
+            f = unreal.MathLibrary.get_forward_vector(rot)
+            return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > thr
+        except Exception:  # noqa
+            return False
+
+    # ---- 電話の下のふた ----
+    def open_hatch(self):
+        if not self.has_key:
+            screen(self.world, "ふたには鍵がかかっている（小さな鍵がいる）", (255, 200, 150), 3.0)
+            return
+        self.hatch_open = True
+        self.has_memo = True
+        self.coins += 1
+        screen(self.world, "ふたが開いた。メモと10円を見つけた（10円 %d枚）" % self.coins, (255, 240, 160), 5.0)
+        log("電話の下のふたを開けました（メモ・10円③）")
+        self.after_read = lambda: self.on_flag("ふた")
+        self.begin_read("M_KDReadMemo", 1.33)
+
+    # ---- 電話 ----
+    PHONE_KEYS = [("Zero", "0"), ("One", "1"), ("Two", "2"), ("Three", "3"), ("Four", "4"), ("Five", "5"), ("Six", "6"), ("Seven", "7"), ("Eight", "8"), ("Nine", "9"),
+                  ("NumPadZero", "0"), ("NumPadOne", "1"), ("NumPadTwo", "2"), ("NumPadThree", "3"), ("NumPadFour", "4"), ("NumPadFive", "5"), ("NumPadSix", "6"), ("NumPadSeven", "7"), ("NumPadEight", "8"), ("NumPadNine", "9")]
+
+    PHONE_GRID = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["del", "0", "call"]]
+
+    def phone_frame(self):
+        """電話機の面：(触る点 P, 入口の向き n, 電話に向かって右 T)"""
+        th = math.radians(self.front_yaw)
+        n = (-math.sin(th), math.cos(th))
+        return self.phone_point(), n, (n[1], -n[0])
+
+    def show_mouse(self, on):
+        try:
+            self.pc.set_editor_property("show_mouse_cursor", bool(on))
+        except Exception as e:  # noqa
+            log("  (マウスの矢印を切りかえられません) %s" % e)
+        try:
+            wbl = unreal.WidgetBlueprintLibrary
+            if on:
+                wbl.set_input_mode_game_and_ui(self.pc, None, unreal.MouseLockMode.DO_NOT_LOCK, False)
+            else:
+                wbl.set_input_mode_game_only(self.pc)
+        except Exception as e:  # noqa
+            log("  (入力のしかたを切りかえられません) %s" % e)
+
+    def mouse_ray(self):
+        """マウスの矢印が指している先への線：(始点, 向き)。取れなければ None"""
+        try:
+            r = self.pc.deproject_mouse_position_to_world()
+        except Exception as e:  # noqa
+            if not getattr(self, "_ray_err", False):
+                self._ray_err = True
+                log("  (マウスの位置を取れません) %s" % e)
+            return None
+        vals = list(r) if isinstance(r, (tuple, list)) else [r]
+        vecs = [v for v in vals if hasattr(v, "x") and hasattr(v, "z")]
+        if len(vecs) >= 2:
+            return vecs[-2], vecs[-1]
+        return None
+
+    def phone_cell(self, ray):
+        """マウスが指している電話のボタン (列, 行)。ボタンの外なら None"""
+        P, n, T = self.phone_frame()
+        O, D = ray
+        den = D.x * n[0] + D.y * n[1]
+        if abs(den) < 1e-4:
+            return None
+        t = ((P.x - O.x) * n[0] + (P.y - O.y) * n[1]) / den
+        if t < 0:
+            return None
+        hx, hy, hz = O.x + D.x * t, O.y + D.y * t, O.z + D.z * t
+        u = (hx - P.x) * T[0] + (hy - P.y) * T[1]
+        v = hz - P.z
+        col = int(math.floor((u - PHONE_KEY_U0) / PHONE_KEY_W))
+        row = int(math.floor((PHONE_KEY_Z0 - v) / PHONE_KEY_H))
+        if 0 <= col < 3 and 0 <= row < 4:
+            return col, row
+        return None
+
+    def draw_phone_keys(self, hover):
+        """ボタンの枠を線で出す（位置合わせ用）。いま指しているボタンは黄色"""
+        if not PHONE_KEY_DEBUG:
+            return
+        try:
+            P, n, T = self.phone_frame()
+            yaw = math.degrees(math.atan2(n[1], n[0]))
+            for r in range(4):
+                for c in range(3):
+                    u = PHONE_KEY_U0 + (c + 0.5) * PHONE_KEY_W
+                    z = PHONE_KEY_Z0 - (r + 0.5) * PHONE_KEY_H
+                    ctr = unreal.Vector(P.x + T[0] * u + n[0] * 0.3, P.y + T[1] * u + n[1] * 0.3, P.z + z)
+                    col = unreal.LinearColor(1.0, 0.9, 0.2, 1.0) if hover == (c, r) else unreal.LinearColor(0.2, 0.8, 1.0, 1.0)
+                    unreal.SystemLibrary.draw_debug_box(self.world, ctr, unreal.Vector(0.3, PHONE_KEY_W / 2.0, PHONE_KEY_H / 2.0), col, unreal.Rotator(0, 0, yaw), 0.06, 0.25)
+        except Exception as e:  # noqa
+            if not getattr(self, "_dbg_err", False):
+                self._dbg_err = True
+                log("  (ボタンの枠を描けません) %s" % e)
+
+    def begin_phone(self):
+        eye, _r = self.eye_info()
+        self.phone_cam_on = False
+        cam = getattr(self, "phone_cam", None)
+        if cam is not None:                                     # 電話機専用のカメラ：電話機の正面（入口がわ）から見る固定の画面
+            try:
+                P, n, _T = self.phone_frame()
+                pos = unreal.Vector(P.x + n[0] * PHONE_CAM_DIST, P.y + n[1] * PHONE_CAM_DIST, P.z)
+                cam.set_actor_location_and_rotation(pos, unreal.Rotator(0, 0, math.degrees(math.atan2(-n[1], -n[0]))), False, False)
+                try:
+                    cam.get_component_by_class(unreal.CameraComponent).set_editor_property("field_of_view", float(PHONE_CAM_FOV))
+                except Exception as e:  # noqa
+                    log("  (電話カメラの視野を設定できません) %s" % e)
+                self.phone_cam_on = self.set_view(cam, DIAL_ZOOM_TIME)
+            except Exception as e:  # noqa
+                log("  (電話カメラを置けません) %s" % e)
+        if self.phone_cam_on:
+            log("電話専用カメラに切りかえました")
+        else:
+            if cam is None:
+                log("電話専用カメラ（KD_PhoneCam）が無いので、電話のほうを向くだけです。setup_game_fp.py をもう一度実行してください")
+            try:
+                self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, self.phone_point()))
+            except Exception as e:  # noqa
+                log("  (電話のほうを向けません) %s" % e)
+        self.lock_input(True)
+        self.show_mouse(True)
+        if getattr(self, "key_lmb", None) is None:
+            self.key_lmb = unreal.Key()
+            self.key_lmb.set_editor_property("key_name", "LeftMouseButton")
+        self.state, self.state_t = "PHONE", 0.0
+        self.digits = ""
+        log("電話を使い始めました（ボタンはマウスでクリックできます）")
+
+    def end_phone(self):
+        if getattr(self, "phone_cam_on", False):
+            self.set_view(self.pawn, 0.45)
+            self.phone_cam_on = False
+        self.show_mouse(False)
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def tick_phone(self, dt):
+        try:
+            for name, ch in self.PHONE_KEYS:
+                if self.pc.was_input_key_just_pressed(self._key(name)) and len(self.digits) < 8:
+                    self.digits += ch
+            if self.pc.was_input_key_just_pressed(self._key("BackSpace")):
+                self.digits = self.digits[:-1]
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self._key("Q")):
+                self.end_phone()
+                return
+            if self.state_t > 0.3 and (self.pc.was_input_key_just_pressed(self._key("Enter")) or self.pc.was_input_key_just_pressed(self._key("E"))) and self.digits:
+                num, self.digits = self.digits, ""
+                self.phone_call(num)
+        except Exception as e:  # noqa
+            log("  (電話のキーを読めません) %s" % e)
+        hover = None
+        try:                                                              # マウスでボタンをクリック
+            ray = self.mouse_ray()
+            hover = self.phone_cell(ray) if ray else None
+            self.draw_phone_keys(hover)
+            if hover is not None and self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_lmb):
+                lab = self.PHONE_GRID[hover[1]][hover[0]]
+                if lab.isdigit():
+                    if len(self.digits) < 8:
+                        self.digits += lab
+                        self.play("safe_click")
+                elif lab == "del":
+                    self.digits = self.digits[:-1]
+                    self.play("safe_click")
+                elif lab == "call" and self.digits:
+                    num, self.digits = self.digits, ""
+                    self.phone_call(num)
+        except Exception as e:  # noqa
+            if not getattr(self, "_ph_mouse_err", False):
+                self._ph_mouse_err = True
+                log("  (電話のマウス操作でエラー) %s" % e)
+        if int(self.t * 8) != getattr(self, "_ph_k", -1):
+            self._ph_k = int(self.t * 8)
+            hv = ("  いま指しているボタン: %s" % {"del": "消す", "call": "かける"}.get(self.PHONE_GRID[hover[1]][hover[0]], self.PHONE_GRID[hover[1]][hover[0]])) if hover is not None else ""
+            txt = "電話  番号: %s_   10円: %d枚   [クリック]か[0〜9] 入れる  「かける」か[Enter] 呼ぶ  「消す」か[BackSpace]  [Q] やめる%s" % (self.digits, self.coins, hv)
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(0.8, 1, 1, 1), 0.3, "KD_PHONE_UI")
+            except Exception:  # noqa
+                pass
+
+    def pay(self, n):
+        """10円を払う。足りないとき、0115 だけは、返却口から1枚落ちてくる（詰み防止）"""
+        if self.coins >= n:
+            self.coins -= n
+            return True
+        return False
+
+    def phone_call(self, num):
+        log("電話をかけました: %s（10円 %d枚）" % (num, self.coins))
+        free = {"110", "119"}
+        msgs = {"117": ("ポーン…「7月14日 午前0時を お知らせします」", (200, 230, 255)),
+                "177": ("「神狩村は…赤い雨です」", (255, 160, 160)),
+                "104": ("「お調べします…張り紙は 貼られた順に」", (200, 230, 255))}
+        if num in free:
+            first = not self.lcd_seen
+            screen(self.world, "（声はない。……液晶に文字が出た）  ソト ヒダリ ミギ ヒダリ", (255, 120, 120), 7.0)
+            if first:
+                self.lcd_seen = True
+                self.on_flag("液晶")
+            return
+        if num == "0115":
+            if not self.pay(PHONE_COIN_COST):
+                self.coins += 1
+                screen(self.world, "チャリン…返却口から10円が落ちてきた（10円 %d枚）。もう一度かけてみる" % self.coins, (255, 220, 150), 5.0)
+                return
+            screen(self.world, "「……あの日を……おして……」（女の声）", (255, 120, 120), 8.0)
+            if not self.called_0115:
+                self.called_0115 = True
+                self.on_flag("電話")
+            return
+        if num == "0714":
+            if self.called_0115:
+                screen(self.world, "カチッ。液晶に「2 15 4 9」の文字が、一瞬だけ出た", (255, 120, 120), 8.0)
+                if not self.dialed_0714:
+                    self.dialed_0714 = True
+                    self.on_flag("0714")
+            else:
+                screen(self.world, "ツー、ツー……（つながらない）", (180, 180, 180), 3.0)
+            return
+        if num in msgs:
+            if not self.pay(PHONE_COIN_COST):
+                screen(self.world, "10円が足りない", (255, 200, 150), 3.0)
+                return
+            screen(self.world, msgs[num][0] + "（10円 %d枚）" % self.coins, msgs[num][1], 8.0)
+            return
+        screen(self.world, "ツー、ツー……（つながらない）", (180, 180, 180), 3.0)
+
     def lock_input(self, on):
         for fn in ("set_ignore_move_input", "set_ignore_look_input"):
             try:
@@ -710,13 +1040,23 @@ class Game:
     def begin_safe(self):
         """金庫のダイヤルを回す場面。歩く・見回すを止めて、ダイヤルのほうを向く"""
         eye, _rot = self.eye_info()
-        try:
-            tgt = (self.dial_knob or self.dial_body).get_actor_location()
-            self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, tgt))
-        except Exception as e:  # noqa
-            log("  (ダイヤルのほうを向けません) %s" % e)
+        self.safe_cam_on = False
+        if self.dial_cam is not None:                          # 専用カメラの画面に切りかえる（つまみのおもて側から、アップ）
+            self.safe_cam_on = self.set_view(self.dial_cam, DIAL_ZOOM_TIME)
+            if self.safe_cam_on:
+                log("ダイヤル専用カメラに切りかえました")
+        if not self.safe_cam_on:
+            if self.dial_cam is None:
+                log("ダイヤル専用カメラ（KD_DialCam）が無いので、金庫のほうを向いて視野をせばめます。setup_game_fp.py をもう一度実行すると、専用カメラができます")
+            try:
+                tgt = (self.dial_knob or self.dial_body).get_actor_location()
+                self.pc.set_control_rotation(unreal.MathLibrary.find_look_at_rotation(eye, tgt))
+            except Exception as e:  # noqa
+                log("  (ダイヤルのほうを向けません) %s" % e)
         self.lock_input(True)
         self.state, self.state_t = "SAFE", 0.0
+        self.dial_raw = float(self.dial_value)
+        self.dial_disp = float(self.dial_value)
         self.dial_dir, self.dial_entries, self.dial_acc = None, [], 0.0
         self.key_left, self.key_right, self.key_quit = unreal.Key(), unreal.Key(), unreal.Key()
         self.key_left.set_editor_property("key_name", "Left")
@@ -724,18 +1064,167 @@ class Game:
         self.key_quit.set_editor_property("key_name", "Q")
         log("金庫のダイヤルを回し始めました")
 
+    def open_safe_visual(self):
+        """金庫が開いた：閉じた本体とつまみを隠し、開いた箱を出して、ふたを回して開く"""
+        if getattr(self, "safe_base", None) is None or getattr(self, "safe_lid", None) is None:
+            log("開いた金庫（DialSafe_Base / DialSafe_Lid）が無いので、見た目は閉じたままです。setup_game_fp.py をもう一度実行してください")
+            return
+        try:
+            for a in (self.dial_body, self.dial_knob):
+                if a is not None:
+                    a.set_actor_hidden_in_game(True)
+            self.safe_base.set_actor_hidden_in_game(False)
+            self.safe_lid.set_actor_hidden_in_game(False)
+            for a in (self.safe_key, self.safe_coin):
+                if a is not None:
+                    a.set_actor_hidden_in_game(False)
+            self.play("safe_clunk")
+            self.lid_pending, self.loot_t = 0.35, 0.0                 # 少しあとに、ふたがきしんで開く。鍵と10円は、見せたあと消える
+            log("金庫のふたを開けます")
+        except Exception as e:  # noqa
+            log("  (開いた金庫を出せません) %s" % e)
+
+    def tick_lid(self, dt):
+        if getattr(self, "loot_t", -1.0) >= 0.0:                 # 鍵と10円は、手に入れたので、数秒見せたあと消す
+            self.loot_t += dt
+            if self.loot_t > 4.5:
+                for a in (getattr(self, "safe_key", None), getattr(self, "safe_coin", None)):
+                    if a is not None:
+                        a.set_actor_hidden_in_game(True)
+                self.loot_t = -1.0
+        if getattr(self, "lid_pending", -1.0) >= 0.0:
+            self.lid_pending -= dt
+            if self.lid_pending <= 0.0:
+                self.lid_pending = -1.0
+                self.lid_t = 0.0
+                self.play("safe_creak")
+            return
+        if getattr(self, "lid_t", -1.0) < 0.0 or getattr(self, "safe_lid", None) is None or getattr(self, "lid_rot0", None) is None:
+            return
+        self.lid_t += dt
+        k = min(1.0, self.lid_t / max(0.1, SAFE_LID_TIME))
+        e = 1.0 - (1.0 - k) ** 3
+        if k >= 1.0:
+            e = 1.0
+        r = self.lid_rot0
+        try:
+            self.safe_lid.set_actor_rotation(unreal.Rotator(r.roll + SAFE_LID_SIGN * SAFE_LID_ANGLE * e, r.pitch, r.yaw), False)
+        except Exception as ex:  # noqa
+            log("  (ふたを回せません) %s" % ex)
+            self.lid_t = -1.0
+            return
+        if k >= 1.0:
+            self.lid_t = -1.0
+
+    def set_view(self, target, t):
+        """画面（カメラ）を、target の見ている画面に、t 秒かけて切りかえる。成功なら True"""
+        try:
+            try:
+                self.pc.set_view_target_with_blend(target, float(t), unreal.ViewTargetBlendFunction.VTBLEND_CUBIC, 2.0, False)
+            except Exception:  # noqa
+                self.pc.set_view_target_with_blend(target, float(t))
+            return True
+        except Exception as e:  # noqa
+            log("  (画面を切りかえられません) %s" % e)
+            return False
+
     def end_safe(self):
+        if getattr(self, "safe_cam_on", False):
+            self.set_view(self.pawn, 0.45)
+            self.safe_cam_on = False
         self.lock_input(False)
         self.state, self.state_t = "TRAPPED", 0.0
 
     def set_dial(self, v):
+        old = self.dial_value
         self.dial_value = v % 100
+        d = self.dial_value - old
+        if d > 50:
+            d -= 100
+        elif d < -50:
+            d += 100
+        self.dial_raw = getattr(self, "dial_raw", float(old)) + d            # 100を越えても、つながって回る数
+        if not hasattr(self, "dial_disp"):
+            self.dial_disp = float(old)
+
+    def apply_knob(self):
         if self.dial_knob is not None and self.dial_knob_rot is not None:
             r = self.dial_knob_rot
             try:
-                self.dial_knob.set_actor_rotation(unreal.Rotator(r.roll, r.pitch + DIAL_SIGN * self.dial_value * 3.6, r.yaw), False)
+                self.dial_knob.set_actor_rotation(unreal.Rotator(r.roll, r.pitch + DIAL_SIGN * getattr(self, "dial_disp", 0.0) * 3.6, r.yaw), False)
             except Exception as e:  # noqa
                 log("  (ダイヤルを回せません) %s" % e)
+
+    def tick_dial_anim(self, dt):
+        """つまみの見た目を、目標の数字へ、なめらかに追いかけさせる（カクカクしない）"""
+        raw = getattr(self, "dial_raw", None)
+        if raw is None:
+            return
+        disp = getattr(self, "dial_disp", raw)
+        if abs(raw - disp) > 0.01:
+            disp += (raw - disp) * min(1.0, dt * 22.0)
+            self.dial_disp = disp
+            self.apply_knob()
+
+    def tick_fov(self, dt):
+        """ダイヤルを回す間は、視野をせまくして、アップにする（終わると元に戻す）"""
+        try:
+            cam = getattr(self, "_cam", None)
+            if cam is None:
+                cam = self.pawn.get_component_by_class(unreal.CameraComponent) if self.pawn is not None else None
+                self._cam = cam or False
+                if cam:
+                    self.fov_base = float(cam.get_editor_property("field_of_view"))
+                    self.fov_cur = self.fov_base
+            if not cam:
+                return
+            tgt = DIAL_FOV if (self.state == "SAFE" and not getattr(self, "safe_cam_on", False)) else self.fov_base
+            if tgt != getattr(self, "_fov_log", None):
+                self._fov_log = tgt
+                log("視野（アップ）: %.0f → %.0f にします" % (self.fov_cur, tgt))
+            if abs(self.fov_cur - tgt) > 0.05:
+                self.fov_cur += (tgt - self.fov_cur) * min(1.0, dt / max(0.05, DIAL_ZOOM_TIME) * 3.0)
+                cam.set_editor_property("field_of_view", self.fov_cur)
+        except Exception as e:  # noqa
+            if not getattr(self, "_fov_err", False):
+                self._fov_err = True
+                log("  (視野を変えられません) %s" % e)
+
+    def shrink_capsule(self):
+        """体（カプセル）を細くする：せまい電話ボックスの中で、壁にぶつかってガタガタしないように"""
+        if PAWN_RADIUS <= 0 or self.pawn is None:
+            return
+        try:
+            cap = self.pawn.get_component_by_class(unreal.CapsuleComponent)
+            r0 = float(cap.get_unscaled_capsule_radius())
+            hh = float(cap.get_unscaled_capsule_half_height())
+            if r0 > PAWN_RADIUS:
+                cap.set_capsule_size(PAWN_RADIUS, hh, True)
+                log("体の太さを %.0f → %.0fcm にしました（壁ぎわのガタガタ止め）" % (r0, PAWN_RADIUS))
+        except Exception as e:  # noqa
+            log("  (体の太さを変えられません) %s" % e)
+
+    def booth_limits(self):
+        """ボックスの中で、体の中心が動ける範囲：(入口方向n, 横方向t, 奥行きの限界ln, 横の限界lt)"""
+        th = math.radians(self.front_yaw)
+        n = (-math.sin(th), math.cos(th))
+        t = (math.cos(th), math.sin(th))
+        ln = max(8.0, getattr(self, "in_n", self.half_n - 20.0) - PAWN_RADIUS - TRAP_MARGIN)
+        lt = max(8.0, getattr(self, "in_t", self.half_t - 20.0) - PAWN_RADIUS - TRAP_MARGIN)
+        return n, t, ln, lt
+
+    def clamp_in_booth(self, loc, dt=0.016):
+        """閉じ込められている間は、壁の外へ出られない。範囲を出たら、なめらかに押しもどす（ぱっと瞬間移動しない）"""
+        if self.state not in ("CLOSING", "TRAPPED", "SAFE", "PHONE", "READING") or self.pawn is None:
+            return
+        (nx, ny), (tx, ty), ln, lt = self.booth_limits()
+        rx, ry = loc.x - self.cx, loc.y - self.cy
+        tn, tt = rx * nx + ry * ny, rx * tx + ry * ty
+        cn, ct = max(-ln, min(ln, tn)), max(-lt, min(lt, tt))
+        if abs(cn - tn) > 0.5 or abs(ct - tt) > 0.5:
+            k = min(1.0, dt * 12.0)
+            mn, mt = tn + (cn - tn) * k, tt + (ct - tt) * k
+            self.pawn.set_actor_location(unreal.Vector(self.cx + nx * mn + tx * mt, self.cy + ny * mn + ty * mt, loc.z), False, False)
 
     def tick_safe(self, dt):
         try:
@@ -747,6 +1236,7 @@ class Game:
                     self.dial_acc = 0.0
                     self.dial_dir = "L" if down_l else "R"
                     self.set_dial(self.dial_value + (1 if down_l else -1))
+                    self.play("safe_click")
             else:
                 self.dial_acc = DIAL_STEP_TIME
             if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_quit):
@@ -778,10 +1268,12 @@ class Game:
             self.dial_entries = []
             return
         screen(self.world, "カチッ（%d/%d）" % (k, len(want)), (200, 255, 200), 1.5)
+        self.play("latch")
         if k == len(want):
             self.safe_open = True
             self.has_key = True
             self.coins += 1
+            self.open_safe_visual()
             self.end_safe()
             screen(self.world, "ガチャン。金庫が開いた！ 小さな鍵と10円を手に入れた（10円 %d枚）" % self.coins, (255, 240, 160), 6.0)
             log("金庫が開きました（鍵・10円②）")
@@ -796,9 +1288,22 @@ class Game:
             if hit is None or isinstance(hit, bool):
                 log("診断: 足元に何もありません（地面なし？）")
                 return
-            nrm = hit.get_editor_property("impact_normal") if hasattr(hit, "get_editor_property") else hit.impact_normal
-            pt = hit.get_editor_property("impact_point") if hasattr(hit, "get_editor_property") else hit.impact_point
-            act = hit.get_editor_property("actor") if hasattr(hit, "get_editor_property") else None
+            nrm = pt = act = None
+            try:                                  # UE 5.8: to_tuple() の順番 = (…, location, impact_point, normal, impact_normal, phys_mat, hit_actor, …)
+                tp = hit.to_tuple()
+                pt, nrm, act = tp[5], tp[7], tp[9]
+            except Exception:
+                for nm_n, nm_p, nm_a in (("impact_normal", "impact_point", "hit_actor"), ("impact_normal", "impact_point", "actor")):
+                    try:
+                        nrm = getattr(hit, nm_n, None) or hit.get_editor_property(nm_n)
+                        pt = getattr(hit, nm_p, None) or hit.get_editor_property(nm_p)
+                        act = getattr(hit, nm_a, None)
+                        break
+                    except Exception:
+                        continue
+            if nrm is None or pt is None:
+                log("診断: 足元に当たりました（細かい情報は読めません）")
+                return
             ang = math.degrees(math.acos(max(-1.0, min(1.0, nrm.z))))
             log("診断: 足元の地面: %s 高さ=%.0f 坂の角度=%.0f度（歩けるのは %.0f度まで）" % (label_of(act) if act else "?", pt.z, ang, WALKABLE_ANGLE if WALKABLE_ANGLE > 0 else 44.8))
         except Exception as e:  # noqa
@@ -871,6 +1376,22 @@ class Game:
             dx, dy = fw.x * f + rt.x * r, fw.y * f + rt.y * r
             n = math.hypot(dx, dy) or 1.0
             dx, dy = dx / n, dy / n
+            if self.state == "TRAPPED":                                   # 閉じ込められている間：壁ぎわでは、壁へ向かう動きを消す（押しつけてガタガタしない）
+                (bnx, bny), (btx, bty), bln, blt = self.booth_limits()
+                q = self.pawn.get_actor_location()
+                qn, qt = (q.x - self.cx) * bnx + (q.y - self.cy) * bny, (q.x - self.cx) * btx + (q.y - self.cy) * bty
+                dn, dtt = dx * bnx + dy * bny, dx * btx + dy * bty
+                if (qn >= bln - 1.0 and dn > 0) or (qn <= -bln + 1.0 and dn < 0):
+                    dn = 0.0
+                if (qt >= blt - 1.0 and dtt > 0) or (qt <= -blt + 1.0 and dtt < 0):
+                    dtt = 0.0
+                dx, dy = bnx * dn + btx * dtt, bny * dn + bty * dtt
+                if abs(dx) + abs(dy) < 1e-3:
+                    if mvc is not None:
+                        v0 = mvc.get_editor_property("velocity")
+                        mvc.set_editor_property("velocity", unreal.Vector(0.0, 0.0, v0.z))
+                    self._manual_moving = False
+                    return
             self._manual_moving = True
             p0 = self.pawn.get_actor_location()
             if mvc is not None:
@@ -951,7 +1472,7 @@ class Game:
         if dist > rng:
             return False
         f = unreal.MathLibrary.get_forward_vector(rot)
-        return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > 0.93
+        return (f.x * d.x + f.y * d.y + f.z * d.z) / dist > LOOK_CONE
 
     def prompt_item(self, text, key):
         if int(self.t * 4) == getattr(self, "_p_" + key, -1):
@@ -980,6 +1501,18 @@ class Game:
                 screen(self.world, "10円を拾った（%d枚）" % self.coins, (255, 220, 150), 3.0)
                 log("10円を拾いました: %d枚" % self.coins)
                 return
+        if self.state == "TRAPPED":
+            hp, pp = self.hatch_point(), self.phone_point()
+            if not self.hatch_open and self.looking_at_pt(hp, ITEM_RANGE + 30.0, 0.96):
+                self.prompt_item("[%s] 電話の下のふたを開ける" % ENTER_KEY, "HATCH")
+                if pressed:
+                    self.open_hatch()
+                    return
+            elif self.looking_at_pt(pp, ITEM_RANGE + 30.0, 0.95):
+                self.prompt_item("[%s] 電話をかける" % ENTER_KEY, "PHONE")
+                if pressed:
+                    self.begin_phone()
+                    return
         if self.dial_body is not None and not self.safe_open and self.state == "TRAPPED" and self.looking_at(self.dial_knob or self.dial_body, ITEM_RANGE):
             self.prompt_item("[%s] 金庫のダイヤルを回す" % ENTER_KEY, "SAFE")
             if pressed:
@@ -1132,6 +1665,7 @@ class Game:
     # 謎が進むほど強い札を使い、使った札は二度と出さない（あとで出せる演出がなくならないよう、1回の謎で出すのは1つだけ）。
     # 謎が進まないまま時間がたつと、持ち札を使わずに「幽霊がじわじわ近づく」圧力だけが増える。
     def start_trapped(self):
+        self.trapped_started = True
         self.set_flash_scale(FLASH_INSIDE * FLASH_OUTSIDE)
         self.steps = []
         self.step_i = 0
@@ -1172,8 +1706,11 @@ class Game:
 
     def on_flag(self, name="?"):
         """謎を1つ解いた（フラグがたった）。演出を1つ選んで出す"""
-        if self.state != "TRAPPED":
+        if self.state not in ("TRAPPED", "PHONE", "SAFE", "READING") or not getattr(self, "trapped_started", False):
             log("(閉じ込められていないので、フラグは無視) %s" % name)
+            return
+        if self.state != "TRAPPED":                              # 電話・金庫・読んでいる最中は、終わってから演出を出す
+            self.deferred = getattr(self, "deferred", []) + [name]
             return
         self.solved += 1
         self.pressure_t = 0.0

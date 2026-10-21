@@ -35,13 +35,21 @@ FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ�
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
+GHOST_MODEL = True                   # True: 本物の幽霊のモデル（assets/unreal/ghost/Ghost_rigged.fbx）を置く。取り込みに失敗したら、仮の姿（黒い筒＋白い頭）を置く。False: いつも仮の姿
+GHOST_HEIGHT = 160.0                 # 幽霊の身長（cm）。取り込み後に測って、この高さに合わせる
+RESET_POSTERS = True                 # True: ガラスの文字・目の写真の位置は、実行のたびに、ガラスの面から計算し直す（手で動かした位置は覚えない）。手で動かした位置を残したいなら False
+GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面から内側へ何cm 離して貼るか（浮いて見えるなら小さく。ガラスにめり込むなら大きく）
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
+GLASS_GLOW = 6.0                     # ガラスの文字の光り方（大きいほど、暗い中で白く光る）
+GLASS_SCALE = 1.3                    # ガラスの文字の大きさ（1.0 = 横50×縦70cm の板。1.3 で 65×91cm。大きいほどガラスいっぱいに出る）
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
 SAFE_BACK = -28.0                    # ダイヤル式の金庫を、ボックスの中心から奥（入口の反対）へ何cm（－が奥）
 SAFE_SIDE = 22.0                     # 金庫を、中心から横へ何cm（＋は入口に向かって左）
 SAFE_SCALE = 1.6                     # 金庫の大きさ（1.0 = 本物の手提げ金庫 幅36cm。見やすいよう 1.6 で幅58cm）
+DIAL_CAM_DIST = 30.0                 # 金庫のダイヤルを回すとき、専用カメラを、つまみの前（おもて側）から何cm 離すか（小さいほどアップ）
+DIAL_CAM_FOV = 42.0                  # そのカメラの視野の角度（小さいほどアップ）
 SAFE_TURN = 0.0                      # 金庫の向き（入口の向きから何度まわすか）
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
@@ -189,7 +197,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "WALL_INSET", "POSTER_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -293,7 +301,7 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob") and not lab.startswith("Board_Pin_") \
+            if lab.startswith(KEEP_PREFIX) and not (RESET_POSTERS and lab.startswith("Poster_")) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid", "DialSafe_Key", "DialSafe_Coin") and not lab.startswith("Board_Pin_") \
                     and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
@@ -368,7 +376,7 @@ def mk_task(filename, dest, scale=None, fbx_ui=None):
 
 def s_poster_textures():
     d = tex_game_dir()
-    names = sorted(f for f in os.listdir(d) if f.startswith("poster_") and f.lower().endswith((".png", ".jpg")))
+    names = sorted(f for f in os.listdir(d) if (f.startswith("poster_") or f.startswith("glass_")) and f.lower().endswith((".png", ".jpg")))
     if not names:
         raise RuntimeError("張り紙の画像がありません: %s" % d)
     import_tasks([mk_task(os.path.join(d, f), GAME_DIR + "/Textures/Game") for f in names])
@@ -451,10 +459,19 @@ def s_poster_materials():
     for f in STATE["poster_files"]:
         base = os.path.splitext(f)[0]                      # poster_01
         tex = unreal.EditorAssetLibrary.load_asset("%s/Textures/Game/%s" % (GAME_DIR, base))
-        m = new_material("M_" + "".join(w.capitalize() for w in base.split("_")))      # M_Poster01
+        m = new_material("M_" + "".join(w.capitalize() for w in base.split("_")))      # M_Poster01 / M_Glass01
         setp(m, "two_sided", True)
         t = xx(m, unreal.MaterialExpressionTextureSample, -800, 0)
         t.set_editor_property("texture", tex)
+        if base.startswith("glass_"):                       # ガラスの文字：紙なし。背景は透明、文字だけがうっすら光る
+            setp(m, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+            setp(m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+            mel.connect_material_property(mulx(m, t, cst(m, GLASS_GLOW, 100), 0), "", MP.MP_EMISSIVE_COLOR)
+            mel.connect_material_property(t, "A", MP.MP_OPACITY)
+            mel.recompile_material(m)
+            unreal.EditorAssetLibrary.save_loaded_asset(m)
+            mats[base] = m
+            continue
         mel.connect_material_property(mulx(m, t, cst(m, 0.8, -100), 0), "", MP.MP_BASE_COLOR)
         mel.connect_material_property(mulx(m, t, cst(m, POSTER_GLOW, 100), 150), "", MP.MP_EMISSIVE_COLOR)
         mel.connect_material_property(cst(m, 0.9, 300), "", MP.MP_ROUGHNESS)
@@ -470,12 +487,155 @@ SLOTS = [("R", -40, 125, 1.0), ("R", 5, 160, 1.0), ("R", 45, 115, 1.0), ("R", -5
          ("L", -45, 150, 1.0), ("L", 42, 160, 1.0), ("L", -5, 195, 1.0),
          ("F", -45, 130, 1.0), ("F", 40, 155, 1.0), ("F", 0, 195, 1.0),
          ("B", -46, 120, 1.0), ("B", 46, 150, 1.0)]
-HINT_SLOT = ("B", 0, 185, 1.0)        # 電話機の真上
+HINT_SLOT = ("B", 0, 185, 0.5)       # 電話機の真上（ガラスの文字としては小さめ）
 EYE_SLOT = ("L", 0, 140, 1.6)         # 左の壁の真ん中に、少し大きく
 
 
+def ghost_textures():
+    d = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "ghost")
+    dest = GAME_DIR + "/Textures/Ghost"
+    tasks = [mk_task(os.path.join(d, "Ghost_%s.png" % k), dest) for k in ("albedo", "normal", "roughness", "metallic") if os.path.exists(os.path.join(d, "Ghost_%s.png" % k))]
+    import_tasks(tasks)
+    tx = {}
+    for k in ("albedo", "normal", "roughness", "metallic"):
+        a = unreal.EditorAssetLibrary.load_asset("%s/Ghost_%s" % (dest, k))
+        if a is None:
+            continue
+        if k == "normal":
+            setp(a, "compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+            setp(a, "srgb", False)
+            setp(a, "flip_green_channel", True)                      # Blender（OpenGL）→ Unreal（DirectX）の向きの違いを直す
+        elif k in ("roughness", "metallic"):
+            setp(a, "srgb", False)
+        unreal.EditorAssetLibrary.save_loaded_asset(a)
+        tx[k] = a
+    return tx
+
+
+def ghost_materials(tx):
+    """幽霊の材質5つ（Blenderの穴の順：肌・口の中・歯・舌・歯ぐき）"""
+    skin = new_material("M_GhostSkin")
+    setp(skin, "two_sided", True)                                    # 髪の面が、うらから見ても消えないように
+    t = xx(skin, unreal.MaterialExpressionTextureSample, -900, 0)
+    setp(t, "texture", tx["albedo"])
+    mel.connect_material_property(t, "", MP.MP_BASE_COLOR)
+    if "normal" in tx:
+        tn = xx(skin, unreal.MaterialExpressionTextureSample, -900, 300)
+        setp(tn, "texture", tx["normal"])
+        setp(tn, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+        mel.connect_material_property(tn, "", MP.MP_NORMAL)
+    if "roughness" in tx:
+        tr = xx(skin, unreal.MaterialExpressionTextureSample, -900, 600)
+        setp(tr, "texture", tx["roughness"])
+        setp(tr, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+        mel.connect_material_property(tr, "R", MP.MP_ROUGHNESS)
+    mel.connect_material_property(cst(skin, 0.0, 900), "", MP.MP_METALLIC)
+    mel.recompile_material(skin)
+    unreal.EditorAssetLibrary.save_loaded_asset(skin)
+
+    def vcol_material(name, rough, glow):
+        m = new_material(name)
+        vc = xx(m, unreal.MaterialExpressionVertexColor, -800, 0)             # Blender で付けた頂点カラー「Col」（口の中の赤みと、歯の黄ばみ）
+        mel.connect_material_property(vc, "RGB", MP.MP_BASE_COLOR)
+        if glow > 0:
+            mel.connect_material_property(mulx(m, vc, cst(m, glow, 100), 150), "", MP.MP_EMISSIVE_COLOR)      # 暗い中でも、口の中がうっすら見える
+        mel.connect_material_property(cst(m, rough, 300), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(m)
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+        return m
+
+    def const_material(name, col, rough):
+        m = new_material(name)
+        c = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 0)
+        setp(c, "constant", unreal.LinearColor(col[0], col[1], col[2], 1.0))
+        mel.connect_material_property(c, "", MP.MP_BASE_COLOR)
+        mel.connect_material_property(cst(m, rough, 240), "", MP.MP_ROUGHNESS)
+        mel.recompile_material(m)
+        unreal.EditorAssetLibrary.save_loaded_asset(m)
+        return m
+    return [skin, vcol_material("M_GhostMouth", 0.45, 0.06), vcol_material("M_GhostTeeth", 0.15, 0.0),
+            const_material("M_GhostTongue", (0.66, 0.27, 0.29), 0.4), const_material("M_GhostGum", (0.62, 0.22, 0.25), 0.35)]
+
+
+def import_ghost_fbx(fbx, dest, scale):
+    ui = unreal.FbxImportUI()
+    setp(ui, "import_mesh", True)
+    setp(ui, "import_as_skeletal", True)
+    setp(ui, "import_animations", True)
+    setp(ui, "import_materials", False)
+    setp(ui, "import_textures", False)
+    setp(ui, "automated_import_should_detect_type", False)
+    setp(ui, "mesh_type_to_import", unreal.FBXImportType.FBXIT_SKELETAL_MESH)
+    d = ui.get_editor_property("skeletal_mesh_import_data")
+    setp(d, "import_morph_targets", True)                                        # 表情（口を開ける・にっこり・歯を見せて笑う）
+    setp(d, "import_uniform_scale", float(scale))
+    try:
+        setp(d, "vertex_color_import_option", unreal.VertexColorImportOption.REPLACE)       # 口の中・歯の色（頂点カラー）を使う
+    except Exception as e:  # noqa
+        log("  (頂点カラーの取り込み設定できず) %s" % e)
+    import_tasks([mk_task(fbx, dest, fbx_ui=ui)])
+    sk = None
+    anims = []
+    for p_ in unreal.EditorAssetLibrary.list_assets(dest, recursive=True, include_folder=False):
+        a = unreal.EditorAssetLibrary.load_asset(p_)
+        if isinstance(a, unreal.SkeletalMesh):
+            sk = a
+        elif isinstance(a, unreal.AnimSequence):
+            anims.append(a)
+    return sk, anims
+
+
+def s_ghost_model():
+    """本物の幽霊（Ghost_rigged.fbx）：骨つき・表情つきのモデルを取り込んで、Ghost として置く"""
+    fbx = os.path.join(repo_root(), "games", "koushu-denwa", "assets", "unreal", "ghost", "Ghost_rigged.fbx")
+    if not os.path.exists(fbx):
+        raise RuntimeError("Ghost_rigged.fbx がありません: %s" % fbx)
+    dest = GAME_DIR + "/Ghost"
+    tx = ghost_textures()
+    if "albedo" not in tx:
+        raise RuntimeError("幽霊の肌の絵（Ghost_albedo.png）がありません")
+    sk, anims = import_ghost_fbx(fbx, dest, 100.0)
+    if sk is None:
+        raise RuntimeError("幽霊のスケルタルメッシュを取り込めませんでした")
+    h = sk.get_bounds().box_extent.z * 2.0
+    log("幽霊の高さ（取り込み直後）: %.0fcm（%.0f が正常）" % (h, GHOST_HEIGHT))
+    if h > 1.0 and abs(h - GHOST_HEIGHT) > GHOST_HEIGHT * 0.08:
+        sk, anims = import_ghost_fbx(fbx, dest, 100.0 * GHOST_HEIGHT / h)
+        log("幽霊を、倍率 %.2f で取り込み直しました: 高さ %.0fcm" % (100.0 * GHOST_HEIGHT / h, sk.get_bounds().box_extent.z * 2.0))
+    mats = ghost_materials(tx)
+    a = spawn(unreal.SkeletalMeshActor, (0, 3000, 0))
+    comp = a.get_component_by_class(unreal.SkeletalMeshComponent)
+    try:
+        comp.set_skeletal_mesh_asset(sk)
+    except Exception:  # noqa
+        comp.set_editor_property("skeletal_mesh_asset", sk)
+    for i, m in enumerate(mats):
+        comp.set_material(i, m)
+    nat = next((x for x in anims if "Natural" in x.get_name() and "Face" not in x.get_name()), None) or (anims[0] if anims else None)
+    if nat is not None:
+        try:
+            comp.set_animation_mode(unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+            comp.set_animation(nat)
+            comp.play(True)
+        except Exception as e:  # noqa
+            log("  (幽霊のアニメを設定できません) %s" % e)
+    try:
+        comp.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    except Exception:  # noqa
+        pass
+    tag_actor(a, "Ghost")
+    a.set_actor_hidden_in_game(True)
+    log("本物の幽霊を置きました（骨 %s・アニメ %d本・材質 %d）。最初は見えません" % ("あり", len(anims), len(mats)))
+
+
 def s_ghost():
-    """幽霊（仮の姿）：黒い体＋白い頭。あとで Blender / Mixamo のモデルに替える"""
+    """幽霊（仮の姿）：黒い体＋白い頭。本物のモデルが取り込めたら、そちらを置く（GHOST_MODEL）"""
+    if GHOST_MODEL:
+        try:
+            s_ghost_model()
+            return
+        except Exception as e:  # noqa
+            log("本物の幽霊を置けなかったので、仮の姿にします: %s" % e)
     cyl = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
     sph = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Sphere")
     body_m = new_material("M_GhostBody")
@@ -618,6 +778,15 @@ def s_center_marker():
     tag_actor(a, "KD_BoothCenter")
     setp(a.get_component_by_class(unreal.StaticMeshComponent), "mobility", unreal.ComponentMobility.MOVABLE)
     a.set_actor_hidden_in_game(True)
+    # 中の「歩ける広さ」の印：ガラスの内がわの半分の幅・奥行き(cm)を、大きさに入れておく（kd_game.py が読む。壁ぎわの歩きがガタガタしないように）
+    gh = glass_halves()
+    in_n, in_t = (gh[0] - 1.5, gh[1] - 1.5) if gh else (half_n - WALL_INSET, half_t - WALL_INSET)
+    b = spawn(unreal.StaticMeshActor, g["center"], (0, 0, yaw0))
+    b.set_actor_scale3d(unreal.Vector(in_t, in_n, 1.0))
+    tag_actor(b, "KD_BoothInner")
+    setp(b.get_component_by_class(unreal.StaticMeshComponent), "mobility", unreal.ComponentMobility.MOVABLE)
+    b.set_actor_hidden_in_game(True)
+    log("中の歩ける広さ（ガラスの内がわ）: 横 ±%.1fcm・奥行き ±%.1fcm" % (in_t, in_n))
 
 
 def s_collision():
@@ -796,22 +965,69 @@ HINT_SLOT = ("B", 0, 185, 1.0)        # 電話機の真上
 EYE_SLOT = ("L", 0, 140, 1.5)         # 左の壁の真ん中に、大きく
 
 
+def glass_halves():
+    """ガラスの面の位置：ボックス中心から、入口方向(n)と側面方向(t)へ、それぞれ何cm か（ガラスの外がわの面）。測れなければ None"""
+    key = "glass_halves"
+    if key in STATE:
+        return STATE[key]
+    g = STATE["geo"]
+    cx, cy, _cz = g["center"]
+    n, t = g["n"], g["t"]
+    mx_n = mx_t = None
+    for c in STATE["booth"].get_components_by_class(unreal.StaticMeshComponent):
+        mesh = c.get_editor_property("static_mesh")
+        if mesh is None or "glass" not in mesh.get_name().lower():
+            continue
+        b = None
+        for getter in (lambda: c.get_editor_property("bounds"), lambda: c.bounds):
+            try:
+                b = getter()
+                break
+            except Exception:  # noqa
+                continue
+        if b is None:
+            continue
+        try:
+            o, e = b.origin, b.box_extent
+            dn = (o.x - cx) * n[0] + (o.y - cy) * n[1]
+            dt = (o.x - cx) * t[0] + (o.y - cy) * t[1]
+            hn = abs(n[0]) * e.x + abs(n[1]) * e.y
+            ht = abs(t[0]) * e.x + abs(t[1]) * e.y
+            v_n, v_t = max(abs(dn - hn), abs(dn + hn)), max(abs(dt - ht), abs(dt + ht))
+            mx_n = v_n if mx_n is None else max(mx_n, v_n)
+            mx_t = v_t if mx_t is None else max(mx_t, v_t)
+        except Exception as ex:  # noqa
+            log("  (ガラスの大きさを読めません) %s" % ex)
+    STATE[key] = (mx_n, mx_t) if (mx_n and mx_t) else None
+    half_n, half_t = front_half()
+    if STATE[key]:
+        log("ガラスの面の位置: 前後 ±%.1fcm・左右 ±%.1fcm（ボックスぜんたいは 前後 ±%.1f・左右 ±%.1f）→ ガラスの面から内側へ %.1fcm に貼ります" % (mx_n, mx_t, half_n, half_t, GLASS_GAP))
+    else:
+        log("ガラスの面の位置を測れなかったので、ボックスの外形から %.0fcm 内側（WALL_INSET）に貼ります。浮いて見えるなら、WALL_INSET を小さくしてください" % WALL_INSET)
+    return STATE[key]
+
+
 def wall_pose_rel(wall, u, z):
     """壁の名前から、世界座標と、張り紙の面が内側を向く yaw を返す。張り紙の板は yaw=0 で +Y 向き"""
     g = STATE["geo"]
     half_n, half_t = front_half()
     n = g["n"]
     zmin = g["zmin"]
+    gh = glass_halves()
+    if gh:                                                                  # ガラスの面にぴったり貼る（浮かない）
+        wn, wt = gh[0] - GLASS_GAP, gh[1] - GLASS_GAP
+    else:
+        wn, wt = half_n - WALL_INSET, half_t - WALL_INSET
     if wall == "B":
-        d, s, inward = -(half_n - WALL_INSET), u, (n[0], n[1])            # 奥の壁：面は入口側（+n）を向く
+        d, s, inward = -wn, u, (n[0], n[1])            # 奥の壁：面は入口側（+n）を向く
     elif wall == "F":
-        d, s, inward = (half_n - WALL_INSET - 3.0), -u, (-n[0], -n[1])
+        d, s, inward = wn, -u, (-n[0], -n[1])
     elif wall == "R":
         t = g["t"]
-        d, s, inward = u, half_t - WALL_INSET, (-t[0], -t[1])
+        d, s, inward = u, wt, (-t[0], -t[1])
     else:
         t = g["t"]
-        d, s, inward = u, -(half_t - WALL_INSET), (t[0], t[1])
+        d, s, inward = u, -wt, (t[0], t[1])
     # 面の向き inward を向く yaw（板は yaw=0 で +Y 向き）
     yaw = math.degrees(math.atan2(inward[1], inward[0])) - 90.0
     if wall in ("R", "L"):
@@ -826,10 +1042,10 @@ def s_posters():
     mesh = STATE["poster_mesh"]
     mats = STATE["poster_mats"]
     rng = random.Random(714)
-    normal = ["poster_%02d" % i for i in range(1, 13)]
+    normal = ["glass_%02d" % i for i in range(1, 13)]
     rng.shuffle(normal)
     plan = [("Poster_%02d" % (i + 1), normal[i], SLOTS[i]) for i in range(len(SLOTS))]
-    plan.append(("Poster_Hint", "poster_hint", HINT_SLOT))
+    plan.append(("Poster_Hint", "glass_hint", HINT_SLOT))
     if "poster_eye" in mats:
         plan.append(("Poster_Eye", "poster_eye", EYE_SLOT))
     n = 0
@@ -843,7 +1059,7 @@ def s_posters():
         c.set_static_mesh(mesh)
         c.set_material(0, mats[key])
         setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
-        k = sc * POSTER_SCALE
+        k = sc * (GLASS_SCALE if key.startswith("glass_") else POSTER_SCALE)
         a.set_actor_scale3d(unreal.Vector(k, k, k))
         tag_actor(a, label)
         a.set_actor_hidden_in_game(True)
@@ -852,7 +1068,7 @@ def s_posters():
 
 
 # ---------------- 掲示板（外）と、手に取って読める新聞 ----------------
-BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "book_news", "wood_color", "wood_normal", "wood_rough"]
+BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "book_news", "memo_hatch", "wood_color", "wood_normal", "wood_rough"]
 
 
 def s_board_textures():
@@ -1015,6 +1231,13 @@ def s_board_materials():
     mel.recompile_material(rb)
     unreal.EditorAssetLibrary.save_loaded_asset(rb)
     STATE["M_KDReadBook"] = rb
+    rmm = new_material("M_KDReadMemo")                                              # 電話の下のふたの中のメモ
+    setp(rmm, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    tm_ = tex_param(rmm, "Tex", ld(T + "memo_hatch"), -800, 0)
+    mel.connect_material_property(mulx(rmm, tm_, scalar_param(rmm, "Brightness", 0.9, -800, -150), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.recompile_material(rmm)
+    unreal.EditorAssetLibrary.save_loaded_asset(rmm)
+    STATE["M_KDReadMemo"] = rmm
     cm = new_material("M_KDCoin")                                                  # 10円玉：銅色の金属
     cc = xx(cm, unreal.MaterialExpressionConstant3Vector, -600, 0)
     cc.set_editor_property("constant", unreal.LinearColor(0.62, 0.30, 0.14, 1.0))
@@ -1222,6 +1445,8 @@ def s_safe_materials():
     STATE["M_KDSafeWood"] = wood_material("M_KDSafeWood", "safe_wood", 1.0)             # 木目プリントの塗装（傷とはがれつき）
     STATE["M_KDNickel"] = pbr("M_KDNickel", (0.72, 0.72, 0.75), 1.0, 0.3)               # ニッケルめっき（取っ手・ダイヤル）
     STATE["M_KDBlack"] = pbr("M_KDBlack", (0.02, 0.02, 0.02), 0.0, 0.5)
+    STATE["M_KDBrass"] = pbr("M_KDBrass", (0.78, 0.58, 0.22), 1.0, 0.35)                     # 小さな鍵：真鍮
+    STATE["M_KDSafeInner"] = pbr("M_KDSafeInner", (0.22, 0.02, 0.03), 0.0, 0.9)           # 開いた金庫の内張り（くすんだ赤）
     pm = new_material("M_KDSafePlate")                                                  # 銘板（黒いエナメルに銀の文字）
     t = tex_param(pm, "Tex", unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_plate"), -800, 0)
     mel.connect_material_property(t, "", MP.MP_BASE_COLOR)
@@ -1271,6 +1496,68 @@ def s_safe():
     setp(kc, "mobility", unreal.ComponentMobility.MOVABLE)
     kn.set_actor_scale3d(unreal.Vector(S, S, S))
     tag_actor(kn, "DialSafe_Knob")
+    # ダイヤル専用のカメラ：つまみのおもて側（f の向き）に置いて、つまみを見る。回している間、この画面になる（プレイヤーの位置と関係なく、アップで見える）
+    d = DIAL_CAM_DIST
+    camx, camy, camz = kx + f[0] * d, ky + f[1] * d, kz + 0.12 * d
+    cyaw = math.degrees(math.atan2(-f[1], -f[0]))
+    cpitch = -math.degrees(math.atan2(0.12 * d, d))
+    cam = spawn(unreal.CameraActor, (camx, camy, camz), (0, cpitch, cyaw))
+    try:
+        cam.get_component_by_class(unreal.CameraComponent).set_editor_property("field_of_view", float(DIAL_CAM_FOV))
+    except Exception as e:  # noqa
+        log("  (ダイヤルのカメラの視野を設定できません) %s" % e)
+    tag_actor(cam, "KD_DialCam")
+    pcam = spawn(unreal.CameraActor, g["center"], (0, 0, 0))                       # 電話機を回す（押す）ときの専用カメラ。置き場所と向きは、kd_game.py が電話機の位置に合わせて動かす
+    tag_actor(pcam, "KD_PhoneCam")
+    # 開いた状態の金庫：下の箱（上が開いている）とふた。はじめは隠しておき、金庫が開いたときに kd_game.py が、本体とつまみを隠して、これを出す（ふたが回って開く）
+    base_mesh = import_fit("DialSafeBase.fbx", "SafeBase", 36.0)
+    lid_mesh = import_fit("DialSafeLid.fbx", "SafeLid", 36.2, collision=False)
+    base = spawn(unreal.StaticMeshActor, (px, py, gz), (0, 0, yaw - 90.0))
+    bsc = base.get_component_by_class(unreal.StaticMeshComponent)
+    bsc.set_static_mesh(base_mesh)
+    for i, key in enumerate(("M_KDSafeWood", "M_KDNickel", "M_KDSafePlate", "M_KDBlack", "M_KDSafeInner")):
+        bsc.set_material(i, STATE[key])
+    setp(bsc, "mobility", unreal.ComponentMobility.MOVABLE)
+    base.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(base, "DialSafe_Base")
+    hx, hy, hz = px - f[0] * 12.0 * S, py - f[1] * 12.0 * S, gz + 10.4 * S                    # うしろのちょうつがい（本体の原点から：うしろへ12cm・高さ10.4cm）
+    lid = spawn(unreal.StaticMeshActor, (hx, hy, hz), (0, 0, yaw - 90.0))
+    lc = lid.get_component_by_class(unreal.StaticMeshComponent)
+    lc.set_static_mesh(lid_mesh)
+    for i, key in enumerate(("M_KDSafeWood", "M_KDNickel", "M_KDSafePlate", "M_KDBlack", "M_KDSafeInner")):
+        lc.set_material(i, STATE[key])
+    setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
+    lid.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(lid, "DialSafe_Lid")
+    # 箱の中に置く、小さな鍵と10円②（金庫が開いたとき、kd_game.py が一瞬だけ見せて、手に入れたことにして消す）
+    key_mesh = import_fit("SafeKey.fbx", "SafeKey", 6.9, collision=False)
+    right_ = (f[1], -f[0])
+    fz = gz + 2.5 * S                                                                          # 箱の底の上（底から 2.5cm・倍率つき）
+    key = spawn(unreal.StaticMeshActor, (px - right_[0] * 6.0 * S - f[0] * 2.0 * S, py - right_[1] * 6.0 * S - f[1] * 2.0 * S, fz), (0, 0, yaw - 90.0 + 25.0))
+    kcc = key.get_component_by_class(unreal.StaticMeshComponent)
+    kcc.set_static_mesh(key_mesh)
+    kcc.set_material(0, STATE["M_KDBrass"])
+    setp(kcc, "mobility", unreal.ComponentMobility.MOVABLE)
+    key.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(key, "DialSafe_Key")
+    cyl_ = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
+    coin2 = spawn(unreal.StaticMeshActor, (px + right_[0] * 6.5 * S + f[0] * 1.0 * S, py + right_[1] * 6.5 * S + f[1] * 1.0 * S, fz + 0.4), (0, 0, 0))
+    cc2 = coin2.get_component_by_class(unreal.StaticMeshComponent)
+    cc2.set_static_mesh(cyl_)
+    cc2.set_material(0, STATE["M_KDCoin"])
+    setp(cc2, "mobility", unreal.ComponentMobility.MOVABLE)
+    try:
+        cc2.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    except Exception:  # noqa
+        pass
+    coin2.set_actor_scale3d(unreal.Vector(0.05, 0.05, 0.004))
+    tag_actor(coin2, "DialSafe_Coin")
+    for a_ in (base, lid, key, coin2):
+        a_.set_actor_hidden_in_game(True)
+        try:
+            a_.set_is_temporarily_hidden_in_editor(True)
+        except Exception:  # noqa
+            pass
     log("手提げ金庫を置きました: (%.0f,%.0f) 向き=%.0f度・倍率 %.1f（奥へ %.0fcm・横へ %.0fcm）" % (px, py, yaw, S, SAFE_BACK, SAFE_SIDE))
 
 

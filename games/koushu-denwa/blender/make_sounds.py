@@ -3,6 +3,9 @@
   door_open.wav  … 古い扉が きしみながら開く音（約2秒）
   door_close.wav … 扉が バタン と閉まって、ガラスがふるえる音（約1.6秒）
   latch.wav      … カチャッという金属の小さな音（約0.3秒）
+  safe_click.wav … 金庫のダイヤルが1目盛り進む「カリッ」（約0.05秒）
+  safe_clunk.wav … 金庫のかんぬきが外れる「ガチャン」（約0.7秒）
+  safe_creak.wav … 金庫のふたが、ちょうつがいをきしませて開く音（約1.1秒）
 出力：assets/sounds/   使い方：python make_sounds.py
 """
 import os
@@ -83,5 +86,33 @@ def latch():
     save('latch.wav', c + c2)
 
 
+def safe_click():
+    t = t_axis(0.06)
+    c = lowpass(rng.standard_normal(len(t)), 2) * np.exp(-t * 130)
+    c2 = np.sin(2 * np.pi * 2600 * t) * np.exp(-t * 160) * 0.5
+    save('safe_click.wav', c + c2)
+
+
+def safe_clunk():
+    x = np.zeros(int(SR * 0.8))
+    t = t_axis(0.8)
+    body = (np.sin(2 * np.pi * 95 * t * (1 - 0.2 * t)) * np.exp(-t * 11) * 1.0
+            + lowpass(rng.standard_normal(len(t)), 8) * np.exp(-t * 30) * 0.9)
+    x[:len(body)] += body
+    t2 = t_axis(0.2)
+    metal = np.sin(2 * np.pi * 1450 * t2) * np.exp(-t2 * 45) * 0.45 + np.sin(2 * np.pi * 2300 * t2) * np.exp(-t2 * 60) * 0.25
+    x[int(SR * 0.04):int(SR * 0.04) + len(metal)] += metal
+    save('safe_clunk.wav', x)
+
+
+def safe_creak():
+    x = np.zeros(int(SR * 1.5))
+    c = creak(0.95, 260, 620)
+    x[int(SR * 0.1):int(SR * 0.1) + len(c)] += c * 0.8
+    th = thud(0.25, 90) * 0.5
+    x[int(SR * 1.0):int(SR * 1.0) + len(th)] += th                                   # 最後に、ふたが止まる音
+    save('safe_creak.wav', x)
+
+
 if __name__ == '__main__':
-    door_open(); door_close(); latch()
+    door_open(); door_close(); latch(); safe_click(); safe_clunk(); safe_creak()

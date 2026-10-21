@@ -76,8 +76,36 @@ def fit(cell, long_side, by='w'):
     cell.putalpha(cell.getchannel('A').filter(ImageFilter.MinFilter(3)))
     nw, nh = max(1, round(cell.width * s)), max(1, round(cell.height * s))
     sm = cell.resize((nw, nh), Image.LANCZOS); al = sm.getchannel('A').point(lambda v: 255 if v > 110 else 0)
-    sm = sm.convert('RGB').quantize(colors=24, method=Image.FASTOCTREE, dither=Image.NONE).convert('RGBA'); sm.putalpha(al); return sm
-rope = fit(cut(C, pick_rope()[5], (x0, y0)), 44, 'w')
+    sm = sm.convert('RGBA'); sm.putalpha(al); return sm
+def cut_checker(path, box, shrink=2, blank=None):
+    """白い市松もようの背景の絵から、外のふちとつながった白っぽい所だけを消して切り出す（絵の中の白は残る）。"""
+    from collections import deque
+    im = Image.open(path).convert('RGB').crop(box); a = np.array(im).astype(int); h, w = a.shape[:2]
+    bgl = (a.min(axis=2) > 205) & ((a.max(axis=2) - a.min(axis=2)) < 28)
+    if blank: bgl[blank[1]:, blank[0]:] = True      # となりの絵（ミミズなど）が入る所を、背景あつかいにする
+    om = np.zeros((h, w), bool); q = deque()
+    for x in range(w):
+        for y in (0, h - 1):
+            if bgl[y, x] and not om[y, x]: om[y, x] = True; q.append((y, x))
+    for y in range(h):
+        for x in (0, w - 1):
+            if bgl[y, x] and not om[y, x]: om[y, x] = True; q.append((y, x))
+    while q:
+        cy, cx = q.popleft()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            Y, X = cy + dy, cx + dx
+            if 0 <= Y < h and 0 <= X < w and bgl[Y, X] and not om[Y, X]: om[Y, X] = True; q.append((Y, X))
+    fg = ~om
+    cs = components(fg, minpx=50, reach=2)
+    if cs:
+        big = max(cs, key=len); fg = np.zeros((h, w), bool)
+        for (yy, xx) in big: fg[yy, xx] = True      # いちばん大きいかたまりだけ残す
+    img = Image.fromarray(np.dstack([a.astype(np.uint8), (fg * 255).astype(np.uint8)]), 'RGBA'); img = img.crop(img.getchannel('A').getbbox())
+    img = img.resize((max(1, round(img.width / shrink)), max(1, round(img.height / shrink))), Image.NEAREST)
+    al = np.array(img.getchannel('A')); img.putalpha(Image.fromarray(((al > 110) * 255).astype(np.uint8)))
+    return img
+rope = cut_checker(art / 'items' / 'catalog2.png', (1248, 252, 1346, 338), shrink=2)       # 新しい絵シート（catalog2）の巻いたロープ
+rope_old = fit(cut(C, pick_rope()[5], (x0, y0)), 44, 'w')
 rod = fit(cut(C, pick_rod()[5], (x0, y0)), 62, 'h')
 print('rope', rope.size, 'rod', rod.size)
 

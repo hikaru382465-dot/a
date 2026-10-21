@@ -25,6 +25,10 @@ window.RAFT.parts.floor = function (c) {
   const topT = c.tex(topCv(), { repeat: true }), sideT = c.tex(sideCv(), { repeat: true });
   const topM = new THREE.MeshLambertMaterial({ map: topT }), sideM = new THREE.MeshLambertMaterial({ map: sideT });
   const group = new THREE.Group(); scene.add(group);
+  const FENCE = false;      // ふちの柵（ひかるの希望でいまは無し。trueで戻る）
+  const rail = new THREE.Group(); scene.add(rail);
+  const postM = new THREE.MeshLambertMaterial({ color: '#6b4429' }), ropeM = new THREE.MeshLambertMaterial({ color: '#c49a62' });
+  const postG = new THREE.BoxGeometry(0.08, 0.34, 0.08), ropeG = new THREE.BoxGeometry(1, 0.035, 0.035);
   const hl = new THREE.Group(); scene.add(hl);
   const hlGeo = new THREE.PlaneGeometry(0.94, 0.94); hlGeo.rotateX(-Math.PI / 2);
   const hlMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 1.2, 0.7), transparent: true, opacity: 0.45, depthWrite: false });
@@ -36,6 +40,19 @@ window.RAFT.parts.floor = function (c) {
       const m = new THREE.Mesh(boxG, [sideM, sideM, topM, sideM, sideM, sideM]);
       m.position.set(x + 0.5, TOP - THICK / 2, z + 0.5); group.add(m);
     });
+    // ふちの柵：外がわのふちに、柱とロープ（見本のイカダの手すり）
+    while (rail.children.length) rail.remove(rail.children[0]);
+    const has = new Set(s.raft.cells.map(([x, z]) => x + ',' + z)), posts = new Set();
+    const E = (x0, z0, x1, z1) => {      // 1辺：柱は両はし（かさなりは1本に）、ロープは2段
+      [[x0, z0], [x1, z1]].forEach(([px, pz]) => { const k = px + ',' + pz; if (posts.has(k)) return; posts.add(k); const p = new THREE.Mesh(postG, postM); p.position.set(px, TOP + 0.17, pz); rail.add(p); });
+      [0.27, 0.15].forEach(h => { const r = new THREE.Mesh(ropeG, ropeM); r.position.set((x0 + x1) / 2, TOP + h, (z0 + z1) / 2); if (z0 !== z1) r.rotation.y = Math.PI / 2; rail.add(r); });
+    };
+    if (FENCE) s.raft.cells.forEach(([x, z]) => {
+      if (!has.has(x + ',' + (z - 1))) E(x, z, x + 1, z);
+      if (!has.has(x + ',' + (z + 1))) E(x, z + 1, x + 1, z + 1);
+      if (!has.has((x - 1) + ',' + z)) E(x, z, x, z + 1);
+      if (!has.has((x + 1) + ',' + z)) E(x + 1, z, x + 1, z + 1);
+    });
     rev = s.raftRev;
   }
   build();
@@ -45,11 +62,13 @@ window.RAFT.parts.floor = function (c) {
   const lp = c.sprite(lantern(), { x: 0.28, y: TOP, z: 0.28, ppu: 22 }); scene.add(lp);
   const OB = window.RAFT.objArt; if (OB && OB.lamp) {      // ひかるの絵（街灯ランタン）に差しかえ
     const f = OB.lamp[0], [cv, g] = I.canvas(f.w, f.h), im = new Image();
-    im.onload = () => { g.drawImage(im, 0, 0); scene.remove(lp); scene.add(c.sprite(cv, { x: 0.28, y: TOP, z: 0.28, ppu: f.h / 1.15 })); };
+    im.onload = () => { g.drawImage(im, 0, 0); scene.remove(lp); const lt = c.sprite(cv, { x: 0.28, y: TOP + 0.62, z: 0.28, ppu: f.h / 0.95, smooth: true }); scene.add(lt);
+      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.66, 0.075), new THREE.MeshLambertMaterial({ color: '#5a3a24' })); pole.position.set(0.28, TOP + 0.33, 0.28); scene.add(pole);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.2), new THREE.MeshLambertMaterial({ color: '#4a2e1c' })); base.position.set(0.28, TOP + 0.025, 0.28); scene.add(base); };
     im.src = f.src;
   }
   const gm = new THREE.MeshBasicMaterial({ map: c.tex(gl), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.15 });
-  const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), gm); gp.rotation.y = c.cam.yaw; gp.position.set(0.28, TOP + 1.0, 0.28); scene.add(gp); c.glows.push({ mat: gm });
+  const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), gm); gp.rotation.y = c.cam.yaw; gp.position.set(0.28, TOP + 1.2, 0.28); scene.add(gp); c.glows.push({ mat: gm });
   // 置ける場所の光（置くモード）：[[x, z, 高さ], ...] を渡す。空で消える
   c.setHighlight = list => { hlList = list && list.length ? list : null; hlRev = '#'; };
   return { update() {

@@ -32,9 +32,10 @@ button.on{background:#6b4231;color:#fff}
 #sheet{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0a0a1c88;padding:calc(10px + env(safe-area-inset-top,0px)) 10px calc(10px + env(safe-area-inset-bottom,0px))}
 #sheet.open{display:flex}
 #book{--paper:#f3d2a8;--paper2:#e9bd90;--slot:#f9dcb7;--line:#d9a37f;--ink:#4a2c26;--edge:#5a3425;--edge2:#8a5430;position:relative;width:min(700px,100%);max-height:100%;display:flex;flex-direction:column;color:var(--ink);filter:drop-shadow(0 5px 0 #0007)}
-#tabs{display:flex;gap:6px;padding:0 16px;align-items:flex-end;position:relative;z-index:1;margin-bottom:-4px}
-.tab{display:flex;align-items:center;gap:5px;min-height:0;height:34px;padding:0 12px;background:var(--paper2);color:var(--ink);border:4px solid var(--edge);border-bottom:none;border-radius:8px 8px 0 0;font-size:13px}
-.tab canvas{width:20px;height:20px;image-rendering:pixelated}
+#tabs{display:flex;gap:3px;padding:0 8px;align-items:flex-end;position:relative;z-index:1;margin-bottom:-4px}
+.tab{white-space:nowrap;font-size:13px;display:flex;align-items:center;gap:2px;min-height:0;height:34px;padding:0 5px;background:var(--paper2);color:var(--ink);border:3px solid var(--edge);border-bottom:none;border-radius:8px 8px 0 0;font-size:12px}
+.tab canvas{width:18px;height:18px;image-rendering:pixelated}
+.tab canvas{flex:none}
 .tab.on{height:42px;color:var(--ink);background:var(--paper);box-shadow:inset 0 3px 0 #fff4;padding-bottom:4px}
 #bClose{position:absolute;right:-6px;top:-6px;z-index:3;width:34px;height:34px;min-height:0;border-radius:6px;background:#b8654f;border:3px solid var(--edge);color:#fff;font-size:20px;line-height:1;padding:0}
 #pages{display:flex;min-height:0;background:var(--paper);border:4px solid var(--edge);border-radius:6px;box-shadow:inset 0 0 0 3px var(--paper2),inset 0 0 0 5px var(--edge2)}
@@ -43,7 +44,7 @@ button.on{background:#6b4231;color:#fff}
 #pageR{background:linear-gradient(270deg,transparent 94%,#c98d6340)}
 #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;aspect-ratio:1;padding:2px;background:var(--slot);color:var(--ink);border:2px dashed var(--line);border-radius:8px;font-size:10px;min-height:0;line-height:1.1}
-.slot canvas{width:30px;height:30px;image-rendering:pixelated}
+.slot canvas{width:60px;height:60px;margin-top:-6px;image-rendering:auto}
 .slot .n{position:absolute;right:4px;bottom:2px;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
 .slot.empty{opacity:.55}
 .slot.sel{border-style:solid;border-color:var(--accent,#b8654f);box-shadow:0 0 0 2px #b8654f55}
@@ -51,7 +52,7 @@ button.on{background:#6b4231;color:#fff}
 .slot.lock{opacity:.5}
 #detail{display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.6}
 #detail .big{display:flex;align-items:center;gap:12px}
-#detail .big canvas{width:56px;height:56px;image-rendering:pixelated;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px}
+#detail .big canvas{width:96px;height:96px;image-rendering:auto;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px}
 #detail b{font-size:16px}
 #detail p{margin:0}
 #detail .tag{font-size:12px;background:var(--paper2);border-radius:5px;padding:0 6px}
@@ -67,15 +68,39 @@ button.on{background:#6b4231;color:#fff}
 #helpbox ul{margin:0;padding-left:1.2em}
 #zoom{position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px}
 #zoom button{width:40px;height:40px;border-radius:50%;padding:0;font-size:18px;opacity:.85}
+#resbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
+#resbox h2{margin:0 0 4px;font-size:15px}#resLine{margin:6px 0;padding:8px 10px;background:#0003;border-radius:8px;font-size:14px}#resPerk{font-size:12px;opacity:.85}
+#resFace{float:right;width:70px;margin:-26px 0 4px 8px;border-radius:10px;background:#3b2448;border:1px solid #caa97e}
+.askrow{display:flex;gap:8px;justify-content:flex-end;margin:6px 0}
 #boatbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(380px,90vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #boatbox h2{margin:0 0 4px;font-size:15px}
 #boatLine{margin:2px 0 8px;padding:6px 10px;background:#0003;border-radius:8px;font-size:13px}
 .deal{display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 8px;background:#0003;border-radius:8px;flex-wrap:wrap}
 .deal .its{display:flex;gap:4px;align-items:center}.deal .it{position:relative;width:38px;height:40px;background:#150a1c;border:2px solid #6b4231;border-radius:6px;display:flex;align-items:center;justify-content:center}.deal .it canvas{width:28px;height:28px;image-rendering:pixelated}.deal .it i{position:absolute;right:2px;bottom:0;font-style:normal;font-size:11px;font-weight:700;text-shadow:0 1px 2px #000}.deal .it.no{border-color:#b8654f}
 .deal .ar{opacity:.7}.deal button{margin-left:auto;padding:4px 10px;min-height:34px}
+#hutview{position:fixed;left:0;right:0;top:0;bottom:0;display:none;align-items:flex-start;justify-content:center;background:#0a0618aa;z-index:14;pointer-events:none;padding-top:max(4vh,env(safe-area-inset-top,0px))}
+#hutWrap{position:relative;width:min(96vw,calc(58vh*1.25));aspect-ratio:1223/982}
+#hutview #hutImg{width:100%;height:100%;display:block;image-rendering:auto}
+#hutview #hutBed{position:absolute;image-rendering:auto;display:none}
+#diary{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#000c;z-index:30;--W:min(96vw,520px);--u:calc(var(--W)*3.38/1536)}
+#diaryBook{position:relative;width:var(--W);height:calc(var(--u)*610 + var(--W)*.06);background-size:calc(var(--u)*1536) auto;background-repeat:no-repeat;background-position:calc(var(--W)*.06 - var(--u)*725) calc(var(--W)*.03 - var(--u)*125);image-rendering:auto}
+#diaryPage{position:absolute;left:calc(var(--W)*.06 + var(--u)*50);top:calc(var(--W)*.03 + var(--u)*131);width:calc(var(--u)*320);height:calc(var(--u)*470);overflow:hidden;color:#4a3320;font-size:calc(var(--u)*23);line-height:calc(var(--u)*32.6);transform:rotate(-10.8deg);transform-origin:0 0}
+#diaryPage .ph{position:absolute;left:calc(var(--u)*25);top:calc(var(--u)*270);width:calc(var(--u)*200);height:auto;border:calc(var(--u)*7) solid #f6ecd3;border-bottom-width:calc(var(--u)*20);box-shadow:0 2px 6px #0006;transform:rotate(2.5deg);image-rendering:auto}#photoPick{display:flex;gap:6px;align-items:center;font-size:12px;color:#e9d9b4}#photoPick button{padding:2px 8px;font-size:12px;opacity:.55}#photoPick button.on{opacity:1;outline:1px solid #e9d9b4}#diaryPage .stk{position:absolute;z-index:2;top:calc(var(--u)*196);width:calc(var(--u)*70);height:auto;filter:drop-shadow(0 1px 2px #0005)}#diaryPage .wx{position:absolute;right:calc(var(--u)*0);top:calc(var(--u)*-8);width:calc(var(--u)*46);height:auto}#diaryPage .fc{position:absolute;left:calc(var(--u)*224);top:calc(var(--u)*268);width:calc(var(--u)*82);height:auto;background:#3b2448;border:calc(var(--u)*4) solid #f6ecd3;border-radius:calc(var(--u)*8);box-shadow:0 2px 5px #0006;transform:rotate(4deg)}#diaryPage b{font-size:calc(var(--u)*23)}#diaryPage p{margin:0}
+.flipL{transform-origin:left center;animation:fl .35s ease-out}.flipR{transform-origin:right center;animation:fr .35s ease-out}@keyframes fl{from{opacity:0;margin-left:30px}to{opacity:1;margin-left:0}}@keyframes fr{from{opacity:0;margin-left:-30px}to{opacity:1;margin-left:0}}
+#diaryNum{color:#e9d9b4}
+#hutbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #lookbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;width:min(340px,86vw);background:#2b1636d8;border:1px solid #caa97e;border-radius:12px;padding:10px 14px;font-size:13px;z-index:15}
 #jobbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
-#jobbox h2{margin:0 0 4px;font-size:15px}
+#hutFace{width:72px;height:auto;margin:-46px 0 -2px;align-self:flex-end;border-radius:10px;background:#3b2448;border:1px solid #caa97e}#buddyFace{float:right;width:84px;height:auto;margin:-24px 0 4px 8px;border-radius:10px;background:#3b2448;border:1px solid #caa97e}#jobbox h2{margin:0 0 4px;font-size:15px}
+#ovbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(380px,90vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.5;z-index:20}
+#ovbox h2{margin:0 0 4px;font-size:15px}
+#ovRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 6px;background:#0003;border-radius:10px}
+#ovInv{display:flex;gap:8px;padding:8px;background:#0003;border-radius:10px;min-height:76px;align-items:center}
+.cslot.ov{width:56px;height:62px}.cslot.ov canvas{width:44px;height:36px;image-rendering:auto}
+#ovRow .carrow{position:relative;width:70px}#ovNow{font-size:11px;text-align:center;line-height:1.2;min-height:13px}
+.stm{position:absolute;left:14px;top:-22px;width:40px;height:30px;pointer-events:none}.stm b{position:absolute;bottom:0;width:9px;height:9px;border-radius:50%;background:#f3e8cf;opacity:0;animation:stm 2s ease-in infinite}.stm b:nth-child(1){left:6px}.stm b:nth-child(2){left:18px;animation-delay:.6s}.stm b:nth-child(3){left:28px;animation-delay:1.2s}
+@keyframes stm{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:.85}100%{transform:translateY(-26px) scale(1.5);opacity:0}}
+body:not(.debug) .dbg{display:none}
 #cfbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(360px,88vw);background:#2b1636f4;border:1px solid #caa97e;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;z-index:20}
 #cfbox h2{margin:0 0 4px;font-size:15px}
 #cfRow{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:8px 0;padding:10px 8px;background:#0003;border-radius:10px}
@@ -109,18 +134,24 @@ button.on{background:#6b4231;color:#fff}
 <button id="pull">引き寄せる</button>
 <button id="fab" aria-label="持ち物"><canvas id="fabIcon" width="32" height="32"></canvas><small>持ち物</small><span id="fabBadge"></span></button>
 <div id="sheet"><div id="book">
-<div id="tabs"><button class="tab on" id="tInv"><canvas width="32" height="32" data-k="bag"></canvas><span>持ち物</span></button><button class="tab" id="tCraft"><canvas width="32" height="32" data-k="hammer"></canvas><span>作る</span></button><button class="tab" id="tScene"><canvas width="32" height="32" data-k="glass"></canvas><span>景色</span></button></div>
+<div id="tabs"><button class="tab on" id="tInv"><canvas width="32" height="32" data-k="bag"></canvas><span>持ち物</span></button><button class="tab" id="tCraft"><canvas width="32" height="32" data-k="hammer"></canvas><span>作る</span></button><button class="tab" id="tScene"><canvas width="32" height="32" data-k="glass"></canvas><span>景色</span></button><button class="tab" id="tDish"><canvas width="32" height="32" data-k="soup"></canvas><span>料理</span></button><button class="tab" id="tFish"><canvas width="32" height="32" data-k="fish"></canvas><span>魚</span></button></div>
 <button id="bClose" aria-label="閉じる">×</button>
 <div id="pages"><div class="page" id="pageL"><div id="grid"></div></div><div class="page" id="pageR"><div id="detail"></div></div></div>
 </div></div>
-<div id="jobbox"><h2>相棒にお願い</h2><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
+<div id="jobbox"><h2>相棒にお願い</h2><img id="buddyFace" alt=""><div id="jobNow"></div><div class="lab" style="margin:6px 0 8px"><span style="width:3em">機嫌</span><div class="bar" style="width:120px"><i id="mood"></i></div></div><div id="jobBtns"></div><h2 style="margin:10px 0 2px;font-size:13px">相棒の道具（ひかるの道具とは別）</h2><div id="buddyTools"></div><div style="margin-top:8px;text-align:right"><button id="bJobClose">閉じる</button></div></div>
+<div id="ovbox"><h2>かまど</h2><div id="ovState"></div>
+<div id="ovRow"><div class="cslot ov" id="oVeg" data-drop="ovveg"><canvas width="64" height="64"></canvas><i></i><small>野菜</small></div><div class="cslot ov" id="oFish" data-drop="ovfish"><canvas width="64" height="64"></canvas><i></i><small>魚</small></div><div class="cslot ov" id="oWood" data-drop="ovwood"><canvas width="64" height="64"></canvas><i></i><small>燃料</small></div><div class="carrow"><div class="stm" id="ovSteam" style="display:none"><b></b><b></b><b></b></div><div class="bar" style="width:62px;height:9px"><i id="ovBar" style="width:0"></i></div><span id="ovNow">🍲</span></div><div class="cslot ov out" id="oOut" data-drop="ovout"><canvas width="64" height="64"></canvas><i></i><small>できた</small></div></div>
+<div id="cfHint">タップ＝1つ　ドラッグ＝全部　材料がそろうと、いちばんごちそうな料理を作る</div>
+<div id="ovInv" data-drop="ovinv"><div class="cslot ov" id="ivVeg"><canvas width="64" height="64"></canvas><i></i><small>野菜</small></div><div class="cslot ov" id="ivFish"><canvas width="64" height="64"></canvas><i></i><small>魚</small></div><div class="cslot ov" id="ivWood"><canvas width="64" height="64"></canvas><i></i><small>木くず</small></div></div>
+<div style="margin-top:8px;text-align:right"><button id="bOvClose">閉じる</button></div></div>
 <div id="cfbox"><h2>焚き火</h2><div id="cfState"></div>
 <div id="cfRow"><div class="cslot" id="sFish" data-drop="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cplus">＋</div><div class="cslot" id="sWood" data-drop="wood"><div class="cwrap"><canvas width="32" height="32"></canvas><b id="woodDim"></b></div><i></i><small>燃料</small></div><div class="carrow"><div class="bar" style="width:70px;height:9px"><i id="cfBar" style="width:0"></i></div><span id="cfFire">🔥</span></div><div class="cslot out" id="sOut" data-drop="out"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div id="cfHint">タップ＝1つ　ドラッグ＝全部（持ち物の下の枠 ⇄ 焚き火の枠）</div>
 <div id="cfInv" data-drop="inv"><div class="cslot" id="iFish" data-item="fish"><canvas width="32" height="32"></canvas><i></i><small>魚</small></div><div class="cslot" id="iWood" data-item="wood"><canvas width="32" height="32"></canvas><i></i><small>木くず</small></div><div class="cslot" id="iGrilled" data-item="grilled"><canvas width="32" height="32"></canvas><i></i><small>焼き魚</small></div></div>
 <div style="margin-top:8px;text-align:right"><button id="bCfClose">閉じる</button></div></div>
+<div id="resbox"><h2 id="resName"></h2><img id="resFace" alt="" style="display:none"><div id="resLine"></div><div id="resPerk"></div><div style="margin-top:8px;text-align:right"><button id="bResClose">閉じる</button></div></div>
 <div id="boatbox"><h2 id="boatName"></h2><div id="boatLine"></div><div id="boatDeals"></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bBoatBye">さよなら（船が去る）</button><button id="bBoatClose">閉じる</button></div></div>
-<div id="helpbox"><h2>あそびかた</h2><ul>
+<div id="helpbox"><h2 id="helpTitle">あそびかた</h2><ul>
 <li>右下の「持ち物」から、網を選んで手に持つ</li>
 <li>海を押し続ける → ゲージがたまる → 離すと網を投げる</li>
 <li>網が出ている間に画面を押す（または「引き寄せる」）で、引き寄せる</li>
@@ -128,15 +159,18 @@ button.on{background:#6b4231;color:#fff}
 <li>作業台を置くと、貯水槽・ろ過器・網の強化が作れる</li>
 <li>貯水槽は、嵐の雨で水がたまる。タップすると飲む</li>
 <li>ろ過器は、海水から、貯水槽に水を入れる</li></ul>
-<div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bCallBoat">【テスト】船をすぐ呼ぶ</button><button id="bHelpClose">わかった</button></div></div>
+<div id="dbgRow1" class="dbg" style="margin-top:8px"><button id="bDemo">【テスト】置き物を全部ならべる</button> <button id="bDexAll">【テスト】図鑑（魚・景色）を全部のせる</button></div><div style="margin-top:8px;display:flex;justify-content:space-between"><button id="bCallBoat" class="dbg">【テスト】船をすぐ呼ぶ</button><button id="bHelpClose">わかった</button></div></div>
 <canvas id="dragGhost" width="32" height="32"></canvas>
+<div id="hutview"><div id="hutWrap"><img id="hutImg" alt=""><img id="hutBed" alt=""></div></div>
+<div id="hutbar"><img id="hutFace" alt=""><div id="hutTx">小屋の中。ゆっくり休んでいる…</div><div class="lab"><span style="width:6em">ほっとした</span><div class="bar" style="width:110px"><i id="hutCalm" style="width:0"></i></div></div><div id="photoPick"><span>日記の写真</span><button data-m="raft" class="on">いかだ</button><button data-m="buddy">相棒</button><button data-m="hut">小屋</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button id="bHutEat">ごはん</button><button id="bHutDiary">日記を書く</button><button id="bHutRead">日記を読む</button><button id="bHutSleep">朝まで眠る</button><button id="bHutOut">出る</button></div></div>
+<div id="diary"><div id="diaryBook"><div id="diaryPage"></div></div><div style="display:flex;gap:10px;align-items:center;justify-content:center"><button id="diaryPrev">◀ まえ</button><span id="diaryNum"></span><button id="diaryNext">つぎ ▶</button></div><button id="diaryClose">とじる</button></div>
 <div id="lookbar"><div id="lookTx"></div><div class="lab"><span style="width:6em">ほっとした</span><div class="bar" style="width:110px"><i id="calmFill" style="width:0"></i></div></div><button id="bLookStop">立つ</button></div>
 <div id="toast"></div><div id="log"></div>
 <script src="../island/common.js"></script>
 <script src="data.js"></script><script src="net_art.js"></script><script src="sim.js"></script>
 <script src="camera.js"></script><script src="water.js"></script><script src="light.js"></script>
 <script src="floor.js"></script><script src="buddy.js"></script><script src="chars.js"></script><script src="items.js"></script><script src="objs_art.js"></script><script src="splash_art.js"></script><script src="poses_art.js"></script><script src="emotes_art.js"></script><script src="objects.js"></script><script src="drift.js"></script><script src="boat.js"></script>
-<script src="scenes_art.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
+<script src="scenes_art.js"></script><script src="fish_art.js"></script><script src="crops_art.js"></script><script src="hut_art.js"></script><script src="res_art.js"></script><script src="dishes_art.js"></script><script src="diary_art.js"></script><script src="wxicon.js"></script><script src="faces_art.js"></script><script src="sound_data.js"></script><script src="sound.js"></script><script src="hud.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -159,9 +193,10 @@ const state=(q.has('new')?null:R.sim.load())||R.sim.newState();
 const c={pr:PR,size:sz,THREE,EffectComposer,RenderPass,UnrealBloomPass,ShaderPass,OutputPass,scene,renderer,I,R,RAFT:R,state,
   onResize:[],low:q.has('low'),sprites:[],glows:[],camera:null,render:null,mode:{place:null},ui:{open:false}};
 c.tex=(cv,o={})=>{const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
+  if(o.smooth){t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=4;}
   if(o.repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
-c.sprite=(cv,{x,y,z,ppu=16})=>{
-  const m=new THREE.MeshBasicMaterial({map:c.tex(cv),transparent:true,alphaTest:.45});c.sprites.push(m);
+c.sprite=(cv,{x,y,z,ppu=16,smooth=false})=>{
+  const m=new THREE.MeshBasicMaterial({map:c.tex(cv,{smooth:smooth||!!cv.hi}),transparent:true,alphaTest:.45});c.sprites.push(m);
   const g=new THREE.PlaneGeometry(1,1);g.translate(0,.5,0);
   const mesh=new THREE.Mesh(g,m);mesh.scale.set(cv.width/ppu,cv.height/ppu/Math.cos(c.cam.pitch),1);
   mesh.rotation.y=c.cam.yaw;mesh.position.set(x,y,z);return mesh;};
