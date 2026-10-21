@@ -1,6 +1,6 @@
 """
 武闘家の女の子（A案）正面・軽く構えたポーズ 32×48。python gen_fighter.py
-→ assets/character/fighter_v8.png / fighter_v8_x8.png / fighter_v8_sil.png
+→ assets/character/fighter_v9.png / fighter_v9_x8.png / fighter_v9_sil.png
 全体を文字の格子で1ドットずつ手描き（式・乱数なし）。外がわの1ドット輪郭だけ自動（np.pad→roll）。
 行の書き方：「開始列:文字列」を空白でつなぐ。光は左上。色は palette.json の系統×明るさだけ（約13色）。
 """
@@ -24,10 +24,10 @@ KEY = {
     # 赤（手甲・帯）：明るい・ふつう・暗い
     'P': ('G', 5), 'r': ('G', 4), 'R': ('G', 2),
     # 靴
-    'o': ('D', 3), 'p': ('D', 3), 'O': ('a', 1),
+    'o': ('D', 3), 'p': ('D', 5), 'N': ('F', 7), 'O': ('a', 1),
 }
 MAT = {}
-for ch in 'DdehH': MAT[ch] = 'hair'
+for ch in 'DdehHN': MAT[ch] = 'hair'
 for ch in 'SstulwSm': MAT[ch] = 'skin'
 for ch in 'VWUZ': MAT[ch] = 'gi'
 for ch in 'PrR': MAT[ch] = 'red'
@@ -60,11 +60,11 @@ row(18, "14:sstt")
 row(19, "11:WW 13:D 14:ssss 18:D 19:UZ")
 row(20, "11:WWW 14:D 15:ss 17:D 18:UUZ")
 row(21, "11:WWWW 15:DD 17:UUUZ")
-row(22, "11:WWWWWWUUZZ")
-row(23, "11:WWWWWUUUZZ")
-row(24, "11:WWWWUUUZZZ")
-row(25, "11:WWWUUUUZZZ")
-row(26, "11:WWUUUUUZZZ")
+row(22, "11:WWWWWWWZZZ")
+row(23, "11:WWWWWWZZZZ")
+row(24, "11:WWWWWZZZZZ")
+row(25, "11:WWWWZZZZZZ")
+row(26, "11:WWWZZZZZZZ")
 row(27, "11:UUUUUUUZZZ")
 # ---- 太い赤い帯
 row(28, "10:PPPPPPPPPPr")
@@ -72,22 +72,22 @@ row(29, "10:rrrrrrrrrrR")
 row(30, "10:rrrrrrrrrrR")
 row(31, "10:RRRRRRRRRRR")
 # ---- 脚（ゆるいズボン。股の下に幅2ドットのすき間、左足を1列外へ、つま先は少し上げて明るく）
-row(32, "10:WWWWWUUUUZZ")
-row(33, "9:WWWWWWUUUUZZZZ")
-row(34, "9:WWWWWWUUUUZZZZ")
-row(35, "9:WWWWWUUUUUZZZZ")
-row(36, "9:WWWUUZ 17:WWUUZZ")
-row(37, "9:WWWUUZ 17:WWUUZZ")
-row(38, "9:WWWUUZ 17:WUUUZZ")
-row(39, "9:WWUUUZ 17:WUUUZZ")
-row(40, "9:WWUUZ 18:WUUZZ")
-row(41, "9:WUUUZ 18:UUZZ")
-row(42, "9:UUUUZ 18:UUZZ")
-row(43, "9:ooooO 18:ooooO")
-row(44, "7:oooooOO 18:oooooOO")
-row(45, "7:OOOOOOO 18:OOOOOOO")
+row(32, "10:WWWWWWWUUUZZ")
+row(33, "9:WWWWWWWWUUUZZZ")
+row(34, "9:WWWWWWWWUUUZZZ")
+row(35, "9:WWWWWWWWUUUZZZ")
+row(36, "9:WWWWUZ 17:WWWUZZ")
+row(37, "9:WWWWUZ 17:WWWUZZ")
+row(38, "9:WWWWUZ 17:WWWUZZ")
+row(39, "9:WWWWUZ 17:WWUUZZ")
+row(40, "9:WWWUZ 18:WWUZZ")
+row(41, "9:WWWUZ 18:WWUZ")
+row(42, "9:WWWUZ 18:WWUZ")
+row(43, "9:ppppp 18:ppppp")
+row(44, "7:ooooooo 18:ooooooo")
+row(45, "7:ooooooo 18:ooooooo")
 # ---- 帯の結び目（左腰）とたれ端2本（腰の高さで短く、片側から）
-row(27, "11:rrr")
+row(27, "11:PPP")
 row(28, "10:Prrrr")
 row(29, "10:rrRrr")
 row(30, "10:rrrRr")
@@ -116,6 +116,8 @@ for y in (4, 5): row(y, "27:e")
 for y in range(6, 11): row(y, "27:e")
 for y in range(11, 14): row(y, "27:e")
 row(2, "27:e"); row(3, "27:e"); row(14, "28:e")
+
+row(5, "13:N"); row(3, "25:N")
 
 def build():
     a = np.zeros((H, W, 4), np.uint8); mat = np.zeros((H, W), np.int8)
@@ -157,11 +159,11 @@ def outline(a, mat):
 
 if __name__ == "__main__":
     a = outline(*build())
-    Image.fromarray(a).save(os.path.join(OUT, "fighter_v8.png"))
+    Image.fromarray(a).save(os.path.join(OUT, "fighter_v9.png"))
     im = Image.fromarray(a)
     bg = Image.new("RGBA", (W, H), (46, 50, 72, 255)); bg.alpha_composite(im)
-    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v8_x8.png"))
+    bg.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v9_x8.png"))
     sil = np.zeros_like(a); sil[a[..., 3] > 0] = (240, 240, 240, 255)
     sb = Image.new("RGBA", (W, H), (46, 50, 72, 255)); sb.alpha_composite(Image.fromarray(sil))
-    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v8_sil.png"))
+    sb.resize((W * 8, H * 8), Image.NEAREST).save(os.path.join(OUT, "fighter_v9_sil.png"))
     print("ok", a[..., 3].astype(bool).sum())
