@@ -159,8 +159,8 @@
     S.pay(s, dl.want); Object.keys(dl.give).forEach(k => { s.inv[k] = (s.inv[k] || 0) + dl.give[k]; }); r.dealDay[i] = s.clock.day; s.events.push({ e: 'traded' }); return true;
   };
   // 作れるか：{ ok, why }  why = 'locked'（作業台がいる）／'short'（材料がたりない）／'max'／'have'（もうある）
-  S.canCraft = function (s, r) {
-    const cost = costOf(s, r);
+  S.canCraft = function (s, r, hv) {
+    const cost = r.special === 'hut' ? S.discount(s, D.HUT_LOOKS[hv == null ? 0 : hv].c) : costOf(s, r);
     if (r.special === 'net' && !cost) return { ok: false, why: 'max' };
     if (r.need === 'bench' && !S.hasBench(s)) return { ok: false, why: 'locked' };
     if (r.special === 'fix' && (s.dur[r.tool] >= 95)) return { ok: false, why: 'full' };
@@ -169,8 +169,12 @@
     if (!S.canPay(s, cost)) return { ok: false, why: 'short' };
     return { ok: true };
   };
-  S.craft = function (s, id) {
+  S.craft = function (s, id, hv) {
     const r = D.RECIPES.find(x => x.id === id); if (!r) return false;
+    if (r.special === 'hut') {      // 家：選んだ見た目（hv）で作る。持ち物に hut<番号> が入る
+      hv = hv == null ? S.pickHutLook(s) : hv; const c = S.canCraft(s, r, hv); if (!c.ok) { s.events.push({ e: c.why === 'locked' ? 'locked' : 'short' }); return false; }
+      S.pay(s, S.discount(s, D.HUT_LOOKS[hv].c)); S.tally(s, 'craft', r.id); s.inv['hut' + hv] = (s.inv['hut' + hv] || 0) + 1; s.events.push({ e: 'crafted', k: 'hut' + hv }); return true;
+    }
     const c = S.canCraft(s, r); if (!c.ok) { s.events.push({ e: c.why === 'locked' ? 'locked' : 'short' }); return false; }
     S.pay(s, costOf(s, r)); S.tally(s, 'craft', r.id);
     if (r.special === 'fix') { s.dur[r.tool] = 100; s.events.push({ e: 'fixed', k: r.tool }); }

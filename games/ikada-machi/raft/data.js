@@ -62,7 +62,7 @@ window.RAFT.data = {
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
     { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
     { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
-    { id: 'hut', out: 'hut', cost: { wood: 14, cloth: 4, rope: 4 }, need: 'bench', tip: '小屋を作る。見た目は、置くまで、おたのしみ（20種類から、まだ置いていない見た目を優先）' },
+    { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を20種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）
@@ -194,3 +194,16 @@ window.RAFT.data = {
     storm: { name: '嵐',   speed: 1.2, rate: 1.8, thirst: 0.6, w: 2.5 }
   }
 };
+// 小屋の見た目20種類（objs_art.js の hut の配列の順）。n＝名前、c＝材料（大きな建物なので多め。系統ごとに材料がちがう）
+// 木・わら系＝木と縄と布／石・レンガ系＝石・粘土・（鉄）／海系＝ガラスと縄／緑系＝種・ヤシ／雪＝布と石
+window.RAFT.data.HUT_LOOKS = [
+  { n: 'わらぶきの小屋', c: { wood: 24, rope: 8, cloth: 6 } }, { n: '木の板の小屋', c: { wood: 28, rope: 8, cloth: 6 } }, { n: '石の小屋', c: { wood: 14, stone: 24, rope: 6, cloth: 4 } },
+  { n: '貝がらの屋根の家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '苔の屋根の家', c: { wood: 22, rope: 8, seed: 4, cloth: 4 } }, { n: '赤い瓦の家', c: { wood: 14, clay: 24, rope: 6, cloth: 4 } },
+  { n: '青い板の家', c: { wood: 26, rope: 12, glass: 2, cloth: 6 } }, { n: '竹の家', c: { wood: 26, rope: 12, cloth: 4 } }, { n: 'ヤシの葉の家', c: { wood: 20, coconut: 6, rope: 8, cloth: 4 } },
+  { n: '雪の屋根の家', c: { wood: 24, cloth: 12, stone: 10, rope: 8 } }, { n: 'レンガの家（黒い屋根）', c: { wood: 14, clay: 20, stone: 10, rope: 6 } }, { n: '土壁の家', c: { wood: 16, clay: 16, rope: 6 } },
+  { n: '紫の屋根の石の家', c: { wood: 16, stone: 26, glass: 4, iron: 2, rope: 6 } }, { n: 'きのこの家', c: { wood: 18, clay: 12, seed: 6, cloth: 8, coconut: 4 } }, { n: 'トタン屋根の家', c: { wood: 24, iron: 6, rope: 6 } },
+  { n: '青い屋根のレンガの家', c: { wood: 14, clay: 22, stone: 10, rope: 6 } }, { n: '赤い屋根の商店風の家', c: { wood: 20, clay: 24, rope: 8, cloth: 8 } }, { n: '2階建ての家', c: { wood: 30, clay: 30, stone: 12, rope: 10, cloth: 8, iron: 2 } },
+  { n: '屋上カフェの家', c: { wood: 26, clay: 28, stone: 14, rope: 8, cloth: 10 } }, { n: '丸い塔の家', c: { wood: 16, stone: 30, clay: 16, rope: 8 } }
+];
+(function () { const D = window.RAFT.data; if (D.HUT_LOOKS.length !== D.HUT_N) console.error('小屋の見た目の数が合わない', D.HUT_LOOKS.length, D.HUT_N);
+  D.HUT_LOOKS.forEach((l, i) => { D.ITEMS['hut' + i] = { name: l.n, lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: i, tip: '自分と相棒と住人の家（2×3マス）。タップで中に入って、休める' }; }); })();
