@@ -37,6 +37,8 @@ window.RAFT.data = {
     bed:     { name: 'ベッド',   lv: 0, w: 0, place: true, tip: '飾り。ふかふかのベッド（のちに、ねて回復できるようにしたい）' },
     shelf:   { name: '本棚',     lv: 0, w: 0, place: true, tip: '飾り。本や瓶をならべた棚' },
     windmill:{ name: '風車',     lv: 0, w: 0, place: true, tip: '飾り。小さな風車' },
+    hutw:    { name: '木の板の小屋', lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: 1, tip: '木の板の屋根と、白い壁の小屋。広さも、住める人数も、わらの小屋と同じ（2×3マス）' },
+    huts:    { name: '石の小屋', lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: 2, tip: '灰色の石の屋根と、石の壁の小屋。広さも、住める人数も、わらの小屋と同じ（2×3マス）' },
     hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], tip: '自分と相棒の家。タップで中に入って、休める（2×3マス）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
@@ -60,6 +62,8 @@ window.RAFT.data = {
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
     { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
     { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
+    { id: 'hutw', out: 'hutw', cost: { wood: 16, cloth: 2, rope: 4 }, need: 'bench', tip: '木の板の屋根の小屋（見た目ちがい）' },
+    { id: 'huts', out: 'huts', cost: { wood: 10, stone: 8, cloth: 2, rope: 4 }, need: 'bench', tip: '石の屋根の小屋（見た目ちがい）' },
     { id: 'hut', out: 'hut', cost: { wood: 14, cloth: 4, rope: 4 }, need: 'bench', tip: 'わらぶきの小屋（飾り）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
