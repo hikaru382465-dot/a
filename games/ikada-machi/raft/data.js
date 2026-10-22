@@ -62,7 +62,7 @@ window.RAFT.data = {
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
     { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
     { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
-    { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を41種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
+    { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を54種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）
@@ -107,7 +107,7 @@ window.RAFT.data = {
     }
   },
   // 住人：仲間になって、小屋1つにつき1人、イカダに住む。perk＝住んでいるあいだの能力（stage1 は kuro と pipi）
-  HUT_N: 41,      // 小屋の見た目の数（objs_art.js の hut の配列＝昼夜2枚ずつ。make_objs.py が数を確かめる）
+  HUT_N: 54,      // 小屋の見た目の数（objs_art.js の hut の配列＝昼夜2枚ずつ。make_objs.py が数を確かめる）
   RESIDENT: {
     ask: { toto: 'ここの暮らしは、おもしろそうじゃ。わしも住んでいいかね？', mina: 'ここなら、いい鉄打ちができそう。住んでもいい？', kuro: 'この筏、土がこねやすそうね。しばらく住んでいい？', pipi: 'ねえねえ、ぼくもここに住みたい！ いいでしょ？' },
     join: { toto: 'ほっほ、よろしくの。', mina: 'よろしく！ 腕によりをかけるよ。', kuro: 'ありがとう。いいお茶、いれるわね。', pipi: 'やったー！ よろしくお願いしまーす！' },
@@ -207,10 +207,11 @@ window.RAFT.data.HUT_LOOKS = [
   { n: '丸窓の木の家', c: { wood: 26, rope: 8, cloth: 4 } }, { n: 'とんがり屋根の木の家', c: { wood: 28, rope: 8, cloth: 4 } }, { n: 'ひさしの長い木の家', c: { wood: 34, rope: 10, cloth: 8 } },
   { n: '高床の木の家', c: { wood: 32, rope: 14, cloth: 4 } }, { n: 'かまぼこ屋根の木の家', c: { wood: 28, rope: 8, cloth: 6 } }, { n: 'ログハウス', c: { wood: 36, rope: 8, cloth: 4 } },
   { n: '花壇つきの木の家', c: { wood: 26, rope: 6, cloth: 6 } }, { n: '葉っぱ屋根の木の家', c: { wood: 22, seed: 4, rope: 8, cloth: 4 } }, { n: '浮き輪の木の家', c: { wood: 28, rope: 12 } },
-  { n: 'ヒトデ屋根の貝がらの家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '巻貝かざりの白い家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '青い貝の屋根と旗の家', c: { wood: 24, glass: 6, rope: 10, cloth: 8 } }, { n: '巻貝のつののある家', c: { wood: 22, glass: 4, rope: 12, cloth: 6 } }, { n: 'カモメと貝の丸い屋根の家', c: { wood: 24, glass: 4, rope: 12, cloth: 6 } }, { n: 'ヒトデかざりの貝の家', c: { wood: 24, glass: 4, rope: 10, cloth: 8 } }, { n: '海辺の市場風の家', c: { wood: 30, glass: 2, rope: 14, cloth: 10 } }, { n: '巻貝の塔の家', c: { wood: 28, glass: 6, rope: 12, cloth: 6 } }, { n: '帆立貝の屋根の家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '貝がらのドームの家', c: { wood: 26, glass: 6, rope: 10, cloth: 6 } }, { n: '灯台つきの貝の家', c: { wood: 30, glass: 8, rope: 12, cloth: 8, stone: 6 } }, { n: 'うろこ屋根の貝の家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }
+  { n: 'ヒトデ屋根の貝がらの家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '巻貝かざりの白い家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '青い貝の屋根と旗の家', c: { wood: 24, glass: 6, rope: 10, cloth: 8 } }, { n: '巻貝のつののある家', c: { wood: 22, glass: 4, rope: 12, cloth: 6 } }, { n: 'カモメと貝の丸い屋根の家', c: { wood: 24, glass: 4, rope: 12, cloth: 6 } }, { n: 'ヒトデかざりの貝の家', c: { wood: 24, glass: 4, rope: 10, cloth: 8 } }, { n: '海辺の市場風の家', c: { wood: 30, glass: 2, rope: 14, cloth: 10 } }, { n: '巻貝の塔の家', c: { wood: 28, glass: 6, rope: 12, cloth: 6 } }, { n: '帆立貝の屋根の家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } }, { n: '貝がらのドームの家', c: { wood: 26, glass: 6, rope: 10, cloth: 6 } }, { n: '灯台つきの貝の家', c: { wood: 30, glass: 8, rope: 12, cloth: 8, stone: 6 } }, { n: 'うろこ屋根の貝の家', c: { wood: 22, glass: 4, rope: 10, cloth: 6 } },
+  { n: 'ゆきだるまの雪の家', c: { wood: 24, cloth: 12, stone: 8, rope: 8 } }, { n: '雪のログ小屋', c: { wood: 30, cloth: 10, stone: 6, rope: 8 } }, { n: 'アーチ屋根の雪の家', c: { wood: 24, cloth: 12, stone: 10, rope: 8 } }, { n: 'とんがり雪屋根の家', c: { wood: 26, cloth: 12, stone: 6, rope: 8 } }, { n: 'かまくら（イグルー）', c: { wood: 10, cloth: 8, stone: 14, rope: 4 } }, { n: 'ポーチつきの雪の家', c: { wood: 28, cloth: 12, stone: 8, rope: 10 } }, { n: 'バルコニーつきの雪の家', c: { wood: 30, cloth: 14, stone: 10, rope: 10 } }, { n: '水車つきの雪の丸い家', c: { wood: 24, cloth: 10, stone: 12, rope: 10 } }, { n: '日よけのある雪の家', c: { wood: 26, cloth: 14, stone: 8, rope: 8 } }, { n: '雪に埋もれた家', c: { wood: 20, cloth: 10, stone: 10, rope: 6 } }, { n: '赤い旗の雪の家', c: { wood: 26, cloth: 14, stone: 8, rope: 8 } }, { n: '小さな雪の家（2階）', c: { wood: 22, cloth: 10, stone: 6, rope: 6 } }, { n: '小さな雪の家（丸窓）', c: { wood: 20, cloth: 10, stone: 6, rope: 6 } }
 ];
 (function () { const D = window.RAFT.data; if (D.HUT_LOOKS.length !== D.HUT_N) console.error('小屋の見た目の数が合わない', D.HUT_LOOKS.length, D.HUT_N);
   D.HUT_LOOKS.forEach((l, i) => { D.ITEMS['hut' + i] = { name: l.n, lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: i, tip: '自分と相棒と住人の家（2×3マス）。タップで中に入って、休める' }; }); })();
 // 見た目の系統（HUT_LOOKS と同じ順）。選ぶ画面の絞り込みに使う
-window.RAFT.data.HUT_FAM = ["wood", "wood", "stone", "sea", "green", "stone", "sea", "green", "green", "snow", "stone", "stone", "stone", "green", "wood", "stone", "stone", "stone", "stone", "stone", "wood", "wood", "wood", "wood", "wood", "wood", "wood", "green", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea"];
+window.RAFT.data.HUT_FAM = ["wood", "wood", "stone", "sea", "green", "stone", "sea", "green", "green", "snow", "stone", "stone", "stone", "green", "wood", "stone", "stone", "stone", "stone", "stone", "wood", "wood", "wood", "wood", "wood", "wood", "wood", "green", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow"];
 window.RAFT.data.HUT_FAMS = { wood: '木・わら', stone: '石・レンガ', sea: '海', green: '緑', snow: '雪' };

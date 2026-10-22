@@ -193,7 +193,7 @@ _hd = Image.open(io.BytesIO(base64.b64decode(out['hut'][0]['src'].split(',')[1])
 _hn = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'night_src.png', (120, 140, 830, 790), shrink=1, pocket=3000, fringe=2, pocket_min=60).resize(_hd.size, Image.BOX)
 _en = entry(_hn); _en['hi'] = 3; _en['ppu'] = out['hut'][0].get('ppu'); out['hut'] = [out['hut'][0], _en]
 # 小屋の見た目ちがい（ひかるの絵：緑背景。昼と夜が左右に並んだ組を、ならべた絵）。hut の配列は [昼0, 夜0, 昼1, 夜1, …]。見た目の番号は、置いた物の hv
-def _hut_pairs(path, W=200):
+def _hut_pairs(path, W=200, fix=False):
     import make_chars
     A, fg = cutlib.key_green(path); comps = make_chars.components(fg, 3000); items = []
     for pts in comps:
@@ -213,7 +213,9 @@ def _hut_pairs(path, W=200):
         return Image.fromarray(np.dstack([sub, (m * 255).astype(np.uint8)]), 'RGBA')
     outs = []
     for i in range(0, len(seq), 2):
-        d, n = img(seq[i]), img(seq[i + 1]); sz = (max(1, round(d.width * k)), max(1, round(d.height * k))); pair = []
+        d, n = img(seq[i]), img(seq[i + 1]); kk = k
+        if fix and d.width < 0.8 * med: kk = k * 0.9 * med / d.width      # 小さく描かれた家は、ほかと同じくらいの大きさに拡大する
+        sz = (max(1, round(d.width * kk)), max(1, round(d.height * kk))); pair = []
         for im in (d, n):
             im = im.resize(sz, Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
             buf = io.BytesIO(); im.save(buf, 'WEBP', quality=90, method=6)
@@ -224,9 +226,10 @@ _vh = []
 for _f in ('hut_wood.png', 'hut_stone.png'):      # 1枚に昼と夜の1組だけ
     _p = _hut_pairs(here.parent / 'art' / 'hut' / _f); _vh += _p
 for _f in ('huts_sheet1.png', 'huts_sheet2.png', 'huts_sheet3_wood.png', 'huts_sheet4_sea.png'): _vh += _hut_pairs(here.parent / 'art' / 'hut' / _f)
+_vh += _hut_pairs(here.parent / 'art' / 'hut' / 'huts_sheet5_snow.png', fix=True)
 out['hut'] = out['hut'] + _vh
 print('小屋の見た目', len(out['hut']) // 2, '種類（わら含む）')
-assert len(out['hut']) // 2 == 41, len(out['hut']) // 2      # data.js の HUT_N と同じにする
+assert len(out['hut']) // 2 == 54, len(out['hut']) // 2      # data.js の HUT_N と同じにする
 out['icons']['hutw'] = [_vh[0]]; out['icons']['huts'] = [_vh[2]]; out['hutw'] = out['icons']['hutw']; out['huts'] = out['icons']['huts']
 # 小屋の中の絵（入ったときに出す）と、ベッドで足パタパタの8コマ：別ファイル hut_art.js（部屋の絵の上に、%の位置で重ねる）
 _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1536, 1024), shrink=1, trim=False); _bx = _ti.getchannel('A').getbbox(); _ti = _ti.crop(_bx); IW, IH = _ti.size      # 余白は切りおとす（ベッドの位置は、この切りおとし分をひく）

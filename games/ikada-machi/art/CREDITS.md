@@ -32,7 +32,7 @@ AIで作った絵（キャラ・カタログ・漂流物・しぐさ・アニメ
 | 吹き出し（！・zzz・汗・ハート・怒り・縦線・ばくはつ） | `buddy/emote_src/` | ニコニ・コモンズ nc291217（商用OK・表記は任意） | ✔ 2026-10-12 |
 | 相棒・男の子の歩く絵、しぐさ、アニメ | `chars/` `buddy/` | ひかる（AI作成） | □ AIサービスの規約 |
 | 相棒の歩く絵（新）、表情6種 | `chars/girl_walk.png` `face/faces.png` | ひかる（AI作成） | □ AIサービスの規約 |
-| 小屋の見た目ちがい（木の板・石・17種） | `hut/hut_wood.png` `hut_stone.png` `huts_sheet1.png` `huts_sheet2.png` `huts_sheet3_wood.png` `huts_sheet4_sea.png` | ひかる（AI作成） | □ AIサービスの規約 |
+| 小屋の見た目ちがい（木の板・石・17種） | `hut/hut_wood.png` `hut_stone.png` `huts_sheet1.png` `huts_sheet2.png` `huts_sheet3_wood.png` `huts_sheet4_sea.png` `huts_sheet5_snow.png` | ひかる（AI作成） | □ AIサービスの規約 |
 | 小屋の中の絵、ベッド、相棒（足パタパタ） | `hut/` | ひかる（AI作成） | □ AIサービスの規約 |
 | 置き物・漂流物・魚・作物・景色の絵 | `items/` ほか | ひかる（AI作成） | □ AIサービスの規約 |
 | 料理4種（緑背景・白背景の2枚） | `food/` | ひかる（AI作成） | □ AIサービスの規約 |
