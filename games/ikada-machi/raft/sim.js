@@ -44,7 +44,7 @@
 
   // 置き物の大きさ（マス）：data.js の ITEMS[k].size＝[横x, 縦z]。置いた位置(x,z)は、左上（x・zが小さいほう）の角
   // 小屋の見た目：まだ置いていない見た目から、ランダムに選ぶ（全部出たら、全体からランダム）
-  S.pickHutLook = function (s) { const used = new Set(s.objects.filter(o => o.k === 'hut').map(o => o.hv || 0)), all = []; for (let i = 0; i < D.HUT_N; i++) all.push(i); const pool = all.filter(i => !used.has(i)); const a = pool.length ? pool : all; return a[Math.floor(S.rand() * a.length)]; };
+  S.pickHutLook = function (s, only) { const used = new Set(s.objects.filter(o => o.k === 'hut').map(o => o.hv || 0)), all = []; for (let i = 0; i < D.HUT_N; i++) if (!only || only.includes(i)) all.push(i); const pool = all.filter(i => !used.has(i)); const a = pool.length ? pool : all; return a[Math.floor(S.rand() * a.length)]; };
   S.sizeOf = o => (D.ITEMS[o.k] && D.ITEMS[o.k].size) || [1, 1];      // 小屋の見た目ちがい（hutw・huts）は、置くとき k='hut'、hv=見た目の番号になる
   S.footprint = o => { const [fw, fd] = S.sizeOf(o), out = []; for (let i = 0; i < fw; i++) for (let j = 0; j < fd; j++) out.push([o.x + i, o.z + j]); return out; };
   S.objAt = (s, x, z) => s.objects.find(o => { const [fw, fd] = S.sizeOf(o); return x >= o.x && x < o.x + fw && z >= o.z && z < o.z + fd; }) || null;

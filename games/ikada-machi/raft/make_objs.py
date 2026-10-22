@@ -223,10 +223,10 @@ def _hut_pairs(path, W=200):
 _vh = []
 for _f in ('hut_wood.png', 'hut_stone.png'):      # 1枚に昼と夜の1組だけ
     _p = _hut_pairs(here.parent / 'art' / 'hut' / _f); _vh += _p
-for _f in ('huts_sheet1.png', 'huts_sheet2.png', 'huts_sheet3_wood.png'): _vh += _hut_pairs(here.parent / 'art' / 'hut' / _f)
+for _f in ('huts_sheet1.png', 'huts_sheet2.png', 'huts_sheet3_wood.png', 'huts_sheet4_sea.png'): _vh += _hut_pairs(here.parent / 'art' / 'hut' / _f)
 out['hut'] = out['hut'] + _vh
 print('小屋の見た目', len(out['hut']) // 2, '種類（わら含む）')
-assert len(out['hut']) // 2 == 29, len(out['hut']) // 2      # data.js の HUT_N と同じにする
+assert len(out['hut']) // 2 == 41, len(out['hut']) // 2      # data.js の HUT_N と同じにする
 out['icons']['hutw'] = [_vh[0]]; out['icons']['huts'] = [_vh[2]]; out['hutw'] = out['icons']['hutw']; out['huts'] = out['icons']['huts']
 # 小屋の中の絵（入ったときに出す）と、ベッドで足パタパタの8コマ：別ファイル hut_art.js（部屋の絵の上に、%の位置で重ねる）
 _ti = cutlib.cut_checker(here.parent / 'art' / 'hut' / 'interior2.png', (0, 0, 1536, 1024), shrink=1, trim=False); _bx = _ti.getchannel('A').getbbox(); _ti = _ti.crop(_bx); IW, IH = _ti.size      # 余白は切りおとす（ベッドの位置は、この切りおとし分をひく）

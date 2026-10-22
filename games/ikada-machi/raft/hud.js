@@ -87,7 +87,7 @@ window.RAFT.parts.hud = function (c) {
     const d = D.DISHES.find(x => x.id === sel), it = d && D.ITEMS[sel], on = d && dex[sel], nm = { veg: '野菜', wood: '木くず', fish: '魚' };
     $('detail').innerHTML = d ? `<div style="height:76px;display:flex;align-items:center;justify-content:center;background:var(--slot);border:2px dashed var(--line);border-radius:8px;padding:4px">${img(sel, on, 66)}</div><p><b>${on ? it.name : '？？？'}</b></p><p>${on ? it.tip : 'かまどで作ると、見つかる。'}</p><p class="why">${on ? `おなか +${it.food}${it.mood ? '　ほっと +' + it.mood : ''}　作った数：${dex[sel]}` : ''}${on || true ? '<br>材料：' + Object.keys(d.need).map(k => nm[k] + d.need[k]).join('・') + '　' + d.sec + '秒' : ''}</p>` : '';
   }
-  let hutSel = null;
+  let hutSel = null, hutFam = null;
   function renderBook() {
     if (tab === 'dish') { if (!D.DISHES.some(x => x.id === sel)) sel = D.DISHES[0].id; renderDishes(); return; }
     if (tab === 'fish') { if (!D.FISH[sel]) sel = Object.keys(D.FISH)[0]; renderFish(); return; }
@@ -103,15 +103,17 @@ window.RAFT.parts.hud = function (c) {
     let html = `<div class="big"><canvas width="128" height="128" data-k="${o.k}"></canvas><div><b>${o.name}</b>${o.t === 'tool' ? (o.hand ? '<br><span class="tag">手に持っている</span>' : '') : o.t === 'recipe' ? '' : `<br><span class="tag">×${o.n}</span>`}</div></div>`;
     let btn = '', onclick = null;
     if (o.t === 'recipe' && o.r.special === 'hut') {      // 家：見た目を20種類から選ぶ（最初は「おまかせ」）
-      const OH = (window.RAFT.objArt && window.RAFT.objArt.hut) || [], L = D.HUT_LOOKS, cur = hutSel == null ? -1 : hutSel, cost = cur < 0 ? null : sim.discount(s, L[cur].c);
-      const thumbs = `<button class="hpick auto${cur < 0 ? ' sel' : ''}" data-h="-1">おまかせ（ランダム）</button>` + L.map((l, i) => `<button class="hpick${i === cur ? ' sel' : ''}" data-h="${i}" title="${l.n}">${OH[2 * i] ? `<img src="${OH[2 * i].src}">` : l.n}</button>`).join('');
+      const OH = (window.RAFT.objArt && window.RAFT.objArt.hut) || [], L = D.HUT_LOOKS, FM = D.HUT_FAMS, cur = hutSel == null ? -1 : hutSel, cost = cur < 0 ? null : sim.discount(s, L[cur].c), vis = L.map((l, i) => i).filter(i => !hutFam || D.HUT_FAM[i] === hutFam);
+      const chips = `<div id="hchips"><button class="hchip${hutFam ? '' : ' on'}" data-f="">すべて${L.length}</button>` + Object.keys(FM).map(f => `<button class="hchip${hutFam === f ? ' on' : ''}" data-f="${f}">${FM[f]}${D.HUT_FAM.filter(x => x === f).length}</button>`).join('') + '</div>';
+      const thumbs = `<button class="hpick auto${cur < 0 ? ' sel' : ''}" data-h="-1">おまかせ（${hutFam ? FM[hutFam] + 'からランダム' : 'ランダム'}）</button>` + vis.map(i => [L[i], i]).map(([l, i]) => `<button class="hpick${i === cur ? ' sel' : ''}" data-h="${i}" title="${l.n}">${OH[2 * i] ? `<img src="${OH[2 * i].src}">` : l.n}</button>`).join('');
       const ck = sim.canCraft(s, o.r, cur < 0 ? 0 : cur);
-      html = `<p><b>家を作る</b></p><p>${o.r.tip}</p><div id="hpicks">${thumbs}</div>`;
+      html = `<p><b>家を作る</b></p><p>${o.r.tip}</p>${chips}<div id="hpicks">${thumbs}</div>`;
       if (cur < 0) html += '<p><b>おまかせ</b>：まだ置いていない見た目から、ランダム。材料は、出た見た目のもの（先に見たいときは、見た目を選ぶ）</p>';
       else html += `<p><b>${L[cur].n}</b></p><ul class="cost">` + Object.keys(cost).map(k => `<li class="${(s.inv[k] || 0) >= cost[k] ? '' : 'no'}">${nameOf(k)}　${s.inv[k] || 0} / ${cost[k]}</li>`).join('') + '</ul>';
       const why = { locked: '作業台を置くと作れる', short: '材料がたりない' }[ck.why]; if (why && cur >= 0) html += `<p class="why">${why}</p>`;
-      html += `<button id="act" ${cur < 0 || ck.ok ? '' : 'disabled'}>作る</button>`; onclick = () => { if (cur < 0) { const hv = sim.pickHutLook(s); sim.craft(s, 'hut', hv); } else sim.craft(s, 'hut', cur); refresh(); };
+      html += `<button id="act" ${cur < 0 || ck.ok ? '' : 'disabled'}>作る</button>`; onclick = () => { if (cur < 0) { const hv = sim.pickHutLook(s, vis); sim.craft(s, 'hut', hv); } else sim.craft(s, 'hut', cur); refresh(); };
       d.innerHTML = html; d.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k)); $('act').onclick = onclick;
+      d.querySelectorAll('.hchip').forEach(b => b.onclick = () => { hutFam = b.dataset.f || null; if (hutSel != null && hutFam && D.HUT_FAM[hutSel] !== hutFam) hutSel = null; renderBook(); });
       d.querySelectorAll('.hpick').forEach(b => b.onclick = () => { hutSel = +b.dataset.h < 0 ? null : +b.dataset.h; renderBook(); }); return;
     }
     if (o.t === 'recipe') {
