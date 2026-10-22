@@ -5,7 +5,7 @@
 """
 import os, math
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 import pxl
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "assets", "items"); os.makedirs(OUT, exist_ok=True)
@@ -24,7 +24,25 @@ def bez(p0, p1, p2, p3, n=120):
     t = np.linspace(0, 1, n)[:, None]; P = [np.array(p, float) for p in (p0, p1, p2, p3)]
     return (1 - t) ** 3 * P[0] + 3 * (1 - t) ** 2 * t * P[1] + 3 * (1 - t) * t ** 2 * P[2] + t ** 3 * P[3]
 
-def apple(S=96, bitten=False, clean=False):
+def photo_warmth(S=96, path='/tmp/claude-0/webref/photo/apple.jpg'):
+    """本物の写真から、色のかたより（赤→だいだい→黄）の大きな地図を取る。写真は茎が左なので、時計まわりに90度まわして、茎を上にする。"""
+    import colorsys
+    im = Image.open(path).convert('RGB'); im = im.rotate(-90, expand=True)
+    a = np.asarray(im.resize((im.width // 6, im.height // 6), Image.BOX)).astype(float)
+    m = (a[..., 0] - a[..., 2] > 70) & (a[..., 0] > 120)
+    ys, xs = np.nonzero(m); box = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+    sm = Image.fromarray(a.astype(np.uint8)).crop(box).resize((S, S), Image.BOX)
+    sm = sm.filter(ImageFilter.GaussianBlur(S * .045)); b = np.asarray(sm).astype(float) / 255
+    hue = np.zeros((S, S)); val = np.zeros((S, S))
+    for yy in range(S):
+        for xx in range(S):
+            h_, s_, v_ = colorsys.rgb_to_hsv(*b[yy, xx]); hue[yy, xx] = h_ * 360; val[yy, xx] = v_
+    hh = np.where(hue > 180, hue - 360, hue)
+    lo, hi = np.percentile(hh, 5), np.percentile(hh, 99)
+    warm = np.clip((hh - lo) / (hi - lo + 1e-6), 0, 1)                                          # 0=赤, 1=黄（写真の中の相対）
+    return warm
+
+def apple(S=96, bitten=False, clean=False, warm_map=None):
     k = S / 32.0
     A = np.zeros((S, S, 4), np.uint8); Y, X = np.mgrid[0:S, 0:S]; x = (X + .5) / k; y = (Y + .5) / k      # 32×32 の座標
     # ---- 形
@@ -67,6 +85,11 @@ def apple(S=96, bitten=False, clean=False):
             elif warm[yy, xx]: f, sh = 'H', 4
             elif lam[yy, xx] > .55: f, sh = 'G', 5
             else: f, sh = 'G', 4
+            if warm_map is not None and not core[yy, xx]:                                          # 写真の色のかたよりで、色の系統を変える
+                w_ = warm_map[yy, xx]
+                if w_ > .985: f, sh = 'B', (6 if lam[yy, xx] > .55 else 5)                               # 黄みのまだら
+                elif w_ > .93: f, sh = 'H', (5 if lam[yy, xx] > .55 else 4)                             # だいだい赤
+                elif lam[yy, xx] > .80: f, sh = 'G', 5
             A[yy, xx, :3] = col(f, sh); A[yy, xx, 3] = 255
         # つや：左上のふちにそう、細い弧（太さは中ほどが太く、両はしが細い）
         for tt_ in np.linspace(0, 1, 90):
@@ -142,8 +165,8 @@ def apple(S=96, bitten=False, clean=False):
     return A
 
 if __name__ == "__main__":
-    for nm, im in (("apple_hd", apple(96)), ("apple_hd_bitten", apple(96, True)), ("apple_hd_clean", apple(96, False, True)), ("apple_hd_clean_bitten", apple(96, True, True))):
+    for nm, im in (("apple_hd", apple(96)), ("apple_hd_bitten", apple(96, True)), ("apple_hd_clean", apple(96, False, True)), ("apple_hd_clean_bitten", apple(96, True, True)), ("apple_hd_photo", apple(96, False, True, photo_warmth(96))), ("apple_hd_photo_bitten", apple(96, True, True, photo_warmth(96)))):
         Image.fromarray(im).save(os.path.join(OUT, nm + ".png"))
     bg = Image.new("RGBA", (96 * 4 + 20, 96 + 8), (40, 52, 70, 255))
-    for i_, im_ in enumerate((apple(96), apple(96, True), apple(96, False, True), apple(96, True, True))): bg.alpha_composite(Image.fromarray(im_), (4 + i_ * 100, 4))
+    for i_, im_ in enumerate((apple(96, False, True), apple(96, True, True), apple(96, False, True, photo_warmth(96)), apple(96, True, True, photo_warmth(96)))): bg.alpha_composite(Image.fromarray(im_), (4 + i_ * 100, 4))
     bg.resize((bg.width * 5, bg.height * 5), Image.NEAREST).convert("RGB").save(os.path.join(OUT, "apple_hd_x6.png")); print("ok")
