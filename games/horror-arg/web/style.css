@@ -463,3 +463,25 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .w-admin .tbl tbody tr:hover,.w-admin .tbl tbody tr:focus-visible{background:#1a2030}
 .w-admin .tbl-scroll{border-color:#2a303d}
 @media (max-width:760px){.adm-top .tabs{width:100%;margin:0}.adm-main:not(.has-sel) .adm-left{display:flex}}
+
+/* ===== 派手な演出（gimmicks.js の fxLevel）===== */
+.fx{position:fixed;inset:0;pointer-events:none;z-index:10000}
+.fx-red{background:radial-gradient(ellipse at center,rgba(120,0,0,0) 30%,rgba(150,0,0,.55) 100%);animation:fxfade .9s ease-out forwards}
+.fx-dark{background:#000;animation:fxdip .16s steps(1) forwards}
+.fx-big{display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);color:#d11a1a;font-size:min(22vw,210px);font-weight:900;letter-spacing:.08em;text-shadow:0 0 30px #600,0 0 6px #f33;animation:fxbig .65s ease-out forwards}
+.fx-sub{display:flex;align-items:flex-end;justify-content:center;padding-bottom:16vh;color:#e6b8b8;font-size:30px;letter-spacing:.3em;text-shadow:0 0 12px #700;animation:fxfade 2.6s ease-in-out forwards}
+@keyframes fxfade{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+@keyframes fxdip{0%{opacity:.95}100%{opacity:0}}
+@keyframes fxbig{0%{opacity:0;transform:scale(1.25)}12%{opacity:1}80%{opacity:1;transform:scale(1)}100%{opacity:0}}
+.fx-shake{animation:fxshake .12s linear infinite}
+@keyframes fxshake{0%{transform:translate(0,0)}25%{transform:translate(var(--shk),calc(var(--shk)*-.5))}50%{transform:translate(calc(var(--shk)*-.8),var(--shk))}75%{transform:translate(calc(var(--shk)*.6),calc(var(--shk)*.7))}100%{transform:translate(0,0)}}
+.fx-glitch{animation:fxglitch .12s steps(2) infinite}
+@keyframes fxglitch{0%{filter:drop-shadow(6px 0 rgba(255,30,30,.75)) drop-shadow(-6px 0 rgba(30,200,255,.6));transform:translateX(0)}50%{filter:drop-shadow(-8px 0 rgba(255,30,30,.75)) drop-shadow(8px 0 rgba(30,200,255,.6)) hue-rotate(20deg);transform:translateX(5px)}100%{filter:drop-shadow(4px 0 rgba(255,30,30,.7)) drop-shadow(-4px 0 rgba(30,200,255,.55));transform:translateX(-4px)}}
+.fx-swapped{background:linear-gradient(90deg,rgba(210,40,40,.55),rgba(210,40,40,0) 90%)!important;color:#ffdcdc;text-shadow:0 0 8px #f33;transition:background 3s,color 3s}
+.fx-redtext{color:#ff5a4a!important;font-weight:700;animation:fxshake .12s linear 4}
+.fx-badgepulse{animation:fxpulse .5s ease-in-out 4}
+@keyframes fxpulse{50%{transform:scale(1.7);background:#f00}}
+.fx-redbtn{background:#8b0000!important;border-color:#d11!important;color:#fff!important;box-shadow:0 0 18px #d11;animation:fxpulse .7s ease-in-out 3}
+.det-body p.glow{background:linear-gradient(90deg,rgba(255,226,140,.5),rgba(255,226,140,0) 90%);animation:fxglow 2s ease-in-out infinite;text-shadow:0 0 10px rgba(255,200,120,.7)}
+@keyframes fxglow{50%{background:linear-gradient(90deg,rgba(255,80,60,.6),rgba(255,80,60,0) 90%);text-shadow:0 0 14px rgba(255,90,70,.9)}}
+@media (prefers-reduced-motion:reduce){.fx,.fx-shake,.fx-glitch,.fx-badgepulse,.fx-redbtn,.det-body p.glow{animation:none!important}.fx{display:none}}

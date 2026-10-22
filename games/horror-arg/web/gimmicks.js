@@ -10,6 +10,41 @@ window.Gimmicks = (function () {
   }
   const baseTitle = document.title;
 
+  // ===== 派手な演出の部品（強さは data.js の fxLevel：0なし／1小／2中／3派手）=====
+  // 光の点滅は1秒に3回未満・白ではなく暗い色か赤だけ。「動きを減らす」設定のときは、画面の揺れ・光は出さず音だけにする。
+  const REDUCE = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const LV = () => Math.max(0, Math.min(3, api.D.fxLevel == null ? 3 : api.D.fxLevel));
+  const K = () => [0, 0.45, 0.75, 1][LV()];
+  const fxOn = () => active && LV() > 0 && !REDUCE;
+  const deskEl = () => document.querySelector("#screen-desk");
+  function overlay(cls, ms, text) {
+    const d = document.createElement("div"); d.className = "fx " + cls; if (text) d.textContent = text;
+    document.body.append(d); setTimeout(() => d.remove(), ms); return d;
+  }
+  function shake(ms, strong) {
+    if (!fxOn()) return;
+    const el = deskEl(); el.style.setProperty("--shk", (strong ? 14 : 7) * K() + "px");
+    el.classList.remove("fx-shake"); void el.offsetWidth; el.classList.add("fx-shake");
+    setTimeout(() => el.classList.remove("fx-shake"), ms);
+  }
+  function glitch(ms) {
+    if (!fxOn() || LV() < 2) return;
+    const el = document.querySelector("#desktop"); el.classList.add("fx-glitch"); setTimeout(() => el.classList.remove("fx-glitch"), ms);
+  }
+  function redPulse(ms) { if (fxOn()) overlay("fx-red", ms || 900); }
+  function blackout(times) {   // 明かりが一瞬消える（最大2回・0.35秒おき）
+    if (!fxOn() || LV() < 2) return;
+    for (let i = 0; i < Math.min(times || 1, 2); i++) setTimeout(() => overlay("fx-dark", 160), i * 350);
+  }
+  function bigText(text, ms) {
+    if (!fxOn() || LV() < 2) return;
+    overlay("fx-big", ms || 700, text);
+  }
+  function whisperText(text) {
+    if (!fxOn()) return;
+    overlay("fx-sub", 2600, text);
+  }
+
   function bind(a) {
     api = a;
     document.addEventListener("visibilitychange", () => {
@@ -21,12 +56,13 @@ window.Gimmicks = (function () {
     stop();
     if (location.search.includes("nogimmick")) return;
     active = true; zeroDone = {};
-    every("silentNotify", 70000, 130000, () => api.S.notify());
+    every("silentNotify", 70000, 130000, () => { api.S.notify(); redPulse(600); });
     every("title", 50000, 90000, titleBlip);
     every("clock", 45000, 80000, clockGlitch);
     every("windowReturn", 40000, 90000, windowReturn);
     every("windowNudge", 25000, 45000, windowNudge);
     every("ambientEvent", 35000, 75000, ambientEvent);
+    every("bigFlash", 110000, 190000, bigFlash);
   }
   function stop() {
     active = false; timers.forEach(clearTimeout); timers = [];
@@ -38,10 +74,10 @@ window.Gimmicks = (function () {
   function zeroTrick(textEl, badgeEl) {
     if (!on("pendingOff") || day() < 4 || zeroDone[day()]) return;
     zeroDone[day()] = true;
-    textEl.textContent = "未審査：1件";
-    if (badgeEl) { badgeEl.textContent = "1"; badgeEl.style.display = ""; }
-    api.S.error();
-    later(() => { textEl.textContent = "未審査：なし"; if (badgeEl) badgeEl.style.display = "none"; }, 2600);
+    textEl.textContent = "未審査：1件"; textEl.classList.add("fx-redtext");
+    if (badgeEl) { badgeEl.textContent = "1"; badgeEl.style.display = ""; badgeEl.classList.add("fx-badgepulse"); }
+    api.S.error(); api.S.jolt(); shake(380); redPulse(700);
+    later(() => { textEl.textContent = "未審査：なし"; textEl.classList.remove("fx-redtext"); if (badgeEl) { badgeEl.style.display = "none"; badgeEl.classList.remove("fx-badgepulse"); } }, 2600);
   }
 
   // 2. 読んでいる最中に、本文の1語が変わる
@@ -55,12 +91,12 @@ window.Gimmicks = (function () {
       for (const [from, to] of list) {
         if (e.body[i].includes(from)) {
           e.body[i] = e.body[i].replace(from, to);
-          const p = bodyEl.querySelectorAll("p")[i]; if (p) p.textContent = e.body[i];
+          const p = bodyEl.querySelectorAll("p")[i]; if (p) { p.textContent = e.body[i]; p.classList.add("fx-swapped"); setTimeout(() => p.classList.remove("fx-swapped"), 3200); }
           done++; break;
         }
       }
     }
-    if (done) { e.swapped = true; api.save(); }
+    if (done) { e.swapped = true; api.save(); api.S.stinger(); shake(420, true); glitch(500); redPulse(900); }
     return done;
   }
 
@@ -88,15 +124,16 @@ window.Gimmicks = (function () {
       c.bApprove.addEventListener("pointerenter", () => {
         if (fled >= max || (!e.last && Math.random() < 0.5)) return;
         fled++;
-        const dx = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 20);
-        c.bApprove.style.transition = "transform .15s";
-        c.bApprove.style.transform = "translate(" + dx + "px,-6px)";
-        setTimeout(() => { c.bApprove.style.transform = ""; }, 1100);
+        const big = LV() >= 2, dx = (Math.random() < 0.5 ? -1 : 1) * (big ? 110 + Math.random() * 80 : 30 + Math.random() * 20);
+        c.bApprove.style.transition = "transform .12s";
+        c.bApprove.style.transform = "translate(" + dx + "px," + (big ? -40 : -6) + "px) rotate(" + (big ? dx / 12 : 0) + "deg)";
+        api.S.error(); shake(250);
+        setTimeout(() => { c.bApprove.style.transform = ""; }, big ? 1500 : 1100);
       });
     }
     // 5. 最後の投稿で「承認」の文字が「あなた」に変わる
     if (on("buttonLabel") && e.last && c.bApprove) {
-      later(() => { if (c.bApprove.isConnected) c.bApprove.textContent = "あなた"; }, 5000);
+      later(() => { if (c.bApprove.isConnected) { c.bApprove.textContent = "あなた"; c.bApprove.classList.add("fx-redbtn"); api.S.heartbeat(); api.S.jolt(); shake(500, true); redPulse(1400); bigText("あなた", 900); } }, 5000);
     }
   }
 
@@ -105,7 +142,7 @@ window.Gimmicks = (function () {
     const w = api.wins();
     Object.keys(w).forEach(k => { if (w[k].min) { w[k].min = false; w[k].el.style.display = "flex"; } });
     if (!w.memo && Math.random() < 0.6) {
-      api.openMemo(); api.S.creak();
+      api.openMemo(); api.S.creak(); api.S.jolt(); shake(500, true); blackout(1);
       const m = api.wins().memo;
       if (m) { m.el.style.zIndex = 3; m.el.classList.add("inactive"); m.tb.classList.remove("active"); }
     }
@@ -115,8 +152,10 @@ window.Gimmicks = (function () {
     const w = api.wins(), ks = Object.keys(w).filter(k => !w[k].min);
     if (!ks.length) return;
     const el = w[ks[Math.floor(Math.random() * ks.length)]].el;
-    const dx = (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 5);
-    const dy = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 4);
+    const m = LV() >= 2 ? 6 : 1;
+    const dx = (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 5) * m;
+    const dy = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 4) * m;
+    api.S.knock(); shake(300);
     el.style.transition = "left .12s, top .12s";
     el.style.left = Math.max(0, el.offsetLeft + dx) + "px"; el.style.top = Math.max(0, el.offsetTop + dy) + "px";
     setTimeout(() => { el.style.transition = ""; }, 250);
@@ -126,7 +165,17 @@ window.Gimmicks = (function () {
   function ambientEvent() {
     const S = api.S, pool = ["knock", "creak", "whisper"];
     if (day() >= 5) pool.push("heartbeat", "heartbeat");
-    S[pool[Math.floor(Math.random() * pool.length)]]();
+    const k = pool[Math.floor(Math.random() * pool.length)];
+    S[k]();
+    if (k === "knock") { shake(520, true); redPulse(700); }
+    if (k === "creak") { blackout(2); }
+    if (k === "whisper") { glitch(700); whisperText(["…こっち", "…みてる", "…あなた", "…まだ"][Math.floor(Math.random() * 4)]); }
+    if (k === "heartbeat") { [0, 900, 1800].forEach(ms => setTimeout(() => { redPulse(800); shake(200); }, ms)); }
+  }
+  // 11. 画面いっぱいの文字が、一瞬だけ出る（3日目から。音つき）
+  function bigFlash() {
+    const words = day() >= 5 ? ["あなた", "02:41", "うしろ"] : ["みている", "うしろ", "02:41"];
+    api.S.stinger(); shake(500, true); redPulse(1000); bigText(words[Math.floor(Math.random() * words.length)], 650);
   }
 
   // 6. ブラウザの題名が一瞬変わる
@@ -140,7 +189,7 @@ window.Gimmicks = (function () {
   async function clockGlitch() {
     const el = api.clockEl(), m = api.clockMin();
     const f = x => String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
-    api.S.tickBack();
+    api.S.tickBack(); glitch(600); blackout(1); shake(300);
     el.classList.add("flick");
     el.textContent = f(m - 1); await new Promise(r => setTimeout(r, 800));
     el.textContent = "02:41"; await new Promise(r => setTimeout(r, 800));
@@ -151,7 +200,7 @@ window.Gimmicks = (function () {
 
   function fire(name) {
     const was = active; active = true;
-    ({ silentNotify: () => api.S.notify(), ambientEvent, title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
+    ({ silentNotify: () => { api.S.notify(); redPulse(600); }, ambientEvent, bigFlash, shake: () => shake(500, true), glitch: () => glitch(700), blackout: () => blackout(2), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
     if (!was) active = false;
   }
   return { bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };

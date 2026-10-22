@@ -99,6 +99,10 @@ window.Snd = (function () {
     },
     // 時計が戻る音（下がる3回の刻み）
     tickBack() { if (!ok()) return; [0, 0.1, 0.2].forEach((t, i) => { burst(t, 0.03, 0.14, "highpass", 2200); tone(1300 - i * 250, t, 0.05, "square", 0.025); }); },
+    // ドンと響く低い音（派手な演出用）。音量は控えめにしてある
+    jolt() { if (!ok()) return; tone(52, 0, 0.7, "sine", 0.32, 28); tone(190, 0, 0.14, "sawtooth", 0.07, 70); burst(0, 0.3, 0.2, "lowpass", 900); },
+    // 不協和音の短い一撃
+    stinger() { if (!ok()) return; tone(466, 0, 0.5, "sawtooth", 0.05, 440); tone(493, 0, 0.5, "sawtooth", 0.05, 466); tone(65, 0, 0.8, "sine", 0.22, 40); burst(0, 0.18, 0.12, "highpass", 3000); },
     // 鼓動
     heartbeat() { if (!ok()) return; [0, 0.9, 1.8].forEach(t => { tone(62, t, 0.22, "sine", 0.2, 44); tone(58, t + 0.2, 0.22, "sine", 0.14, 42); }); },
     toggleMute() {
