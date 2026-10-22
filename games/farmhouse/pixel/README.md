@@ -187,3 +187,6 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 
 ## りんご（gen_apple.py）
 `python gen_apple.py` → assets/items/apple.png（32×32）, apple_bitten.png, apple_16.png, apple_x8.png, apple_sheet.png。
+
+## りんごの高解像度版（gen_apple_hd.py）
+`python gen_apple_hd.py` → assets/items/apple_hd.png / apple_hd_bitten.png（96×96）, apple_hd_x6.png。高さ場→法線→光・つや・反射光・くぼみのかげ。7段・網点なし。
