@@ -32,7 +32,9 @@ def apple(S=96, bitten=False):
     c2 = ((x - 19.2) / 9.6) ** 2 + ((y - 18.6) / 10.0) ** 2 <= 1
     low = ((x - 16) / 8.6) ** 2 + ((y - 23.6) / 7.6) ** 2 <= 1
     wob = 1 + .02 * np.sin(x * .9 + 1.0) + .015 * np.sin(y * 1.3)
-    body0 = (c1 | c2 | low) & ~(((x - 16) / 3.2) ** 2 + ((y - 7.0) / 2.6) ** 2 <= 1)
+    sh1 = ((x - 10.2) / 5.6) ** 2 + ((y - 14.6) / 5.0) ** 2 <= 1
+    sh2 = ((x - 21.8) / 5.6) ** 2 + ((y - 14.6) / 5.0) ** 2 <= 1
+    body0 = (c1 | c2 | low | sh1 | sh2) & ~(((x - 16) / 3.2) ** 2 + ((y - 7.0) / 2.6) ** 2 <= 1)
     bite = (body0 & (((x - 26.2) / 6.4) ** 2 + ((y - 19.4) / 5.8) ** 2 <= 1)) if bitten else np.zeros_like(body0)
     body = body0 & ~bite
     # ---- 高さ場（球＋上下のくぼみ）→ 法線
@@ -51,15 +53,16 @@ def apple(S=96, bitten=False):
     I = np.clip((.26 + .74 * lam) * ao + bounce * .22, 0, 1)
     # ---- 色むら：縦しま（赤・だいだい）
     ang = np.arctan2(x - 16, 20)
-    st = vn(ang * 7 + 3, y * .08, 5) * .7 + vn(ang * 16, y * .15, 6) * .3
+    st = vn(ang * 9 + 3, y * .05, 5) * .65 + vn(ang * 21, y * .09, 6) * .35
     orange = np.clip((st - .56) * 3.2, 0, 1) * np.clip(1.15 - (y - 4) / 22, 0, 1)                    # 上ほどだいだい
     deep = np.zeros_like(st)
     # ---- 7段にまとめる（網点なし）
     band = np.clip(np.floor(I * 7.0 + .15), 0, 6).astype(int)
     for yy, xx in zip(*np.nonzero(body)):
         b = band[yy, xx]; o = orange[yy, xx]; d = deep[yy, xx]
-        if o > .85 and b >= 2: f, sh = 'H', min(7, b + 1)                                              # だいだいのしま
-        elif d > .72 and b <= 4: f, sh = 'u', max(1, b + 1)                                                # 深い赤のしま（暗い）
+        sv_ = st[yy, xx]
+        if sv_ > .72 and 3 <= b <= 5 and y[yy, xx] < 21: f, sh = 'H', [1, 2, 3, 3, 4, 5, 6][b] - (1 if b >= 4 else 0)         # だいだい赤のしま
+        elif sv_ < .27 and b <= 4: f, sh = 'u', min(6, [1, 2, 3, 4, 4, 5, 6][b] + 0)                         # 深いワインのしま
         else: f, sh = 'G', [1, 2, 3, 4, 4, 5, 6][b]
         A[yy, xx, :3] = col(f, sh); A[yy, xx, 3] = 255
     # つや（2段：やわらかいふち＋まぶしい芯）
@@ -82,24 +85,26 @@ def apple(S=96, bitten=False):
             xx, yy = int((sx + dx) * k), int(sy * k)
             if 0 <= xx < S and 0 <= yy < S and (sy < 8.6):
                 t = (dx + .75) / 1.5; A[yy, xx, :3] = col('D', 5 if t < .3 else 4 if t < .65 else 2); A[yy, xx, 3] = 255
-    # ---- 葉（曲がった形、葉脈、ぎざぎざ）
-    lx0, ly0 = 17.4, 6.4
-    for yy in range(S):
-        for xx in range(S):
-            px_, py_ = (xx + .5) / k, (yy + .5) / k
-            t = (px_ - lx0) / 9.0
-            if not (0 <= t <= 1): continue
-            cy_ = ly0 - 2.6 * math.sin(t * math.pi * .9) + 1.8 * t * t                          # 中心線（上へ反って先が下がる）
-            wd = 2.1 * math.sin(math.pi * min(1, t * 1.05)) ** .8
-            wd *= 1 + .08 * math.sin(t * 40)                                                  # ぎざぎざ
-            dy = py_ - cy_
-            if abs(dy) <= wd:
-                up = dy < 0; vein = abs(dy) < .35 or (abs(dy - (-1 if up else 1) * (t * 4 % 1.5)) < .2 and abs(dy) > .6 and False)
-                side = vn(px_ * 2, py_ * 2, 9)
-                sh = 2 if vein else (6 if up and t < .75 else 5 if up else 4 if t < .5 else 3)
-                if abs(abs(dy) - wd) < .45: sh = max(1, sh - 1)
-                A[yy, xx, :3] = col('O', sh); A[yy, xx, 3] = 255
-                if abs(abs(dy) - wd * .55) < .22 and t > .15 and t < .85 and h2(int(t * 12), 0, 2) > .3: A[yy, xx, :3] = col('O', 2)
+    # ---- 葉：茎のつけ根から右上へ反って先がとがる。中央の葉脈、左右で明暗、ふちのぎざぎざ
+    path = bez((17.2, 7.4), (20.0, 2.8), (25.0, 2.2), (29.0, 5.2), 160)
+    px_all = (X + .5) / k; py_all = (Y + .5) / k
+    best = np.full((S, S), 1e9); tt = np.zeros((S, S)); sg = np.zeros((S, S))
+    for i, (cx_, cy_) in enumerate(path):
+        d = np.hypot(px_all - cx_, py_all - cy_)
+        upd = d < best
+        tang = path[min(i + 1, len(path) - 1)] - path[max(i - 1, 0)]; tang = tang / (np.hypot(*tang) + 1e-9)
+        side = np.sign(-(px_all - cx_) * tang[1] + (py_all - cy_) * tang[0] * -1 * -1)
+        best = np.where(upd, d, best); tt = np.where(upd, i / (len(path) - 1), tt); sg = np.where(upd, np.sign((px_all - cx_) * (-tang[1]) + (py_all - cy_) * tang[0]), sg)
+    wdt = 2.7 * np.sin(np.pi * np.clip(tt * 1.0, 0, 1)) ** .75 * (1 + .06 * np.sin(tt * 55))
+    leafm = (best <= wdt) & (tt > .02)
+    for yy, xx in zip(*np.nonzero(leafm)):
+        t_ = tt[yy, xx]; d_ = best[yy, xx]; w_ = wdt[yy, xx]
+        if d_ < .32: sh = 2                                                  # 葉脈
+        elif sg[yy, xx] > 0: sh = 6 if t_ < .6 else 5                        # 明るい側
+        else: sh = 4 if t_ < .6 else 3                                       # 暗い側
+        if w_ - d_ < .45: sh = max(1, sh - 1)                                # ふちはやや暗く
+        if abs(d_ - w_ * .55) < .2 and .2 < t_ < .85 and int(t_ * 14) % 2 == 0: sh = max(1, sh - 1)    # 側脈
+        A[yy, xx, :3] = col('O', sh); A[yy, xx, 3] = 255
     # ---- かじったあと
     if bitten:
         for yy, xx in zip(*np.nonzero(bite)):
