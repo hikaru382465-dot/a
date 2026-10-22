@@ -210,3 +210,6 @@ window.RAFT.data.HUT_LOOKS = [
 ];
 (function () { const D = window.RAFT.data; if (D.HUT_LOOKS.length !== D.HUT_N) console.error('小屋の見た目の数が合わない', D.HUT_LOOKS.length, D.HUT_N);
   D.HUT_LOOKS.forEach((l, i) => { D.ITEMS['hut' + i] = { name: l.n, lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: i, tip: '自分と相棒と住人の家（2×3マス）。タップで中に入って、休める' }; }); })();
+// 見た目の系統（HUT_LOOKS と同じ順）。選ぶ画面の絞り込みに使う
+window.RAFT.data.HUT_FAM = ["wood", "wood", "stone", "sea", "green", "stone", "sea", "green", "green", "snow", "stone", "stone", "stone", "green", "wood", "stone", "stone", "stone", "stone", "stone", "wood", "wood", "wood", "wood", "wood", "wood", "wood", "green", "sea"];
+window.RAFT.data.HUT_FAMS = { wood: '木・わら', stone: '石・レンガ', sea: '海', green: '緑', snow: '雪' };
