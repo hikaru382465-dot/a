@@ -24,7 +24,7 @@ def bez(p0, p1, p2, p3, n=120):
     t = np.linspace(0, 1, n)[:, None]; P = [np.array(p, float) for p in (p0, p1, p2, p3)]
     return (1 - t) ** 3 * P[0] + 3 * (1 - t) ** 2 * t * P[1] + 3 * (1 - t) * t ** 2 * P[2] + t ** 3 * P[3]
 
-def apple(S=96, bitten=False):
+def apple(S=96, bitten=False, clean=False):
     k = S / 32.0
     A = np.zeros((S, S, 4), np.uint8); Y, X = np.mgrid[0:S, 0:S]; x = (X + .5) / k; y = (Y + .5) / k      # 32×32 の座標
     # ---- 形
@@ -56,22 +56,41 @@ def apple(S=96, bitten=False):
     st = vn(ang * 9 + 3, y * .05, 5) * .65 + vn(ang * 21, y * .09, 6) * .35
     orange = np.clip((st - .56) * 3.2, 0, 1) * np.clip(1.15 - (y - 4) / 22, 0, 1)                    # 上ほどだいだい
     deep = np.zeros_like(st)
-    # ---- 7段にまとめる（網点なし）
+    # ---- 7段にまとめる（網点なし）。clean=True は、ドット絵の見本（OpenGameArtのりんご）の作り方：少ない色・赤の中に暖色の段・細い弧のつや・三日月のかげ
     band = np.clip(np.floor(I * 7.0 + .15), 0, 6).astype(int)
-    for yy, xx in zip(*np.nonzero(body)):
-        b = band[yy, xx]; o = orange[yy, xx]; d = deep[yy, xx]
-        sv_ = st[yy, xx]
-        if sv_ > .72 and 3 <= b <= 5 and y[yy, xx] < 21: f, sh = 'H', [1, 2, 3, 3, 4, 5, 6][b] - (1 if b >= 4 else 0)         # だいだい赤のしま
-        elif sv_ < .27 and b <= 4: f, sh = 'u', min(6, [1, 2, 3, 4, 4, 5, 6][b] + 0)                         # 深いワインのしま
-        else: f, sh = 'G', [1, 2, 3, 4, 4, 5, 6][b]
-        A[yy, xx, :3] = col(f, sh); A[yy, xx, 3] = 255
-    # つや（2段：やわらかいふち＋まぶしい芯）
-    sp1 = body & (spec > .42); A[sp1, :3] = col('G', 7); A[sp1, 3] = 255
-    sp2 = body & (spec > .80); A[sp2, :3] = col('n', 7); A[sp2, 3] = 255
+    if clean:
+        rr_ = np.hypot(u, v)
+        core = body & (lam < .30) & (rr_ > .55) & (u + v > .1)                                   # 右下の三日月のかげ
+        warm = body & (lam > .80) & (x < 20)                                                    # 明るい側は暖色（だいだい赤）へ色ずらし
+        for yy, xx in zip(*np.nonzero(body)):
+            if core[yy, xx]: f, sh = 'u', 3 if lam[yy, xx] < .12 else 4
+            elif warm[yy, xx]: f, sh = 'H', 4
+            elif lam[yy, xx] > .55: f, sh = 'G', 5
+            else: f, sh = 'G', 4
+            A[yy, xx, :3] = col(f, sh); A[yy, xx, 3] = 255
+        # つや：左上のふちにそう、細い弧（太さは中ほどが太く、両はしが細い）
+        for tt_ in np.linspace(0, 1, 90):
+            ang_ = math.radians(198 + tt_ * 62); rad_ = .66
+            cx_, cy_ = 16 + 14.2 * rad_ * math.cos(ang_), 18.6 + 12.6 * rad_ * math.sin(ang_)
+            wd_ = .45 + 1.35 * math.sin(math.pi * tt_)
+            m_ = body & ((x - cx_) ** 2 + (y - cy_) ** 2 <= wd_ ** 2)
+            A[m_, :3] = col('H', 7); A[m_, 3] = 255
+        dotm = body & ((x - 8.2) ** 2 + (y - 22.4) ** 2 <= 1.0); A[dotm, :3] = col('H', 7); A[dotm, 3] = 255
+    else:
+        for yy, xx in zip(*np.nonzero(body)):
+            b = band[yy, xx]; o = orange[yy, xx]; d = deep[yy, xx]
+            sv_ = st[yy, xx]
+            if sv_ > .72 and 3 <= b <= 5 and y[yy, xx] < 21: f, sh = 'H', [1, 2, 3, 3, 4, 5, 6][b] - (1 if b >= 4 else 0)
+            elif sv_ < .27 and b <= 4: f, sh = 'u', min(6, [1, 2, 3, 4, 4, 5, 6][b] + 0)
+            else: f, sh = 'G', [1, 2, 3, 4, 4, 5, 6][b]
+            A[yy, xx, :3] = col(f, sh); A[yy, xx, 3] = 255
+    if not clean:
+        sp1 = body & (spec > .42); A[sp1, :3] = col('G', 7); A[sp1, 3] = 255
+        sp2 = body & (spec > .80); A[sp2, :3] = col('n', 7); A[sp2, 3] = 255
     # 皮の小さな点（決まった位置に14個、上のほうに多い）
     rng = np.random.default_rng(3)
     placed = 0
-    while placed < 14:
+    while placed < (0 if clean else 14):
         px, py = rng.uniform(7, 26), rng.uniform(10, 28)
         ix, iy = int(px * k), int(py * k)
         if 0 <= ix < S and 0 <= iy < S and body[iy, ix] and lam[iy, ix] > .15:
@@ -123,8 +142,8 @@ def apple(S=96, bitten=False):
     return A
 
 if __name__ == "__main__":
-    for nm, im in (("apple_hd", apple(96)), ("apple_hd_bitten", apple(96, True))):
+    for nm, im in (("apple_hd", apple(96)), ("apple_hd_bitten", apple(96, True)), ("apple_hd_clean", apple(96, False, True)), ("apple_hd_clean_bitten", apple(96, True, True))):
         Image.fromarray(im).save(os.path.join(OUT, nm + ".png"))
-    bg = Image.new("RGBA", (96 * 2 + 12, 96 + 8), (40, 52, 70, 255))
-    bg.alpha_composite(Image.fromarray(apple(96)), (4, 4)); bg.alpha_composite(Image.fromarray(apple(96, True)), (104, 4))
+    bg = Image.new("RGBA", (96 * 4 + 20, 96 + 8), (40, 52, 70, 255))
+    for i_, im_ in enumerate((apple(96), apple(96, True), apple(96, False, True), apple(96, True, True))): bg.alpha_composite(Image.fromarray(im_), (4 + i_ * 100, 4))
     bg.resize((bg.width * 5, bg.height * 5), Image.NEAREST).convert("RGB").save(os.path.join(OUT, "apple_hd_x6.png")); print("ok")

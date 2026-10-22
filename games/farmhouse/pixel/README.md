@@ -190,3 +190,5 @@ gen_net / gen_net_haul のコマを、1つの場面（桟橋・水平線・手�
 
 ## りんごの高解像度版（gen_apple_hd.py）
 `python gen_apple_hd.py` → assets/items/apple_hd.png / apple_hd_bitten.png（96×96）, apple_hd_x6.png。高さ場→法線→光・つや・反射光・くぼみのかげ。7段・網点なし。
+
+りんごの clean 版：`apple(96, False, True)` → apple_hd_clean.png / apple_hd_clean_bitten.png。参考：OpenGameArt の CC0 りんご（Pixel Fruit Pack、Good Fruits）を測って（約21×22ドット、赤3色＋暖色＋緑2色）作り方を整理。
