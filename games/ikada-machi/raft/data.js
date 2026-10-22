@@ -62,7 +62,7 @@ window.RAFT.data = {
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
     { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
     { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
-    { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を20種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
+    { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を29種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
   // 相棒（女の子）にまかせる仕事。mood＝機嫌（働くと減り、休むと増える。低いほど仕事がおそい）
@@ -107,7 +107,7 @@ window.RAFT.data = {
     }
   },
   // 住人：仲間になって、小屋1つにつき1人、イカダに住む。perk＝住んでいるあいだの能力（stage1 は kuro と pipi）
-  HUT_N: 20,      // 小屋の見た目の数（objs_art.js の hut の配列＝昼夜2枚ずつ。make_objs.py が数を確かめる）
+  HUT_N: 29,      // 小屋の見た目の数（objs_art.js の hut の配列＝昼夜2枚ずつ。make_objs.py が数を確かめる）
   RESIDENT: {
     ask: { toto: 'ここの暮らしは、おもしろそうじゃ。わしも住んでいいかね？', mina: 'ここなら、いい鉄打ちができそう。住んでもいい？', kuro: 'この筏、土がこねやすそうね。しばらく住んでいい？', pipi: 'ねえねえ、ぼくもここに住みたい！ いいでしょ？' },
     join: { toto: 'ほっほ、よろしくの。', mina: 'よろしく！ 腕によりをかけるよ。', kuro: 'ありがとう。いいお茶、いれるわね。', pipi: 'やったー！ よろしくお願いしまーす！' },
@@ -203,7 +203,10 @@ window.RAFT.data.HUT_LOOKS = [
   { n: '雪の屋根の家', c: { wood: 24, cloth: 12, stone: 10, rope: 8 } }, { n: 'レンガの家（黒い屋根）', c: { wood: 14, clay: 20, stone: 10, rope: 6 } }, { n: '土壁の家', c: { wood: 16, clay: 16, rope: 6 } },
   { n: '紫の屋根の石の家', c: { wood: 16, stone: 26, glass: 4, iron: 2, rope: 6 } }, { n: 'きのこの家', c: { wood: 18, clay: 12, seed: 6, cloth: 8, coconut: 4 } }, { n: 'トタン屋根の家', c: { wood: 24, iron: 6, rope: 6 } },
   { n: '青い屋根のレンガの家', c: { wood: 14, clay: 22, stone: 10, rope: 6 } }, { n: '赤い屋根の商店風の家', c: { wood: 20, clay: 24, rope: 8, cloth: 8 } }, { n: '2階建ての家', c: { wood: 30, clay: 30, stone: 12, rope: 10, cloth: 8, iron: 2 } },
-  { n: '屋上カフェの家', c: { wood: 26, clay: 28, stone: 14, rope: 8, cloth: 10 } }, { n: '丸い塔の家', c: { wood: 16, stone: 30, clay: 16, rope: 8 } }
+  { n: '屋上カフェの家', c: { wood: 26, clay: 28, stone: 14, rope: 8, cloth: 10 } }, { n: '丸い塔の家', c: { wood: 16, stone: 30, clay: 16, rope: 8 } },
+  { n: '丸窓の木の家', c: { wood: 26, rope: 8, cloth: 4 } }, { n: 'とんがり屋根の木の家', c: { wood: 28, rope: 8, cloth: 4 } }, { n: 'ひさしの長い木の家', c: { wood: 34, rope: 10, cloth: 8 } },
+  { n: '高床の木の家', c: { wood: 32, rope: 14, cloth: 4 } }, { n: 'かまぼこ屋根の木の家', c: { wood: 28, rope: 8, cloth: 6 } }, { n: 'ログハウス', c: { wood: 36, rope: 8, cloth: 4 } },
+  { n: '花壇つきの木の家', c: { wood: 26, rope: 6, cloth: 6 } }, { n: '葉っぱ屋根の木の家', c: { wood: 22, seed: 4, rope: 8, cloth: 4 } }, { n: '浮き輪の木の家', c: { wood: 28, rope: 12 } }
 ];
 (function () { const D = window.RAFT.data; if (D.HUT_LOOKS.length !== D.HUT_N) console.error('小屋の見た目の数が合わない', D.HUT_LOOKS.length, D.HUT_N);
   D.HUT_LOOKS.forEach((l, i) => { D.ITEMS['hut' + i] = { name: l.n, lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: i, tip: '自分と相棒と住人の家（2×3マス）。タップで中に入って、休める' }; }); })();
