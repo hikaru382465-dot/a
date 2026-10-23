@@ -40,6 +40,41 @@ window.Gimmicks = (function () {
     if (!fxOn() || LV() < 2) return;
     overlay("fx-big", ms || 700, text);
   }
+  // ノイズが上から下へ走る（砂嵐の帯）
+  let noiseImg = null;
+  function noiseUrl() {
+    if (noiseImg) return noiseImg;
+    const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), d = x.createImageData(128, 128);
+    for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+    x.putImageData(d, 0, 0); noiseImg = "url(" + c.toDataURL() + ")"; return noiseImg;
+  }
+  function noiseSweep() {
+    api.S.noise();
+    if (!fxOn()) return;
+    const o = overlay("fx-noise", 1300);
+    [["24vh", 0], ["6vh", 0.18]].forEach(([h, delay]) => {
+      const b = document.createElement("div"); b.className = "fx-noiseband"; b.style.height = h; b.style.backgroundImage = noiseUrl() + ",repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 2px,transparent 2px 4px)";
+      b.style.animationDelay = delay + "s"; o.append(b);
+    });
+    if (LV() >= 2) glitch(450);
+  }
+  // 壁紙の家の窓に、人影が一瞬だけ立つ（Blender版の壁紙のとき。窓が隠れないよう、全部の窓がいったん消える）
+  let figBusy = false;
+  function windowFigure() {
+    const wp = document.querySelector("#wallpaper");
+    if (figBusy || !wp || !/\bb\b/.test(wp.className)) return;
+    figBusy = true;
+    const w = api.wins(), hidden = Object.keys(w).filter(k => !w[k].min);
+    const hide = LV() >= 2;
+    api.S.creak();
+    if (hide) { api.S.jolt(); shake(300, true); blackout(1); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
+    later(() => { wp.classList.add("fig"); api.S.knock(); }, hide ? 350 : 0);
+    later(() => { wp.classList.remove("fig"); }, (hide ? 350 : 0) + 750);
+    setTimeout(() => {
+      hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
+      figBusy = false;
+    }, hide ? 1500 : 800);
+  }
   function whisperText(text) {
     if (!fxOn()) return;
     overlay("fx-sub", 2600, text);
@@ -63,6 +98,8 @@ window.Gimmicks = (function () {
     every("windowNudge", 25000, 45000, windowNudge);
     every("ambientEvent", 35000, 75000, ambientEvent);
     every("bigFlash", 110000, 190000, bigFlash);
+    every("noise", 60000, 110000, noiseSweep);
+    every("windowFigure", 150000, 260000, windowFigure);
   }
   function stop() {
     active = false; timers.forEach(clearTimeout); timers = [];
@@ -189,7 +226,7 @@ window.Gimmicks = (function () {
   async function clockGlitch() {
     const el = api.clockEl(), m = api.clockMin();
     const f = x => String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
-    api.S.tickBack(); glitch(600); blackout(1); shake(300);
+    api.S.tickBack(); glitch(600); blackout(1); shake(300); if (LV() >= 2) noiseSweep();
     el.classList.add("flick");
     el.textContent = f(m - 1); await new Promise(r => setTimeout(r, 800));
     el.textContent = "02:41"; await new Promise(r => setTimeout(r, 800));
@@ -200,7 +237,7 @@ window.Gimmicks = (function () {
 
   function fire(name) {
     const was = active; active = true;
-    ({ silentNotify: () => { api.S.notify(); redPulse(600); }, ambientEvent, bigFlash, shake: () => shake(500, true), glitch: () => glitch(700), blackout: () => blackout(2), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
+    ({ noise: noiseSweep, figure: windowFigure, silentNotify: () => { api.S.notify(); redPulse(600); }, ambientEvent, bigFlash, shake: () => shake(500, true), glitch: () => glitch(700), blackout: () => blackout(2), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
     if (!was) active = false;
   }
   return { bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };

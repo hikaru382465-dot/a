@@ -103,6 +103,15 @@ window.Snd = (function () {
     jolt() { if (!ok()) return; tone(52, 0, 0.7, "sine", 0.32, 28); tone(190, 0, 0.14, "sawtooth", 0.07, 70); burst(0, 0.3, 0.2, "lowpass", 900); },
     // 不協和音の短い一撃
     stinger() { if (!ok()) return; tone(466, 0, 0.5, "sawtooth", 0.05, 440); tone(493, 0, 0.5, "sawtooth", 0.05, 466); tone(65, 0, 0.8, "sine", 0.22, 40); burst(0, 0.18, 0.12, "highpass", 3000); },
+    // テレビの砂嵐のようなノイズ（上から下へ走る）
+    noise() {
+      if (!ok()) return;
+      const t = ctx.currentTime, src = ctx.createBufferSource(); src.buffer = noiseBuf(1.1);
+      const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2;
+      f.frequency.setValueAtTime(5200, t); f.frequency.exponentialRampToValueAtTime(700, t + 1.0);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.14, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.05);
+      src.connect(f); f.connect(g); g.connect(master); src.start(t);
+    },
     // 鼓動
     heartbeat() { if (!ok()) return; [0, 0.9, 1.8].forEach(t => { tone(62, t, 0.22, "sine", 0.2, 44); tone(58, t + 0.2, 0.22, "sine", 0.14, 42); }); },
     toggleMute() {

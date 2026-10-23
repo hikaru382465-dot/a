@@ -485,3 +485,17 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .det-body p.glow{background:linear-gradient(90deg,rgba(255,226,140,.5),rgba(255,226,140,0) 90%);animation:fxglow 2s ease-in-out infinite;text-shadow:0 0 10px rgba(255,200,120,.7)}
 @keyframes fxglow{50%{background:linear-gradient(90deg,rgba(255,80,60,.6),rgba(255,80,60,0) 90%);text-shadow:0 0 14px rgba(255,90,70,.9)}}
 @media (prefers-reduced-motion:reduce){.fx,.fx-shake,.fx-glitch,.fx-badgepulse,.fx-redbtn,.det-body p.glow{animation:none!important}.fx{display:none}}
+
+/* 砂嵐の帯 */
+.fx-noise{overflow:hidden}
+.fx-noiseband{position:absolute;left:0;right:0;top:0;mix-blend-mode:screen;opacity:.55;transform:translateY(-30vh);animation:fxnoise .95s linear forwards}
+@keyframes fxnoise{0%{transform:translate(0,-30vh)}35%{transform:translate(10px,30vh)}60%{transform:translate(-8px,65vh)}100%{transform:translate(0,115vh)}}
+/* 壁紙の窓の人影（Blender版） */
+#wallpaper.b.fig{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_fig.jpg)}
+#wallpaper.b.night.fig{background-image:url(wallpaper_b_night_fig.jpg)}
+#wallpaper.b.red.fig{background-image:url(wallpaper_b_red_fig.jpg)}
+#wallpaper.b.lit.fig{background-image:url(wallpaper_b_lit_fig.jpg)}
+/* 公開サイトの大きな写真 */
+.pub-hero{position:relative;height:150px;margin:6px 0 12px;overflow:hidden;border-radius:3px}
+.pub-hero .pub-pic{opacity:.9}
+@media (prefers-reduced-motion:reduce){.fx-noiseband{animation:none}}

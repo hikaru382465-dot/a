@@ -48,6 +48,12 @@ window.Apps = (function () {
       fire: 2 + ((e.base || "").charCodeAt(2) || 3) % 4, cm: visibleComments(e).length, date: "2026/10/" + String(10 + e.day).padStart(2, "0") + " " + e.time.replace("今日 ", "").replace(/^(\d)/, "0$1"), tone: pubTone(e), body: e.body, mine: true, e: e }))
       .concat(D3.legacy.map(l => Object.assign({ mine: false }, l)));
     let tab = "rank", sel = null, url = "yobanashi-kan.example";
+    // 見ていない間に写真が変わる：閉じていた（見ていなかった）時間が20秒以上あると、1段進む
+    const fl = api.state().flags, nowMs = Date.now();
+    if (day() >= (api.D.gimmicks.siteDrift || 99) && fl.siteSeen && nowMs - fl.siteSeen > 20000 && !location.search.includes("nogimmick")) { fl.drift = Math.min(4, (fl.drift || 0) + 1); api.save(); }
+    const drift = fl.drift || 0;
+    const seen = () => { fl.siteSeen = Date.now(); };
+    seen();
     const view = h("div", { class: "pub" });
     const bar = h("div", { class: "pub-bar" });
     const page = h("div", { class: "pub-scroll" }, view);
@@ -60,7 +66,11 @@ window.Apps = (function () {
       '<rect x="22" y="10" width="40" height="40" fill="none" stroke="#dde" stroke-width="2"/><path d="M42 10V50M22 30H62" stroke="#dde" stroke-width="1.4"/><circle cx="52" cy="22" r="4" fill="#000" opacity=".7"/>',
       '<path d="M10 56H74M16 48H68M22 40H62M28 32H56" stroke="#dde" stroke-width="2" opacity=".75"/>',
       '<path d="M42 12Q60 12 60 30H24Q24 12 42 12ZM42 30V54Q42 58 38 58" stroke="#cdb" fill="none" stroke-width="2"/>'];
-    const picEl = r => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("class", "pub-pic"); s.setAttribute("viewBox", "0 0 84 60"); s.innerHTML = PICS[n]; return s; };
+    // 見ていない間に、写真の端に写る人影が少しずつ近く・大きくなる（見るたびに1段）
+    const driftSvg = L => { const x = 78 - L * 9, h = 10 + L * 8, r = 2 + L * 1.2, y = 60 - h;
+      return '<g opacity="' + (0.45 + L * 0.12) + '"><circle cx="' + x + '" cy="' + (y - r + 1) + '" r="' + r + '" fill="#050505"/><path d="M' + (x - r * 1.6) + ' 60 q' + (r * .4) + ' -' + (h - r) + ' ' + (r * 1.6) + ' -' + (h - r) + ' q' + (r * 1.2) + ' 0 ' + (r * 1.6) + ' ' + (h - r) + 'z" fill="#050505"/>' + (L >= 4 ? '<ellipse cx="' + x + '" cy="' + (y - r + 1) + '" rx="' + r * .5 + '" ry="' + r * .7 + '" fill="#e8e0d0" opacity=".55"/>' : "") + "</g>"; };
+    const DRIFT_IDS = ["L01", "L03", "L05"];
+    const picEl = (r, whole) => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("class", "pub-pic"); s.setAttribute("viewBox", "0 0 84 60"); s.innerHTML = PICS[n] + (drift > 0 && DRIFT_IDS.includes(r.id) ? driftSvg(drift) : ""); s.setAttribute("preserveAspectRatio", whole ? "xMidYMid meet" : "xMidYMid slice"); return s; };
     const unused = r => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; return h("svg", { class: "pub-pic", viewBox: "0 0 84 60", "aria-hidden": "true", innerhtml: "" }); };
     const thumb = (r, i) => h("div", { class: "pub-thumb t" + r.tone }, picEl(r), i != null ? h("span", { class: "pub-rk" + (i < 3 ? " top" : "") }, String(i + 1)) : null, kindBadge(r));
     function listFor() {
@@ -72,6 +82,7 @@ window.Apps = (function () {
       return r;
     }
     function paint() {
+      seen();
       const tabs = [["rank", "ランキング"], ["new", "新着"], ["hall", "殿堂入り"]];
       bar.replaceChildren(
         h("div", { class: "pub-nav" }, h("button", { class: "pub-navbtn", "aria-label": "戻る", onclick: () => { if (sel) { sel = null; paint(); } } }, "‹"), h("button", { class: "pub-navbtn", "aria-label": "更新", onclick: paint }, "↻")),
@@ -101,6 +112,7 @@ window.Apps = (function () {
         h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
         h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),
         h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　🔥 " + r.fire),
+        h("div", { class: "pub-hero t" + r.tone }, picEl(r, true)),
         r.body.map(t => h("p", {}, t)),
         h("div", { class: "pub-cmh" }, "読者コメント（" + cs.length + "）"),
         cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"),
