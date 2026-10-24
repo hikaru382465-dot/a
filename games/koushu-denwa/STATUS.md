@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-24（第19版：EngineWire 導入成功。ひかるのPC側の Claude Code が Unreal を直接見られるようになった）
+最終更新：2026-10-25（第20版：いまのプロジェクト名 `kousyuudennwa`（`C:\UEProjects\kousyuudennwa5.8`）とレベル `L_Main` に書き直し）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -58,8 +58,9 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## Unreal Engine での到達点（2026-10-03）
 
-- ひかるのPCで Unreal 5.3.2 を使用（5.8.0 は VC++ 警告が出るため使わない）。プロジェクト名 `MyProject4`（`Documents/Unreal Projects/MyProject4`）
-- `unreal/setup_phonebooth.py` を実行 → 全手順 OK（FBX・画像・材質・配置・光・霧・ポストプロセス・DoorHinge・保存）。レベルは `/Game/KoushuDenwa/Maps/L_Booth`
+- **いまのプロジェクト（2026-10-25 時点）**：プロジェクト名 `kousyuudennwa`（`C:\UEProjects\kousyuudennwa5.8`、UE 5.8）、本編のレベルは `L_Main`
+- （以下は当時の記録）ひかるのPCで Unreal 5.3.2 を使用。旧プロジェクト `MyProject4`（`Documents/Unreal Projects/MyProject4`）
+- `unreal/setup_phonebooth.py` を実行 → 全手順 OK（FBX・画像・材質・配置・光・霧・ポストプロセス・DoorHinge・保存）。旧レベルは `/Game/KoushuDenwa/Maps/L_Booth`
 - 見た目の調整値：PostProcess の「露出補正」= **-7.8**（この版は値が大きいほど明るい。-6.5〜-7.8で調整）、TubeLight_L/R の Intensity = 1500 lm
 - 写真どおりに出ている：パネルの印刷、液晶、テンキー、SOS、下の扉、受話器、コード、料金板、注意シール、電話帳
 - 注意：UEのプロジェクトはリポジトリの外（PC内）にある。大事なファイルは `assets/unreal/PhoneBooth.fbx` とスクリプト
