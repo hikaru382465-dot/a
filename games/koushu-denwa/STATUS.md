@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-25（第20版：いまのプロジェクト名 `kousyuudennwa`（`C:\UEProjects\kousyuudennwa5.8`）とレベル `L_Main` に書き直し）
+最終更新：2026-10-25（第21版：ガラスの文字をガラスの面に合わせ、幽霊の向き（-90）と大きさ（1.2倍）を直した。実機で未確認）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -59,6 +59,7 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 ## Unreal Engine での到達点（2026-10-03）
 
 - **いまのプロジェクト（2026-10-25 時点）**：プロジェクト名 `kousyuudennwa`（`C:\UEProjects\kousyuudennwa5.8`、UE 5.8）、本編のレベルは `L_Main`（`/Game/L_Main`。エディタ起動時に開くレベルに設定済み＝`Config/DefaultEngine.ini` の EditorStartupMap）
+- **ボックスの中の下見と直し（2026-10-25・未確認＝実機の Play で）**：①ガラスの文字（`Poster_*`）は、ガラスの面より内側に浮いていた→買ったボックスには `phone_box-1_glass`（ガラスだけの部品）があり、面は中心から左右 ±56.6cm・前後 ±68cm。その2cm内側に動かしてレベルを保存。`setup_game_fp.py` の `glass_halves()` は、部品の大きさと置き場所から角を計算する方法に直した（実行し直すとログ「ガラスの面の位置: …」が出るはず）②幽霊は回転0度で +Y 向きなのに、`kd_game.py` は +X を相手に向けていた→`GHOST_YAW=-90`（`kd_game.py` と `Saved/kd_settings.json` の両方。json が優先される）③幽霊は160cmでプレイヤー（約190cm）より低い→1.2倍（レベルの Ghost と、`setup_game_fp.py` の `GHOST_SCALE`）④金庫のダイヤルは問題なし（つまみは金庫の高さのまん中より約7cm低いだけ）⑤`KD_ReadPlane`（新聞を読む板）がボックスの中心に出しっぱなし。ゲーム中は隠れるか未確認
 - （以下は当時の記録）ひかるのPCで Unreal 5.3.2 を使用。旧プロジェクト `MyProject4`（`Documents/Unreal Projects/MyProject4`）
 - `unreal/setup_phonebooth.py` を実行 → 全手順 OK（FBX・画像・材質・配置・光・霧・ポストプロセス・DoorHinge・保存）。旧レベルは `/Game/KoushuDenwa/Maps/L_Booth`
 - 見た目の調整値：PostProcess の「露出補正」= **-7.8**（この版は値が大きいほど明るい。-6.5〜-7.8で調整）、TubeLight_L/R の Intensity = 1500 lm
