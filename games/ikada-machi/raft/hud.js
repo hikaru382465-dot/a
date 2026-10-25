@@ -197,6 +197,16 @@ window.RAFT.parts.hud = function (c) {
     setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
     $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;
   }
+  // 種をえらぶ（種が2種類以上あるとき）
+  let seedPlot = null;
+  function openSeeds(id) {
+    seedPlot = id; const o = s.objects.find(x => x.id === id); if (!o) return; const ks = sim.seedKinds(s);
+    $('seedList').innerHTML = ks.map(k => `<button class="sdpick" data-k="${k}"><canvas width="84" height="80" data-k="${k}"></canvas><i>${s.inv[k]}</i>${D.ITEMS[k].name.replace('の種', '<br>の種')}</button>`).join('');
+    $('seedList').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
+    $('seedList').querySelectorAll('button').forEach(b => b.onclick = () => { const p = s.objects.find(x => x.id === seedPlot); if (p) sim.plant(s, p, b.dataset.k); $('seedbox').style.display = 'none'; refresh(); });
+    closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'none'; $('seedbox').style.display = 'block';
+  }
+  $('bSeedClose').onclick = () => { $('seedbox').style.display = 'none'; };
   // かまど（焚き火と同じ形の画面）
   let ovId = null;
   const oe = { veg: $('oVeg'), fish: $('oFish'), wood: $('oWood'), out: $('oOut'), iveg: $('ivVeg'), ifish: $('ivFish'), iwood: $('ivWood') };
@@ -302,7 +312,7 @@ window.RAFT.parts.hud = function (c) {
   { let n = 0, tm = 0; const on = () => document.body.classList.add('debug'); if (/[?&]debug/.test(location.search)) on();
     $('helpTitle').onclick = () => { n++; clearTimeout(tm); tm = setTimeout(() => { n = 0; }, 900); if (n >= 5) { on(); toast('テスト用ボタンを出した'); } }; }
   $('bDemo').onclick = () => { sim.demoSet(s); $('helpbox').style.display = 'none'; toast('置き物を全部ならべた（テスト）。広いイカダにするので、セーブを消したいときは「?new」をつけて開く', 4000); };
-  $('bDexAll').onclick = () => { s.inv.seed = (s.inv.seed || 0) + 5; Object.keys(D.FISH).forEach(k => { s.fishdex[k] = s.fishdex[k] || 1; }); Object.keys(D.SCENES).forEach(k => { s.scenes[k] = s.scenes[k] || 1; }); $('helpbox').style.display = 'none'; toast('図鑑を全部のせた（テスト）。持ち物の本で「魚」「景色」を見てね'); };
+  $('bDexAll').onclick = () => { s.inv.seed = (s.inv.seed || 0) + 5; Object.keys(D.CROPS).forEach(k => { s.inv['sd_' + k] = (s.inv['sd_' + k] || 0) + 2; }); Object.keys(D.FISH).forEach(k => { s.fishdex[k] = s.fishdex[k] || 1; }); Object.keys(D.SCENES).forEach(k => { s.scenes[k] = s.scenes[k] || 1; }); $('helpbox').style.display = 'none'; toast('図鑑を全部のせた（テスト）。持ち物の本で「魚」「景色」を見てね'); };
   $('bCallBoat').onclick = () => { if (sim.callBoat(s)) { $('helpbox').style.display = 'none'; toast('船を呼んだ（すぐに来る）'); } };
   $('bHelp').onclick = () => { $('helpbox').style.display = 'block'; };
   $('bHelpClose').onclick = () => { $('helpbox').style.display = 'none'; };
@@ -341,6 +351,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       if (e.e === 'oven') { openOv(e.id); return; }
+      if (e.e === 'plotpick') { openSeeds(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
       if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fishnew', 'plotharvest', 'plotplant', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
     });

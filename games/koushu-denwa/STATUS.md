@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-23（雨の夜の電話ボックスの動画を Blender で作る道具を追加。前回：第18版：本物の幽霊モデルをゲームに取り込む処理を追加。電話の専用カメラ＋クリック、壁ぎわのガタガタ止め、金庫の開いた状態・音、ガラスの文字を作った）
+最終更新：2026-10-25（第21版：ガラスの文字をガラスの面に合わせ、幽霊の向き（-90）と大きさ（1.2倍）を直した。実機で未確認）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -58,8 +58,10 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## Unreal Engine での到達点（2026-10-03）
 
-- ひかるのPCで Unreal 5.3.2 を使用（5.8.0 は VC++ 警告が出るため使わない）。プロジェクト名 `MyProject4`（`Documents/Unreal Projects/MyProject4`）
-- `unreal/setup_phonebooth.py` を実行 → 全手順 OK（FBX・画像・材質・配置・光・霧・ポストプロセス・DoorHinge・保存）。レベルは `/Game/KoushuDenwa/Maps/L_Booth`
+- **いまのプロジェクト（2026-10-25 時点）**：プロジェクト名 `kousyuudennwa`（`C:\UEProjects\kousyuudennwa5.8`、UE 5.8）、本編のレベルは `L_Main`（`/Game/L_Main`。エディタ起動時に開くレベルに設定済み＝`Config/DefaultEngine.ini` の EditorStartupMap）
+- **ボックスの中の下見と直し（2026-10-25・未確認＝実機の Play で）**：①ガラスの文字（`Poster_*`）は、ガラスの面より内側に浮いていた→買ったボックスには `phone_box-1_glass`（ガラスだけの部品）があり、面は中心から左右 ±56.6cm・前後 ±68cm。その2cm内側に動かしてレベルを保存。`setup_game_fp.py` の `glass_halves()` は、部品の大きさと置き場所から角を計算する方法に直した（実行し直すとログ「ガラスの面の位置: …」が出るはず）②幽霊は回転0度で +Y 向きなのに、`kd_game.py` は +X を相手に向けていた→`GHOST_YAW=-90`（`kd_game.py` と `Saved/kd_settings.json` の両方。json が優先される）③幽霊は160cmでプレイヤー（約190cm）より低い→1.2倍（レベルの Ghost と、`setup_game_fp.py` の `GHOST_SCALE`）④金庫のダイヤルは問題なし（つまみは金庫の高さのまん中より約7cm低いだけ）⑤`KD_ReadPlane`（新聞を読む板）がボックスの中心に出しっぱなし。ゲーム中は隠れるか未確認
+- （以下は当時の記録）ひかるのPCで Unreal 5.3.2 を使用。旧プロジェクト `MyProject4`（`Documents/Unreal Projects/MyProject4`）
+- `unreal/setup_phonebooth.py` を実行 → 全手順 OK（FBX・画像・材質・配置・光・霧・ポストプロセス・DoorHinge・保存）。旧レベルは `/Game/KoushuDenwa/Maps/L_Booth`
 - 見た目の調整値：PostProcess の「露出補正」= **-7.8**（この版は値が大きいほど明るい。-6.5〜-7.8で調整）、TubeLight_L/R の Intensity = 1500 lm
 - 写真どおりに出ている：パネルの印刷、液晶、テンキー、SOS、下の扉、受話器、コード、料金板、注意シール、電話帳
 - 注意：UEのプロジェクトはリポジトリの外（PC内）にある。大事なファイルは `assets/unreal/PhoneBooth.fbx` とスクリプト
@@ -90,6 +92,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 光のコントラスト（Key/Fill/Rim の3点照明）は、次に調整する
 
 ## 進行中・次にやること
+
+- **EngineWire 導入成功（2026-10-24）**：PC側の Claude Code から `unreal-engine`（http://127.0.0.1:3000/mcp）がつながり、レベルのアクター一覧（66個。KD_・DialSafe_・Poster_・Ghost など）を取れた。つまずき：①プラグインは **C:\\UEProjects\\kousyuudennwa5.8**（本物のゲーム）に入れる（Dドライブにも別コピーがある）②「Movie Render Queue」系2つのプラグインをオンにしないと読み込み失敗（Missing import）③プロジェクト設定→EngineWire→Enable Native MCP Server にチェック→再起動 ④`claude` は `C:\\Users\\hikaru\\.local\\bin\\claude.exe`（公式インストーラ。PATHに通らなかったのでフルパスで起動）。つなぎ方は `claude mcp add --scope user --transport http unreal-engine http://127.0.0.1:3000/mcp --header "X-MCP-Capability-Token: <ファイルから読む>"`。トークン（Saved\\MCP\\capability-token）は秘密。次：PC側Claudeに画面を撮らせて、ガラス文字・金庫・電話・幽霊の位置を見てもらう。
 
 - **雨の夜の森の電話ボックス（見本画像2枚＋動画）**：`blender/make_rain_scene.py`（新規1本。既存の `phonebooth.glb`・`Trees.fbx` を読み込むだけ）。`--stage blockout→model→look`（箱だけ→実物→質感・汚れ・雨・霧・光）、`--shot still/closeup/anim`、`--q proto/final`。汚れ（塗装剥げ・埃・垂れ跡・指紋・ガラスの雨粒）は画像なしのノードだけ。雨は毎フレーム numpy で動かす細い板、霧は世界の薄い体積、蛍光灯の点滅は `flicker_gain()`、カメラは6秒でゆっくり前へ。確認用の絵は `assets/rain_scene/`。クラウドではEEVEEが使えずCycles（CPU）：試作640x360は1枚約17秒。試作動画（6秒・640x360）は `assets/rain_scene/rain_booth_proto.mp4`。点滅・雨・カメラは動いた。直す所：終わりでボックスが画面の右はしで切れる（`CAM_END`/`CAM_TARGET` を調整）。次：①`--q final`（1280x720。約2.5〜3.5時間）②泥道の水たまりの反射・奥の木をもう少し見せる・ボックスの光をもう少し強く ③看板の文字の向き確認。ゲーム（Unreal）側の見た目の参考にも使える。道具：Blenderは今のまま／Unrealに移すなら雨は Niagara、霧は Exponential Height Fog が楽（あとでいい）。
 - **本物の幽霊をゲームに入れる処理を作った（未確認）**：`setup_game_fp.py` の `s_ghost` が、`GHOST_MODEL`=True のとき、`assets/unreal/ghost/Ghost_rigged.fbx`（骨・表情つき）を「スケルタルメッシュ」として取り込み（Import Morph Targets・頂点カラー Replace、高さ `GHOST_HEIGHT`=160cm に自動で合わせる）、材質5つ（肌・口の中・歯・舌・歯ぐき）を作って、`Ghost` として置く。失敗したら、仮の姿（黒い筒＋白い頭）に自動で戻る。`kd_game.py`：足の高さは「いま立っている地面」に合わせ（`GHOST_Z`で補正）、向きは `GHOST_YAW` で補正（背中を向けるなら 180）。次：実機で、幽霊の向き・足の高さ・口の見え方を確認。首かしげのアニメを場面ごとに動かす（`kd_game.py`）・表情（JawOpen/Smile/Grin）をモーフで動かす。

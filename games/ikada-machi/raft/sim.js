@@ -412,19 +412,25 @@
     else s.events.push({ e: 'rackwait', left: Math.ceil(R.sec - Math.max.apply(null, o.h)) });
     return false;
   };
+  // 種袋：持っている種の種類（おたのしみ種袋＋作物ごと）
+  S.seedKinds = s => Object.keys(D.ITEMS).filter(k => (k === 'seed' || D.ITEMS[k].seedOf) && (s.inv[k] || 0) > 0);
+  S.plant = function (s, o, key) {
+    if ((s.inv[key] || 0) <= 0 || o.c) return false; let pick = D.ITEMS[key] && D.ITEMS[key].seedOf;
+    if (!pick) { const C = D.CROPS, ids = Object.keys(C); let tot = 0; ids.forEach(k => tot += C[k].w); let r = S.rand() * tot; pick = ids[0]; for (const k of ids) { r -= C[k].w; if (r <= 0) { pick = k; break; } } }
+    s.inv[key]--; o.c = pick; o.p = 0; o.w = 0; s.events.push({ e: 'plotplant' }); return true;
+  };
   // 畑：できていれば収穫→空なら種をまく→水が切れていれば水をやる→そうでなければようすを知らせる
   S.plotUse = function (s, o) {
     const P = D.PLOT, C = D.CROPS, cr = o.c && C[o.c];
     if (cr && o.p >= cr.sec) {
       const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; S.tally(s, 'veg', n); S.note(s, 'farm'); const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
-      const back = S.rand() < P.seedBack; if (back) s.inv.seed = (s.inv.seed || 0) + 1;
+      const back = S.rand() < P.seedBack; if (back) { const sk = 'sd_' + o.c; s.inv[sk] = (s.inv[sk] || 0) + 1; }      // 収穫で戻る種は、その作物の種袋
       s.events.push({ e: 'plotharvest', c: o.c, n, back }); if (first) s.events.push({ e: 'cropnew', id: o.c }); o.c = null; o.p = 0; o.w = 0; return true;
     }
     if (!cr) {
-      if ((s.inv.seed || 0) <= 0) { s.events.push({ e: 'plotnoseed' }); return false; }
-      const ids = Object.keys(C); let tot = 0; ids.forEach(k => tot += C[k].w); let r = S.rand() * tot, pick = ids[0];
-      for (const k of ids) { r -= C[k].w; if (r <= 0) { pick = k; break; } }
-      s.inv.seed--; o.c = pick; o.p = 0; o.w = 0; s.events.push({ e: 'plotplant' }); return true;
+      const kinds = S.seedKinds(s); if (!kinds.length) { s.events.push({ e: 'plotnoseed' }); return false; }
+      if (kinds.length > 1) { s.events.push({ e: 'plotpick', id: o.id }); return false; }      // 種が2種類以上：どれをまくか選ぶ
+      return S.plant(s, o, kinds[0]);
     }
     if ((o.w || 0) <= 0) {
       const t = s.objects.filter(x => x.k === 'tank' && x.w > 0).sort((a, b) => b.w - a.w)[0];

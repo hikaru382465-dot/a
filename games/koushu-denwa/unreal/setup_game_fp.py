@@ -35,7 +35,8 @@ FLASH_INTENSITY = 3000.0             # 懐中電灯の明るさ（カンデラ�
 FLASH_INNER, FLASH_OUTER = 14.0, 30.0
 FLASH_RADIUS = 1800.0
 POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の強さ
-GHOST_MODEL = True                   # True: 本物の幽霊のモデル（assets/unreal/ghost/Ghost_rigged.fbx）を置く。取り込みに失敗したら、仮の姿（黒い筒＋白い頭）を置く。False: いつも仮の姿
+GHOST_SCALE = 1.2                    # 本物の幽霊の大きさ（1.0=約160cm）。プレイヤー（約190cm）より少し高くして、見上げる怖さを出す
+GHOST_MODEL = True                  # True: 本物の幽霊のモデル（assets/unreal/ghost/Ghost_rigged.fbx）を置く。取り込みに失敗したら、仮の姿（黒い筒＋白い頭）を置く。False: いつも仮の姿
 GHOST_HEIGHT = 160.0                 # 幽霊の身長（cm）。取り込み後に測って、この高さに合わせる
 RESET_POSTERS = True                 # True: ガラスの文字・目の写真の位置は、実行のたびに、ガラスの面から計算し直す（手で動かした位置は覚えない）。手で動かした位置を残したいなら False
 GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面から内側へ何cm 離して貼るか（浮いて見えるなら小さく。ガラスにめり込むなら大きく）
@@ -623,6 +624,7 @@ def s_ghost_model():
         comp.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
     except Exception:  # noqa
         pass
+    a.set_actor_scale3d(unreal.Vector(GHOST_SCALE, GHOST_SCALE, GHOST_SCALE))
     tag_actor(a, "Ghost")
     a.set_actor_hidden_in_game(True)
     log("本物の幽霊を置きました（骨 %s・アニメ %d本・材質 %d）。最初は見えません" % ("あり", len(anims), len(mats)))
@@ -977,6 +979,21 @@ def glass_halves():
     for c in STATE["booth"].get_components_by_class(unreal.StaticMeshComponent):
         mesh = c.get_editor_property("static_mesh")
         if mesh is None or "glass" not in mesh.get_name().lower():
+            continue
+        corners = None
+        try:                                                                # 部品の「大きさ」と置き場所から、ガラスの8つの角を世界座標で出す（回転・拡大込み）
+            mb = mesh.get_bounds()
+            xf = c.get_world_transform()
+            o, e = mb.origin, mb.box_extent
+            corners = [xf.transform_location(unreal.Vector(o.x + sx * e.x, o.y + sy * e.y, o.z + sz * e.z))
+                       for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]
+        except Exception as ex:  # noqa
+            log("  (ガラスの角を出せません。別の方法で測ります) %s" % ex)
+        if corners:
+            v_n = max(abs((p.x - cx) * n[0] + (p.y - cy) * n[1]) for p in corners)
+            v_t = max(abs((p.x - cx) * t[0] + (p.y - cy) * t[1]) for p in corners)
+            mx_n = v_n if mx_n is None else max(mx_n, v_n)
+            mx_t = v_t if mx_t is None else max(mx_t, v_t)
             continue
         b = None
         for getter in (lambda: c.get_editor_property("bounds"), lambda: c.bounds):

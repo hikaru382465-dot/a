@@ -8,7 +8,7 @@ window.RAFT.data = {
   ITEMS: {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
-    seed:    { name: '種袋',     lv: 2, w: 0.9, tip: '畑にまく。何が育つかは、お楽しみ' },
+    seed:    { name: 'おたのしみ種袋', lv: 2, w: 0.5, tip: '畑にまく。何が育つかは、お楽しみ（12種類のどれか）' },
     veg:     { name: '野菜',     lv: 0, w: 0, food: 8, drink: 3, tip: '畑でとれた。そのままだと少し。料理すると、もっと戻る' },
     dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
     yakiyasai: { name: '焼き野菜', lv: 0, w: 0, food: 35, tip: 'かまどで作る。おなかがしっかり戻る' },
@@ -150,7 +150,13 @@ window.RAFT.data = {
     potato: { name: 'ジャガイモ', sec: 480, star: 1, w: 5, tip: 'ほくほくのいも。焼くとおいしそう' },
     corn:   { name: 'トウモロコシ', sec: 600, star: 2, w: 3, tip: '背が高くなる。きいろい実が自慢' },
     berry:  { name: 'イチゴ',     sec: 600, star: 2, w: 3, tip: 'あまい赤い実。おやつにぴったり' },
-    melon:  { name: 'スイカ',     sec: 720, star: 3, w: 1.5, tip: '大きな丸い実。育つのに時間がかかる' }
+    melon:  { name: 'スイカ',     sec: 720, star: 3, w: 1.5, tip: '大きな丸い実。育つのに時間がかかる' },
+    eggplant:  { name: 'ナス',       sec: 480, star: 1, w: 4, tip: 'つやつやの紫の実。焼くとおいしい' },
+    cabbage:   { name: 'キャベツ',   sec: 540, star: 1, w: 4, tip: 'まるくて、葉っぱがぎっしり' },
+    pepper:    { name: 'ピーマン',   sec: 540, star: 1, w: 4, tip: '緑と赤の実がなる。ちょっとにがい' },
+    pumpkin:   { name: 'カボチャ',   sec: 780, star: 2, w: 2.5, tip: '大きなオレンジ色の実。スープにぴったり' },
+    grape:     { name: 'ブドウ',     sec: 840, star: 3, w: 1.2, tip: 'むらさきのふさ。あまくて、めずらしい' },
+    pineapple: { name: 'パイナップル', sec: 900, star: 3, w: 1.0, tip: '南の島の果物。育つのに、とても時間がかかる' }
   },
   FISH: {
     iwashi: { name: 'イワシ',   lv: 1, star: 1, w: 10, tip: '群れでいる小さな魚。どこにでもいる' },
@@ -215,3 +221,6 @@ window.RAFT.data.HUT_LOOKS = [
 // 見た目の系統（HUT_LOOKS と同じ順）。選ぶ画面の絞り込みに使う
 window.RAFT.data.HUT_FAM = ["wood", "wood", "stone", "sea", "green", "stone", "sea", "green", "green", "snow", "stone", "stone", "stone", "green", "wood", "stone", "stone", "stone", "stone", "stone", "wood", "wood", "wood", "wood", "wood", "wood", "wood", "green", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow"];
 window.RAFT.data.HUT_FAMS = { wood: '木・わら', stone: '石・レンガ', sea: '海', green: '緑', snow: '雪' };
+// 作物ごとの種袋（sd_<作物>）。流れてくる確率は、作物のレア度で決める。畑にまくと、その作物が育つ
+(function () { const D = window.RAFT.data, W = { 1: 0.5, 2: 0.3, 3: 0.12 };
+  Object.keys(D.CROPS).forEach(k => { const c = D.CROPS[k]; D.ITEMS['sd_' + k] = { name: c.name + 'の種', lv: 2, w: W[c.star], seedOf: k, tip: '畑にまくと、' + c.name + 'が育つ' }; }); })();
