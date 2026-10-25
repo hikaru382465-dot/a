@@ -62,7 +62,7 @@ def _new_crops(path, ids):
     for id, (x0, y0, x1, y1, pts) in zip(ids, items):
         m = np.zeros((y1 - y0, x1 - x0), bool)
         for (py, px) in pts: m[py - y0, px - x0] = True
-        sub = A[y0:y1, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1], np.maximum(sub[..., 0], sub[..., 2]) + 30)      # ふちの緑を、少しおさえる
+        sub = A[y0:y1, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1].astype(int), np.maximum(sub[..., 0].astype(int), sub[..., 2].astype(int)) + 30).astype(np.uint8)      # ふちの緑を、少しおさえる
         im = Image.fromarray(np.dstack([sub, (m * 255).astype(np.uint8)]), 'RGBA'); k = h0 / im.height
         im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8))); res[id] = im
     return res
