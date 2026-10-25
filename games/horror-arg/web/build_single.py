@@ -14,7 +14,7 @@ body = re.sub(r"<script src=\"[^\"]+\"></script>\s*", "", body)
 scripts = "\n".join((here / n).read_text(encoding="utf-8") for n in
                     ["data.js", "data2.js", "data3.js", "sound.js", "apps.js", "gimmicks.js", "game.js"])
 import base64
-for _w in ["wallpaper_b_dusk_fig", "wallpaper_b_night_fig", "wallpaper_b_red_fig", "wallpaper_b_lit_fig", "wallpaper_b_dusk", "wallpaper_b_night", "wallpaper_b_red", "wallpaper_b_lit", "wallpaper_night", "wallpaper_red", "wallpaper_lit", "wallpaper"]:
+for _w in ["wallpaper_b_dusk_fig0", "wallpaper_b_night_fig0", "wallpaper_b_red_fig0", "wallpaper_b_lit_fig0", "wallpaper_b_dusk_fig1", "wallpaper_b_night_fig1", "wallpaper_b_red_fig1", "wallpaper_b_lit_fig1", "wallpaper_b_dusk_fig", "wallpaper_b_night_fig", "wallpaper_b_red_fig", "wallpaper_b_lit_fig", "wallpaper_b_dusk", "wallpaper_b_night", "wallpaper_b_red", "wallpaper_b_lit", "wallpaper_night", "wallpaper_red", "wallpaper_lit", "wallpaper"]:
     css = css.replace(_w + ".jpg", "data:image/jpeg;base64," + base64.b64encode((here / (_w + ".jpg")).read_bytes()).decode())
 scripts = scripts.replace("</script", "<\\/script")
 

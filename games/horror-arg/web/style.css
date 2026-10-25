@@ -499,3 +499,20 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .pub-hero{position:relative;height:150px;margin:6px 0 12px;overflow:hidden;border-radius:3px}
 .pub-hero .pub-pic{opacity:.9}
 @media (prefers-reduced-motion:reduce){.fx-noiseband{animation:none}}
+
+/* 大きな文字（くすんだ赤の細い明朝体） */
+.fx-big2{display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(0,0,0,.35) 0,rgba(0,0,0,.88) 100%);animation:fxbig2o 1s ease-out forwards}
+.fx-big2 span{font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif CJK JP","Noto Serif JP",serif;font-weight:500;font-size:min(10vw,118px);letter-spacing:.4em;padding-left:.4em;color:#8e1d1d;filter:blur(.5px);
+  text-shadow:0 0 26px rgba(110,0,0,.85),2px 0 rgba(255,70,70,.22),-2px 0 rgba(70,160,255,.18);animation:fxbig2s 1s ease-out forwards}
+@keyframes fxbig2o{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
+@keyframes fxbig2s{0%{opacity:0;filter:blur(9px);transform:scale(1.05)}10%{opacity:.85;filter:blur(2px)}18%{opacity:.4;filter:blur(1px)}26%{opacity:.95;filter:blur(.5px)}72%{opacity:.9;filter:blur(.5px);transform:scale(1)}100%{opacity:0;filter:blur(4px);transform:scale(.99)}}
+/* 走るノイズ（canvas）／人影の途中の絵 */
+.fx-noise2{width:100vw;height:100vh;mix-blend-mode:screen;opacity:.9}
+#wallpaper.b.fig0{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_fig0.jpg)}
+#wallpaper.b.night.fig0{background-image:url(wallpaper_b_night_fig0.jpg)}
+#wallpaper.b.red.fig0{background-image:url(wallpaper_b_red_fig0.jpg)}
+#wallpaper.b.lit.fig0{background-image:url(wallpaper_b_lit_fig0.jpg)}
+#wallpaper.b.fig1{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_fig1.jpg)}
+#wallpaper.b.night.fig1{background-image:url(wallpaper_b_night_fig1.jpg)}
+#wallpaper.b.red.fig1{background-image:url(wallpaper_b_red_fig1.jpg)}
+#wallpaper.b.lit.fig1{background-image:url(wallpaper_b_lit_fig1.jpg)}

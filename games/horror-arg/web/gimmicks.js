@@ -21,11 +21,24 @@ window.Gimmicks = (function () {
     const d = document.createElement("div"); d.className = "fx " + cls; if (text) d.textContent = text;
     document.body.append(d); setTimeout(() => d.remove(), ms); return d;
   }
+  // 揺れ：最初に強く、だんだん弱く。向きと速さは不規則で、なめらかに追いかける。少し回り、速いときはほんのりぼける
+  let shakeRaf = 0;
   function shake(ms, strong) {
     if (!fxOn()) return;
-    const el = deskEl(); el.style.setProperty("--shk", (strong ? 14 : 7) * K() + "px");
-    el.classList.remove("fx-shake"); void el.offsetWidth; el.classList.add("fx-shake");
-    setTimeout(() => el.classList.remove("fx-shake"), ms);
+    const el = deskEl(), amp = (strong ? 16 : 7) * K(), t0 = performance.now();
+    cancelAnimationFrame(shakeRaf);
+    let tx = 0, ty = 0, tr = 0, cx = 0, cy = 0, cr = 0, next = 0;
+    (function f(now) {
+      const t = now - t0;
+      if (t >= ms) { el.style.transform = ""; el.style.filter = ""; return; }
+      const decay = Math.pow(1 - t / ms, 2.2);
+      if (now >= next) { tx = Math.random() * 2 - 1; ty = Math.random() * 2 - 1; tr = Math.random() * 2 - 1; next = now + 30 + Math.random() * 35; }
+      cx += (tx - cx) * 0.45; cy += (ty - cy) * 0.45; cr += (tr - cr) * 0.35;
+      el.style.transform = "scale(1.015) translate(" + (cx * amp * decay).toFixed(2) + "px," + (cy * amp * 0.6 * decay).toFixed(2) + "px) rotate(" + (cr * 0.32 * decay * K()).toFixed(3) + "deg)";
+      const v = Math.abs(cx - tx) * decay * amp;
+      el.style.filter = v > 4 ? "blur(" + Math.min(1.1, v * 0.07).toFixed(2) + "px)" : "";
+      shakeRaf = requestAnimationFrame(f);
+    })(t0);
   }
   function glitch(ms) {
     if (!fxOn() || LV() < 2) return;
@@ -36,44 +49,83 @@ window.Gimmicks = (function () {
     if (!fxOn() || LV() < 2) return;
     for (let i = 0; i < Math.min(times || 1, 2); i++) setTimeout(() => overlay("fx-dark", 160), i * 350);
   }
+  // 大きな文字：暗がりの中に、くすんだ赤の細い明朝体。ぼけた状態から現れ、一度かすれてから消える（ベタ塗りの赤は使わない）
   function bigText(text, ms) {
     if (!fxOn() || LV() < 2) return;
-    overlay("fx-big", ms || 700, text);
+    const o = overlay("fx-big2", (ms || 700) + 400);
+    o.style.animationDuration = ((ms || 700) + 300) + "ms";
+    const s = document.createElement("span"); s.textContent = text; s.style.animationDuration = ((ms || 700) + 300) + "ms";
+    s.style.marginLeft = (Math.random() * 14 - 7) + "vw"; s.style.marginTop = (Math.random() * 8 - 4) + "vh";
+    o.append(s);
   }
-  // ノイズが上から下へ走る（砂嵐の帯）
-  let noiseImg = null;
-  function noiseUrl() {
-    if (noiseImg) return noiseImg;
-    const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"), d = x.createImageData(128, 128);
-    for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
-    x.putImageData(d, 0, 0); noiseImg = "url(" + c.toDataURL() + ")"; return noiseImg;
-  }
+  // ノイズ：アナログテレビの「走る帯」。canvasで毎フレーム描く。帯の縁はやわらかく、行ごとに明るさが違い、ときどき白い筋が走り、色のちらつきがある。
   function noiseSweep() {
     api.S.noise();
     if (!fxOn()) return;
-    const o = overlay("fx-noise", 1300);
-    [["24vh", 0], ["6vh", 0.18]].forEach(([h, delay]) => {
-      const b = document.createElement("div"); b.className = "fx-noiseband"; b.style.height = h; b.style.backgroundImage = noiseUrl() + ",repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 2px,transparent 2px 4px)";
-      b.style.animationDelay = delay + "s"; o.append(b);
-    });
+    const W = 320, H = 180, cv = document.createElement("canvas"); cv.width = W; cv.height = H; cv.className = "fx fx-noise2";
+    document.body.append(cv);
+    const x = cv.getContext("2d"), img = x.createImageData(W, H), d = img.data, dur = 1100, t0 = performance.now();
+    const bandH = H * (0.2 + Math.random() * 0.08), ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    let rowMul = new Float32Array(H), rowStreak = new Int16Array(H * 2);
+    (function f(now) {
+      const t = (now - t0) / dur;
+      if (t >= 1) { cv.remove(); return; }
+      const cy = ease(t) * (H + bandH) - bandH * 0.5 + (Math.random() - .5) * 3, k = K() * Math.sin(Math.PI * Math.min(1, t * 1.15));
+      for (let r = 0; r < H;) { const run = 1 + Math.floor(Math.random() * 5), m = 0.25 + Math.random() * 0.75, st = Math.random() < 0.05; for (let q = 0; q < run && r < H; q++, r++) { rowMul[r] = m; rowStreak[r * 2] = st ? Math.floor(Math.random() * W * .6) : 0; rowStreak[r * 2 + 1] = st ? rowStreak[r * 2] + 40 + Math.floor(Math.random() * 120) : 0; } }
+      for (let yy = 0; yy < H; yy++) {
+        const dist = Math.abs(yy - cy) / (bandH / 2), edge = dist >= 1 ? 0 : Math.pow(1 - dist, 1.6);
+        const grain = 0.05 * k, a0 = Math.max(edge * 0.85 * k, grain);
+        for (let xx = 0; xx < W; xx++) {
+          const i = (yy * W + xx) * 4, n = Math.random() * 255 * rowMul[yy];
+          let v = n, rr = n, gg = n, bb = n;
+          if (rowStreak[yy * 2] && xx > rowStreak[yy * 2] && xx < rowStreak[yy * 2 + 1]) { v = 235; rr = gg = bb = 235; }
+          if (edge > 0.3 && Math.random() < 0.04) { rr = 255; gg = Math.random() * 80; bb = Math.random() * 255; }     // 色のちらつき
+          d[i] = rr; d[i + 1] = gg; d[i + 2] = bb; d[i + 3] = Math.min(255, a0 * 255 * (edge > 0 ? 1 : 0.4));
+        }
+      }
+      // 帯の上の縁に、細い明るい線（トラッキングのずれ）
+      const ly = Math.round(cy - bandH / 2); if (ly >= 0 && ly < H) for (let xx = 0; xx < W; xx++) { const i = (ly * W + xx) * 4; d[i] = d[i + 1] = d[i + 2] = 220; d[i + 3] = 120 * k; }
+      x.putImageData(img, 0, 0);
+      requestAnimationFrame(f);
+    })(t0);
     if (LV() >= 2) glitch(450);
   }
-  // 壁紙の家の窓に、人影が一瞬だけ立つ（Blender版の壁紙のとき。窓が隠れないよう、全部の窓がいったん消える）
-  let figBusy = false;
+  // 壁紙の家の窓に、人影が一瞬だけ立つ（Blender版の壁紙のとき）。
+  // 流れ：窓の明かりがつく→奥にぼんやり小さな人影→窓ぎわまで来る→消える。窓が隠れないよう、開いている窓は先にいったん消える。
+  let figBusy = false; const figReady = {};
+  // 人影の絵は、先に読み込んで解読しておく（初回に一瞬、背景が真っ暗になるのを防ぐ）
+  function preloadFigure(wp) {
+    const key = wp.className.replace(/\bfig\d?\b/g, "").trim();
+    if (figReady[key]) return figReady[key];
+    const urls = [], keep = wp.className;
+    ["fig0", "fig1", "fig"].forEach(c => {
+      wp.className = key + " " + c;
+      const m = /url\("?([^")]+)"?\)/.exec(getComputedStyle(wp).backgroundImage); if (m) urls.push(m[1]);
+    });
+    wp.className = keep;
+    figReady[key] = Promise.all(urls.map(src => { const im = new Image(); im.src = src; return im.decode ? im.decode().catch(() => {}) : Promise.resolve(); }));
+    return figReady[key];
+  }
   function windowFigure() {
     const wp = document.querySelector("#wallpaper");
     if (figBusy || !wp || !/\bb\b/.test(wp.className)) return;
     figBusy = true;
-    const w = api.wins(), hidden = Object.keys(w).filter(k => !w[k].min);
-    const hide = LV() >= 2;
-    api.S.creak();
-    if (hide) { api.S.jolt(); shake(300, true); blackout(1); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
-    later(() => { wp.classList.add("fig"); api.S.knock(); }, hide ? 350 : 0);
-    later(() => { wp.classList.remove("fig"); }, (hide ? 350 : 0) + 750);
-    setTimeout(() => {
-      hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
-      figBusy = false;
-    }, hide ? 1500 : 800);
+    preloadFigure(wp).then(() => {
+      const w = api.wins(), hidden = Object.keys(w).filter(k => !w[k].min);
+      const hide = LV() >= 2, t = hide ? 380 : 0;
+      api.S.creak();
+      if (hide) { api.S.jolt(); shake(380, true); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
+      const set = c => { wp.classList.remove("fig0", "fig1", "fig"); if (c) wp.classList.add(c); };
+      later(() => set("fig0"), t);
+      later(() => set("fig1"), t + 260);
+      later(() => { set("fig"); api.S.knock(); }, t + 560);
+      later(() => set(null), t + 1000);
+      setTimeout(() => {
+        set(null);
+        hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
+        figBusy = false;
+      }, t + 1250);
+    });
   }
   function whisperText(text) {
     if (!fxOn()) return;
@@ -100,6 +152,7 @@ window.Gimmicks = (function () {
     every("bigFlash", 110000, 190000, bigFlash);
     every("noise", 60000, 110000, noiseSweep);
     every("windowFigure", 150000, 260000, windowFigure);
+    later(() => { const wp = document.querySelector("#wallpaper"); if (wp && /\bb\b/.test(wp.className)) preloadFigure(wp); }, 3000);
   }
   function stop() {
     active = false; timers.forEach(clearTimeout); timers = [];
