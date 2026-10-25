@@ -51,6 +51,23 @@ def nosoil(im):      # 作物の絵についている「土のもりあがり」
         for (yy, xx) in pts: keep[yy, xx] = True
     a[..., 3] = np.where(keep, a[..., 3], 0); out = Image.fromarray(a.astype(np.uint8), 'RGBA'); return out.crop(out.getchannel('A').getbbox())
 fin = {k: nosoil(cut(b)) for k, b in FINAL.items()}
+# 新しい作物6種（ひかるの絵：緑背景、横に6つ）。土はもともと描かれていない。大きさは、いまの作物（トマトなど）の高さの平均にそろえる
+def _new_crops(path, ids):
+    import make_chars
+    A, fg = cutlib.key_green(path); comps = make_chars.components(fg, 1500); items = []
+    for pts in comps:
+        ys = np.array([p[0] for p in pts]); xs = np.array([p[1] for p in pts]); items.append((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1, pts))
+    items.sort(key=lambda t: t[0]); assert len(items) == len(ids), len(items)
+    h0 = float(np.mean([v.height for v in fin.values()])); res = {}
+    for id, (x0, y0, x1, y1, pts) in zip(ids, items):
+        m = np.zeros((y1 - y0, x1 - x0), bool)
+        for (py, px) in pts: m[py - y0, px - x0] = True
+        sub = A[y0:y1, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1], np.maximum(sub[..., 0], sub[..., 2]) + 30)      # ふちの緑を、少しおさえる
+        im = Image.fromarray(np.dstack([sub, (m * 255).astype(np.uint8)]), 'RGBA'); k = h0 / im.height
+        im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8))); res[id] = im
+    return res
+NEW_IDS = ['eggplant', 'pumpkin', 'pepper', 'cabbage', 'grape', 'pineapple']
+fin.update(_new_crops(here.parent / 'art' / 'items' / 'crops_new.png', NEW_IDS)); FINAL.update({k: None for k in NEW_IDS})
 PW, PH = planter.size; pad = 8; TOPH = 96
 def compose(plant, scale=1.0):
     W = PW + pad * 2; H = PH + TOPH; cv = Image.new('RGBA', (W, H), (0, 0, 0, 0)); cv.alpha_composite(planter, (pad, H - PH))

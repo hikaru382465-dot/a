@@ -150,7 +150,13 @@ window.RAFT.data = {
     potato: { name: 'ジャガイモ', sec: 480, star: 1, w: 5, tip: 'ほくほくのいも。焼くとおいしそう' },
     corn:   { name: 'トウモロコシ', sec: 600, star: 2, w: 3, tip: '背が高くなる。きいろい実が自慢' },
     berry:  { name: 'イチゴ',     sec: 600, star: 2, w: 3, tip: 'あまい赤い実。おやつにぴったり' },
-    melon:  { name: 'スイカ',     sec: 720, star: 3, w: 1.5, tip: '大きな丸い実。育つのに時間がかかる' }
+    melon:  { name: 'スイカ',     sec: 720, star: 3, w: 1.5, tip: '大きな丸い実。育つのに時間がかかる' },
+    eggplant:  { name: 'ナス',       sec: 480, star: 1, w: 4, tip: 'つやつやの紫の実。焼くとおいしい' },
+    cabbage:   { name: 'キャベツ',   sec: 540, star: 1, w: 4, tip: 'まるくて、葉っぱがぎっしり' },
+    pepper:    { name: 'ピーマン',   sec: 540, star: 1, w: 4, tip: '緑と赤の実がなる。ちょっとにがい' },
+    pumpkin:   { name: 'カボチャ',   sec: 780, star: 2, w: 2.5, tip: '大きなオレンジ色の実。スープにぴったり' },
+    grape:     { name: 'ブドウ',     sec: 840, star: 3, w: 1.2, tip: 'むらさきのふさ。あまくて、めずらしい' },
+    pineapple: { name: 'パイナップル', sec: 900, star: 3, w: 1.0, tip: '南の島の果物。育つのに、とても時間がかかる' }
   },
   FISH: {
     iwashi: { name: 'イワシ',   lv: 1, star: 1, w: 10, tip: '群れでいる小さな魚。どこにでもいる' },
