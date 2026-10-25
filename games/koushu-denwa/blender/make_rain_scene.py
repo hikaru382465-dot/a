@@ -34,6 +34,7 @@ RAIN_BOX = 9.0                 # 雨を降らせる範囲（正方形の一辺 m
 RAIN_H = 7.0
 RAIN_SPEED = 9.0               # m/s
 SEED = 7
+AIM_SHIFT = 0.45               # 電話を画面の中心から右へ何割ずらすか（0=中央、1=右はし）
 
 Q = {"proto": (640, 360, 16), "final": (1280, 720, 32)}
 
@@ -280,8 +281,16 @@ def make_ground(stage):
     pud = _ramp(nt, 0.52, 0.56, pn.outputs["Fac"])
     inv = _n(nt, "ShaderNodeMath", operation="SUBTRACT"); inv.inputs[0].default_value = 1.0
     L.new(path, inv.inputs[1])
-    pud = _n(nt, "ShaderNodeMath", operation="MULTIPLY")
-    L.new(_ramp(nt, 0.52, 0.56, pn.outputs["Fac"]), pud.inputs[0]); L.new(inv.outputs[0], pud.inputs[1])
+    pud0 = _n(nt, "ShaderNodeMath", operation="MULTIPLY")
+    L.new(_ramp(nt, 0.44, 0.5, pn.outputs["Fac"]), pud0.inputs[0]); L.new(inv.outputs[0], pud0.inputs[1])
+    # ボックスの正面に大きな水たまり（蛍光灯と看板がうつる）
+    dv = _n(nt, "ShaderNodeVectorMath", operation="DISTANCE")
+    dv.inputs[1].default_value = (0.2, -2.3, 0.0)
+    L.new(tc.outputs["Object"], dv.inputs[0])
+    front = _n(nt, "ShaderNodeMath", operation="LESS_THAN")
+    L.new(dv.outputs["Value"], front.inputs[0]); front.inputs[1].default_value = 1.9
+    pud = _n(nt, "ShaderNodeMath", operation="MAXIMUM")
+    L.new(pud0.outputs[0], pud.inputs[0]); L.new(front.outputs[0], pud.inputs[1])
     # 色：道＝茶色い泥、森＝暗い落ち葉
     fn = _n(nt, "ShaderNodeTexNoise"); fn.inputs["Scale"].default_value = 18; fn.inputs["Detail"].default_value = 10
     L.new(tc.outputs["Object"], fn.inputs["Vector"])
@@ -296,7 +305,7 @@ def make_ground(stage):
     L.new(c.outputs["Result"], b.inputs["Base Color"])
     # 粗さ：水たまり0.03、泥0.35、葉0.8
     r0 = _n(nt, "ShaderNodeMix", data_type="FLOAT")
-    L.new(path, r0.inputs["Factor"]); r0.inputs["A"].default_value = 0.35; r0.inputs["B"].default_value = 0.8
+    L.new(path, r0.inputs["Factor"]); r0.inputs["A"].default_value = 0.12; r0.inputs["B"].default_value = 0.8
     r1 = _n(nt, "ShaderNodeMix", data_type="FLOAT")
     L.new(pud.outputs[0], r1.inputs["Factor"]); L.new(r0.outputs["Result"], r1.inputs["A"]); r1.inputs["B"].default_value = 0.03
     L.new(r1.outputs["Result"], b.inputs["Roughness"])
@@ -497,13 +506,13 @@ def make_lights(stage):
     bpy.ops.object.light_add(type="AREA", location=(-1.0, 12.0, 6.5))
     r = bpy.context.object; r.name = "RimBlue"
     r.data.shape = "RECTANGLE"; r.data.size = 9; r.data.size_y = 5
-    r.data.energy = 1500; r.data.color = (0.18, 0.32, 0.8)
+    r.data.energy = 2200; r.data.color = (0.18, 0.32, 0.8)
     r.rotation_euler = (math.radians(65), 0, 0)
     r.visible_camera = False if hasattr(r, "visible_camera") else None
     # 弱い月明かり（Fill）：ほぼ見えない青
     bpy.ops.object.light_add(type="SUN", location=(0, 0, 10))
     s = bpy.context.object; s.name = "MoonFill"
-    s.data.energy = 0.08; s.data.color = (0.45, 0.55, 1.0); s.data.angle = math.radians(8)
+    s.data.energy = 0.45; s.data.color = (0.45, 0.55, 1.0); s.data.angle = math.radians(8)
     s.rotation_euler = (math.radians(50), 0, math.radians(30))
     return lights
 
@@ -513,7 +522,7 @@ def make_world(stage, fog=True):
     bpy.context.scene.world = w
     nt = w.node_tree
     bg = nt.nodes["Background"]
-    bg.inputs["Color"].default_value = (0.004, 0.008, 0.02, 1); bg.inputs["Strength"].default_value = 1.0
+    bg.inputs["Color"].default_value = (0.012, 0.026, 0.065, 1); bg.inputs["Strength"].default_value = 1.0
     if fog and stage == "look":
         out = nt.nodes["World Output"]
         vs = nt.nodes.new("ShaderNodeVolumeScatter")
@@ -546,6 +555,15 @@ def cam_pos(frame, rng_seed=3):
     p.x += 0.025 * math.sin(frame * 0.37) + 0.015 * math.sin(frame * 0.91)
     p.z += 0.02 * math.sin(frame * 0.29 + 1.0) + 0.01 * math.sin(frame * 1.3)
     return p
+
+
+def aim_target(cam_loc):
+    """公衆電話が必ず画面に入るように、見る先を毎フレーム決める（電話は右寄り＝見る先を左へずらす）。"""
+    center = Vector((0.0, -0.6, 1.1))
+    fwd = Vector((center.x - cam_loc.x, center.y - cam_loc.y, 0.0)).normalized()
+    right = Vector((fwd.y, -fwd.x, 0.0))
+    d = (center - cam_loc).length
+    return center - right * (AIM_SHIFT * d * (18.0 / CAM_LENS))
 
 
 def flicker_gain(frame):
@@ -585,6 +603,14 @@ def build(stage):
     # 足もとを地面に（箱の下端をz=0）
     ctx["booth"] = root
     src = import_trees()
+    for t in src.values():            # 木の幹をうすい青灰色に（月明かりと逆光を拾って形が見える）
+        for m in t.data.materials:
+            bsdf = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if bsdf:
+                for l in list(bsdf.inputs["Base Color"].links):
+                    m.node_tree.links.remove(l)
+                bsdf.inputs["Base Color"].default_value = (0.05, 0.06, 0.08, 1)
+                bsdf.inputs["Roughness"].default_value = 0.45
     place_trees(stage, src, rng)
     if stage == "model":
         make_sign(root)
@@ -643,6 +669,7 @@ def apply_frame(ctx, frame):
     sc.frame_set(frame)
     cam = sc.camera
     cam.location = cam_pos(frame)
+    cam.constraints[0].target.location = aim_target(cam.location)
     g = flicker_gain(frame) if ctx["stage"] == "look" else 1.0
     ctx["lights"]["booth"].data.energy = 170 * g
     for m in ctx.get("tube_mats", []):
