@@ -516,3 +516,13 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 #wallpaper.b.night.fig1{background-image:url(wallpaper_b_night_fig1.jpg)}
 #wallpaper.b.red.fig1{background-image:url(wallpaper_b_red_fig1.jpg)}
 #wallpaper.b.lit.fig1{background-image:url(wallpaper_b_lit_fig1.jpg)}
+
+/* 大きな文字（改）：暗転は一気に落ち、文字は拡大しながら現れ、赤と青の影がずれ、消えるときは一瞬で切れる */
+.fx-big2{background:radial-gradient(ellipse at center,rgba(0,0,0,.5) 0,rgba(0,0,0,.9) 100%);animation:fxbig2o 1s steps(1,end) forwards}
+.fx-big2 span{font-weight:400;letter-spacing:.16em;padding-left:.16em;color:#a42222;position:relative;filter:blur(.35px);
+  text-shadow:0 0 12px rgba(190,20,20,.75),0 0 34px rgba(110,0,0,.8);animation:fxbig2s 1s linear forwards}
+.fx-big2 span::before,.fx-big2 span::after{content:attr(data-t);position:absolute;left:.16em;top:0;mix-blend-mode:screen;opacity:.55;pointer-events:none}
+.fx-big2 span::before{color:#ff2a2a;transform:translateX(-3px)}
+.fx-big2 span::after{color:#2a8cff;transform:translateX(3px)}
+@keyframes fxbig2o{0%{opacity:0}4%{opacity:1}92%{opacity:1}100%{opacity:0}}
+@keyframes fxbig2s{0%{opacity:0;transform:scale(1.18)}6%{opacity:.9;transform:scale(1.1)}14%{opacity:.5;transform:scale(1.04)}22%{opacity:1;transform:scale(1)}90%{opacity:.92;transform:scale(1)}100%{opacity:0}}

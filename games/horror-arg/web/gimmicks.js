@@ -52,44 +52,56 @@ window.Gimmicks = (function () {
   // 大きな文字：暗がりの中に、くすんだ赤の細い明朝体。ぼけた状態から現れ、一度かすれてから消える（ベタ塗りの赤は使わない）
   function bigText(text, ms) {
     if (!fxOn() || LV() < 2) return;
-    const o = overlay("fx-big2", (ms || 700) + 400);
-    o.style.animationDuration = ((ms || 700) + 300) + "ms";
-    const s = document.createElement("span"); s.textContent = text; s.style.animationDuration = ((ms || 700) + 300) + "ms";
+    const dur = (ms || 700) + 300, o = overlay("fx-big2", dur + 100);
+    o.style.animationDuration = dur + "ms";
+    const s = document.createElement("span"); s.textContent = text; s.setAttribute("data-t", text); s.style.animationDuration = dur + "ms";
     s.style.marginLeft = (Math.random() * 14 - 7) + "vw"; s.style.marginTop = (Math.random() * 8 - 4) + "vh";
     o.append(s);
+    const t0 = performance.now();      // 出たあとも、1〜2pxだけ不規則に震える
+    (function jit(now) { if (!s.isConnected) return; const a = (now - t0) < 160 ? 5 : 1.6;
+      s.style.translate = ((Math.random() - .5) * a * 2).toFixed(1) + "px " + ((Math.random() - .5) * a).toFixed(1) + "px"; requestAnimationFrame(jit); })(t0);
   }
+
   // ノイズ：アナログテレビの「走る帯」。canvasで毎フレーム描く。帯の縁はやわらかく、行ごとに明るさが違い、ときどき白い筋が走り、色のちらつきがある。
   function noiseSweep() {
-    api.S.noise();
+    api.S.noise(); [0, 140, 330].forEach(ms => setTimeout(() => api.S.click(), ms));
     if (!fxOn()) return;
     const W = 320, H = 180, cv = document.createElement("canvas"); cv.width = W; cv.height = H; cv.className = "fx fx-noise2";
     document.body.append(cv);
-    const x = cv.getContext("2d"), img = x.createImageData(W, H), d = img.data, dur = 1100, t0 = performance.now();
-    const bandH = H * (0.2 + Math.random() * 0.08), ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    let rowMul = new Float32Array(H), rowStreak = new Int16Array(H * 2);
+    const x = cv.getContext("2d"), img = x.createImageData(W, H), d = img.data, dur = 1500, t0 = performance.now(), dk = document.querySelector("#desktop");
+    const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, clamp = v => Math.max(0, Math.min(1, v));
+    const bands = [{ h: H * (0.2 + Math.random() * 0.08), a: 0, b: 1 }, { h: H * 0.09, a: 0.22 + Math.random() * 0.1, b: 0.9 }];
+    const rowMul = new Float32Array(H), rowStreak = new Int16Array(H * 2);
     (function f(now) {
       const t = (now - t0) / dur;
-      if (t >= 1) { cv.remove(); return; }
-      const cy = ease(t) * (H + bandH) - bandH * 0.5 + (Math.random() - .5) * 3, k = K() * Math.sin(Math.PI * Math.min(1, t * 1.15));
+      if (t >= 1) { cv.remove(); dk.style.transform = ""; dk.style.filter = ""; return; }
+      let inBand = false, gain = 0;
+      const cys = bands.map(bd => { const p = ease(clamp((t - bd.a) / (bd.b - bd.a))); return p * (H + bd.h) - bd.h * 0.5 + (Math.random() - .5) * 3; });
+      const k = K() * Math.sin(Math.PI * Math.min(1, t * 1.1));
       for (let r = 0; r < H;) { const run = 1 + Math.floor(Math.random() * 5), m = 0.25 + Math.random() * 0.75, st = Math.random() < 0.05; for (let q = 0; q < run && r < H; q++, r++) { rowMul[r] = m; rowStreak[r * 2] = st ? Math.floor(Math.random() * W * .6) : 0; rowStreak[r * 2 + 1] = st ? rowStreak[r * 2] + 40 + Math.floor(Math.random() * 120) : 0; } }
       for (let yy = 0; yy < H; yy++) {
-        const dist = Math.abs(yy - cy) / (bandH / 2), edge = dist >= 1 ? 0 : Math.pow(1 - dist, 1.6);
-        const grain = 0.05 * k, a0 = Math.max(edge * 0.85 * k, grain);
+        let edge = 0;
+        bands.forEach((bd, i) => { const dist = Math.abs(yy - cys[i]) / (bd.h / 2); if (dist < 1) edge = Math.max(edge, Math.pow(1 - dist, 1.6) * (i ? 0.8 : 1)); });
+        if (edge > 0.6) inBand = true; gain = Math.max(gain, edge);
+        const a0 = Math.max(edge * 0.85 * k, 0.045 * k);
         for (let xx = 0; xx < W; xx++) {
           const i = (yy * W + xx) * 4, n = Math.random() * 255 * rowMul[yy];
-          let v = n, rr = n, gg = n, bb = n;
-          if (rowStreak[yy * 2] && xx > rowStreak[yy * 2] && xx < rowStreak[yy * 2 + 1]) { v = 235; rr = gg = bb = 235; }
-          if (edge > 0.3 && Math.random() < 0.04) { rr = 255; gg = Math.random() * 80; bb = Math.random() * 255; }     // 色のちらつき
+          let rr = n, gg = n, bb = n;
+          if (rowStreak[yy * 2] && xx > rowStreak[yy * 2] && xx < rowStreak[yy * 2 + 1]) rr = gg = bb = 235;
+          if (edge > 0.3 && Math.random() < 0.012) { rr = 230; gg = 150 + Math.random() * 60; bb = 150; }    // ごく弱い色のちらつき
           d[i] = rr; d[i + 1] = gg; d[i + 2] = bb; d[i + 3] = Math.min(255, a0 * 255 * (edge > 0 ? 1 : 0.4));
         }
       }
-      // 帯の上の縁に、細い明るい線（トラッキングのずれ）
-      const ly = Math.round(cy - bandH / 2); if (ly >= 0 && ly < H) for (let xx = 0; xx < W; xx++) { const i = (ly * W + xx) * 4; d[i] = d[i + 1] = d[i + 2] = 220; d[i + 3] = 120 * k; }
+      cys.forEach((cy, i) => { const ly = Math.round(cy - bands[i].h / 2); if (ly >= 0 && ly < H) for (let xx = 0; xx < W; xx++) { const j = (ly * W + xx) * 4; d[j] = d[j + 1] = d[j + 2] = 220; d[j + 3] = 120 * k; } });
       x.putImageData(img, 0, 0);
+      // 帯が通る間、画面全体が左右にずれ・色が分かれ・明るさがちらつく
+      if (inBand) { const sx = (Math.random() - .5) * 2 * 12 * k * gain; dk.style.transform = "translate(" + sx.toFixed(1) + "px," + ((Math.random() - .5) * 2.4).toFixed(1) + "px)";
+        dk.style.filter = "drop-shadow(" + (3 * gain).toFixed(1) + "px 0 rgba(255,40,40,.55)) drop-shadow(" + (-3 * gain).toFixed(1) + "px 0 rgba(40,190,255,.45)) brightness(" + (1 + 0.15 * gain * Math.random()).toFixed(2) + ")"; }
+      else { dk.style.transform = ""; dk.style.filter = ""; }
       requestAnimationFrame(f);
     })(t0);
-    if (LV() >= 2) glitch(450);
   }
+
   // 壁紙の家の窓に、人影が一瞬だけ立つ（Blender版の壁紙のとき）。
   // 流れ：窓の明かりがつく→奥にぼんやり小さな人影→窓ぎわまで来る→消える。窓が隠れないよう、開いている窓は先にいったん消える。
   let figBusy = false; const figReady = {};
@@ -116,15 +128,17 @@ window.Gimmicks = (function () {
       api.S.creak();
       if (hide) { api.S.jolt(); shake(380, true); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
       const set = c => { wp.classList.remove("fig0", "fig1", "fig"); if (c) wp.classList.add(c); };
-      later(() => set("fig0"), t);
-      later(() => set("fig1"), t + 260);
-      later(() => { set("fig"); api.S.knock(); }, t + 560);
-      later(() => set(null), t + 1000);
+      later(() => set("fig0"), t);                 // 窓に明かりがつく
+      later(() => set(null), t + 170);              // 一度消える（ちらつき）
+      later(() => set("fig0"), t + 340);
+      later(() => set("fig1"), t + 640);            // 奥に、ぼんやり小さく
+      later(() => { set("fig"); api.S.knock(); }, t + 1000);   // 窓ぎわまで来る
+      later(() => set(null), t + 1550);
       setTimeout(() => {
         set(null);
         hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
         figBusy = false;
-      }, t + 1250);
+      }, t + 1800);
     });
   }
   function whisperText(text) {
