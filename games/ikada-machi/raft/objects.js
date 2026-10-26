@@ -71,6 +71,24 @@ window.RAFT.parts.objects = function (c) {
     rev = s.objRev;
   }
   build();
+  // 見えている絵を、直接おせるようにする：画面の点（px）にある物を、手前から順に返す。exact＝その点の絵が不透明、near＝まわり14px以内に不透明
+  const px = new Map();      // canvas → 透明度の配列（はじめに1回だけ読む）
+  const alphaOf = cv => { let a = px.get(cv); if (!a) { try { a = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; } catch (e) { a = null; } px.set(cv, a || false); } return a; };
+  c.pickObjs = function (sx, sy) {
+    const rc = c.renderer.domElement.getBoundingClientRect(), W = rc.width, H = rc.height, V = new THREE.Vector3(), out = [];
+    const scr = (x, y, z) => { V.set(x, y, z).project(c.camera); return [rc.left + (V.x + 1) / 2 * W, rc.top + (1 - V.y) / 2 * H, V.z]; };
+    const rx = Math.cos(c.cam.yaw), rz = -Math.sin(c.cam.yaw);
+    items.forEach(it => {
+      const m = it.m, a = art[it.o.k]; if (!a) return; const fr = a[Math.max(0, it.last)] || a[0]; if (!fr || !fr.cv) return; const al = alphaOf(fr.cv); if (!al) return;
+      const p = m.position, sw = m.scale.x, sh = m.scale.y, P0 = scr(p.x, p.y, p.z), PX = scr(p.x + rx * sw, p.y, p.z + rz * sw), PY = scr(p.x, p.y + sh, p.z);
+      const ax = PX[0] - P0[0], ay = PX[1] - P0[1], bx = PY[0] - P0[0], by = PY[1] - P0[1], det = ax * by - ay * bx; if (Math.abs(det) < 1e-6) return;
+      const hit = (qx, qy) => { const dx = qx - P0[0], dy = qy - P0[1], u = (dx * by - dy * bx) / det, v = (ax * dy - ay * dx) / det; if (u < -0.5 || u > 0.5 || v < 0 || v > 1) return false;
+        const ix = Math.min(fr.cv.width - 1, Math.floor((u + 0.5) * fr.cv.width)), iy = Math.min(fr.cv.height - 1, Math.floor((1 - v) * fr.cv.height)); return al[(iy * fr.cv.width + ix) * 4 + 3] > 40; };
+      const exact = hit(sx, sy); let near = exact; if (!near) for (const [ox, oy] of [[14, 0], [-14, 0], [0, 14], [0, -14], [10, 10], [-10, 10], [10, -10], [-10, -10]]) if (hit(sx + ox, sy + oy)) { near = true; break; }
+      if (near) out.push({ o: it.o, exact, depth: P0[2] });
+    });
+    out.sort((p, q) => (q.exact - p.exact) || (p.depth - q.depth)); return out;      // 点がまともに当たった物（手前）が先、つぎに近い物
+  };
   return { update(tt, dt) {
     if (s.objRev !== rev || rev === -1) build();
     t += dt;

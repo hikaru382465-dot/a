@@ -197,6 +197,17 @@ window.RAFT.parts.hud = function (c) {
     setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
     $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;
   }
+  // 重なっていて迷うとき：どの物を使うか、えらぶ
+  let pickWalk = null;
+  function openPick(list, x, z) {
+    pickWalk = [x, z]; const nm = o => o.k === 'hut' ? '家' : nameOf(o.k);
+    $('pickList').innerHTML = list.map(o => `<button class="pkb" data-id="${o.id}"><canvas width="92" height="88" data-k="${o.k}"></canvas>${nm(o)}</button>`).join('');
+    $('pickList').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
+    $('pickList').querySelectorAll('button').forEach(b => b.onclick = () => { $('pickbox').style.display = 'none'; sim.useObj(s, +b.dataset.id); refresh(); });
+    $('pickbox').style.display = 'block';
+  }
+  $('bPickClose').onclick = () => { $('pickbox').style.display = 'none'; };
+  $('bPickWalk').onclick = () => { $('pickbox').style.display = 'none'; if (pickWalk && sim.has(s, pickWalk[0], pickWalk[1]) && !sim.objAt(s, pickWalk[0], pickWalk[1])) sim.walkTo(s, pickWalk[0], pickWalk[1]); };
   // 種をえらぶ（種が2種類以上あるとき）
   let seedPlot = null;
   function openSeeds(id) {
@@ -300,7 +311,7 @@ window.RAFT.parts.hud = function (c) {
   $('bBoatBye').onclick = () => { sim.boatLeave(s); $('boatbox').style.display = 'none'; };
   const openJobs = () => { cancelPlace(); closeSheet(); $('cfbox').style.display = 'none'; $('jobbox').style.display = 'block'; lastTools = ''; jobPanel(); toolsPanel(); };
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
-  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat, openTalk };
+  c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat, openTalk, openPick };
   // ---- ボタン ----
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };

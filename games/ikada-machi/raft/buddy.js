@@ -81,6 +81,8 @@ window.RAFT.parts.buddy = function (c) {
     if (d.recall || !d.p || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
     const x = Math.floor(d.p.x), z = Math.floor(d.p.z), sim = R.sim;
     if (c.mode.place) { c.hud.tryPlace(x, z); return; }
+    const cand = c.pickObjs ? c.pickObjs(e.clientX, e.clientY) : [];      // 見えている絵を直接おす
+    if (cand.length) { const ex = cand.filter(q => q.exact); if (ex.length) { sim.useObj(s, ex[0].o.id); return; } if (cand.length === 1) { sim.useObj(s, cand[0].o.id); return; } if (c.hud.openPick) { c.hud.openPick(cand.slice(0, 6).map(q => q.o), x, z); return; } }
     const o = sim.objAt(s, x, z);
     if (o) { sim.useObj(s, o.id); return; }
     if (sim.has(s, x, z)) sim.walkTo(s, x, z);
