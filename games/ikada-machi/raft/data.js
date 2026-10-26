@@ -8,7 +8,7 @@ window.RAFT.data = {
   ITEMS: {
     wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
-    seed:    { name: 'おたのしみ種袋', lv: 2, w: 0.5, tip: '畑にまく。何が育つかは、お楽しみ（12種類のどれか）' },
+    seed:    { name: 'おたのしみ種袋', lv: 2, w: 0.15, tip: '畑にまく。何が育つかは、お楽しみ（12種類のどれか）' },
     veg:     { name: '野菜',     lv: 0, w: 0, food: 8, drink: 3, tip: '畑でとれた。そのままだと少し。料理すると、もっと戻る' },
     dried:   { name: '干物',     lv: 0, w: 0, food: 30, tip: '干し魚だなで作る。食べると、おなかが戻る' },
     yakiyasai: { name: '焼き野菜', lv: 0, w: 0, food: 35, tip: 'かまどで作る。おなかがしっかり戻る' },
@@ -222,5 +222,5 @@ window.RAFT.data.HUT_LOOKS = [
 window.RAFT.data.HUT_FAM = ["wood", "wood", "stone", "sea", "green", "stone", "sea", "green", "green", "snow", "stone", "stone", "stone", "green", "wood", "stone", "stone", "stone", "stone", "stone", "wood", "wood", "wood", "wood", "wood", "wood", "wood", "green", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow", "snow"];
 window.RAFT.data.HUT_FAMS = { wood: '木・わら', stone: '石・レンガ', sea: '海', green: '緑', snow: '雪' };
 // 作物ごとの種袋（sd_<作物>）。流れてくる確率は、作物のレア度で決める。畑にまくと、その作物が育つ
-(function () { const D = window.RAFT.data, W = { 1: 0.5, 2: 0.3, 3: 0.12 };
+(function () { const D = window.RAFT.data, W = { 1: 0.12, 2: 0.07, 3: 0.03 };      // 網で流れてくる確率（2026-10-26に、多すぎたので、約1/4に下げた）
   Object.keys(D.CROPS).forEach(k => { const c = D.CROPS[k]; D.ITEMS['sd_' + k] = { name: c.name + 'の種', lv: 2, w: W[c.star], seedOf: k, tip: '畑にまくと、' + c.name + 'が育つ' }; }); })();
