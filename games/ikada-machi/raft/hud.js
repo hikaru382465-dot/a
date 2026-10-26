@@ -313,6 +313,23 @@ window.RAFT.parts.hud = function (c) {
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
   c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat, openTalk, openPick };
   // ---- ボタン ----
+  // 右下のアイコンを長押し：手に持つ物を、すぐ切りかえる（クイック装備）。つぎの1回のタップは、ふつうのタップとして使わない
+  { let tm = 0, long = false, sx = 0, sy = 0; const fab = $('fab'), qb = $('quickbox');
+    const closeQ = () => { qb.style.display = 'none'; };
+    const openQ = () => {
+      const tools = s.tools.slice(); if (!tools.length) return;
+      qb.innerHTML = tools.map(k => `<button class="qk${s.hand === k ? ' on' : ''}" data-k="${k}"><canvas width="64" height="64" data-k="${k}"></canvas><span>${D.TOOLS[k].name}${s.hand === k ? '<br>しまう' : ''}</span></button>`).join('') + (s.hand ? '' : '<div class="qn">手には、何も持っていない</div>');
+      qb.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
+      qb.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); sim.hold(s, b.dataset.k); closeQ(); refresh(); });
+      qb.style.display = 'flex';
+    };
+    fab.addEventListener('pointerdown', e => { long = false; sx = e.clientX; sy = e.clientY; clearTimeout(tm); tm = setTimeout(() => { long = true; if (navigator.vibrate) try { navigator.vibrate(20); } catch (er) {} openQ(); }, 450); });
+    fab.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 14) clearTimeout(tm); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => fab.addEventListener(ev, () => clearTimeout(tm)));
+    fab.addEventListener('contextmenu', e => e.preventDefault());
+    fab.addEventListener('click', e => { if (long) { long = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+    document.addEventListener('pointerdown', e => { if (qb.style.display === 'flex' && !qb.contains(e.target) && !fab.contains(e.target)) closeQ(); }, true);
+  }
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
   document.querySelectorAll('.tab canvas').forEach(cv => paint(cv, cv.dataset.k));
