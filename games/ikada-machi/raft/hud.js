@@ -313,22 +313,29 @@ window.RAFT.parts.hud = function (c) {
   $('bJobClose').onclick = () => { $('jobbox').style.display = 'none'; };
   c.hud = { refresh, toast, tryPlace, openJobs, openCf, openBoat, openTalk, openPick };
   // ---- ボタン ----
-  // 右下のアイコンを長押し：手に持つ物を、すぐ切りかえる（クイック装備）。つぎの1回のタップは、ふつうのタップとして使わない
-  { let tm = 0, long = false, sx = 0, sy = 0; const fab = $('fab'), qb = $('quickbox');
-    const closeQ = () => { qb.style.display = 'none'; };
+  // 右下のアイコンを長押し：まわりに道具が丸くならぶ（クイック装備）。指を、そのアイコンへすべらせて離すと、持ちかわる。離したあとも、アイコンをタップして選べる
+  { let tm = 0, long = false, sx = 0, sy = 0, hov = null, opened = false, pid = null; const fab = $('fab'), qb = $('quickbox'), R0 = 108;
+    const closeQ = () => { qb.style.display = 'none'; qb.innerHTML = ''; hov = null; opened = false; };
+    const pick = k => { if (k === 'none') { if (s.hand) sim.hold(s, s.hand); } else sim.hold(s, k); closeQ(); refresh(); };
+    const centers = () => [...qb.querySelectorAll('.qk')].map(b => { const r = b.getBoundingClientRect(); return { b, x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    const hit = (x, y) => { let best = null, bd = 46; centers().forEach(q => { const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = q.b; } }); return best; };
     const openQ = () => {
-      const tools = s.tools.slice(); if (!tools.length) return;
-      qb.innerHTML = tools.map(k => `<button class="qk${s.hand === k ? ' on' : ''}" data-k="${k}"><canvas width="64" height="64" data-k="${k}"></canvas><span>${D.TOOLS[k].name}${s.hand === k ? '<br>しまう' : ''}</span></button>`).join('') + (s.hand ? '' : '<div class="qn">手には、何も持っていない</div>');
-      qb.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
-      qb.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); sim.hold(s, b.dataset.k); closeQ(); refresh(); });
-      qb.style.display = 'flex';
+      const ks = s.tools.slice(); if (!ks.length) return; ks.push('none'); const fr = fab.getBoundingClientRect(), cx = fr.left + fr.width / 2, cy = fr.top + fr.height / 2, n = ks.length;
+      qb.innerHTML = ks.map((k, i) => { const a0 = Math.PI * (n === 1 ? 1.25 : 1.0 + 0.5 * i / (n - 1)), x = cx + Math.cos(a0) * R0, y = cy + Math.sin(a0) * R0;      // 左（真横）から、上（真上）まで、1/4円にならべる
+        const on = k === 'none' ? !s.hand : s.hand === k;
+        return `<button class="qk${on ? ' on' : ''}" data-k="${k}" style="left:${Math.max(36, Math.min(innerWidth - 36, x))}px;top:${Math.max(40, y)}px"><canvas width="64" height="64" data-k="${k === 'none' ? '' : k}"></canvas><span>${k === 'none' ? 'しまう' : D.TOOLS[k].name}</span></button>`; }).join('');
+      qb.querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k || null));
+      qb.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); pick(b.dataset.k); });
+      qb.style.display = 'block'; opened = true;
     };
-    fab.addEventListener('pointerdown', e => { long = false; sx = e.clientX; sy = e.clientY; clearTimeout(tm); tm = setTimeout(() => { long = true; if (navigator.vibrate) try { navigator.vibrate(20); } catch (er) {} openQ(); }, 450); });
-    fab.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 14) clearTimeout(tm); });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => fab.addEventListener(ev, () => clearTimeout(tm)));
+    const mark = h => { if (h === hov) return; hov = h; qb.querySelectorAll('.qk').forEach(b => b.classList.toggle('hv', b === h)); if (h && navigator.vibrate) try { navigator.vibrate(8); } catch (er) {} };
+    fab.addEventListener('pointerdown', e => { long = false; sx = e.clientX; sy = e.clientY; pid = e.pointerId; clearTimeout(tm); tm = setTimeout(() => { long = true; if (navigator.vibrate) try { navigator.vibrate(20); } catch (er) {} try { fab.setPointerCapture(pid); } catch (er) {} openQ(); }, 450); });
+    fab.addEventListener('pointermove', e => { if (opened) { mark(hit(e.clientX, e.clientY)); return; } if (Math.hypot(e.clientX - sx, e.clientY - sy) > 14) clearTimeout(tm); });
+    fab.addEventListener('pointerup', e => { clearTimeout(tm); if (opened && long) { const h = hit(e.clientX, e.clientY) || hov; if (h) pick(h.dataset.k); } });
+    fab.addEventListener('pointercancel', () => clearTimeout(tm));
     fab.addEventListener('contextmenu', e => e.preventDefault());
     fab.addEventListener('click', e => { if (long) { long = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-    document.addEventListener('pointerdown', e => { if (qb.style.display === 'flex' && !qb.contains(e.target) && !fab.contains(e.target)) closeQ(); }, true);
+    document.addEventListener('pointerdown', e => { if (opened && !qb.contains(e.target) && !fab.contains(e.target)) closeQ(); }, true);
   }
   $('fab').onclick = () => { if (c.mode.place) cancelPlace(); else if (c.ui.open) closeSheet(); else openSheet('inv'); };
   $('bClose').onclick = closeSheet; $('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
