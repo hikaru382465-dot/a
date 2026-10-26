@@ -125,7 +125,7 @@
   };
   function collect(s, w) {
     const K = kit(s, w), c = K.net.cast; if (!c) return;
-    c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; if (k === 'wood') { const ex = (S.rand() < D.WOOD_BONUS[0] ? 1 : 0) + (S.rand() < D.WOOD_BONUS[1] ? 2 : 0); s.inv.wood += ex; }      // 木くずは、たまに、束で流れてくる（家づくりで、たくさん使うため）
+    c.held.forEach(k => { s.inv[k] = (s.inv[k] || 0) + 1; if (k === 'wood') { const wb = D.WOOD_BONUS[Math.min(D.WOOD_BONUS.length, K.net.lv) - 1] || [0, 0], ex = (S.rand() < wb[0] ? 1 : 0) + (S.rand() < wb[1] ? 2 : 0); s.inv.wood += ex; }      // 木くずは、たまに、束で流れてくる（家づくりで、たくさん使うため）
  if (k === 'fish') s.inv.fish += S.addDex(s, S.rollFish(s, 'net', false)); });
     if (c.by === 'buddy') { s.buddy.jobT = D.BUDDY.NET_REST; if (c.held.length) { s.events.push({ e: 'bhaul', n: c.held.length }); s.buddy.cheer = s.uid++; s.buddy.cheerKind = 'net'; } }
     else if (c.held.length) s.events.push({ e: 'haul', n: c.held.length }); else s.events.push({ e: 'empty' });
