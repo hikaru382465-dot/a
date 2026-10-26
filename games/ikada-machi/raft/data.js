@@ -39,6 +39,7 @@ window.RAFT.data = {
     windmill:{ name: '風車',     lv: 0, w: 0, place: true, tip: '飾り。小さな風車' },
     hutw:    { name: '木の板の小屋', lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: 1, tip: '木の板の屋根と、白い壁の小屋。広さも、住める人数も、わらの小屋と同じ（2×3マス）' },
     huts:    { name: '石の小屋', lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: 2, tip: '灰色の石の屋根と、石の壁の小屋。広さも、住める人数も、わらの小屋と同じ（2×3マス）' },
+    catchnet: { name: '回収ネット', lv: 0, w: 0, place: true, edge: true, tip: 'イカダのふちに付ける。流れてくる物を、自動でためる。タップで取り出す' },
     hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], rnd: true, tip: '自分と相棒の家。タップで中に入って、休める（2×3マス）。見た目は、置くとき、ランダムに決まる' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
@@ -62,6 +63,7 @@ window.RAFT.data = {
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
     { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
     { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
+    { id: 'catchnet', out: 'catchnet', cost: { wood: 10 }, need: 'bench', tip: 'イカダのふちに付ける網。流れてくる物を、自動でためる（ふちのマスにだけ置ける）' },
     { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を54種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
   ],
@@ -226,3 +228,10 @@ window.RAFT.data.HUT_FAMS = { wood: '木・わら', stone: '石・レンガ', se
   Object.keys(D.CROPS).forEach(k => { const c = D.CROPS[k]; D.ITEMS['sd_' + k] = { name: c.name + 'の種', lv: 2, w: W[c.star], seedOf: k, tip: '畑にまくと、' + c.name + 'が育つ' }; }); })();
 // 木くずを拾ったとき、おまけで増える確率：網のレベルごとに [+1個の確率, +2個の確率]（家づくりに木が多くいるため。出すぎたので、レベルで増やす）
 window.RAFT.data.WOOD_BONUS = [[0, 0], [0.15, 0.03], [0.28, 0.08], [0.4, 0.13], [0.4, 0.13]];      // 網のレベル（1〜）ごと。Lv1はなし、レベルが上がると増える
+// 回収ネット：イカダのふちに置いて、流れてくる物を自動でためる。レベルが上がると、取れる物・容量・じょうぶさが増える
+// cap＝ためられる数／r＝受け止める広さ／wear＝すりへる倍率（小さいほど長持ち）／take＝取れる物（'seed'は、種袋ぜんぶ）／gen＝一定の時間ごとに、勝手にたまる物（秒）
+window.RAFT.data.CATCH = { use: 4, fixCost: { wood: 2 }, tearP: 0.03, tearDmg: 15, max: 3, lv: [
+  { cap: 4, r: 0.85, wear: 1, take: ['wood', 'coconut'], gen: {} },
+  { cap: 6, r: 1.0, wear: 0.8, take: ['wood', 'coconut', 'rope', 'cloth', 'seed'], gen: {}, cost: { wood: 8, rope: 3 } },
+  { cap: 8, r: 1.15, wear: 0.6, take: ['wood', 'coconut', 'rope', 'cloth', 'seed', 'clay', 'stone'], gen: { fish: 45, iron: 160, glass: 160 }, cost: { wood: 10, clay: 3, stone: 3 } }
+] };

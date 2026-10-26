@@ -203,6 +203,7 @@
     const cs = [cellOf(s.player), cellOf(s.buddy)], out = [], [fw, fd] = (D.ITEMS[k] && D.ITEMS[k].size) || [1, 1];
     const freeCells = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z)), isFree = (x, z) => freeCells.some(c => c[0] === x && c[1] === z);
     s.raft.cells.forEach(([x, z]) => {
+      if (D.ITEMS[k] && D.ITEMS[k].edge && !N4.some(([dx, dz]) => !S.has(s, x + dx, z + dz))) return;      // ふちだけ（まわりに、海に面した辺がある）
       const fp = []; for (let i = 0; i < fw; i++) for (let j = 0; j < fd; j++) fp.push([x + i, z + j]);
       if (fp.some(([X, Z]) => !isFree(X, Z) || cs.some(q => q[0] === X && q[1] === Z))) return;
       const rest = freeCells.filter(c => !fp.some(f => f[0] === c[0] && f[1] === c[1])); if (rest.length < 2) return;
@@ -220,9 +221,42 @@
     if (!hit) return false; x = hit[0]; z = hit[1];
     s.inv[k]--;
     if (k === 'floor') { s.raft.cells.push([x, z]); s.raftRev++; }
-    else { const it = D.ITEMS[k] || {}; s.objects.push({ id: s.uid++, k: it.as || k, hv: it.rnd ? S.pickHutLook(s) : (it.hv || 0), x, z, w: 0, p: 0 }); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); S.liveRes(s).forEach(k => { s.res[k].path = []; }); }
+    else { const it = D.ITEMS[k] || {}; s.objects.push(Object.assign({ id: s.uid++, k: it.as || k, hv: it.rnd ? S.pickHutLook(s) : (it.hv || 0), x, z, w: 0, p: 0 }, (it.as || k) === 'catchnet' ? { lv: 1, dur: 100, stock: {}, gt: {} } : {})); s.objRev++; [s.player, s.buddy].forEach(a => { a.path = []; a.task = null; }); S.liveRes(s).forEach(k => { s.res[k].path = []; }); }
     s.events.push({ e: 'placed', k }); return true;
   };
+  // ---- 回収ネット ----
+  const CN = () => D.CATCH, cnLv = o => CN().lv[Math.min(CN().max, o.lv || 1) - 1];
+  S.cnLv = cnLv; S.cnTotal = o => Object.keys(o.stock || {}).reduce((a, k) => a + o.stock[k], 0);
+  S.cnCanTake = (o, k) => { const t = cnLv(o).take; return t.includes(k) || (t.includes('seed') && D.ITEMS[k] && (D.ITEMS[k].seedOf || k === 'seed')); };
+  S.cnTake = function (s, o) {      // ためた物を、ぜんぶ持ち物へ（魚は、図鑑にも）
+    let n = 0; const st = o.stock || {};
+    Object.keys(st).forEach(k => { const c = st[k]; if (!c) return; n += c;
+      if (k === 'fish') { for (let i = 0; i < c; i++) s.inv.fish = (s.inv.fish || 0) + 1 + S.addDex(s, S.rollFish(s, 'net', false)); } else s.inv[k] = (s.inv[k] || 0) + c; });
+    o.stock = {}; if (n) s.events.push({ e: 'cngot', n }); return n;
+  };
+  S.cnUp = function (s, id) {
+    const o = s.objects.find(x => x.id === id && x.k === 'catchnet'); if (!o || !S.hasBench(s)) return false; if ((o.lv || 1) >= CN().max) return false;
+    const cost = S.discount(s, CN().lv[o.lv].cost); if (!S.canPay(s, cost)) { s.events.push({ e: 'short' }); return false; }
+    S.pay(s, cost); o.lv++; s.events.push({ e: 'cnlv', lv: o.lv }); return true;
+  };
+  S.cnFix = function (s, id) {
+    const o = s.objects.find(x => x.id === id && x.k === 'catchnet'); if (!o || !S.hasBench(s) || o.dur >= 95) return false;
+    if (!S.canPay(s, CN().fixCost)) { s.events.push({ e: 'short' }); return false; } S.pay(s, CN().fixCost); o.dur = 100; s.events.push({ e: 'cnfixed' }); return true;
+  };
+  // 受け止める場所：ネットごとに、海に面した辺の外がわ（イカダが変わったときだけ作りなおす）
+  let cnCache = { rev: '', list: [] };
+  function cnSpots(s) {
+    const rev = s.raftRev + '/' + s.objRev; if (cnCache.rev === rev) return cnCache.list; const list = [];
+    s.objects.forEach(o => { if (o.k !== 'catchnet') return; const pts = [];
+      N4.forEach(([dx, dz]) => { if (!S.has(s, o.x + dx, o.z + dz)) pts.push([o.x + 0.5 + dx * 0.8, o.z + 0.5 + dz * 0.8]); }); if (pts.length) list.push({ o, pts }); });
+    cnCache = { rev, list }; return list;
+  }
+  function cnStep(s, dt) {      // 時間でたまる物（レベル3）と、嵐のいたみ
+    s.objects.forEach(o => { if (o.k !== 'catchnet' || !(o.dur > 0)) return; const L = cnLv(o), storm = s.weather.id === 'storm';
+      if (storm) { if (S.rand() < CN().tearP * dt) { o.dur = Math.max(0, o.dur - CN().tearDmg * L.wear); s.events.push({ e: 'cntear' }); } return; }
+      const gen = L.gen || {}; if (!Object.keys(gen).length || !cnSpots(s).some(q => q.o === o)) return; o.gt = o.gt || {};
+      Object.keys(gen).forEach(k => { o.gt[k] = (o.gt[k] || 0) + dt; if (o.gt[k] >= gen[k]) { o.gt[k] = 0; if (S.cnTotal(o) < L.cap) { o.stock = o.stock || {}; o.stock[k] = (o.stock[k] || 0) + 1; } } }); });
+  }
   // 置いた物をタップ：作業台＝作るを開く／貯水槽＝飲む／ろ過器＝進みを見る
   S.useObj = function (s, id, a) {
     const o = s.objects.find(x => x.id === id); if (!o) return false;
@@ -614,6 +648,7 @@
         if (o && o.k === 'bench' && a === b) s.events.push({ e: 'bench' });
         else if (o && o.k === 'campfire' && a === b) s.events.push({ e: 'campfire', id: o.id });
         else if (o && o.k === 'oven' && a === b) s.events.push({ e: 'oven', id: o.id });
+        else if (o && o.k === 'catchnet' && a === b) { S.cnTake(s, o); s.events.push({ e: 'catchnet', id: o.id }); }
         else if (o && o.k === 'seat' && a === b) S.startLook(s, o);
         else if (o && o.k === 'rack' && a === b) S.rackUse(s, o);
         else if (o && o.k === 'plot' && a === b) S.plotUse(s, o);
@@ -657,6 +692,7 @@
     const rd = s.rod;
     if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite * (S.worn(s, 'rod') ? D.DUR.worn.bite : 1)) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
     const inRaft = (x, z) => S.has(s, Math.floor(x), Math.floor(z));
+    const spots = cnSpots(s); cnStep(s, dt);
     for (let i = s.drift.length - 1; i >= 0; i--) {
       const it = s.drift[i], sp = v * dt; it.born += dt;
       // 流れてきた物がイカダにぶつかったら、なくならずに、へりに沿ってすべって、また流れていく
@@ -671,6 +707,10 @@
         const px = -f.z, pz = f.x, side = ((it.x - cx) * px + (it.z - cz) * pz) >= 0 ? 1 : -1;
         it.x += px * side * sp * 3; it.z += pz * side * sp * 3;
       }
+      if (spots.length && s.weather.id !== 'storm') {      // 回収ネット
+        let got = false; for (const q of spots) { const o = q.o; if (!(o.dur > 0)) continue; const L = cnLv(o); if (S.cnTotal(o) >= L.cap || !S.cnCanTake(o, it.k)) continue;
+          if (q.pts.some(p => Math.hypot(it.x - p[0], it.z - p[1]) < L.r)) { o.stock = o.stock || {}; o.stock[it.k] = (o.stock[it.k] || 0) + 1; o.dur = Math.max(0, o.dur - CN().use * L.wear); s.events.push({ e: 'cncatch', k: it.k }); got = true; break; } }
+        if (got) { s.drift.splice(i, 1); continue; } }
       const hit = rests.find(q => Math.hypot(it.x - q.cast.x, it.z - q.cast.z) < q.nl.r && q.cast.held.length < netCap(s, q.w));
       if (hit) { hit.cast.held.push(it.k); s.events.push({ e: 'caught', k: it.k }); s.drift.splice(i, 1); continue; }
       if ((it.x - cx) * f.x + (it.z - cz) * f.z > R + 3) s.drift.splice(i, 1);

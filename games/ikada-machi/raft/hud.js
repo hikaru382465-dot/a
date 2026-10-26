@@ -197,6 +197,24 @@ window.RAFT.parts.hud = function (c) {
     setSlot(slotEl.iFish, 'fish', s.inv.fish || 0); setSlot(slotEl.iWood, 'wood', s.inv.wood || 0); setSlot(slotEl.iGrilled, 'grilled', s.inv.grilled || 0);
     $('cfBar').style.width = (burn ? (o.p || 0) / C.sec * 100 : 0) + '%'; $('cfFire').style.opacity = burn ? 1 : 0.3;
   }
+  // 回収ネット：ためた物・レベル・じょうぶさ
+  let cnId = null;
+  function cnPanel() {
+    const o = s.objects.find(x => x.id === cnId && x.k === 'catchnet'); if (!o) { $('cnbox').style.display = 'none'; return; }
+    const L = sim.cnLv(o), C = D.CATCH, tot = sim.cnTotal(o), st = o.stock || {}, cs = c => Object.keys(c).map(k => `${nameOf(k)}${c[k]}`).join('・'), nx = (o.lv || 1) < C.max ? C.lv[o.lv].cost : null, bench = sim.hasBench(s);
+    const taken = Object.keys(L.take).length; const names = L.take.map(k => k === 'seed' ? '種' : nameOf(k)).join('・'), gen = Object.keys(L.gen || {}).map(k => nameOf(k)).join('・');
+    const html = [o.lv, Math.round(o.dur), tot, JSON.stringify(st), bench, sim.canPay(s, nx || {}), sim.canPay(s, C.fixCost)].join('|'); if (html === cnLast) return; cnLast = html;
+    $('cnState').innerHTML = `Lv${o.lv}　じょうぶさ ${Math.round(o.dur)}%${o.dur <= 0 ? '（ぼろぼろ：止まっている）' : ''}　ためた数 ${tot}/${L.cap}<br><small>取れる物：${names}${gen ? '・（時間で）' + gen : ''}</small>`;
+    $('cnStock').innerHTML = tot ? Object.keys(st).filter(k => st[k]).map(k => `<div class="cnit"><canvas width="60" height="60" data-k="${k}"></canvas><i>${st[k]}</i></div>`).join('') : '<small style="opacity:.7;align-self:center">まだ、なにもたまっていない</small>';
+    $('cnStock').querySelectorAll('canvas').forEach(cv => paint(cv, cv.dataset.k));
+    $('cnBtns').innerHTML = `<button id="bCnTake" ${tot ? '' : 'disabled'}>取り出す</button>` + (nx ? `<button id="bCnUp" ${bench && sim.canPay(s, nx) ? '' : 'disabled'}>強くする（${cs(nx)}）</button>` : '<span style="opacity:.7;align-self:center">最大レベル</span>') + `<button id="bCnFix" ${bench && o.dur < 95 && sim.canPay(s, C.fixCost) ? '' : 'disabled'}>直す（${cs(C.fixCost)}）</button>`;
+    $('bCnTake').onclick = () => { sim.cnTake(s, o); refresh(); cnLast = ''; cnPanel(); };
+    if ($('bCnUp')) $('bCnUp').onclick = () => { sim.cnUp(s, cnId); refresh(); cnLast = ''; cnPanel(); };
+    $('bCnFix').onclick = () => { sim.cnFix(s, cnId); refresh(); cnLast = ''; cnPanel(); };
+  }
+  let cnLast = '';
+  const openCn = id => { cnId = id; cnLast = ''; closeSheet(); ['jobbox', 'cfbox', 'ovbox', 'boatbox', 'resbox', 'seedbox', 'pickbox'].forEach(q => { $(q).style.display = 'none'; }); $('cnbox').style.display = 'block'; cnPanel(); };
+  $('bCnClose').onclick = () => { $('cnbox').style.display = 'none'; };
   // 重なっていて迷うとき：どの物を使うか、えらぶ
   let pickWalk = null;
   function openPick(list, x, z) {
@@ -360,6 +378,7 @@ window.RAFT.parts.hud = function (c) {
   const drops = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.8 }));
   const msgs = {
     dealdone: () => '今日の交換は、もう済んだ', resask: e => `${D.BOAT.RES[e.id].name}が、何か言いたそう…（船をタップ）`, resjoin: e => `${D.BOAT.RES[e.id].name}が、イカダに住みはじめた！`, nohut: () => '小屋が足りない（小屋を置くと、住める人が増える）', stormsoon: () => 'ピピ「もうすぐ嵐が来るよ！」', resgift: e => `クロが、${nameOf(e.k)}をくれた`,
+    cngot: e => `回収ネットから、${e.n}個を持ち物に入れた`, cnlv: e => `回収ネットがLv${e.lv}になった`, cnfixed: () => '回収ネットを直した', cntear: () => '嵐で、回収ネットがいたんだ',
     cookstart: e => `${nameOf(e.d)}を作りはじめた`, cooked: e => `${nameOf(e.d)}ができた！`, ovengot: () => '料理を持ち物に入れた',
     bhutin: () => '相棒が小屋に入った', bhutout: () => '相棒が小屋から出てきた',
     hutin: () => '小屋に入った。おなかとのどの減りが、ゆっくりになる', hutout: () => '小屋から出た', diarywrote: () => '日記を書いた。ほっとした', diarydone: () => '今日の日記は、もう書いた',
@@ -386,6 +405,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       if (e.e === 'oven') { openOv(e.id); return; }
+      if (e.e === 'catchnet') { openCn(e.id); return; }
       if (e.e === 'plotpick') { openSeeds(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
       if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fishnew', 'plotharvest', 'plotplant', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
@@ -416,6 +436,7 @@ window.RAFT.parts.hud = function (c) {
     }
     if ($('cfbox').style.display === 'block') cfPanel();
     if ($('ovbox').style.display === 'block') ovPanel();
+    if ($('cnbox').style.display === 'block') cnPanel();
     if ($('boatbox').style.display === 'block') boatPanel();
     { const F = window.RAFT.faces; if (F) { const n = faceNow(s, t); if ($('jobbox').style.display === 'block' && fc.job !== n) { fc.job = n; $('buddyFace').src = F.img[n]; } if (s.player.inHut && fc.hut !== n) { fc.hut = n; $('hutFace').src = F.img[n]; } } }
     if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }

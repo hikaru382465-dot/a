@@ -16,6 +16,16 @@ window.RAFT.parts.objects = function (c) {
     for (let i = 0; i < 6; i++) I.dot(g, 3 + Math.floor(r() * 16), 9 + Math.floor(r() * 2), P.wood3);
     return outline(cv, g);
   }
+  function catchnet(state) {      // 回収ネット（仮の絵）：0＝空、1＝物入り、2＝やぶれ
+    const [cv, g] = I.canvas(20, 22);
+    I.rect(g, 2, 2, 2, 17, P.wood3); I.rect(g, 16, 2, 2, 17, P.wood3); I.rect(g, 2, 2, 2, 1, P.wood5); I.rect(g, 16, 2, 2, 1, P.wood5);      // 2本の柱
+    I.rect(g, 2, 3, 16, 1, P.wood4);                                                                                                            // 上のわく
+    for (let y = 5; y < 18; y += 3) I.rect(g, 4, y, 12, 1, P.wood5);                                                                            // あみ目（よこ）
+    for (let x = 5; x < 16; x += 3) I.rect(g, x, 5, 1, 13, P.wood5);                                                                            // あみ目（たて）
+    if (state === 1) { I.rect(g, 6, 14, 4, 3, P.wood3); I.rect(g, 6, 14, 4, 1, P.wood5); I.rect(g, 11, 15, 3, 2, P.red1); I.dot(g, 8, 12, P.wood2); }
+    if (state === 2) { I.rect(g, 7, 8, 6, 5, '#00000000'); g.clearRect(7, 8, 6, 5); I.dot(g, 6, 9, P.wood5); I.dot(g, 13, 12, P.wood5); }
+    return outline(cv, g);
+  }
   function tank(level) {      // level 0..3
     const [cv, g] = I.canvas(18, 24);
     I.rect(g, 3, 5, 12, 17, P.wood2); I.rect(g, 2, 8, 14, 11, P.wood2);                     // たる
@@ -40,13 +50,13 @@ window.RAFT.parts.objects = function (c) {
     return outline(cv, g);
   }
   const mk = (cv, ppu, hi) => ({ cv, ppu, hi });
-  const art = { bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
+  const art = { catchnet: [0, 1, 2].map(st => mk(catchnet(st), 28)), bench: [mk(bench(), 24)], tank: [0, 1, 2, 3].map(l => mk(tank(l), 24)), filter: [0, 1].map(f => mk(filter(f), 24)) };
   // ひかるの絵（objs_art.js）。読み込めたら、コードで描いた仮の絵のかわりに使う
   const OA = R.objArt; let oaLeft = 0;
-  const SH_OF = { campfire: 1.15, bench: 1.3, rack: 1.15, oven: 0.95, crate: 0.8, chest: 0.9, plot: 1.05, seat: 0.7, barrel: 0.8, bed: 1.15, shelf: 0.9, windmill: 0.9, hut: 1.5 };      // 足もとの影の大きさ（物ごと）
+  const SH_OF = { catchnet: 0.7, campfire: 1.15, bench: 1.3, rack: 1.15, oven: 0.95, crate: 0.8, chest: 0.9, plot: 1.05, seat: 0.7, barrel: 0.8, bed: 1.15, shelf: 0.9, windmill: 0.9, hut: 1.5 };      // 足もとの影の大きさ（物ごと）
   const SHIFT_OF = { hut: 2.0 };
-  const PPU_OF = { bench: 36, tank: 36, filter: 34, campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36, barrel: 34, bed: 30, shelf: 34, windmill: 36, hut: 15.4 }, ART_KEYS = ['bench', 'tank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'];
-  if (OA) ART_KEYS.forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], (PPU_OF[kk] || 34) * (f2.hi ? f2.hi : 1), !!f2.hi)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
+  const PPU_OF = { catchnet: 30, bench: 36, tank: 36, filter: 34, campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36, barrel: 34, bed: 30, shelf: 34, windmill: 36, hut: 15.4 }, ART_KEYS = ['bench', 'tank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'];
+  if (OA) ART_KEYS.filter(k => OA[k]).forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.filter(kk => OA[kk]).forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], (PPU_OF[kk] || 34) * (f2.hi ? f2.hi : 1), !!f2.hi)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
   const glowTex = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,190,100,1)'); gr.addColorStop(.4, 'rgba(255,130,50,.4)'); gr.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c.tex(cv); })();
   const shGeo = new THREE.PlaneGeometry(0.85, 0.85); shGeo.rotateX(-Math.PI / 2);
   const shTex = (() => { const [cv, g] = I.canvas(32, 32), gr = g.createRadialGradient(16, 16, 2, 16, 16, 16); gr.addColorStop(0, 'rgba(18,10,28,.55)'); gr.addColorStop(.7, 'rgba(18,10,28,.35)'); gr.addColorStop(1, 'rgba(18,10,28,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
@@ -69,6 +79,11 @@ window.RAFT.parts.objects = function (c) {
       items.set(o.id, it);
     });
     rev = s.objRev;
+  }
+  // ネットにたまった数のバッジ（数が変わったときだけ描きなおす）
+  function badge(it, n) {
+    if (!it.bd) { const [cv, g] = I.canvas(24, 14); it.bdcv = cv; it.bdg = g; const tx = c.tex(cv); const m = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; m.position.set(it.m.position.x, it.m.position.y + 0.9, it.m.position.z); group.add(m); it.bd = m; it.bdtx = tx; }
+    const g = it.bdg; g.clearRect(0, 0, 24, 14); if (n > 0) { g.fillStyle = '#2b1636'; g.fillRect(2, 1, 20, 12); g.fillStyle = '#ffd88a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText(String(n), 12, 11); } it.bdtx.needsUpdate = true; it.bd.visible = n > 0;
   }
   build();
   // 見えている絵を、直接おせるようにする：画面の点（px）にある物を、手前から順に返す。exact＝その点の絵が不透明、near＝まわり14px以内に不透明
@@ -97,6 +112,7 @@ window.RAFT.parts.objects = function (c) {
       let idx = 0;
       if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / D.ITEMS.tank.cap * 3));
       else if (it.o.k === 'filter') idx = (it.o.p > 0 && Math.floor(t * 2) % 2) ? 1 : 0;
+      else if (it.o.k === 'catchnet') { idx = !(it.o.dur > 0) ? 2 : R.sim.cnTotal(it.o) > 0 ? 1 : 0; const n = R.sim.cnTotal(it.o); if (n !== it.lastN) { it.lastN = n; badge(it, n); } }
       else if (it.o.k === 'hut') idx = it.base + ((s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > it.base + 1 ? 1 : 0);
       else if (it.o.k === 'plot') { const cr = it.o.c && D.CROPS[it.o.c]; if (cr) { const f = it.o.p / cr.sec; idx = f >= 1 ? 4 + Math.max(0, (R.cropIds || []).indexOf(it.o.c)) : f < 0.12 ? 1 : f < 0.4 ? 2 : 3; } }
       if (idx !== it.last) { it.m.material.map = it.tex[idx]; it.last = idx; }
