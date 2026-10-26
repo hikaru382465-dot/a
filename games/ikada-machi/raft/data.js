@@ -6,7 +6,7 @@ window.RAFT.data = {
   NEEDS: { hunger: 0.25, thirst: 0.33, low: 30 },   // 1秒に減る量、相棒が自分で食べ始める値
   // lv：この網のレベル以上で取れる。w：流れてくる重み。food/drink：食べる・飲むで戻る量。place：置ける物
   ITEMS: {
-    wood:    { name: '木くず',   lv: 1, w: 6, tip: '作る材料' },
+    wood:    { name: '木くず',   lv: 1, w: 8, tip: '作る材料' },
     fish:    { name: '小魚',     lv: 1, w: 0, food: 8, tip: '生のまま食べると少ししか戻らない。焚き火で焼こう' },
     seed:    { name: 'おたのしみ種袋', lv: 2, w: 0.15, tip: '畑にまく。何が育つかは、お楽しみ（12種類のどれか）' },
     veg:     { name: '野菜',     lv: 0, w: 0, food: 8, drink: 3, tip: '畑でとれた。そのままだと少し。料理すると、もっと戻る' },
@@ -224,3 +224,5 @@ window.RAFT.data.HUT_FAMS = { wood: '木・わら', stone: '石・レンガ', se
 // 作物ごとの種袋（sd_<作物>）。流れてくる確率は、作物のレア度で決める。畑にまくと、その作物が育つ
 (function () { const D = window.RAFT.data, W = { 1: 0.12, 2: 0.07, 3: 0.03 };      // 網で流れてくる確率（2026-10-26に、多すぎたので、約1/4に下げた）
   Object.keys(D.CROPS).forEach(k => { const c = D.CROPS[k]; D.ITEMS['sd_' + k] = { name: c.name + 'の種', lv: 2, w: W[c.star], seedOf: k, tip: '畑にまくと、' + c.name + 'が育つ' }; }); })();
+// 木くずを拾ったとき、おまけで増える確率：[+1個の確率, +2個の確率]（平均 約1.7個。家づくりに木が多くいるため）
+window.RAFT.data.WOOD_BONUS = [0.4, 0.13];
