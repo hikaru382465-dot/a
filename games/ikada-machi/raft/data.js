@@ -80,7 +80,7 @@ window.RAFT.data = {
     FISH_WAIT: [5, 12], FISH_REST: [2, 5], NET_REST: 6, NET_POWER: 0.6, VIEW_SEC: 25
   },
   // 道具のいたみ：使うたびに減る。0になると「ぼろぼろ」（使えるが、遠くへ飛ばない・1個しか入らない・ウキの時間が短い）。「作る」で直す（作業台がいる）
-  DUR: { net: { use: 3 }, rod: { use: 5 }, fixCost: { wood: 2 }, worn: { range: 0.5, cap: 1, bite: 0.6 }, low: 25 },
+  DUR: { net: { use: 3, slow: [1, 0.8, 0.62, 0.48] }, /* slow＝網のレベルごとの、すりへる量の倍率（Lv1＝そのまま、Lv4＝約半分。嵐の破れも同じ） */ rod: { use: 5 }, fixCost: { wood: 2 }, worn: { range: 0.5, cap: 1, bite: 0.6 }, low: 25 },
   // 日がたつと、きびしくなる：嵐が増える・おなかとのどが速く減る・嵐で網が破れる
   DIFF: { stormBase: 2.5, stormPerDay: 0.8, stormMax: 9, sunnyBase: 5, sunnyMin: 1.5, needPerDay: 0.06, needMax: 0.6, tearBase: 0.08, tearPerDay: 0.015, tearMax: 0.2, tearDmg: 25, weak: 0.6 },
   RACK: { sec: 45, max: 3 },     // 干し魚だな：1匹が干物になる秒数・かけられる数

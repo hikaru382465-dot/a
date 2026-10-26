@@ -89,6 +89,8 @@
   const kit = (s, w) => w === 'buddy' ? { net: s.buddy.net, dur: s.buddy.dur, actor: s.buddy } : { net: s.net, dur: s.dur, actor: s.player };
   const netNow = (s, w) => D.NET_LV[kit(s, w).net.lv - 1];
   S.worn = (s, k, w) => kit(s, w).dur[k] <= 0;
+  const netWear = (net) => D.DUR.net.slow[Math.min(D.DUR.net.slow.length, net.lv) - 1] || 1;      // 網のレベルが高いほど、こわれにくい
+  S.netWear = netWear;
   const netRange = (s, w) => netNow(s, w).range * (S.weak(s) ? D.DIFF.weak : 1) * (S.worn(s, 'net', w) ? D.DUR.worn.range : 1);
   const netCap = (s, w) => S.worn(s, 'net', w) ? D.DUR.worn.cap : netNow(s, w).cap;
   S.weak = s => s.needs.hunger <= 0 || s.needs.thirst <= 0;
@@ -102,7 +104,7 @@
   S.throwNet = function (s, tx, tz, power) {
     if (s.net.cast) return false;
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); return false; }
-    s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use); s.events.push({ e: 'dur', k: 'net' });
+    s.dur.net = Math.max(0, s.dur.net - D.DUR.net.use * netWear(s.net)); s.events.push({ e: 'dur', k: 'net' });
     const b = s.player, t = S.throwTarget(s, tx, tz, power);
     b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(t.x - b.x, t.z - b.z);
     s.net.cast = { phase: 'fly', sx: b.x, sz: b.z, tx: t.x, tz: t.z, x: b.x, z: b.z, t: 0, held: [] };
@@ -314,7 +316,7 @@
     if (J === 'net') {
       if (bu.net.cast) return;
       if (bu.jobT > 0) { bu.jobT -= dt * eff; return; }
-      const dist = D.NET_MIN + (netRange(s, 'buddy') - D.NET_MIN) * B.NET_POWER; bu.dur.net = Math.max(0, bu.dur.net - D.DUR.net.use);
+      const dist = D.NET_MIN + (netRange(s, 'buddy') - D.NET_MIN) * B.NET_POWER; bu.dur.net = Math.max(0, bu.dur.net - D.DUR.net.use * netWear(bu.net));
       bu.net.cast = { phase: 'fly', sx: bu.x, sz: bu.z, tx: bu.x + f[0] * dist, tz: bu.z + f[1] * dist, x: bu.x, z: bu.z, t: 0, held: [], by: 'buddy' };
       bu.act = { type: 'throw', t: 0.5 }; s.events.push({ e: 'throw' });
     }
@@ -648,7 +650,7 @@
       }
       if (cast.phase !== 'fly' && s.weather.id === 'storm' && !cast.torn) {      // 嵐：網が破れる
         const df = D.DIFF, p = Math.min(df.tearMax, df.tearBase + (s.clock.day - 1) * df.tearPerDay);
-        if (S.rand() < p * dt) { cast.torn = true; cast.held.length = 0; cast.phase = 'back'; K.dur.net = Math.max(0, K.dur.net - df.tearDmg); s.events.push({ e: 'tear', who: w }); }
+        if (S.rand() < p * dt) { cast.torn = true; cast.held.length = 0; cast.phase = 'back'; K.dur.net = Math.max(0, K.dur.net - df.tearDmg * netWear(K.net)); s.events.push({ e: 'tear', who: w }); }
       }
       if (cast.phase === 'rest' || cast.phase === 'back') rests.push({ cast, nl, w });
     });
