@@ -4,7 +4,7 @@ window.Gimmicks = (function () {
   let api = null, active = false, timers = [], zeroDone = {};
   const day = () => api.state().day;
   const on = name => active && day() >= (api.D.gimmicks[name] || 99);
-  const later = (fn, ms) => { const t = setTimeout(() => { if (active) fn(); }, ms); timers.push(t); return t; };
+  const later = (fn, ms) => { const t = setTimeout(() => { if (active || forced) fn(); }, ms); timers.push(t); return t; };
   function every(name, minMs, maxMs, fn) {
     (function loop() { later(() => { if (on(name)) fn(); loop(); }, minMs + Math.random() * (maxMs - minMs)); })();
   }
@@ -15,7 +15,8 @@ window.Gimmicks = (function () {
   const REDUCE = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const LV = () => Math.max(0, Math.min(3, api.D.fxLevel == null ? 3 : api.D.fxLevel));
   const K = () => [0, 0.45, 0.75, 1][LV()];
-  const fxOn = () => active && LV() > 0 && !REDUCE;
+  let forced = false;   // エンディング中は、ギミックを止めたままでも演出だけ使えるようにする
+  const fxOn = () => (active || forced) && LV() > 0 && !REDUCE;
   const deskEl = () => document.querySelector("#screen-desk");
   function overlay(cls, ms, text) {
     const d = document.createElement("div"); d.className = "fx " + cls; if (text) d.textContent = text;
@@ -308,5 +309,6 @@ window.Gimmicks = (function () {
     ({ noise: noiseSweep, figure: windowFigure, silentNotify: () => { api.S.vibrate(); if (fxOn()) overlay("fx-vib", 1300, "📱"); }, ambientEvent, bigFlash, shake: () => shake(500, true), glitch: () => glitch(700), blackout: () => blackout(2), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
     if (!was) active = false;
   }
-  return { bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };
+  const fx = { shake, bigText, noiseSweep, blackout, redPulse, glitch, overlay, vibIcon: () => { if (fxOn()) overlay("fx-vib", 1300, "📱"); } };
+  return { fx, setForced: b => { forced = !!b; }, bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };
 })();

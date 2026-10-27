@@ -138,7 +138,8 @@
   }
 
   // ---------- 写真（絵で描く。暗い部屋・光るモニター・後ろ姿・戸口の人影） ----------
-  function makePhoto() {
+  function makePhoto(step) {
+    step = step || 0;
     const W = 420, H = 280, cv = document.createElement("canvas");
     cv.width = W; cv.height = H; cv.className = "photo";
     const g = cv.getContext("2d");
@@ -147,7 +148,10 @@
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
     // 戸口と人影（右はし。ほとんど見えない）
     g.fillStyle = "#0b0e14"; g.fillRect(332, 40, 64, 190);
-    g.fillStyle = "#06070a"; g.beginPath(); g.ellipse(364, 78, 11, 14, 0, 0, 7); g.fill(); g.fillRect(352, 90, 24, 118);
+    // 戸口の人影：step が進むほど、座っている人のほうへ近づき、大きくなる
+    { const fxp = 364 - step * 21, hy = 78 + step * 9, rr = 11 + step * 2.2, bw = 24 + step * 6;
+      g.fillStyle = "#06070a"; g.beginPath(); g.ellipse(fxp, hy, rr, rr * 1.27, 0, 0, 7); g.fill(); g.fillRect(fxp - bw / 2, hy + rr * 1.1, bw, 118 + step * 8);
+      if (step >= 4) { g.fillStyle = "rgba(200,194,180,.22)"; g.beginPath(); g.ellipse(fxp, hy, rr * .55, rr * .75, 0, 0, 7); g.fill(); } }
     // 机
     g.fillStyle = "#151b26"; g.fillRect(0, 196, W, 84);
     g.fillStyle = "#222b3b"; g.fillRect(0, 194, W, 3);
@@ -236,6 +240,7 @@
       } else {
         const dec = d => {
           state.decisions[e.eid] = d; save();
+          if (d === "approve" && e.last && pendingCount() === 0) { const c = counts(); finaleOpen(c.approvedTotal >= 8); return; }
           if (d === "approve") { window.Apps.onApprove(e); S.approve(); toast("公開しました", "「" + e.title + "」を外部の公開サイトに掲載しました。", "ok"); }
           if (d === "reject") { S.reject(); toast("却下しました", "投稿者には通知されません。", "bad"); }
           if (d === "hold") { S.hold(); openMemo(); toast("保留にしました", "前任者の引き継ぎメモを開きました。", "warn"); }
@@ -491,7 +496,7 @@
     if (last) {
       const c = counts();
       const heavy = status(last.eid) === "reject" ? c.rejectedTotal >= 8 : c.approvedTotal >= 8;
-      return showEnding(status(last.eid) === "reject" ? "close" : "open", heavy);
+      return status(last.eid) === "reject" ? showEnding("close", heavy) : finaleOpen(heavy);
     }
     const scr = $("#screen-end"), box = $("#end-box");
     window.Gimmicks.stop(); $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
@@ -522,20 +527,63 @@
   }
 
   // ---------- エンディング ----------
-  async function showEnding(kind, heavy) {
+  async function showEnding(kind, heavy, quiet) {
     const c = counts();
     const key = kind === "secret" ? "secret" : kind + (heavy ? "_heavy" : "_light");
     const lines = D.endings[key](c);
     state.endings[kind] = true; save();
     const scr = $("#screen-end"), box = $("#end-box");
     window.Gimmicks.stop(); $("#screen-desk").classList.add("hidden"); scr.classList.remove("hidden"); box.replaceChildren();
-    S.sting();
-    for (const t of lines) await typeLines(box, [{ cls: "dim", text: t, wait: 1100, speed: 55 }]);
+    if (!quiet) S.sting();
+    for (const t of lines) await typeLines(box, [{ cls: quiet ? "endtext" : "dim", text: t, wait: quiet ? 1500 : 1100, speed: quiet ? 70 : 55 }]);
     await sleep(900);
     box.append(h("div", { class: "big", style: "margin-top:26px" }, D.endingNames[kind]));
     const got = Object.keys(D.endingNames).map(k => (state.endings[k] ? "● " : "○ ") + D.endingNames[k]).join("　");
     box.append(h("div", { class: "dim" }, "到達したエンディング：" + got));
     box.append(h("button", { class: "btn", style: "margin-top:20px", onclick: restart }, "最初からやり直す"));
+  }
+
+  // ---------- 承認エンド：自分の画面・自分の部屋に起きる（約35秒） ----------
+  let finaleBusy = false;
+  async function finaleOpen(heavy) {
+    if (finaleBusy) return; finaleBusy = true;
+    const G = window.Gimmicks; G.stop(); G.setForced(true);
+    const block = h("div", { id: "finale-block" }); document.body.append(block);
+    const clock2 = () => { const t = new Date(); return [t.getHours(), t.getMinutes(), t.getSeconds()].map(v => String(v).padStart(2, "0")); };
+    S.stopAmbient(0.4);                                     // PCのファンの音が止まる（静けさ）
+    await sleep(1500);
+    toast("公開しました", "「管理人の夜」を公開サイトに掲載しました。投稿者：（あなた）", "ok");
+    await sleep(1600);
+    S.vibrate(); G.fx.vibIcon();                           // 机のスマホが震える
+    toast("読者コメント", "「管理人の夜」に、コメントが届きました。");
+    await sleep(1700);
+    const ctl = window.Apps.openSiteStory("p16");           // 自分の投稿ページ（暗い部屋の写真）
+    await sleep(2200);
+    const [hh, mm] = clock2();
+    if (ctl) await ctl.typeComment("（名前なし）", "今日 " + hh + ":" + mm, "この写真、いま撮りました。");   // 端末の時刻を読むだけ（どこにも送らない）
+    await sleep(1000);
+    for (let st = 1; st <= 4; st++) {                       // 写真の人影が、座っている人の後ろへ近づく（足音つき）
+      if (ctl) ctl.setStep(st); S.footstep(-0.75 + 0.2 * st, 0.4 + 0.17 * st); if (st === 3) S.creak(true);
+      await sleep(900 + st * 130);
+    }
+    $("#tb-cam").classList.remove("hidden"); S.relayClick();   // カメラ使用中の赤い点（本物のカメラは使わない）
+    await sleep(1400);
+    S.heartbeat(); [0, 900, 1700, 2400].forEach(ms => setTimeout(() => G.fx.redPulse(800), ms));
+    await sleep(2900);
+    Object.keys(wins).forEach(k => { wins[k].el.style.display = "none"; });   // 窓が全部消える
+    const wp = $("#wallpaper"); setWall("lit"); if (/\bb\b/.test(wp.className)) wp.classList.add("fig");
+    S.breath(); await sleep(2600); S.breath(); await sleep(1800);
+    const cam = h("div", { id: "screen-cam" }, makePhoto(5), h("div", { class: "cam-rec" }, "● REC"), h("div", { class: "cam-time" }, ""));
+    document.body.append(cam);                              // 監視カメラ風の映像（無音）
+    const tick = () => { const t = cam.querySelector(".cam-time"); if (t) t.textContent = clock2().join(":"); }; tick(); const ti = setInterval(tick, 500);
+    await sleep(3400);
+    S.jolt(); G.fx.bigText("うしろ", 600); G.fx.shake(500, true);   // 驚かせるのは、ここ1回だけ
+    await sleep(900);
+    clearInterval(ti); cam.remove();
+    const dark = h("div", { id: "finale-dark" }); document.body.append(dark);
+    await sleep(2200);                                      // 真っ暗・無音
+    G.setForced(false); block.remove(); dark.remove(); $("#tb-cam").classList.add("hidden"); finaleBusy = false;
+    await showEnding("open", heavy, true);
   }
 
   function restart() {
@@ -589,7 +637,7 @@
   $("#tb-mute").addEventListener("click", e => { const m = S.toggleMute(); e.currentTarget.classList.toggle("off", m); });
   window.addEventListener("keydown", e => { if (e.key === "Enter" && !$("#screen-login").classList.contains("hidden") && document.activeElement.tagName !== "BUTTON") boot(); });
   $("#login-site").textContent = D.siteName + "　管理画面";
-  window.Apps.bind({ h, openWin, toast, S, state: () => state, save, norm, D, wins: () => wins, focus: focusWin, refreshBadges: () => updateBadge() });
+  window.Apps.bind({ makePhoto, closeWin: id => closeWin(id, true), h, openWin, toast, S, state: () => state, save, norm, D, wins: () => wins, focus: focusWin, refreshBadges: () => updateBadge() });
   window.Gimmicks.bind({ D, S, state: () => state, save, tab: () => tab, selId: () => selId, wins: () => wins, openMemo,
     clockEl: () => $("#tb-clock"), clockMin: () => clockMin, paintClock });
   showLogin();

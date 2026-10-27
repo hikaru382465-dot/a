@@ -40,14 +40,16 @@ window.Apps = (function () {
     return out;
   }
   const visibleComments = e => (E().comments[e.base] || []).filter(c => !c.odd || day() > e.day);
-  function openSite() {
+  function openSite(opts) {
+    opts = opts || {};
     const D3 = window.GAME_DATA3, items = approvedList();
     const name = api.D.siteName.replace("（仮）", "");
     const pubTone = e => (e.base || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 6;
     const rows = () => items.map(e => ({ id: e.base, title: e.title.replace("【再投稿】", ""), author: e.author, kind: e.body.join("").length > 330 ? "長編" : "短編",
       fire: 2 + ((e.base || "").charCodeAt(2) || 3) % 4, cm: visibleComments(e).length, date: "2026/10/" + String(10 + e.day).padStart(2, "0") + " " + e.time.replace("今日 ", "").replace(/^(\d)/, "0$1"), tone: pubTone(e), body: e.body, mine: true, e: e }))
       .concat(D3.legacy.map(l => Object.assign({ mine: false }, l)));
-    let tab = "rank", sel = null, url = "yobanashi-kan.example";
+    let tab = "rank", sel = null, url = "yobanashi-kan.example", heroHost = null, heroStep = 0;
+    const heroFor = r => (r.id === "p16" && api.makePhoto) ? api.makePhoto(heroStep) : picEl(r, true);
     // 見ていない間に写真が変わる：閉じていた（見ていなかった）時間が20秒以上あると、1段進む
     const fl = api.state().flags, nowMs = Date.now();
     if (day() >= (api.D.gimmicks.siteDrift || 99) && fl.siteSeen && nowMs - fl.siteSeen > 20000 && !location.search.includes("nogimmick")) { fl.drift = Math.min(4, (fl.drift || 0) + 1); api.save(); }
@@ -112,7 +114,7 @@ window.Apps = (function () {
         h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
         h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),
         h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　🔥 " + r.fire),
-        h("div", { class: "pub-hero t" + r.tone }, picEl(r, true)),
+        (heroHost = h("div", { class: "pub-hero t" + r.tone }, heroFor(r))),
         r.body.map(t => h("p", {}, t)),
         h("div", { class: "pub-cmh" }, "読者コメント（" + cs.length + "）"),
         cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"),
@@ -121,9 +123,21 @@ window.Apps = (function () {
         h("div", { class: "pub-rel" }, h("div", { class: "pub-cmh" }, "この話を読んだ人は、こちらも読んでいます"),
           rows().filter(x => x.id !== r.id).slice(1, 4).map(x => h("div", { class: "pub-relrow", onclick: () => { sel = x; page.scrollTop = 0; paint(); } }, "› " + x.title + "　（" + x.author + "）")))));
     }
+    if (opts.story) { sel = rows().find(x => x.id === opts.story) || null; }
     paint();
     api.openWin("site", name + " - ブラウザ", wrap, { w: 460, h: 700, x: 520, y: 8 });
+    // エンディング用の操作口：写真を差し替える／コメントを1字ずつ書く
+    return {
+      setStep(n) { heroStep = n; if (heroHost && sel) heroHost.replaceChildren(heroFor(sel)); },
+      async typeComment(who, at, text) {
+        const cmh = view.querySelector(".pub-cmh"); if (!cmh) return;
+        const box = h("div", { class: "cm odd" }, h("span", { class: "cm-n" }, who), h("span", { class: "cm-t" }, at)), line = h("div"); box.append(line); cmh.after(box);
+        for (const ch of text) { line.textContent += ch; api.S.key(); await new Promise(r => setTimeout(r, 110)); }
+      }
+    };
   }
+  // 公開サイトを、指定した記事のページで開く（すでに開いていれば、いったん閉じる）
+  function openSiteStory(id) { if (api.wins().site) api.closeWin("site"); return openSite({ story: id }); }
   // 承認から少し後に、読者コメントが届く（音と通知）
   function onApprove(e) {
     const st = api.state();
@@ -360,5 +374,5 @@ window.Apps = (function () {
     if (d >= 3) out.push({ key: "sns", label: "ひとこと", glyph: "✦", color: "linear-gradient(135deg,#b04f8a,#7a2f5f)", fn: openSns });
     return out;
   }
-  return { bind, iconDefs, unread, onApprove, newOddCount, openMail, decorate };
+  return { bind, iconDefs, unread, onApprove, newOddCount, openMail, decorate, openSiteStory };
 })();
