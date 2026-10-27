@@ -35,6 +35,7 @@ AIで作った絵（キャラ・カタログ・漂流物・しぐさ・アニメ
 | 小屋の見た目ちがい（木の板・石・17種） | `hut/hut_wood.png` `hut_stone.png` `huts_sheet1.png` `huts_sheet2.png` `huts_sheet3_wood.png` `huts_sheet4_sea.png` `huts_sheet5_snow.png` | ひかる（AI作成） | □ AIサービスの規約 |
 | 小屋の中の絵、ベッド、相棒（足パタパタ） | `hut/` | ひかる（AI作成） | □ AIサービスの規約 |
 | 置き物・漂流物・魚・作物・景色の絵 | `items/` ほか | ひかる（AI作成） | □ AIサービスの規約 |
+| 回収ネット（空・物入り・やぶれ） | `items/catchnet.png` | ひかる（AI作成） | □ AIサービスの規約 |
 | 作物6種の追加（ナス・カボチャなど） | `items/crops_new.png` | ひかる（AI作成） | □ AIサービスの規約 |
 | 作物ごとの種袋12個 | `items/seeds_new.png` | ひかる（AI作成） | □ AIサービスの規約 |
 | 料理4種（緑背景・白背景の2枚） | `food/` | ひかる（AI作成） | □ AIサービスの規約 |

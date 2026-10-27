@@ -228,6 +228,25 @@ for _f in ('hut_wood.png', 'hut_stone.png'):      # 1枚に昼と夜の1組だ�
 for _f in ('huts_sheet1.png', 'huts_sheet2.png', 'huts_sheet3_wood.png', 'huts_sheet4_sea.png'): _vh += _hut_pairs(here.parent / 'art' / 'hut' / _f)
 _vh += _hut_pairs(here.parent / 'art' / 'hut' / 'huts_sheet5_snow.png', fix=True)
 out['hut'] = out['hut'] + _vh
+# 回収ネット（ひかるの絵：緑背景。左から、空・物入り・やぶれ）。3枚を同じ大きさの枠にそろえて、下はしを合わせる
+def _catchnet(path, W=120):
+    A, fg = cutlib.key_green(path); H0, W0 = fg.shape; ims = []
+    for i in range(3):
+        x0, x1 = i * W0 // 3, (i + 1) * W0 // 3; m = fg[:, x0:x1].copy()
+        ys, xs = np.where(m); keep = np.zeros_like(m)
+        big = np.zeros_like(m); lab = None
+        keep = m      # やぶれの小さなかけらも残す
+        ys, xs = np.where(keep); b = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+        sub = A[:, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1].astype(int), np.maximum(sub[..., 0].astype(int), sub[..., 2].astype(int)) + 12).astype(np.uint8)
+        ims.append((Image.fromarray(np.dstack([sub, (keep * 255).astype(np.uint8)]), 'RGBA'), b))
+    L = min(b[0] for _, b in ims); T = min(b[1] for _, b in ims); R_ = max(b[2] for _, b in ims); B = max(b[3] for _, b in ims)
+    k = W / (R_ - L); outs = []
+    for im, b in ims:
+        im = im.crop((L, T, R_, B)); im = im.resize((W, max(1, round(im.height * k))), Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
+        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=90, method=6); outs.append({'src': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': im.width, 'h': im.height, 'hi': 3})
+    return outs
+_cn = _catchnet(here.parent / 'art' / 'items' / 'catchnet.png')
+out['catchnet'] = _cn; out['icons']['catchnet'] = [_cn[1]]
 print('小屋の見た目', len(out['hut']) // 2, '種類（わら含む）')
 assert len(out['hut']) // 2 == 54, len(out['hut']) // 2      # data.js の HUT_N と同じにする
 out['icons']['hutw'] = [_vh[0]]; out['icons']['huts'] = [_vh[2]]; out['hutw'] = out['icons']['hutw']; out['huts'] = out['icons']['huts']
