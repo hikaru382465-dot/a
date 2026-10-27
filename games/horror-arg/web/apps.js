@@ -285,7 +285,7 @@ window.Apps = (function () {
       const screen = h("div", { class: "sr-player" }, drawThumb(v.scene, 31, 360, 200), h("button", { class: "sr-bigplay", "aria-label": "再生" }, "▶"));
       const { nodes } = extras(v.u, v.t, v.cm);
       screen.querySelector("button").addEventListener("click", async () => {
-        const c = screen.querySelector("canvas"), g = c.getContext("2d"); api.S.whisper();
+        const c = screen.querySelector("canvas"), g = c.getContext("2d"); api.S.noise();
         for (let i = 0; i < 14; i++) { const id = g.createImageData(c.width, c.height); for (let k = 0; k < id.data.length; k += 4) { const n = Math.random() * 90; id.data[k] = id.data[k + 1] = id.data[k + 2] = n; id.data[k + 3] = 255; } g.putImageData(id, 0, 0); await new Promise(r => setTimeout(r, 90)); }
         g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.fillStyle = "#cfd6e6"; g.font = "14px sans-serif"; g.textAlign = "center"; g.fillText("この動画は、再生できません。", c.width / 2, c.height / 2);
         screen.querySelector("button").remove(); api.S.error();

@@ -131,8 +131,8 @@ window.Gimmicks = (function () {
       later(() => set("fig0"), t);                 // 窓に明かりがつく
       later(() => set(null), t + 170);              // 一度消える（ちらつき）
       later(() => set("fig0"), t + 340);
-      later(() => set("fig1"), t + 640);            // 奥に、ぼんやり小さく
-      later(() => { set("fig"); api.S.knock(); }, t + 1000);   // 窓ぎわまで来る
+      later(() => { set("fig1"); api.S.footsteps(3); }, t + 640);            // 奥に、ぼんやり小さく（足音）
+      later(() => { set("fig"); api.S.breath(); }, t + 1000);   // 窓ぎわまで来る（息）
       later(() => set(null), t + 1550);
       setTimeout(() => {
         set(null);
@@ -157,7 +157,7 @@ window.Gimmicks = (function () {
     stop();
     if (location.search.includes("nogimmick")) return;
     active = true; zeroDone = {};
-    every("silentNotify", 70000, 130000, () => { api.S.notify(); redPulse(600); });
+    every("silentNotify", 70000, 130000, () => { api.S.vibrate(); if (fxOn()) overlay("fx-vib", 1300, "📱"); });
     every("title", 50000, 90000, titleBlip);
     every("clock", 45000, 80000, clockGlitch);
     every("windowReturn", 40000, 90000, windowReturn);
@@ -267,14 +267,15 @@ window.Gimmicks = (function () {
 
   // 10. 環境の音：壁をたたく／きしむ／ささやき（5日目は鼓動も）
   function ambientEvent() {
-    const S = api.S, pool = ["knock", "creak", "whisper"];
+    const S = api.S, pool = ["knock", "footsteps", "breath", "vibrate"];
     if (day() >= 5) pool.push("heartbeat", "heartbeat");
     const k = pool[Math.floor(Math.random() * pool.length)];
-    S[k]();
-    if (k === "knock") { shake(520, true); redPulse(700); }
-    if (k === "creak") { blackout(2); }
-    if (k === "whisper") { glitch(700); whisperText(["…こっち", "…みてる", "…あなた", "…まだ"][Math.floor(Math.random() * 4)]); }
-    if (k === "heartbeat") { [0, 900, 1800].forEach(ms => setTimeout(() => { redPulse(800); shake(200); }, ms)); }
+    // どの音にも、画面で見える「原因」を合わせる：叩く→揺れ／足音→暗がり／息→画面が曇る／スマホ→📱が震える／鼓動→縁が赤く脈打つ
+    if (k === "knock") { S.knock(); setTimeout(() => shake(200, true), 5); setTimeout(() => shake(160), 280); redPulse(600); }
+    else if (k === "footsteps") { S.footsteps(4); blackout(1); }
+    else if (k === "breath") { S.breath(); if (fxOn()) overlay("fx-fog", 2300); whisperText("…"); }
+    else if (k === "vibrate") { S.vibrate(); if (fxOn()) overlay("fx-vib", 1300, "📱"); }
+    else { S.heartbeat(); [0, 900, 1700, 2400].forEach(ms => setTimeout(() => { redPulse(800); shake(200); }, ms)); }
   }
   // 11. 画面いっぱいの文字が、一瞬だけ出る（3日目から。音つき）
   function bigFlash() {
@@ -304,7 +305,7 @@ window.Gimmicks = (function () {
 
   function fire(name) {
     const was = active; active = true;
-    ({ noise: noiseSweep, figure: windowFigure, silentNotify: () => { api.S.notify(); redPulse(600); }, ambientEvent, bigFlash, shake: () => shake(500, true), glitch: () => glitch(700), blackout: () => blackout(2), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
+    ({ noise: noiseSweep, figure: windowFigure, silentNotify: () => { api.S.vibrate(); if (fxOn()) overlay("fx-vib", 1300, "📱"); }, ambientEvent, bigFlash, shake: () => shake(500, true), glitch: () => glitch(700), blackout: () => blackout(2), title: titleBlip, clock: clockGlitch, windowReturn, windowNudge })[name]?.();
     if (!was) active = false;
   }
   return { bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };

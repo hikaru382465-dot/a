@@ -595,3 +595,21 @@
   showLogin();
   window.__game = { fire: n => window.Gimmicks.fire(n), swap: () => { const e = state.queue.find(x => x.eid === selId); return e && window.Gimmicks.doSwap(e, document.querySelector(".det-body"), 2); }, state: () => state, jump: d => { /* 開発用：N日目へ飛ぶ */ while (state.day < d) { state.queue.forEach(e => { if (!state.decisions[e.eid]) state.decisions[e.eid] = "approve"; }); nextDay(); } } };
 })();
+
+// 効果音テスト：ログイン画面の「効果音テスト」（またはURLに ?sfx）で、全部の効果音を1つずつ聞ける窓が出る（何の音のつもりかも書いてある）
+function openSfxPanel() {
+  if (document.querySelector("#sfxpanel")) { document.querySelector("#sfxpanel").remove(); return; }
+  const list = [["click", "ボタンを押した音"], ["key", "文字を打つ音"], ["open", "窓が開く"], ["close", "窓が閉じる"], ["notify", "通知（メールなど）"], ["approve", "承認した"], ["reject", "却下した（低いドン）"], ["hold", "保留した"], ["error", "できない・まちがい"],
+    ["found", "謎が解けた（鍵が開く音＋チン）"], ["knock", "壁をたたく（コン・コン）"], ["creak", "床や戸がきしむ"], ["breath", "すぐ後ろの息（吸う→吐く）"], ["footsteps", "足音（近づく）"], ["vibrate", "机のスマホが震える"],
+    ["noise", "電気の不調（ジジッ）"], ["tickBack", "時計の秒針と、逆回り"], ["heartbeat", "鼓動"], ["relayClick", "カメラのランプが点くカチッ"], ["recBeep", "録画のピッ"], ["jolt", "ドンと響く低い音（驚かせる）"], ["stinger", "不協和音の一撃"], ["sting", "1日の終わりの低い音"]];
+  const panel = document.createElement("div"); panel.id = "sfxpanel";
+  panel.append(Object.assign(document.createElement("div"), { textContent: "効果音テスト（聞いて「分かる／分からない」を教えてください）" }));
+  list.forEach(([k, label]) => { const r = document.createElement("div"); r.className = "r"; const b = document.createElement("button"); b.textContent = "▶ " + k;
+    b.onclick = () => { window.Snd.init(); window.Snd[k] && window.Snd[k](); }; r.append(b, label); panel.append(r); });
+  const amb = document.createElement("div"); amb.className = "r";
+  const bA = document.createElement("button"); bA.textContent = "▶ 部屋の音（ずっと鳴る）"; bA.onclick = () => { window.Snd.init(); window.Snd.startAmbient(); };
+  const bS = document.createElement("button"); bS.textContent = "■ 止める"; bS.onclick = () => window.Snd.stopAmbient && window.Snd.stopAmbient(0.4);
+  amb.append(bA, bS); panel.append(amb); document.body.append(panel);
+}
+if (location.search.includes("sfx")) openSfxPanel();
+document.addEventListener("click", ev => { if (ev.target && ev.target.id === "login-sfx") { ev.preventDefault(); openSfxPanel(); } });
