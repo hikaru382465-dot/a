@@ -76,8 +76,8 @@ window.RAFT.parts.objects = function (c) {
       const tex = a.map(f => c.tex(f.cv, { smooth: f.hi }));
       const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(cx, TOP + 0.004, cz); sh.rotation.y = Math.PI / 4; sh.scale.setScalar((SH_OF[o.k] || 0.9) * (fw > 1 || fd > 1 ? 2.2 : 1)); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
-      if (o.k === 'catchnet') { const dir = [[0, 1], [-1, 0], [0, -1], [1, 0]][cnDir(o)], front = dir[0] + dir[1] > 0; const h = m.scale.y;      // 手前（カメラに近い辺）をえらぶ。奥の辺は、イカダのかげに入るので、あまりしずめない      // 海に面した辺の外へ出して、下の4割を、水の中に入れる
-        m.position.x = cx + dir[0] * 0.62; m.position.z = cz + dir[1] * 0.62; m.position.y = front ? 0.045 - 0.4 * h : 0.12 - 0.12 * h; sh.visible = false; }
+      if (o.k === 'catchnet') { const dir = [[0, 1], [-1, 0], [0, -1], [1, 0]][Math.max(0, cnDirVec(o))]; const h = (m.scale.multiplyScalar(0.8), m.scale.y);      // 手前（カメラに近い辺）をえらぶ。奥の辺は、イカダのかげに入るので、あまりしずめない      // 海に面した辺の外へ出して、下の4割を、水の中に入れる
+        m.position.x = cx + dir[0] * 0.56; m.position.z = cz + dir[1] * 0.56; m.position.y = 0.045 - 0.5 * h; sh.visible = false; }      // 棒（上のはし）がイカダに接して、網は海にたれる。水面は、下から7割のところ
       const it = { m, tex, o, last: -1, base };
       if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
       items.set(o.id, it);
@@ -87,12 +87,12 @@ window.RAFT.parts.objects = function (c) {
   // ネットにたまった数のバッジ（数が変わったときだけ描きなおす）
   // つけた辺（海に面した辺）の向き → 絵の向き：+z（手前）＝正面0、-x＝左1、-z＝奥2＝背面、+x＝右3
   const cnDirVec = o => [[0, 1], [-1, 0], [0, -1], [1, 0]].findIndex(([dx, dz]) => !R.sim.has(s, o.x + dx, o.z + dz));
-  const cnDir = o => Math.max(0, cnDirVec(o));
+  const cnDir = o => (Math.max(0, cnDirVec(o)) + 2) % 4;      // 絵は、反対がわの向きを使う（ひかるの指定：棒がイカダに接して、網が海がわにのびる）
   const subCache = new Map();
   function subCv(cv) {      // 下の約4割を、うすい水色にかさねて、すこし透かす（水にひたった見た目）
-    let r = subCache.get(cv); if (r) return r; const [o, g] = I.canvas(cv.width, cv.height), W = cv.width, H = cv.height, y0 = Math.floor(H * 0.6);
-    g.drawImage(cv, 0, 0); g.globalCompositeOperation = 'source-atop'; const gr = g.createLinearGradient(0, y0, 0, H); gr.addColorStop(0, 'rgba(40,130,190,0.25)'); gr.addColorStop(1, 'rgba(25,95,160,0.62)'); g.fillStyle = gr; g.fillRect(0, y0, W, H - y0);
-    g.globalCompositeOperation = 'destination-out'; const ga = g.createLinearGradient(0, y0, 0, H); ga.addColorStop(0, 'rgba(0,0,0,0)'); ga.addColorStop(1, 'rgba(0,0,0,0.38)'); g.fillStyle = ga; g.fillRect(0, y0, W, H - y0);
+    let r = subCache.get(cv); if (r) return r; const [o, g] = I.canvas(cv.width, cv.height), W = cv.width, H = cv.height, y0 = Math.floor(H * 0.5);
+    g.drawImage(cv, 0, 0); g.globalCompositeOperation = 'source-atop'; const gr = g.createLinearGradient(0, y0, 0, H); gr.addColorStop(0, 'rgba(60,150,200,0.12)'); gr.addColorStop(1, 'rgba(40,120,180,0.34)'); g.fillStyle = gr; g.fillRect(0, y0, W, H - y0);
+    g.globalCompositeOperation = 'destination-out'; const ga = g.createLinearGradient(0, y0, 0, H); ga.addColorStop(0, 'rgba(0,0,0,0)'); ga.addColorStop(1, 'rgba(0,0,0,0.14)'); g.fillStyle = ga; g.fillRect(0, y0, W, H - y0);
     g.globalCompositeOperation = 'source-over'; g.strokeStyle = 'rgba(235,250,255,0.75)'; g.lineWidth = Math.max(1, H / 70); g.beginPath(); g.ellipse(W / 2, y0, W * 0.4, H * 0.035, 0, 0, 6.3); g.stroke();      // 水面のふち（あわ）
     r = o; subCache.set(cv, r); return r;
   }
