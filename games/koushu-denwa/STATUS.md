@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-25（第21版：ガラスの文字をガラスの面に合わせ、幽霊の向き（-90）と大きさ（1.2倍）を直した。実機で未確認）
+最終更新：2026-10-27（第22版：金庫の中の箱（ボタン16個・2→15→4→9）を作った。実機で未確認）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -92,6 +92,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 - 光のコントラスト（Key/Fill/Rim の3点照明）は、次に調整する
 
 ## 進行中・次にやること
+
+- **金庫の中の箱（謎8）を作った（未確認）**：`kd_game.py` に `BOX_CODE`=[2,15,4,9]。金庫が開いたあと、開いた金庫を見て [E]「金庫の中の箱を調べる」→ 専用カメラ（`KD_DialCam`・視野 `BOX_CAM_FOV`=60）の正面 `BOX_DIST`=25cm に、4×4=16個のボタン（1〜16・1個 `BOX_BTN`=3.2cm）が出て、マウスでクリックして押す（まだ3Dの箱は無く、`BOX_DEBUG`=True の間は、線の枠と数字で表示）。順番どおりで「赤い封筒」を手に入れ（`has_envelope`）、フラグ「金庫の箱」。まちがえると最初から。Q でやめる。偽の Unreal で、ボタンの当たり判定（16個すべて）と押す順番は確認済み。次：①実機で、ボタンの枠が画面に収まるか・クリックが当たるか確認（`BOX_DIST`/`BOX_BTN`/`BOX_CAM_FOV` で調整）②封筒の4けたの鍵（謎9。数字は、張り紙の順番の謎から）と、扉の鍵 ③箱の3Dモデル（Blender）
 
 - **EngineWire 導入成功（2026-10-24）**：PC側の Claude Code から `unreal-engine`（http://127.0.0.1:3000/mcp）がつながり、レベルのアクター一覧（66個。KD_・DialSafe_・Poster_・Ghost など）を取れた。つまずき：①プラグインは **C:\\UEProjects\\kousyuudennwa5.8**（本物のゲーム）に入れる（Dドライブにも別コピーがある）②「Movie Render Queue」系2つのプラグインをオンにしないと読み込み失敗（Missing import）③プロジェクト設定→EngineWire→Enable Native MCP Server にチェック→再起動 ④`claude` は `C:\\Users\\hikaru\\.local\\bin\\claude.exe`（公式インストーラ。PATHに通らなかったのでフルパスで起動）。つなぎ方は `claude mcp add --scope user --transport http unreal-engine http://127.0.0.1:3000/mcp --header "X-MCP-Capability-Token: <ファイルから読む>"`。トークン（Saved\\MCP\\capability-token）は秘密。次：PC側Claudeに画面を撮らせて、ガラス文字・金庫・電話・幽霊の位置を見てもらう。
 

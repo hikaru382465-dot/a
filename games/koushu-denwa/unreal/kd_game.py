@@ -42,6 +42,11 @@ SWAY_SPEED = 0.35              # ゆれる速さ（1秒に何回）
 BOOK_LABEL = "book"            # 本の名前（アウトライナーの名前に入っている言葉）。違うときは kd_settings.json で直す
 SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
 SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=左へ回して止める／R=右）。新聞の「19-3-8」と、液晶の「ヒダリ ミギ ヒダリ」
+BOX_CODE = [2, 15, 4, 9]       # 金庫の中の箱（ボタン1〜16）を押す順番。新聞の2つ目の数列「2-15-4-9」
+BOX_CAM_FOV = 60.0             # 箱のボタンを押す間の、専用カメラの視野（大きいほど広く見える）
+BOX_DIST = 25.0                # カメラから、ボタンの面までの距離（cm）
+BOX_BTN = 3.2                  # ボタン1個の大きさ（cm）。4×4 を画面の真ん中に並べる
+BOX_DEBUG = True               # True: ボタンの枠と数字を、線と文字で出す（本物の箱の3Dモデルができたら False）
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
 TRAP_MARGIN = 3.0              # 閉じ込められている間、ガラスの内がわから、体（PAWN_RADIUS）のほかに、さらにこの距離（cm）あけて止まる（壁ぎわのガタガタ・すり抜け止め）
 PAWN_RADIUS = 22.0             # 体の太さ（カプセルの半径・cm）。ふつうの 34 より細くして、せまい電話ボックスの中を動きやすくする。0 で変えない
@@ -139,6 +144,11 @@ SETTINGS_DESCR = {
     "BOOK_LABEL": "本の名前に入っている言葉（アウトライナーで確認）",
     "SAFE_LABEL": "金庫の名前に入っている言葉（アウトライナーで確認）",
     "SAFE_CODE": "金庫の番号。[[\"L\",19],[\"R\",3],[\"L\",8]] のように、向き（L左・R右）と数字",
+    "BOX_CODE": "金庫の中の箱のボタンを押す順番。[2,15,4,9] のように、1〜16 の数字",
+    "BOX_CAM_FOV": "箱のボタンを押す間の、カメラの視野（大きいほど広く見える）",
+    "BOX_DIST": "カメラから、箱のボタンの面までの距離（cm）",
+    "BOX_BTN": "箱のボタン1個の大きさ（cm）",
+    "BOX_DEBUG": "true: 箱のボタンの枠と数字を線と文字で出す",
     "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
     "START_DIST": "開始位置が変な所のとき、入口の正面から何cm 離して立たせるか",
@@ -274,7 +284,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -409,6 +419,7 @@ class Game:
         self.dial_cam = found.get("KD_DialCam")                      # ダイヤル専用のカメラ（setup_game_fp.py が置く）
         self.safe_cam_on = False
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
+        self.box_done, self.has_envelope, self.box_entries = False, False, []
         self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
         self.hatch_open = False
         self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
@@ -702,6 +713,8 @@ class Game:
             self.tick_safe(dt)
         elif self.state == "PHONE":
             self.tick_phone(dt)
+        elif self.state == "BOX":
+            self.tick_box(dt)
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
@@ -1255,6 +1268,132 @@ class Game:
             except Exception:  # noqa
                 pass
 
+    # ---- 金庫の中の箱（16個のボタンを、2→15→4→9 の順に押す） ----
+    def box_frame(self):
+        """箱のボタンの面：(中心, カメラの前, 右, 上)。専用カメラの前に、BOX_DIST だけ離して置く"""
+        cam = self.dial_cam
+        o = cam.get_actor_location()
+        f, r, u = cam.get_actor_forward_vector(), cam.get_actor_right_vector(), cam.get_actor_up_vector()
+        c = unreal.Vector(o.x + f.x * BOX_DIST, o.y + f.y * BOX_DIST, o.z + f.z * BOX_DIST)
+        return c, f, r, u
+
+    def box_cell(self, ray):
+        """マウスが指している箱のボタンの番号（1〜16）。ボタンの外なら None"""
+        c, f, r, u = self.box_frame()
+        O, D = ray
+        den = D.x * f.x + D.y * f.y + D.z * f.z
+        if abs(den) < 1e-4:
+            return None
+        t = ((c.x - O.x) * f.x + (c.y - O.y) * f.y + (c.z - O.z) * f.z) / den
+        if t < 0:
+            return None
+        h = (O.x + D.x * t - c.x, O.y + D.y * t - c.y, O.z + D.z * t - c.z)
+        x = h[0] * r.x + h[1] * r.y + h[2] * r.z
+        y = h[0] * u.x + h[1] * u.y + h[2] * u.z
+        col = int(math.floor(x / BOX_BTN + 2.0))
+        row = int(math.floor(2.0 - y / BOX_BTN))
+        if 0 <= col < 4 and 0 <= row < 4:
+            return row * 4 + col + 1
+        return None
+
+    def draw_box_buttons(self, hover):
+        if not BOX_DEBUG:
+            return
+        try:
+            c, f, r, u = self.box_frame()
+            rot = self.dial_cam.get_actor_rotation()
+            for n in range(1, 17):
+                row, col = (n - 1) // 4, (n - 1) % 4
+                x, y = (col - 1.5) * BOX_BTN, (1.5 - row) * BOX_BTN
+                p = unreal.Vector(c.x + r.x * x + u.x * y, c.y + r.y * x + u.y * y, c.z + r.z * x + u.z * y)
+                done = n in self.box_entries
+                col_ = unreal.LinearColor(1.0, 0.9, 0.2, 1.0) if hover == n else (unreal.LinearColor(0.4, 1.0, 0.4, 1.0) if done else unreal.LinearColor(0.2, 0.8, 1.0, 1.0))
+                unreal.SystemLibrary.draw_debug_box(self.world, p, unreal.Vector(0.1, BOX_BTN * 0.45, BOX_BTN * 0.45), col_, rot, 0.06, 0.2)
+                unreal.SystemLibrary.draw_debug_string(self.world, p, str(n), None, col_, 0.06)
+        except Exception as e:  # noqa
+            if not getattr(self, "_box_dbg_err", False):
+                self._box_dbg_err = True
+                log("  (箱のボタンを描けません) %s" % e)
+
+    def begin_box(self):
+        """金庫の中の箱を調べる：専用カメラの正面に、16個のボタンを出して、マウスで押す"""
+        try:
+            cc = self.dial_cam.get_component_by_class(unreal.CameraComponent)
+            self.box_fov0 = float(cc.get_editor_property("field_of_view"))
+            cc.set_editor_property("field_of_view", float(BOX_CAM_FOV))
+        except Exception as e:  # noqa
+            self.box_fov0 = None
+            log("  (箱のカメラの視野を設定できません) %s" % e)
+        self.box_cam_on = self.set_view(self.dial_cam, DIAL_ZOOM_TIME)
+        self.lock_input(True)
+        self.show_mouse(True)
+        if getattr(self, "key_lmb", None) is None:
+            self.key_lmb = unreal.Key()
+            self.key_lmb.set_editor_property("key_name", "LeftMouseButton")
+        self.key_quit = unreal.Key()
+        self.key_quit.set_editor_property("key_name", "Q")
+        self.state, self.state_t = "BOX", 0.0
+        self.box_entries = []
+        log("金庫の中の箱を調べ始めました（ボタンはマウスでクリック）")
+
+    def end_box(self):
+        if getattr(self, "box_cam_on", False):
+            self.set_view(self.pawn, 0.45)
+            self.box_cam_on = False
+        if getattr(self, "box_fov0", None) is not None:
+            try:
+                self.dial_cam.get_component_by_class(unreal.CameraComponent).set_editor_property("field_of_view", float(self.box_fov0))
+            except Exception:  # noqa
+                pass
+        self.show_mouse(False)
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def tick_box(self, dt):
+        hover = None
+        try:
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_quit):
+                self.end_box()
+                return
+            ray = self.mouse_ray()
+            hover = self.box_cell(ray) if ray else None
+            self.draw_box_buttons(hover)
+            if hover is not None and self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_lmb):
+                self.box_press(hover)
+        except Exception as e:  # noqa
+            if not getattr(self, "_box_err", False):
+                self._box_err = True
+                log("  (箱のマウス操作でエラー) %s" % e)
+        if int(self.t * 8) != getattr(self, "_box_k", -1):
+            self._box_k = int(self.t * 8)
+            done = " → ".join(str(n) for n in self.box_entries) or "なし"
+            txt = "金庫の中の箱  [クリック] ボタンを押す  [Q] やめる   押した順: %s%s" % (done, ("   いま指しているボタン: %d" % hover) if hover else "")
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(1.0, 0.85, 0.85, 1), 0.3, "KD_BOX_UI")
+            except Exception:  # noqa
+                pass
+
+    def box_press(self, n):
+        self.box_entries.append(n)
+        k = len(self.box_entries)
+        want = list(BOX_CODE)
+        if self.box_entries[-1] != want[k - 1]:
+            screen(self.world, "ブッ…（はずれ。最初から）", (255, 120, 120), 2.5)
+            log("金庫の箱：はずれ %s" % (self.box_entries,))
+            self.box_entries = []
+            return
+        self.play("safe_click")
+        if k < len(want):
+            screen(self.world, "カチッ（%d/%d）" % (k, len(want)), (200, 255, 200), 1.5)
+            return
+        self.box_done = True
+        self.has_envelope = True
+        self.play("latch")
+        self.end_box()
+        screen(self.world, "箱が開いた。赤い封筒が入っていた（4けたの鍵がついている）", (255, 170, 170), 6.0)
+        log("金庫の中の箱が開きました（赤い封筒）。次：封筒の4けたの鍵（まだ未実装）")
+        self.on_flag("金庫の箱")
+
     def safe_enter(self):
         if self.dial_dir is None:
             screen(self.world, "先にダイヤルを回してから、決めてください", (255, 200, 150), 2.0)
@@ -1518,6 +1657,11 @@ class Game:
             if pressed:
                 self.begin_safe()
                 return
+        if self.safe_open and not self.box_done and self.state == "TRAPPED" and getattr(self, "safe_base", None) is not None and getattr(self, "dial_cam", None) is not None and self.looking_at(self.safe_base, ITEM_RANGE):
+            self.prompt_item("[%s] 金庫の中の箱を調べる" % ENTER_KEY, "BOX")
+            if pressed:
+                self.begin_box()
+                return
         if self.book is not None and self.state == "TRAPPED" and self.looking_at(self.book, ITEM_RANGE):
             self.prompt_item("[%s] 本を開く" % ENTER_KEY, "BOOK")
             if pressed:
@@ -1706,7 +1850,7 @@ class Game:
 
     def on_flag(self, name="?"):
         """謎を1つ解いた（フラグがたった）。演出を1つ選んで出す"""
-        if self.state not in ("TRAPPED", "PHONE", "SAFE", "READING") or not getattr(self, "trapped_started", False):
+        if self.state not in ("TRAPPED", "PHONE", "SAFE", "BOX", "READING") or not getattr(self, "trapped_started", False):
             log("(閉じ込められていないので、フラグは無視) %s" % name)
             return
         if self.state != "TRAPPED":                              # 電話・金庫・読んでいる最中は、終わってから演出を出す
