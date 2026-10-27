@@ -228,25 +228,37 @@ for _f in ('hut_wood.png', 'hut_stone.png'):      # 1枚に昼と夜の1組だ�
 for _f in ('huts_sheet1.png', 'huts_sheet2.png', 'huts_sheet3_wood.png', 'huts_sheet4_sea.png'): _vh += _hut_pairs(here.parent / 'art' / 'hut' / _f)
 _vh += _hut_pairs(here.parent / 'art' / 'hut' / 'huts_sheet5_snow.png', fix=True)
 out['hut'] = out['hut'] + _vh
-# 回収ネット（ひかるの絵：緑背景。左から、空・物入り・やぶれ）。3枚を同じ大きさの枠にそろえて、下はしを合わせる
+# 回収ネット（ひかるの絵：緑背景。3行＝空・物入り・やぶれ、4列＝正面・左・背面・右。文字のふだは消す）。並びは state*4+向き（0正面 1左 2背面 3右）
 def _catchnet(path, W=120):
-    A, fg = cutlib.key_green(path); H0, W0 = fg.shape; ims = []
-    for i in range(3):
-        x0, x1 = i * W0 // 3, (i + 1) * W0 // 3; m = fg[:, x0:x1].copy()
-        ys, xs = np.where(m); keep = np.zeros_like(m)
-        big = np.zeros_like(m); lab = None
-        keep = m      # やぶれの小さなかけらも残す
-        ys, xs = np.where(keep); b = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
-        sub = A[:, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1].astype(int), np.maximum(sub[..., 0].astype(int), sub[..., 2].astype(int)) + 12).astype(np.uint8)
-        ims.append((Image.fromarray(np.dstack([sub, (keep * 255).astype(np.uint8)]), 'RGBA'), b))
-    L = min(b[0] for _, b in ims); T = min(b[1] for _, b in ims); R_ = max(b[2] for _, b in ims); B = max(b[3] for _, b in ims)
-    k = W / (R_ - L); outs = []
-    for im, b in ims:
-        im = im.crop((L, T, R_, B)); im = im.resize((W, max(1, round(im.height * k))), Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
-        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=90, method=6); outs.append({'src': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': im.width, 'h': im.height, 'hi': 3})
+    import make_chars
+    A, fg = cutlib.key_green(path); comps = make_chars.components(fg, 40); pieces = []
+    for pts in comps:
+        ys = np.array([p[0] for p in pts]); xs = np.array([p[1] for p in pts]); cols = A[ys, xs].astype(int)
+        navy = float(cols[:, 0].mean()) < 90 and float(cols[:, 2].mean()) > float(cols[:, 0].mean()) + 12 and len(pts) > 1200 and (xs.max() - xs.min()) > 1.8 * (ys.max() - ys.min())
+        if not navy: pieces.append((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1, pts))
+    big = sorted([p for p in pieces if len(p[4]) > 4000], key=lambda p: (p[1] + p[3]) / 2); assert len(big) == 12, len(big)
+    rows = [sorted(big[i * 4:(i + 1) * 4], key=lambda p: p[0]) for i in range(3)]; ctr = [[((p[0] + p[2]) / 2, (p[1] + p[3]) / 2) for p in r] for r in rows]; groups = [[[p] for p in r] for r in rows]
+    for p in pieces:
+        if any(p is q for r in rows for q in r): continue
+        cx, cy = (p[0] + p[2]) / 2, (p[1] + p[3]) / 2; best = min(((abs(cx - c[0]) + abs(cy - c[1]), ri, ci) for ri, r in enumerate(ctr) for ci, c in enumerate(r)))
+        if best[0] < 260: groups[best[1]][best[2]].append(p)
+    imgs = []
+    for ri in range(3):
+        for ci in range(4):
+            g = groups[ri][ci]; x0 = min(p[0] for p in g); y0 = min(p[1] for p in g); x1 = max(p[2] for p in g); y1 = max(p[3] for p in g)
+            m = np.zeros((y1 - y0, x1 - x0), bool)
+            for p in g:
+                for (py, px) in p[4]: m[py - y0, px - x0] = True
+            sub = A[y0:y1, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1].astype(int), np.maximum(sub[..., 0].astype(int), sub[..., 2].astype(int)) + 12).astype(np.uint8)
+            imgs.append(Image.fromarray(np.dstack([sub, (m * 255).astype(np.uint8)]), 'RGBA'))
+    MW = max(i.width for i in imgs); MH = max(i.height for i in imgs); k = W / MW; outs = []
+    for im in imgs:      # 同じ大きさの枠に、下はしと横のまんなかをそろえて入れる
+        cv = Image.new('RGBA', (MW, MH), (0, 0, 0, 0)); cv.alpha_composite(im, ((MW - im.width) // 2, MH - im.height))
+        cv = cv.resize((W, max(1, round(MH * k))), Image.LANCZOS); al = np.array(cv.getchannel('A')); cv.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
+        buf = io.BytesIO(); cv.save(buf, 'WEBP', quality=90, method=6); outs.append({'src': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': cv.width, 'h': cv.height, 'hi': 3})
     return outs
-_cn = _catchnet(here.parent / 'art' / 'items' / 'catchnet.png')
-out['catchnet'] = _cn; out['icons']['catchnet'] = [_cn[1]]
+_cn = _catchnet(here.parent / 'art' / 'items' / 'catchnet_dirs.png')
+out['catchnet'] = _cn; out['icons']['catchnet'] = [_cn[4]]
 print('小屋の見た目', len(out['hut']) // 2, '種類（わら含む）')
 assert len(out['hut']) // 2 == 54, len(out['hut']) // 2      # data.js の HUT_N と同じにする
 out['icons']['hutw'] = [_vh[0]]; out['icons']['huts'] = [_vh[2]]; out['hutw'] = out['icons']['hutw']; out['huts'] = out['icons']['huts']
