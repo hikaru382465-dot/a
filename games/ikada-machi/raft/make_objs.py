@@ -252,6 +252,9 @@ def _catchnet(path, W=120):
             sub = A[y0:y1, x0:x1].astype(np.uint8).copy(); sub[..., 1] = np.minimum(sub[..., 1].astype(int), np.maximum(sub[..., 0].astype(int), sub[..., 2].astype(int)) + 12).astype(np.uint8)
             imgs.append(Image.fromarray(np.dstack([sub, (m * 255).astype(np.uint8)]), 'RGBA'))
     MW = max(i.width for i in imgs); MH = max(i.height for i in imgs); k = W / MW; outs = []
+    for i, im in enumerate(imgs):      # 手前の2辺（左下＝向き2、右下＝向き1）は、棒が筏のふち（画面で±26.6度）と平行になるよう、少し回す
+        d = {2: -10.6, 1: 2.6}.get(i % 4)
+        if d: im = imgs[i] = im.rotate(d, expand=True, resample=Image.BICUBIC)
     for im in imgs:      # 同じ大きさの枠に、下はしと横のまんなかをそろえて入れる
         cv = Image.new('RGBA', (MW, MH), (0, 0, 0, 0)); cv.alpha_composite(im, ((MW - im.width) // 2, MH - im.height))
         cv = cv.resize((W, max(1, round(MH * k))), Image.LANCZOS); al = np.array(cv.getchannel('A')); cv.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))

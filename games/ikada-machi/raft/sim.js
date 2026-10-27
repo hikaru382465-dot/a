@@ -203,7 +203,7 @@
     const cs = [cellOf(s.player), cellOf(s.buddy)], out = [], [fw, fd] = (D.ITEMS[k] && D.ITEMS[k].size) || [1, 1];
     const freeCells = s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z)), isFree = (x, z) => freeCells.some(c => c[0] === x && c[1] === z);
     s.raft.cells.forEach(([x, z]) => {
-      if (D.ITEMS[k] && D.ITEMS[k].edge && !N4.some(([dx, dz]) => !S.has(s, x + dx, z + dz))) return;      // ふちだけ（まわりに、海に面した辺がある）
+      if (D.ITEMS[k] && D.ITEMS[k].edge && !(k === 'catchnet' ? [[0, 1], [1, 0]] : N4).some(([dx, dz]) => !S.has(s, x + dx, z + dz))) return;      // ふちだけ（回収ネットは、手前の2辺＝+z・+x だけ）
       const fp = []; for (let i = 0; i < fw; i++) for (let j = 0; j < fd; j++) fp.push([x + i, z + j]);
       if (fp.some(([X, Z]) => !isFree(X, Z) || cs.some(q => q[0] === X && q[1] === Z))) return;
       const rest = freeCells.filter(c => !fp.some(f => f[0] === c[0] && f[1] === c[1])); if (rest.length < 2) return;

@@ -90,7 +90,7 @@ window.RAFT.parts.objects = function (c) {
   }
   // ネットにたまった数のバッジ（数が変わったときだけ描きなおす）
   // つけた辺（海に面した辺）の向き → 絵の向き：+z（手前）＝正面0、-x＝左1、-z＝奥2＝背面、+x＝右3
-  const cnDirVec = o => [[0, 1], [-1, 0], [0, -1], [1, 0]].findIndex(([dx, dz]) => !R.sim.has(s, o.x + dx, o.z + dz));
+  const cnDirVec = o => [0, 3, 1, 2].find(i => { const [dx, dz] = [[0, 1], [-1, 0], [0, -1], [1, 0]][i]; return !R.sim.has(s, o.x + dx, o.z + dz); });      // 手前の辺（+z・+x）を先にえらぶ
   const cnDir = o => (Math.max(0, cnDirVec(o)) + 2) % 4;      // 絵は、反対がわの向きを使う（ひかるの指定：棒がイカダに接して、網が海がわにのびる）
   const subCache = new Map();
   function subCv(cv) {      // 下の約4割を、うすい水色にかさねて、すこし透かす（水にひたった見た目）
