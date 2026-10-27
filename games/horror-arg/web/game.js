@@ -69,6 +69,7 @@
   function toggleWall() { wallB = !wallB; try { localStorage.setItem("horror-arg-wall", wallB ? "b" : "a"); } catch (e) {} setWall(curWall); }
 
   $("#tb-wall").addEventListener("click", toggleWall);
+  $("#hint-tab").addEventListener("click", () => { S.click(); openNotes(); });
 
   // ---------- 時計 ----------
   let clockMin = 0;
@@ -383,11 +384,7 @@
     const list = h("div", { class: "q-list" });
     const log = h("div", { class: "note-log" });
     const msg = h("div", { class: "cmp-msg" });
-    function hintLevel(q) {   // 自分で押した段 ／ 3分たつと①だけ自動で出る
-      let lv = state.hintLv[q.id] || 0;
-      const seen = state.qShown[q.id]; if (!lv && seen && Date.now() - seen > 180000) lv = 1;
-      return lv;
-    }
+    function hintLevel(q) { return state.hintLv[q.id] || 0; }   // 見たい人だけ：自分で押した段まで
     function paint() {
       const items = D.questions.filter(qOpen);
       list.replaceChildren(h("div", { class: "q-h" }, "いま調べること"), ...items.map(q => {
@@ -445,7 +442,12 @@
   // ---------- デスクトップのアイコン ----------
   const TOUCH = () => matchMedia("(pointer: coarse)").matches || window.innerWidth < 760;
   let badgeFns = [];
+  function paintHintTab() {
+    const t = $("#hint-tab"); if (!t) return;
+    const n = qTodo().length; t.classList.toggle("has", n > 0); t.querySelector(".ht-n").textContent = n ? String(n) : "";
+  }
   function updateBadge() {
+    paintHintTab();
     if (badgeEl) { const n = window.Gimmicks.shownPending(pendingCount()); badgeEl.textContent = n; badgeEl.style.display = n ? "" : "none"; }
     badgeFns.forEach(f => f());
   }
