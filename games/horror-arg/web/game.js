@@ -246,7 +246,7 @@
           h("span", {}, "投稿者：", h("b", {}, e.author)), h("span", {}, "ID：", h("b", {}, e.authorId)),
           h("span", {}, "投稿：", h("b", {}, e.time)), h("span", {}, "端末：", h("b", {}, e.device)),
           h("span", {}, "IP：", h("b", {}, fakeIp(e.authorId))), h("span", {}, "過去の投稿：", h("b", {}, 1 + hashN(e.authorId, 9) + "件")), h("span", {}, "通報：", h("b", {}, hashN(e.authorId + "r", 3) + "件")));
-        if (e.origin) meta.append(h("span", {}, "投稿元コード：", h("b", {}, e.origin)));
+        if (e.origin) meta.append(h("span", { class: "clue", title: "引き継ぎメモの対応表で、ひらがなに読みかえられます" }, "投稿元コード：", h("b", {}, e.origin)));
         const bodyEl = h("div", { class: "det-body" }, e.body.map(t => h("p", {}, t)));
         window.Apps.decorate(e, bodyEl);
         if (e.last) setWall("lit");
@@ -255,7 +255,7 @@
           const bInfo = h("button", { class: "btn", style: "margin-top:6px", onclick: () => {
             info.classList.toggle("hidden");
             if (!state.flags.photo) {
-              state.flags.photo = true; save(); S.sting();
+              state.flags.photo = true; save(); checkQuestions(); S.sting();
               toast("写真の情報", "撮影日時が、「明日」になっています。", "warn");
             } else S.click();
           } }, "写真の情報を見る");
@@ -341,7 +341,7 @@
         msg.className = "cmp-msg good";
         msg.textContent = "一致を検出しました。同じ言い回しが、別の投稿者の文章に含まれています。";
         if (!state.found[ta]) {
-          state.found[ta] = true; save(); S.found();
+          state.found[ta] = true; save(); S.found(); checkQuestions();
           if (D.memoAddenda[ta]) setTimeout(() => appendMemo(D.memoAddenda[ta]), 1800);
         }
       } else {
@@ -358,31 +358,61 @@
     paint();
   }
 
-  // ---------- 調査メモ（わかったことを書き込む） ----------
+  // ---------- 調査メモ（いま調べること／ヒント／わかったことを書き込む） ----------
+  const qDone = q => { const [a, b] = q.done.split("."); return !!(state[a] && state[a][b]); };
+  const qOpen = q => q.day <= state.day && (!q.after || qDone(D.questions.find(x => x.id === q.after)));
+  const qTodo = () => D.questions.filter(q => qOpen(q) && !qDone(q));
+  let notesRepaint = null, qToastReady = false;
+  function checkQuestions() {
+    state.qShown = state.qShown || {};
+    const fresh = D.questions.filter(q => qOpen(q) && !state.qShown[q.id]);
+    fresh.forEach(q => { state.qShown[q.id] = Date.now(); });
+    if (fresh.length) save();
+    updateBadge(); if (notesRepaint) notesRepaint();
+    const newTodo = fresh.filter(q => !qDone(q));
+    if (newTodo.length && qToastReady) toast("調査メモ", "新しく調べることが " + newTodo.length + " 件あります。デスクトップの「調査メモ」を開いてください。");
+  }
   function openNotes() {
-    const input = h("input", { class: "note-input", placeholder: "わかったことを書く", autocomplete: "off" });
+    state.hintLv = state.hintLv || {}; state.qShown = state.qShown || {};
+    const input = h("input", { class: "note-input", placeholder: "答えを書く", autocomplete: "off" });
+    const list = h("div", { class: "q-list" });
     const log = h("div", { class: "note-log" });
     const msg = h("div", { class: "cmp-msg" });
-    function paint() {
-      log.replaceChildren(...(D.answers.filter(a => state.answers[a.id]).map(a => h("div", { class: "note-item" }, "✓ " + a.log)).concat(
-        Object.keys(state.answers).length ? [] : [h("div", { class: "adm-empty small" }, "まだ記録がありません")])));
+    function hintLevel(q) {   // 自分で押した段 ／ 3分たつと①だけ自動で出る
+      let lv = state.hintLv[q.id] || 0;
+      const seen = state.qShown[q.id]; if (!lv && seen && Date.now() - seen > 180000) lv = 1;
+      return lv;
     }
+    function paint() {
+      const items = D.questions.filter(qOpen);
+      list.replaceChildren(h("div", { class: "q-h" }, "いま調べること"), ...items.map(q => {
+        const done = qDone(q), lv = hintLevel(q);
+        return h("div", { class: "q-item" + (done ? " done" : "") },
+          h("div", { class: "q-t" }, h("span", { class: "q-ck" }, done ? "✓" : "□"), q.q + (q.len && !done ? "（" + q.len + "文字／けた）" : "")),
+          done ? null : h("div", { class: "q-hints" },
+            ...[0, 1, 2].filter(i => i < lv).map(i => h("div", { class: "q-hint" }, "ヒント" + "①②③"[i] + "：" + q.hints[i])),
+            lv < 3 ? h("button", { class: "btn q-btn", onclick: () => { state.hintLv[q.id] = Math.min(3, lv + 1); save(); S.click(); paint(); } }, lv ? "次のヒント" : "ヒントを見る") : null));
+      }), ...(items.length ? [] : [h("div", { class: "adm-empty small" }, "いま調べることはありません")]));
+      log.replaceChildren(...(D.answers.filter(a => state.answers[a.id]).map(a => h("div", { class: "note-item" }, "✓ " + a.log))));
+    }
+    notesRepaint = () => { if (input.isConnected) paint(); };
     function submit() {
       const v = norm(input.value); if (!v) return;
       const a = D.answers.find(x => x.day <= state.day && x.accept.some(c => norm(c) === v));
       if (!a) { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "該当する手がかりが見つかりません。"; return; }
       input.value = "";
       if (state.answers[a.id]) { msg.className = "cmp-msg"; msg.textContent = "すでに記録済みです。"; S.click(); return; }
-      state.answers[a.id] = true; save(); S.found(); paint();
+      state.answers[a.id] = true; save(); S.found(); paint(); checkQuestions();
       msg.className = "cmp-msg good"; msg.textContent = "記録しました。";
       if (a.memo && D.memoAddenda[a.memo]) setTimeout(() => appendMemo(D.memoAddenda[a.memo]), 1600);
       if (a.ending) setTimeout(() => showEnding("secret"), 2600);
     }
     input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); else S.key(); });
     openWin("notes", "調査メモ", h("div", { class: "notes" },
-      h("div", { class: "note-help" }, "調べてわかったことを書き込むと、記録されます。"),
+      list,
+      h("div", { class: "note-help" }, "答えがわかったら、ここに書き込むと記録されます。（調べるだけで解けるものは、自動でチェックが付きます）"),
       h("div", { class: "note-row" }, input, h("button", { class: "btn primary", onclick: submit }, "記録")),
-      msg, log), { w: 460, h: 340, x: 300, y: 120 });
+      msg, log), { w: 520, h: 470, x: 300, y: 60 });
     paint();
   }
 
@@ -398,7 +428,7 @@
       const inp = h("input", { class: "note-input", placeholder: "4けたの番号", maxlength: "4", autocomplete: "off", style: "text-align:center;width:140px" });
       const msg = h("div", { class: "cmp-msg", style: "text-align:center" }, "このファイルは、暗証番号で保護されています。");
       const go = () => {
-        if (norm(inp.value) === D.lockCode) { state.flags.lockOpen = true; save(); S.found(); showText(); }
+        if (norm(inp.value) === D.lockCode) { state.flags.lockOpen = true; save(); S.found(); showText(); checkQuestions(); }
         else { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "番号が違います。"; }
       };
       inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); else S.key(); });
@@ -429,7 +459,7 @@
     box.append(mk("管理画面", "▤", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
       mk("引き継ぎメモ", "✎", "linear-gradient(135deg,#d9a93a,#a97a14)", openMemo, false));
     window.Apps.iconDefs().forEach(d => box.append(mk(d.label, d.glyph, d.color, d.fn, false, d.badge)));
-    if (state.day >= 2) box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false));
+    box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false, () => qTodo().length));
     if (state.day >= 4) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
     box.append(mk("ダウンロード", "↓", "linear-gradient(135deg,#6b7280,#444a56)", () => {}, false), mk("ごみ箱", "🗑", "linear-gradient(135deg,#59606e,#383d48)", () => {}, false));
     updateBadge();
@@ -544,6 +574,8 @@
     await sleep(1400); S.notify();
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。");
+    qToastReady = false; checkQuestions();
+    setTimeout(() => { qToastReady = true; const n = qTodo().length; if (n) toast("調査メモ", "いま調べることが " + n + " 件あります。デスクトップの「調査メモ」を開いてください。"); }, 3800);
     if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
     const um = window.Apps.unread();
     if (um) setTimeout(() => { S.notify(); toast("新着メール", um + "件の未読メールがあります。"); }, 600);
