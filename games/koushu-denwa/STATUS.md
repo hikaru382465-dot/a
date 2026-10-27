@@ -1,6 +1,6 @@
 # 3Dホラーゲーム「公衆電話」 状況メモ
 
-最終更新：2026-10-27（第23版：金庫の中の箱の3Dモデル（PuzzleBox.fbx）をBlenderで作った。ひかるの見た目OK待ち・ゲームにはまだ入れていない）
+最終更新：2026-10-27（第24版：金庫の中の箱（PuzzleBox）をゲームに入れた。見た目はひかるOK。実機で未確認）
 
 ## ゲームの設定（ひかるが決めたこと）
 
@@ -93,7 +93,8 @@ GeForce RTX 2070 SUPER／Core i7-10700K／メモリ32GB／SSD 1TB＋HDD 2TB
 
 ## 進行中・次にやること
 
-- **金庫の中の箱の3Dモデルを作った（ひかるの見た目OK待ち）**：`blender/make_puzzle_box.py`（`D:\blender.exe -b --python` で約1.5分）→ `assets/unreal/PuzzleBox.fbx`（19×17×6.2cm・原点＝底の中心・おもて -Y。材質の穴 0=漆 1=真鍮 2=象牙のボタン 3=黒）、ボタンの数字の絵 `assets/tex/game/puzzlebox_buttons.png`（＋`_rough`）。確認画像 `assets/puzzlebox_preview.png`・`puzzlebox_in_safe.png`。ボタンの上面は原点から高さ 6.2cm、間隔 3.2cm（`BOX_BTN` と同じ）、1＝奥の左・16＝手前の右。金庫の中では底（高さ2.5cm）に置く。漆のでこぼこ・真鍮の汚れはBlenderの中だけなので、Unrealでは材質を作り直す。次：OKなら `setup_game_fp.py` で金庫の中に置き（金庫が開いたら見せる）、`kd_game.py` のクリックの枠を箱のボタンに合わせて `BOX_DEBUG`=False。
+- **金庫の中の箱をゲームに入れた（未確認）**：`setup_game_fp.py` が `PuzzleBox.fbx` を金庫の底の真ん中に置き（`DialSafe_Box`・はじめは隠す・金庫が開くと出る）、材質 `M_KDBoxLacquer`（漆）・`M_KDBoxIvory`（数字の絵）・真鍮・黒をつける。鍵と10円②は箱の上に乗せた。箱の真上の少し手前に専用カメラ `KD_BoxCam`（`BOX_CAM_BACK`=9cm・`BOX_CAM_UP`=30cm、金庫の倍率つき）。`kd_game.py`：箱を調べると `KD_BoxCam` に切りかえ、マウスの当たりを本物のボタンの面（高さ `BOX_TOP_H`=6.2cm・間隔3.2cm×倍率）で計算。`BOX_DEBUG`=False（線の枠は出さない）、`BOX_HOVER`=True（指しているボタンだけ細い枠）。偽の Unreal で、ボタン6の真ん中を指すと6が返るのを確認済み。実機で見ること：①1が奥の左・16が手前の右か（左右が逆なら `BOX_FLIP`=True、前後が逆なら直しが必要）②箱がカメラに収まるか（`BOX_CAM_BACK`/`BOX_CAM_UP`）③細い枠がボタンに乗るか（`BOX_TOP_H`）④鍵と10円が箱の上に乗っているか ⑤数字の絵がボタンに貼れているか。
+- **金庫の中の箱の3Dモデルを作った（見た目はひかるOK）**：`blender/make_puzzle_box.py`（`D:\blender.exe -b --python` で約1.5分）→ `assets/unreal/PuzzleBox.fbx`（19×17×6.2cm・原点＝底の中心・おもて -Y。材質の穴 0=漆 1=真鍮 2=象牙のボタン 3=黒）、ボタンの数字の絵 `assets/tex/game/puzzlebox_buttons.png`（＋`_rough`）。確認画像 `assets/puzzlebox_preview.png`・`puzzlebox_in_safe.png`。ボタンの上面は原点から高さ 6.2cm、間隔 3.2cm（`BOX_BTN` と同じ）、1＝奥の左・16＝手前の右。金庫の中では底（高さ2.5cm）に置く。漆のでこぼこ・真鍮の汚れはBlenderの中だけなので、Unrealでは材質を作り直す。次：OKなら `setup_game_fp.py` で金庫の中に置き（金庫が開いたら見せる）、`kd_game.py` のクリックの枠を箱のボタンに合わせて `BOX_DEBUG`=False。
 - **金庫の中の箱（謎8）を作った（未確認）**：`kd_game.py` に `BOX_CODE`=[2,15,4,9]。金庫が開いたあと、開いた金庫を見て [E]「金庫の中の箱を調べる」→ 専用カメラ（`KD_DialCam`・視野 `BOX_CAM_FOV`=60）の正面 `BOX_DIST`=25cm に、4×4=16個のボタン（1〜16・1個 `BOX_BTN`=3.2cm）が出て、マウスでクリックして押す（まだ3Dの箱は無く、`BOX_DEBUG`=True の間は、線の枠と数字で表示）。順番どおりで「赤い封筒」を手に入れ（`has_envelope`）、フラグ「金庫の箱」。まちがえると最初から。Q でやめる。偽の Unreal で、ボタンの当たり判定（16個すべて）と押す順番は確認済み。次：①実機で、ボタンの枠が画面に収まるか・クリックが当たるか確認（`BOX_DIST`/`BOX_BTN`/`BOX_CAM_FOV` で調整）②封筒の4けたの鍵（謎9。数字は、張り紙の順番の謎から）と、扉の鍵 ③箱の3Dモデル（Blender）
 
 - **EngineWire 導入成功（2026-10-24）**：PC側の Claude Code から `unreal-engine`（http://127.0.0.1:3000/mcp）がつながり、レベルのアクター一覧（66個。KD_・DialSafe_・Poster_・Ghost など）を取れた。つまずき：①プラグインは **C:\\UEProjects\\kousyuudennwa5.8**（本物のゲーム）に入れる（Dドライブにも別コピーがある）②「Movie Render Queue」系2つのプラグインをオンにしないと読み込み失敗（Missing import）③プロジェクト設定→EngineWire→Enable Native MCP Server にチェック→再起動 ④`claude` は `C:\\Users\\hikaru\\.local\\bin\\claude.exe`（公式インストーラ。PATHに通らなかったのでフルパスで起動）。つなぎ方は `claude mcp add --scope user --transport http unreal-engine http://127.0.0.1:3000/mcp --header "X-MCP-Capability-Token: <ファイルから読む>"`。トークン（Saved\\MCP\\capability-token）は秘密。次：PC側Claudeに画面を撮らせて、ガラス文字・金庫・電話・幽霊の位置を見てもらう。

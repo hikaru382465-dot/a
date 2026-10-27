@@ -51,6 +51,9 @@ SAFE_SIDE = 22.0                     # 金庫を、中心から横へ何cm（＋
 SAFE_SCALE = 1.6                     # 金庫の大きさ（1.0 = 本物の手提げ金庫 幅36cm。見やすいよう 1.6 で幅58cm）
 DIAL_CAM_DIST = 30.0                 # 金庫のダイヤルを回すとき、専用カメラを、つまみの前（おもて側）から何cm 離すか（小さいほどアップ）
 DIAL_CAM_FOV = 42.0                  # そのカメラの視野の角度（小さいほどアップ）
+BOX_CAM_BACK = 9.0                   # 金庫の中の箱を押すカメラ（KD_BoxCam）を、箱の上面の真ん中から、おもて側へ何cm 離すか（金庫の倍率つき）
+BOX_CAM_UP = 30.0                    # 同じく、上へ何cm（FOV60で 4×4 のボタンが画面の高さの約6割になる）
+BOX_TOP = 6.2                        # 箱のボタンの面の高さ（箱の原点から cm・Blenderの設計どおり）
 SAFE_TURN = 0.0                      # 金庫の向き（入口の向きから何度まわすか）
 BOARD_DIST = 450.0                   # 掲示板を、ボックスの入口の前（外）から何cm 離して立てるか
 BOARD_SIDE = 260.0                   # 掲示板を、入口の正面から横へ何cm ずらすか（＋は入口に向かって左）
@@ -302,7 +305,7 @@ def s_clear():
     for a in eas().get_all_level_actors():
         try:
             lab = a.get_actor_label()
-            if lab.startswith(KEEP_PREFIX) and not (RESET_POSTERS and lab.startswith("Poster_")) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid", "DialSafe_Key", "DialSafe_Coin") and not lab.startswith("Board_Pin_") \
+            if lab.startswith(KEEP_PREFIX) and not (RESET_POSTERS and lab.startswith("Poster_")) and lab not in ("Board_Egetsunai", "Paper_News", "Board_Camera", "DialSafe_Knob", "DialSafe_Base", "DialSafe_Lid", "DialSafe_Key", "DialSafe_Coin", "DialSafe_Box") and not lab.startswith("Board_Pin_") \
                     and TAG in [str(t) for t in a.get_editor_property("tags")]:          # 紙と画びょうは、掲示板からの相対位置で作り直す（掲示板について行く）
                 KEEP_POSE[lab] = (a.get_actor_location(), a.get_actor_rotation())
         except Exception:  # noqa
@@ -1463,6 +1466,7 @@ def s_safe_materials():
     STATE["M_KDNickel"] = pbr("M_KDNickel", (0.72, 0.72, 0.75), 1.0, 0.3)               # ニッケルめっき（取っ手・ダイヤル）
     STATE["M_KDBlack"] = pbr("M_KDBlack", (0.02, 0.02, 0.02), 0.0, 0.5)
     STATE["M_KDBrass"] = pbr("M_KDBrass", (0.78, 0.58, 0.22), 1.0, 0.35)                     # 小さな鍵：真鍮
+    STATE["M_KDBoxLacquer"] = pbr("M_KDBoxLacquer", (0.06, 0.035, 0.025), 0.0, 0.35)    # 箱の漆（黒に近い茶色）
     STATE["M_KDSafeInner"] = pbr("M_KDSafeInner", (0.22, 0.02, 0.03), 0.0, 0.9)           # 開いた金庫の内張り（くすんだ赤）
     pm = new_material("M_KDSafePlate")                                                  # 銘板（黒いエナメルに銀の文字）
     t = tex_param(pm, "Tex", unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/safe_plate"), -800, 0)
@@ -1473,7 +1477,19 @@ def s_safe_materials():
     mel.recompile_material(pm)
     unreal.EditorAssetLibrary.save_loaded_asset(pm)
     STATE["M_KDSafePlate"] = pm
-    log("金庫の材質を作りました（木目・ニッケル・銘板・黒）")
+    bf = os.path.join(d, "puzzlebox_buttons.png")                                       # 箱のボタンの数字（象牙色）
+    if not os.path.exists(bf):
+        raise RuntimeError("画像がありません: %s（ZIPを取り直してください）" % bf)
+    import_tasks([mk_task(bf, GAME_DIR + "/Textures/Game")])
+    im = new_material("M_KDBoxIvory")
+    it = tex_param(im, "Tex", unreal.EditorAssetLibrary.load_asset(GAME_DIR + "/Textures/Game/puzzlebox_buttons"), -800, 0)
+    mel.connect_material_property(it, "", MP.MP_BASE_COLOR)
+    mel.connect_material_property(cst(im, 0.0, 120), "", MP.MP_METALLIC)
+    mel.connect_material_property(cst(im, 0.6, 240), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(im)
+    unreal.EditorAssetLibrary.save_loaded_asset(im)
+    STATE["M_KDBoxIvory"] = im
+    log("金庫の材質を作りました（木目・ニッケル・銘板・黒・箱の漆と象牙）")
 
 
 def s_safe():
@@ -1549,7 +1565,7 @@ def s_safe():
     # 箱の中に置く、小さな鍵と10円②（金庫が開いたとき、kd_game.py が一瞬だけ見せて、手に入れたことにして消す）
     key_mesh = import_fit("SafeKey.fbx", "SafeKey", 6.9, collision=False)
     right_ = (f[1], -f[0])
-    fz = gz + 2.5 * S                                                                          # 箱の底の上（底から 2.5cm・倍率つき）
+    fz = gz + (2.5 + BOX_TOP) * S + 0.3                                                        # 金庫の底（2.5cm）の上にある、パズルの箱のてっぺんの上（鍵と10円は、箱の上にのる）
     key = spawn(unreal.StaticMeshActor, (px - right_[0] * 6.0 * S - f[0] * 2.0 * S, py - right_[1] * 6.0 * S - f[1] * 2.0 * S, fz), (0, 0, yaw - 90.0 + 25.0))
     kcc = key.get_component_by_class(unreal.StaticMeshComponent)
     kcc.set_static_mesh(key_mesh)
@@ -1569,7 +1585,25 @@ def s_safe():
         pass
     coin2.set_actor_scale3d(unreal.Vector(0.05, 0.05, 0.004))
     tag_actor(coin2, "DialSafe_Coin")
-    for a_ in (base, lid, key, coin2):
+    # 金庫の中のパズルの箱（16個のボタン）。底の中心に置く
+    box_mesh = import_fit("PuzzleBox.fbx", "PuzzleBox", 19.3, collision=False)
+    box = spawn(unreal.StaticMeshActor, (px, py, gz + 2.5 * S), (0, 0, yaw - 90.0))
+    xc = box.get_component_by_class(unreal.StaticMeshComponent)
+    xc.set_static_mesh(box_mesh)
+    for i, key_ in enumerate(("M_KDBoxLacquer", "M_KDBrass", "M_KDBoxIvory", "M_KDBlack")):
+        xc.set_material(i, STATE[key_])
+    setp(xc, "mobility", unreal.ComponentMobility.MOVABLE)
+    box.set_actor_scale3d(unreal.Vector(S, S, S))
+    tag_actor(box, "DialSafe_Box")
+    # 箱のボタンを押すときの専用カメラ：箱の上面の真ん中から、おもて側（f）に BOX_CAM_BACK・上に BOX_CAM_UP 離して、真ん中を見下ろす
+    tx, ty, tz = px, py, gz + (2.5 + BOX_TOP) * S
+    bcx, bcy, bcz = tx + f[0] * BOX_CAM_BACK * S, ty + f[1] * BOX_CAM_BACK * S, tz + BOX_CAM_UP * S
+    bcyaw = math.degrees(math.atan2(-f[1], -f[0]))
+    bcpitch = -math.degrees(math.atan2(BOX_CAM_UP, BOX_CAM_BACK))
+    bcam = spawn(unreal.CameraActor, (bcx, bcy, bcz), (0, bcpitch, bcyaw))
+    tag_actor(bcam, "KD_BoxCam")
+    log("箱のカメラ（KD_BoxCam）を置きました: (%.0f,%.0f,%.0f) 向き=%.0f度・下向き %.0f度（箱の上面の真ん中 (%.0f,%.0f,%.0f) を見る）" % (bcx, bcy, bcz, bcyaw, -bcpitch, tx, ty, tz))
+    for a_ in (base, lid, key, coin2, box):
         a_.set_actor_hidden_in_game(True)
         try:
             a_.set_is_temporarily_hidden_in_editor(True)
