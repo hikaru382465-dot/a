@@ -67,7 +67,8 @@ window.RAFT.parts.objects = function (c) {
     while (group.children.length) group.remove(group.children[0]); items.clear();
     s.objects.forEach(o => {
       let a = art[o.k]; if (!a) return;
-      if (o.k === 'catchnet') a = a.map(f => ({ cv: subCv(f.cv), ppu: f.ppu, hi: f.hi }));      // 回収ネット：下がわを海にひたす（水にぬれた色にする）
+      const cnv = o.k === 'catchnet' ? [[0, 1], [-1, 0], [0, -1], [1, 0]][Math.max(0, cnDirVec(o))] : null, flip = !!cnv && cnv[0] + cnv[1] < 0;      // 奥の辺（-x・-z）のネットは、さかさまにして、網が海がわ（画面の上）へのびるように見せる
+      if (o.k === 'catchnet' && !flip) a = a.map(f => ({ cv: subCv(f.cv), ppu: f.ppu, hi: f.hi }));      // 回収ネット：下がわを海にひたす（水にぬれた色にする）
       const [fw, fd] = R.sim.sizeOf(o), cx = o.x + fw / 2, cz = o.z + fd / 2;
       const sf = (SHIFT_OF[o.k] || 0) * 0.7071;      // 台つきの絵は、カメラのほうへずらして、台の中心を床の中心に合わせる（浮いて見えないように）
       const cnd = o.k === 'catchnet' && a.length === 12 ? cnDir(o) : 0;      // 回収ネット：つけた辺の向きで、絵をえらぶ
@@ -77,8 +78,11 @@ window.RAFT.parts.objects = function (c) {
       const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(cx, TOP + 0.004, cz); sh.rotation.y = Math.PI / 4; sh.scale.setScalar((SH_OF[o.k] || 0.9) * (fw > 1 || fd > 1 ? 2.2 : 1)); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
       if (o.k === 'catchnet') { const dir = [[0, 1], [-1, 0], [0, -1], [1, 0]][Math.max(0, cnDirVec(o))]; const h = (m.scale.multiplyScalar(0.8), m.scale.y);      // 手前（カメラに近い辺）をえらぶ。奥の辺は、イカダのかげに入るので、あまりしずめない      // 海に面した辺の外へ出して、下の4割を、水の中に入れる
-        m.position.x = cx + dir[0] * 0.56; m.position.z = cz + dir[1] * 0.56; m.position.y = 0.045 - 0.5 * h; sh.visible = false; }      // 棒（上のはし）がイカダに接して、網は海にたれる。水面は、下から7割のところ
+        m.position.x = cx + dir[0] * 0.56; m.position.z = cz + dir[1] * 0.56; sh.visible = false;
+        if (flip) { m.scale.y = -m.scale.y; m.material.side = THREE.DoubleSide; m.position.y = 0.3 + h; } else m.position.y = 0.045 - 0.5 * h; }      // 棒（上のはし）がイカダに接して、網は海にたれる。水面は、下から7割のところ
       const it = { m, tex, o, last: -1, base };
+      if (o.k === 'catchnet' && !flip) {      // 水の中のぶんを、うすく見せる（水の板にかくれるぶんを、半透明で上から重ねる）
+        const gm = c.sprite(a[base].cv, { x: m.position.x, y: m.position.y, z: m.position.z, ppu: a[base].ppu, smooth: a[base].hi }); gm.scale.copy(m.scale); gm.material.transparent = true; gm.material.opacity = 0.5; gm.material.depthTest = false; gm.material.depthWrite = false; gm.renderOrder = 4; group.add(gm); it.gh = gm; }
       if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
       items.set(o.id, it);
     });
@@ -130,7 +134,7 @@ window.RAFT.parts.objects = function (c) {
       else if (it.o.k === 'catchnet') { idx = !(it.o.dur > 0) ? 2 : R.sim.cnTotal(it.o) > 0 ? 1 : 0; if (it.tex.length === 12) idx = idx * 4 + it.base; const n = R.sim.cnTotal(it.o); if (n !== it.lastN) { it.lastN = n; badge(it, n); } }
       else if (it.o.k === 'hut') idx = it.base + ((s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > it.base + 1 ? 1 : 0);
       else if (it.o.k === 'plot') { const cr = it.o.c && D.CROPS[it.o.c]; if (cr) { const f = it.o.p / cr.sec; idx = f >= 1 ? 4 + Math.max(0, (R.cropIds || []).indexOf(it.o.c)) : f < 0.12 ? 1 : f < 0.4 ? 2 : 3; } }
-      if (idx !== it.last) { it.m.material.map = it.tex[idx]; it.last = idx; }
+      if (idx !== it.last) { it.m.material.map = it.tex[idx]; if (it.gh) it.gh.material.map = it.tex[idx]; it.last = idx; }
     });
   } };
 };
