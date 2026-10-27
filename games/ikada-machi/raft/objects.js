@@ -66,7 +66,8 @@ window.RAFT.parts.objects = function (c) {
   function build() {
     while (group.children.length) group.remove(group.children[0]); items.clear();
     s.objects.forEach(o => {
-      const a = art[o.k]; if (!a) return;
+      let a = art[o.k]; if (!a) return;
+      if (o.k === 'catchnet') a = a.map(f => ({ cv: subCv(f.cv), ppu: f.ppu, hi: f.hi }));      // 回収ネット：下がわを海にひたす（水にぬれた色にする）
       const [fw, fd] = R.sim.sizeOf(o), cx = o.x + fw / 2, cz = o.z + fd / 2;
       const sf = (SHIFT_OF[o.k] || 0) * 0.7071;      // 台つきの絵は、カメラのほうへずらして、台の中心を床の中心に合わせる（浮いて見えないように）
       const base = o.k === 'hut' && a.length > 2 * (o.hv || 0) ? 2 * (o.hv || 0) : 0;      // 小屋の見た目ちがい：[昼0, 夜0, 昼1, 夜1, …]
@@ -74,6 +75,8 @@ window.RAFT.parts.objects = function (c) {
       const tex = a.map(f => c.tex(f.cv, { smooth: f.hi }));
       const sh = new THREE.Mesh(shGeo, shMat); sh.position.set(cx, TOP + 0.004, cz); sh.rotation.y = Math.PI / 4; sh.scale.setScalar((SH_OF[o.k] || 0.9) * (fw > 1 || fd > 1 ? 2.2 : 1)); group.add(sh);     // 足もとの影（浮いて見えないように）
       if (o.k === 'campfire') m.position.y -= 0.07;
+      if (o.k === 'catchnet') { const dir = [[0, 1], [1, 0], [-1, 0], [0, -1]].find(([dx, dz]) => !R.sim.has(s, o.x + dx, o.z + dz)) || [0, 0], front = dir[0] + dir[1] > 0; const h = m.scale.y;      // 手前（カメラに近い辺）をえらぶ。奥の辺は、イカダのかげに入るので、あまりしずめない      // 海に面した辺の外へ出して、下の4割を、水の中に入れる
+        m.position.x = cx + dir[0] * 0.62; m.position.z = cz + dir[1] * 0.62; m.position.y = front ? 0.045 - 0.4 * h : 0.12 - 0.12 * h; sh.visible = false; }
       const it = { m, tex, o, last: -1, base };
       if (o.k === 'campfire') { const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.2 }); const gp = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), gm); gp.rotation.y = c.cam.yaw; gp.position.set(o.x + 0.5, TOP + 0.35, o.z + 0.5); group.add(gp); it.gm = gm; }
       items.set(o.id, it);
@@ -81,6 +84,14 @@ window.RAFT.parts.objects = function (c) {
     rev = s.objRev;
   }
   // ネットにたまった数のバッジ（数が変わったときだけ描きなおす）
+  const subCache = new Map();
+  function subCv(cv) {      // 下の約4割を、うすい水色にかさねて、すこし透かす（水にひたった見た目）
+    let r = subCache.get(cv); if (r) return r; const [o, g] = I.canvas(cv.width, cv.height), W = cv.width, H = cv.height, y0 = Math.floor(H * 0.6);
+    g.drawImage(cv, 0, 0); g.globalCompositeOperation = 'source-atop'; const gr = g.createLinearGradient(0, y0, 0, H); gr.addColorStop(0, 'rgba(40,130,190,0.25)'); gr.addColorStop(1, 'rgba(25,95,160,0.62)'); g.fillStyle = gr; g.fillRect(0, y0, W, H - y0);
+    g.globalCompositeOperation = 'destination-out'; const ga = g.createLinearGradient(0, y0, 0, H); ga.addColorStop(0, 'rgba(0,0,0,0)'); ga.addColorStop(1, 'rgba(0,0,0,0.38)'); g.fillStyle = ga; g.fillRect(0, y0, W, H - y0);
+    g.globalCompositeOperation = 'source-over'; g.strokeStyle = 'rgba(235,250,255,0.75)'; g.lineWidth = Math.max(1, H / 70); g.beginPath(); g.ellipse(W / 2, y0, W * 0.4, H * 0.035, 0, 0, 6.3); g.stroke();      // 水面のふち（あわ）
+    r = o; subCache.set(cv, r); return r;
+  }
   function badge(it, n) {
     if (!it.bd) { const [cv, g] = I.canvas(24, 14); it.bdcv = cv; it.bdg = g; const tx = c.tex(cv); const m = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; m.position.set(it.m.position.x, it.m.position.y + 0.9, it.m.position.z); group.add(m); it.bd = m; it.bdtx = tx; }
     const g = it.bdg; g.clearRect(0, 0, 24, 14); if (n > 0) { g.fillStyle = '#2b1636'; g.fillRect(2, 1, 20, 12); g.fillStyle = '#ffd88a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText(String(n), 12, 11); } it.bdtx.needsUpdate = true; it.bd.visible = n > 0;
