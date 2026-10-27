@@ -79,7 +79,7 @@ window.RAFT.parts.objects = function (c) {
       if (o.k === 'campfire') m.position.y -= 0.07;
       if (o.k === 'catchnet') { const dir = [[0, 1], [-1, 0], [0, -1], [1, 0]][Math.max(0, cnDirVec(o))]; const h = (m.scale.multiplyScalar(0.8), m.scale.y);      // 手前（カメラに近い辺）をえらぶ。奥の辺は、イカダのかげに入るので、あまりしずめない      // 海に面した辺の外へ出して、下の4割を、水の中に入れる
         m.position.x = cx + dir[0] * 0.5; m.position.z = cz + dir[1] * 0.5; sh.visible = false;
-        if (flip) { m.scale.y = -m.scale.y; m.material.side = THREE.DoubleSide; m.position.y = 0.3 + h; } else m.position.y = 0.17 - 0.5 * h; }      // 棒（上のはし）がイカダに接して、網は海にたれる。水面は、下から7割のところ
+        if (flip) { m.scale.y = -m.scale.y; m.material.side = THREE.DoubleSide; m.position.y = 0.3 + h; } else m.position.y = 0.09 - 0.5 * h; }      // 棒（上のはし）がイカダに接して、網は海にたれる。水面は、下から7割のところ
       const it = { m, tex, o, last: -1, base };
       if (o.k === 'catchnet' && !flip) {      // 水の中のぶんを、うすく見せる（水の板にかくれるぶんを、半透明で上から重ねる）
         const gm = c.sprite(a[base].cv, { x: m.position.x, y: m.position.y, z: m.position.z, ppu: a[base].ppu, smooth: a[base].hi }); gm.scale.copy(m.scale); gm.material.transparent = true; gm.material.opacity = 0.5; gm.material.depthTest = false; gm.material.depthWrite = false; gm.renderOrder = 4; group.add(gm); it.gh = gm; }
