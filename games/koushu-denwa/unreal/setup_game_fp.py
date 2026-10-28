@@ -43,6 +43,8 @@ GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面�
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
 GLASS_GLOW = 6.0                     # ガラスの文字の光り方（大きいほど、暗い中で白く光る）
 GLASS_SCALE = 1.3                    # ガラスの文字の大きさ（1.0 = 横50×縦70cm の板。1.3 で 65×91cm。大きいほどガラスいっぱいに出る）
+CODE_SCALE = 0.8                     # 謎7：貼られる4枚の紙（ガラスの文字）と光る数字の大きさ（GLASS_SCALE にかける倍率）
+CODE_GLOW_LIFT = 1.0                 # 謎7：光る数字を、ガラスの文字から内側へ何cm 離すか（重なってチラつくなら大きく）
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
@@ -76,6 +78,8 @@ SETTINGS_DESCR = {
     "TUBE_SCALE": "蛍光灯の光の強さの倍率。明るすぎたら小さく",
     "TUBE_GLOW": "蛍光灯の「光る見た目」の倍率",
     "FLICKER_BLACK": "点滅の「消えた」瞬間に画面を黒くする割合（0〜1）。点滅が暗くならないなら大きく",
+    "CODE_SCALE": "謎7：貼られる4枚の紙と光る数字の大きさ（ガラスの文字の大きさにかける倍率）",
+    "CODE_GLOW_LIFT": "謎7：光る数字を、ガラスの文字から内側へ何cm 離すか",
     "DARK_BLACK": "暗転のあいだに画面を黒くする割合（0〜1）",
     "DARK_WORLD": "暗転のとき、月と空の光を何倍まで下げるか",
     "GLASS_DIRT": "ガラスのくもりの強さ（M_KDGlass を使うとき）",
@@ -201,7 +205,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_GLOW_LIFT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -1087,6 +1091,47 @@ def s_posters():
     log("張り紙を貼りました: %d 枚（最初は見えません）" % n)
 
 
+# 謎7：暗い間だけ光る数字。貼られる順に 右の奥→左の手前→ドア→右の手前（形式は SLOTS と同じ）。奥の壁（電話機とヒント）は避ける
+CODE_SLOTS = [("R", -40, 150, 1.0), ("L", 42, 150, 1.0), ("F", 0, 150, 1.0), ("R", 45, 150, 1.0)]
+CODE_POSTER_TEX = ["glass_03", "glass_05", "glass_07", "glass_10"]      # でられない／たすけて／まってた／みぃつけた
+
+
+def s_code_posters():
+    """謎7の4枚：KD_CodePoster_1〜4（ガラスの文字）と、その内側の KD_CodeGlow_1〜4（数字。材質は kd_game.py が ENVELOPE_CODE から入れる）"""
+    mesh = STATE["poster_mesh"]
+    mats = STATE["poster_mats"]
+    glow0 = mats.get("glass_glow_0")
+    n = 0
+    for i, (wall, u, z, sc) in enumerate(CODE_SLOTS):
+        key = CODE_POSTER_TEX[i]
+        if key not in mats or glow0 is None:
+            log("  (画像なし) %s / glass_glow_0" % key)
+            continue
+        loc, yaw = wall_pose_rel(wall, u, z)
+        k = CODE_SCALE * sc * GLASS_SCALE
+        a = spawn(unreal.StaticMeshActor, loc, (0, 0, yaw))
+        c = a.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(mesh)
+        c.set_material(0, mats[key])
+        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+        a.set_actor_scale3d(unreal.Vector(k, k, k))
+        tag_actor(a, "KD_CodePoster_%d" % (i + 1))
+        a.set_actor_hidden_in_game(True)
+        th = math.radians(yaw + 90.0)                                   # 板の面が向く（内側の）向き
+        gloc = (loc[0] + math.cos(th) * CODE_GLOW_LIFT, loc[1] + math.sin(th) * CODE_GLOW_LIFT, loc[2])
+        g = spawn(unreal.StaticMeshActor, gloc, (0, 0, yaw))
+        gc = g.get_component_by_class(unreal.StaticMeshComponent)
+        gc.set_static_mesh(mesh)
+        gc.set_material(0, glow0)
+        setp(gc, "mobility", unreal.ComponentMobility.MOVABLE)
+        setp(gc, "translucency_sort_priority", 1)
+        g.set_actor_scale3d(unreal.Vector(k, k, k))
+        tag_actor(g, "KD_CodeGlow_%d" % (i + 1))
+        g.set_actor_hidden_in_game(True)
+        n += 1
+    log("暗号の張り紙: %d枚" % n)
+
+
 # ---------------- 掲示板（外）と、手に取って読める新聞 ----------------
 BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "book_news", "memo_hatch", "wood_color", "wood_normal", "wood_rough"]
 
@@ -1659,6 +1704,7 @@ def main():
     step("張り紙の板", s_poster_mesh, ["環境確認"])
     step("張り紙の材質", s_poster_materials, ["張り紙の画像"])
     step("張り紙を貼る", s_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
+    step("暗号の張り紙", s_code_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("幽霊（仮）", s_ghost, ["前回の生成物を消す"])
     step("掲示板の画像", s_board_textures, ["環境確認"])
     step("掲示板の材質", s_board_materials, ["掲示板の画像"])

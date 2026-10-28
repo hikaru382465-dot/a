@@ -8,7 +8,8 @@
   memo_hatch … 電話機の下のふたの中のメモ         phonebook … 電話帳のページ
   missing_news … バッドエンド用の新聞             sign_entrance … 入口の看板
   lcd_board_idle / lcd_board_1〜3 … 警察・消防の欄の液晶
-使い方：python make_game_textures.py
+  glass_glow_0〜9 … 暗い間だけ光る数字（謎7）   glass_hint_c1〜3 … 謎7のヒントの文字
+使い方：python make_game_textures.py     （謎7の数字とヒントだけなら: python make_game_textures.py glow）
 """
 import os
 import numpy as np
@@ -233,6 +234,66 @@ def make_glass_texts():
     print('保存', 'game/glass_hint.png', im.size, os.path.getsize(p) // 1024, 'KB')
 
 
+CODE_HINT_TEXTS = ['くらいときに\nみて', 'はられた\nじゅんに', 'もういちど\n0714']       # 謎7のヒント（電話機の上の文字が90秒ごとに変わる）
+
+
+def glass_glow_digit(d):
+    """暗い間だけ光る数字（蛍光の黄緑）。透明な背景・高さ約6割・外側に大きくぼかした光。_glass_finish は使わず専用に"""
+    W, H = 512, 704
+    f, _c = _glass_font(400)
+    can = Image.new('L', (W, H), 0)
+    ImageDraw.Draw(can).text((W // 2, H // 2), str(d), font=f, fill=255, anchor='mm')
+    bb = can.getbbox()
+    target = int(H * 0.60)                                    # 高さ約60%に合わせる（フォントごとの差を吸収）
+    if bb and (bb[3] - bb[1]) > 0:
+        k = target / float(bb[3] - bb[1])
+        crop = can.crop(bb)
+        crop = crop.resize((max(1, int(crop.width * k)), target), Image.BICUBIC)
+        can = Image.new('L', (W, H), 0)
+        can.paste(crop, ((W - crop.width) // 2, (H - crop.height) // 2))
+    m = np.asarray(can, np.float32) / 255.0
+    dx, dy = _noise(H, W, 70, 3.0), _noise(H, W, 70, 3.0)         # 少しゆがませる
+    yy, xx_ = np.mgrid[0:H, 0:W]
+    m = m[np.clip((yy + dy).astype(int), 0, H - 1), np.clip((xx_ + dx).astype(int), 0, W - 1)]
+    soft = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.2)), np.float32) / 255.0
+    glow = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(18)), np.float32) / 255.0
+    col = np.array([190, 255, 140], np.float32)
+    core = np.array([215, 255, 160], np.float32)                  # 文字の芯は少し白く
+    rgb = col[None, None, :] * (1 - soft[..., None]) + core[None, None, :] * soft[..., None]
+    alpha = np.clip(soft * 0.95 + glow * 0.7, 0, 1)
+    img = np.zeros((H, W, 4), np.uint8)
+    img[..., :3] = rgb.clip(0, 255).astype(np.uint8)
+    img[..., 3] = (alpha * 255).astype(np.uint8)
+    return Image.fromarray(img, 'RGBA')
+
+
+def make_glow_digits():
+    for d in range(10):
+        im = glass_glow_digit(d)
+        p = os.path.join(OUT, 'glass_glow_%d.png' % d)
+        im.save(p, optimize=True)
+        print('保存', 'game/glass_glow_%d.png' % d, im.size, os.path.getsize(p) // 1024, 'KB')
+
+
+def code_hint(text):
+    """謎7のヒントの文字（glass_hint() と同じ、たて書き2列・読める）"""
+    W, H = 512, 704
+    f, custom = _glass_font(104)
+    a, b = text.split('\n')
+    m = np.zeros((H, W), np.float32)
+    m = np.maximum(m, _layer(a, 104, 0.0, W, H, f, W // 2 + 85, 330))
+    m = np.maximum(m, _layer(b, 104, 0.0, W, H, f, W // 2 - 85, 370))
+    return _glass_finish(m, custom, amp=2.0, drips=3)
+
+
+def make_code_hints():
+    for i, t in enumerate(CODE_HINT_TEXTS):
+        im = code_hint(t)
+        p = os.path.join(OUT, 'glass_hint_c%d.png' % (i + 1))
+        im.save(p, optimize=True)
+        print('保存', 'game/glass_hint_c%d.png' % (i + 1), im.size, os.path.getsize(p) // 1024, 'KB')
+
+
 def make_posters():
     for i, t in enumerate(POSTER_TEXTS):
         kind = 'eyes' if i == 1 else ('missing' if i == 6 else 'text')
@@ -395,5 +456,10 @@ def make_lcds():
 
 
 if __name__ == '__main__':
-    make_posters(); make_glass_texts(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == 'glow':          # 謎7の数字・ヒントだけ作る（ほかの画像は触らない）
+        make_glow_digits(); make_code_hints()
+    else:
+        make_posters(); make_glass_texts(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
+        make_glow_digits(); make_code_hints()                  # 共有乱数 R の順番を変えないよう、必ず最後
     print('完了')

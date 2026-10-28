@@ -50,8 +50,16 @@ BOX_DEBUG = False              # True: ボタンの枠と数字を、線と文�
 BOX_HOVER = True               # True: 本物の箱で、マウスが指しているボタンに細い枠を出す
 BOX_FLIP = False               # True: 左右を反転する（ゲームの中で、ボタンの数字の並びが左右逆だったら True）
 BOX_TOP_H = 6.2                # 箱の原点から、ボタンの面までの高さ（cm・箱の倍率をかける前）
-ENVELOPE_CODE = [3, 6, 1, 8]   # 赤い封筒の4けたの鍵（仮の例。本物は、ひかるが決める。光る数字の張り紙の謎は、まだ作っていない）
+ENVELOPE_CODE = [3, 6, 1, 8]   # 赤い封筒の4けたの鍵（仮の例。本物は、ひかるが決める）。答えはここ1か所だけ：i番目に貼られる張り紙に、i番目の数字が暗い間だけ光る（謎7）
 ENVELOPE_DECOYS = {"1997": "「えげつない」の張り紙の年だ……鍵は動かない", "0728": "カメラの広告の728円……これも違う"}   # ひっかけの数字と、出す文（はずれとして数える）
+CODE_FLICKER = 1.0             # 謎7（暗い間だけ光る数字）：1枚ごとの最初の点滅（秒）
+CODE_DARK = 2.5                # 暗い間（秒）。暗くなった瞬間に、新しい張り紙が貼られ、貼られた分の数字が光る
+CODE_LIT = 3.0                 # 明るい間（秒）。数字は消えて、ガラスの文字の言葉だけ見える
+CODE_FINAL_DARK = 6.0          # 4枚目のあとの、最後の暗い間（秒）。4つ全部の数字が光る
+CODE_HOLD = 8.0                # そのあと、明るいまま4枚が貼られている時間（秒）
+CODE_DARK_BLACK = 0.0          # 謎7の暗い間の、画面の黒さ（0〜1）。0 なら光だけ消して画面は見える（数字が見えるように）。1.0 にすると数字も見えなくなる
+CODE_HINT_INTERVAL = 90.0      # 封筒を持っているのに開けていないとき、電話機の上のヒントの文字が変わる間隔（秒）
+CODE_PERM_SAFE = True          # True: 封筒の鍵が答えの「並べかえ」のとき、「順番がちがう？」と出すだけで、幽霊は近づかない
 ENVELOPE_WRONG_GHOST = True    # True: 封筒の鍵をまちがえると、幽霊が1歩近づく（謎が進まないときの「圧力」と同じ）
 DOOR_RANGE = 200.0             # 鍵を持ったとき、扉をこの距離（cm）まで見ると「Eで開ける」が出る
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
@@ -89,6 +97,7 @@ ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
 ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
 ENTER_FADE_IN = 1.4            # 明るくなるまでの時間（秒）
 SOUND_DIR = "/Game/KoushuDenwa/Sounds"
+MATERIAL_DIR = "/Game/KoushuDenwa/Materials"          # setup_game_fp.py が材質（M_GlassGlow0〜9・M_GlassHintC1〜3）を置く場所
 # 幽霊が出る場所（ボックス中心からの位置 cm。正面＝+Y）。段階1〜4で、だんだん近づく
 GHOST_SPOTS = [(0.0, 1300.0), (-240.0, 750.0), (270.0, 360.0), (115.0, 25.0)]
 GHOST_SUBS = ["（外に、誰か立っている……）", "（さっきより、近い）", "（ガラスに、何か貼られている）", "（すぐそこにいる）"]
@@ -162,6 +171,14 @@ SETTINGS_DESCR = {
     "ENVELOPE_CODE": "赤い封筒の4けたの鍵。[3,6,1,8] のように、0〜9 の数字を4つ（仮の例）",
     "ENVELOPE_DECOYS": "ひっかけの4けたと、出す文。{\"1997\": \"文\", \"0728\": \"文\"} のように（はずれとして数える）",
     "ENVELOPE_WRONG_GHOST": "true: 封筒の鍵をまちがえると、幽霊が1歩近づく",
+    "CODE_FLICKER": "謎7：1枚ごとの最初の点滅の長さ（秒）",
+    "CODE_DARK": "謎7：暗い間の長さ（秒）。新しい張り紙が貼られ、光る数字が出る",
+    "CODE_LIT": "謎7：明るい間の長さ（秒）。数字は消える",
+    "CODE_FINAL_DARK": "謎7：4枚目のあとの、最後の暗い間（秒）。4つ全部光る",
+    "CODE_HOLD": "謎7：最後に、明るいまま4枚が貼られている時間（秒）",
+    "CODE_DARK_BLACK": "謎7：暗い間の画面の黒さ（0〜1）。0 で数字が見える。1 だと数字も見えない",
+    "CODE_HINT_INTERVAL": "謎7：封筒が開かないとき、電話機の上のヒントが変わる間隔（秒）",
+    "CODE_PERM_SAFE": "true: 封筒の鍵が答えの並べかえのとき、幽霊は近づかない（順番がちがう、と出すだけ）",
     "DOOR_RANGE": "鍵を持ったとき、扉を「Eで開ける」ために見る距離（cm）",
     "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
@@ -298,7 +315,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -464,6 +481,7 @@ class Game:
                 a.set_actor_hidden_in_game(True)
         if self.hint is not None:
             self.hint.set_actor_hidden_in_game(False)             # 手がかりの張り紙は、はじめから貼ってある（入った瞬間に現れない）
+        self.setup_code(found)
         self.ghost = found.get("Ghost")
         if self.ghost is not None:
             self.ghost.set_actor_hidden_in_game(True)
@@ -535,6 +553,147 @@ class Game:
             self.hinge is not None, self.flash is not None, len(self.tubes), len(self.tube_mats), len(self.extra), self.pawn is not None, self.cx, self.cy))
         screen(self.world, "WASD：歩く / マウス：見る / F：懐中電灯", (200, 255, 200), 6.0)
 
+    # ---- 謎7：暗い間だけ光る数字（答えは ENVELOPE_CODE だけで決まる） ----
+    def setup_code(self, found):
+        self.code_posters = [found.get("KD_CodePoster_%d" % (i + 1)) for i in range(4)]
+        self.code_glow = [found.get("KD_CodeGlow_%d" % (i + 1)) for i in range(4)]
+        self.code_active = self.code_queued = self.code_seen = self.code_req = False
+        self.code_pasted = 0
+        self.hint_t, self.hint_stage = 0.0, 0
+        self._glow_key = None
+        for a in self.code_posters + self.code_glow:
+            if a is not None:
+                a.set_actor_hidden_in_game(True)
+        code = list(ENVELOPE_CODE)
+        ans = "".join(str(d) for d in code)
+        if len(code) != 4 or not all(isinstance(d, int) and 0 <= d <= 9 for d in code):
+            log("[エラー] ENVELOPE_CODE は 0〜9 の数字を4つにしてください（いま %s）" % (code,))
+        else:
+            if len(set(code)) < 4:
+                log("[注意] ENVELOPE_CODE に同じ数字があります（%s）。順番の謎になりにくいので、4つとも別の数字にするのがおすすめ" % ans)
+            if ans in ENVELOPE_DECOYS:
+                log("[注意] ENVELOPE_CODE（%s）が ENVELOPE_DECOYS の中にあります。ひっかけと答えが同じです" % ans)
+        missing = []
+        for i in range(4):
+            a = self.code_glow[i]
+            if a is None or i >= len(code) or not isinstance(code[i], int) or not 0 <= code[i] <= 9:
+                continue
+            mat = None
+            try:
+                mat = unreal.EditorAssetLibrary.load_asset("%s/M_GlassGlow%d" % (MATERIAL_DIR, code[i]))
+                a.get_component_by_class(unreal.StaticMeshComponent).set_material(0, mat)
+            except Exception as e:  # noqa
+                log("  (光る数字の材質を入れられません) KD_CodeGlow_%d: %s" % (i + 1, e))
+            if mat is None:
+                missing.append("M_GlassGlow%d" % code[i])
+        if missing:
+            log("[エラー] 光る数字の材質がありません: %s。setup_game_fp.py を実行し直してください" % ", ".join(missing))
+        self.hint_comp, self.hint_mat0, self.hint_mats = None, None, []
+        if self.hint is not None:
+            try:
+                self.hint_comp = self.hint.get_component_by_class(unreal.StaticMeshComponent)
+                self.hint_mat0 = self.hint_comp.get_material(0)
+            except Exception as e:  # noqa
+                log("  (ヒントの材質を読めません) %s" % e)
+            try:
+                self.hint_mats = [unreal.EditorAssetLibrary.load_asset("%s/M_GlassHintC%d" % (MATERIAL_DIR, i)) for i in (1, 2, 3)]
+            except Exception:  # noqa
+                self.hint_mats = [None, None, None]
+            if any(m is None for m in self.hint_mats):
+                log("[注意] ヒントの材質（M_GlassHintC1〜3）がありません。setup_game_fp.py を実行し直してください")
+        log("暗号の張り紙: 紙%d枚・数字%d枚・答え %s" % (sum(1 for a in self.code_posters if a is not None), sum(1 for a in self.code_glow if a is not None), ans))
+
+    def update_code_glow(self, mult):
+        """光る数字を出す・隠す。暗い間（mult<0.05・蛍光灯の棒を隠す条件と同じ）で、謎の場面の間だけ、貼られた分を出す。変わったときだけ切りかえる"""
+        n = self.code_pasted if (self.code_active and mult < 0.05) else 0
+        if n == self._glow_key:
+            return
+        self._glow_key = n
+        for i, a in enumerate(self.code_glow):
+            if a is not None:
+                a.set_actor_hidden_in_game(i >= n)
+
+    def code_clear(self):
+        for a in self.code_posters + self.code_glow:
+            if a is not None:
+                a.set_actor_hidden_in_game(True)
+        self.code_pasted = 0
+        self._glow_key = 0
+
+    def code_begin(self):
+        self.code_active = True
+        self.code_queued = False
+        self.hide_all()
+        self.code_pasted = 0
+        log("謎7の場面を始めます（答え %s）" % "".join(str(d) for d in ENVELOPE_CODE))
+
+    def code_paste(self, k):
+        a = self.code_posters[k] if k < len(self.code_posters) else None
+        if a is not None:
+            a.set_actor_hidden_in_game(False)
+        self.code_pasted = k + 1
+        self.update_code_glow(self.mult)
+        log("謎7：%d枚目の張り紙が貼られました（数字 %s）" % (k + 1, ENVELOPE_CODE[k] if k < len(ENVELOPE_CODE) else "?"))
+
+    def code_end(self):
+        self.code_clear()
+        self.code_active = False
+        self.code_seen = True
+        self.hint_t = 0.0
+        log("謎7の場面が終わりました")
+
+    def code_steps(self):
+        st = []
+        for k in range(4):
+            st.append(("flicker", CODE_FLICKER, self.code_begin if k == 0 else None, None))
+            st.append(("cdark", CODE_DARK, lambda k=k: self.code_paste(k), None))
+            st.append(("clit", CODE_LIT, None, None))
+        st.append(("flicker", CODE_FLICKER, None, None))
+        st.append(("cdark", CODE_FINAL_DARK, None, None))
+        st.append(("clit", CODE_HOLD, None, None))
+        st.append(("flicker", FLICKER_TIME, None, None))
+        st.append(("dark", DARK_TIME, self.code_clear, self.code_end))
+        return st
+
+    def start_code_seq(self, restart=False):
+        if self.code_queued and not self.code_active:            # 待っている場面が、まだ始まっていない：そのまま待たせる
+            return
+        if restart and self.code_active:                          # 場面の途中：止めて、最初から
+            self.steps = []
+            self.step_i = 0
+            self.code_clear()
+            self.code_active = False
+            self.set_lights(1.0)
+            self.blackout(0.0)
+        self.code_queued = True
+        self.run_steps(self.code_steps())
+
+    def set_hint_stage(self, st):
+        self.hint_stage = st
+        if self.hint_comp is None:
+            return
+        mat = self.hint_mat0 if st == 0 else self.hint_mats[st - 1]
+        if mat is None:
+            return
+        try:
+            self.hint_comp.set_material(0, mat)
+            log("電話機の上のヒントを変えました（段階 %d）" % st)
+        except Exception as e:  # noqa
+            log("  (ヒントを変えられません) %s" % e)
+
+    def tick_code_hint(self, dt):
+        """封筒を持っていて、まだ開けていない間だけ、CODE_HINT_INTERVAL 秒ごとに、ヒントの文字が変わる。開いたら元に戻る"""
+        if self.hint is None:
+            return
+        if not (self.code_seen and self.has_envelope and not self.envelope_open):
+            if self.hint_stage != 0:
+                self.set_hint_stage(0)
+            return
+        self.hint_t += dt
+        st = min(3, int(self.hint_t // CODE_HINT_INTERVAL))
+        if st != self.hint_stage:
+            self.set_hint_stage(st)
+
     # ---- 部品 ----
     def set_flash_scale(self, k):
         if self.flash is not None and getattr(self, "flash_base", None) is not None:
@@ -564,6 +723,7 @@ class Game:
         part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
         for kind, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if kind == "world" else mult))
+        self.update_code_glow(mult)
 
     def reveal(self, stage):
         frac = POSTER_FRAC[min(stage, len(POSTER_FRAC)) - 1]
@@ -761,6 +921,9 @@ class Game:
         elif self.state == "TRAPPED":
             if getattr(self, "deferred", None):
                 self.on_flag(self.deferred.pop(0))
+            if self.code_req:
+                self.code_req = False
+                self.start_code_seq(restart=True)
             self.tick_trapped(dt)
             self.tick_items(loc)
         elif self.state == "DEAD":
@@ -985,6 +1148,8 @@ class Game:
             if self.state_t > 0.3 and (self.pc.was_input_key_just_pressed(self._key("Enter")) or self.pc.was_input_key_just_pressed(self._key("E"))) and self.digits:
                 num, self.digits = self.digits, ""
                 self.phone_call(num)
+                if self.state != "PHONE":                                 # 電話を閉じた（0714 など）
+                    return
         except Exception as e:  # noqa
             log("  (電話のキーを読めません) %s" % e)
         hover = None
@@ -1004,6 +1169,8 @@ class Game:
                 elif lab == "call" and self.digits:
                     num, self.digits = self.digits, ""
                     self.phone_call(num)
+                    if self.state != "PHONE":
+                        return
         except Exception as e:  # noqa
             if not getattr(self, "_ph_mouse_err", False):
                 self._ph_mouse_err = True
@@ -1052,7 +1219,10 @@ class Game:
                 screen(self.world, "カチッ。液晶に「2 15 4 9」の文字が、一瞬だけ出た", (255, 120, 120), 8.0)
                 if not self.dialed_0714:
                     self.dialed_0714 = True
-                    self.on_flag("0714")
+                    self.on_flag("0714")                                  # 電話中なので、あとで処理される（deferred）
+                else:
+                    self.code_req = True                                  # お金はいらない：押すたびに、謎7を最初から
+                self.end_phone()                                          # 電話カメラのままだとガラスが見えないので、閉じる
             else:
                 screen(self.world, "ツー、ツー……（つながらない）", (180, 180, 180), 3.0)
             return
@@ -1499,8 +1669,16 @@ class Game:
             return
         self.play("safe_clunk")
         decoy = ENVELOPE_DECOYS.get(code)
-        screen(self.world, decoy if decoy else "ブッ…（はずれ）", (255, 120, 120), 3.0)
-        log("封筒の鍵：はずれ %s%s" % (code, "（ひっかけ）" if decoy else ""))
+        ans = "".join(str(d) for d in ENVELOPE_CODE)
+        if decoy is None and sorted(code) == sorted(ans):               # 数字は合っているが、順番がちがう
+            screen(self.world, "数字は合っている気がする……順番がちがう？", (255, 200, 150), 4.0)
+            log("封筒の鍵：数字は合っているが順番がちがう %s" % code)
+            if CODE_PERM_SAFE:
+                return
+        else:
+            screen(self.world, decoy if decoy else "ブッ…（はずれ）", (255, 120, 120), 3.0)
+        if decoy is not None or sorted(code) != sorted(ans):
+            log("封筒の鍵：はずれ %s%s" % (code, "（ひっかけ）" if decoy else ""))
         if ENVELOPE_WRONG_GHOST and getattr(self, "trapped_started", False):
             self.pressure()                    # 謎が進まないときの圧力と同じ：幽霊が1歩近づく（近づききったら失敗）
 
@@ -2030,6 +2208,13 @@ class Game:
         n_lv = len(GHOST_SPOTS)
         level = min(n_lv - 1, (self.solved - 1) * n_lv // max(1, PUZZLE_COUNT))
         self.level_now = level
+        if name == "0714":                                 # 謎7：ふつうの抽選はしない。そのときの強さの「張り紙」の札を使ったことにして、謎7の場面を流す
+            self.used.add(("poster", level))
+            self.last_type = "poster"
+            log("謎 %d/%d（%s）→ 謎7の場面（張り紙の札 強さ%d を使ったことにする）" % (self.solved, PUZZLE_COUNT, name, level))
+            screen(self.world, "謎 %d/%d" % (self.solved, PUZZLE_COUNT), (200, 255, 200), 3.0)
+            self.start_code_seq()
+            return
         choice = None
         for lv in range(level, n_lv):                      # 今の強さの札から探す。なければ、1つ強い札へ
             order = ["ghost", "poster"]
@@ -2064,6 +2249,7 @@ class Game:
     def hide_all(self):
         self.ghost_hide()
         self.posters_hide()
+        self.code_clear()
 
     def ghost_scene(self, r):
         self.stage = r + 1
@@ -2124,6 +2310,9 @@ class Game:
         if typ == "dark":
             self.set_lights(0.0)
             self.blackout(DARK_BLACK)
+        elif typ == "cdark":                               # 謎7の暗い間：光だけ消す。画面は真っ黒にしない（数字が見えるように）
+            self.set_lights(0.0)
+            self.blackout(CODE_DARK_BLACK)
         if enter_fn is not None:
             enter_fn()
 
@@ -2135,6 +2324,7 @@ class Game:
             pass
         if self.step_i >= len(self.steps):                    # 演出がない間：静か（ときどき光がゆれる）
             self.set_lights(1.0 if self.t % 7.0 > 0.3 else IDLE_DIP)
+            self.tick_code_hint(dt)
             self.pressure_t += dt
             if self.pressure_t >= PRESSURE_INTERVAL:
                 self.pressure_t = 0.0
@@ -2146,6 +2336,8 @@ class Game:
             self.set_lights(1.0 if self.t % 7.0 > 0.3 else IDLE_DIP)     # ときどきすこし弱まる
             if typ == "posters":
                 self.poster_progress(self.step_t)
+        elif typ == "clit":
+            self.set_lights(1.0)                                         # 謎7の明るい間：ちらつかせない
         elif typ == "flicker":
             if self.step_t >= self.flicker_next:
                 self.flicker_lit = not self.flicker_lit
@@ -2155,7 +2347,7 @@ class Game:
         if self.step_t >= ln:
             if typ == "flicker":
                 self.blackout(0.0)
-            if typ == "dark":
+            if typ in ("dark", "cdark"):
                 self.set_lights(1.0)
                 self.blackout(0.0)
             self.next_step()
