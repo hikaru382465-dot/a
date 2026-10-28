@@ -65,7 +65,7 @@
   // 壁紙：日ごとに変わる（空白＝黄色いもや／night／red／最後の投稿だけ lit）
   let curWall = "", wallB = true;
   try { wallB = localStorage.getItem("horror-arg-wall") !== "a"; } catch (e) {}
-  function setWall(k) { curWall = k || ""; $("#wallpaper").className = (wallB ? "b " : "") + curWall; }
+  function setWall(k) { curWall = k || ""; $("#wallpaper").className = (wallB ? "b " : "") + curWall; if (window.Gimmicks && window.Gimmicks.applyStage) window.Gimmicks.applyStage(); }
   function toggleWall() { wallB = !wallB; try { localStorage.setItem("horror-arg-wall", wallB ? "b" : "a"); } catch (e) {} setWall(curWall); }
 
   $("#tb-wall").addEventListener("click", toggleWall);
@@ -135,7 +135,7 @@
   }
   function closeWin(id, quiet) {
     const w = wins[id]; if (!w) return;
-    w.el.remove(); w.tb.remove(); delete wins[id]; if (!quiet) S.close();
+    w.el.remove(); w.tb.remove(); delete wins[id]; if (!quiet) { S.close(); window.Gimmicks.onWindowClosed(); }
   }
 
   // ---------- 写真（絵で描く。暗い部屋・光るモニター・後ろ姿・戸口の人影） ----------
@@ -573,7 +573,7 @@
     S.heartbeat(); [0, 900, 1700, 2400].forEach(ms => setTimeout(() => G.fx.redPulse(800), ms));
     await sleep(2900);
     Object.keys(wins).forEach(k => { wins[k].el.style.display = "none"; });   // 窓が全部消える
-    const wp = $("#wallpaper"); setWall("lit"); if (/\bb\b/.test(wp.className)) wp.classList.add("fig");
+    const wp = $("#wallpaper"); setWall("lit"); wp.classList.remove("st1", "st2", "st3", "st4"); if (/\bb\b/.test(wp.className)) wp.classList.add("fig");
     S.breath(); await sleep(2600); S.breath(); await sleep(1800);
     const cam = h("div", { id: "screen-cam" }, makePhoto(5), h("div", { class: "cam-rec" }, "● REC"), h("div", { class: "cam-time" }, ""));
     document.body.append(cam);                              // 監視カメラ風の映像（無音）

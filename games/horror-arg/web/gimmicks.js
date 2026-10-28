@@ -105,13 +105,30 @@ window.Gimmicks = (function () {
 
   // 壁紙の家の窓に、人影が一瞬だけ立つ（Blender版の壁紙のとき）。
   // 流れ：窓の明かりがつく→奥にぼんやり小さな人影→窓ぎわまで来る→消える。窓が隠れないよう、開いている窓は先にいったん消える。
+  // 窓を閉じるたびに、人影が家の窓に少しずつ近づく（壁紙にそのまま残る。気づかない人は気づかない）
+  // 段階：0なし→1奥→2→3→4窓ぎわ。上限は日ごと（3日目は2、4日目は3、5日目は4）。1段進めるには45秒以上あける。
+  const figCap = () => Math.max(0, day() - 1);
+  function figStage() { return (api.state().flags.figStage) || 0; }
+  function applyStage() {
+    const wp = document.querySelector("#wallpaper"); if (!wp) return;
+    wp.classList.remove("st1", "st2", "st3", "st4");
+    const n = figStage(); if (n > 0 && /\bb\b/.test(wp.className) && !figBusy) wp.classList.add("st" + n);
+  }
+  function onWindowClosed() {
+    if (!active || day() < (api.D.gimmicks.windowFigure || 99) || figBusy || location.search.includes("nogimmick")) return;
+    const wp = document.querySelector("#wallpaper"); if (!wp || !/\bb\b/.test(wp.className)) return;
+    const fl = api.state().flags, now = Date.now();
+    if ((fl.figStage || 0) >= figCap() || now - (fl.figAt || 0) < 45000) return;
+    fl.figAt = now; fl.figStage = (fl.figStage || 0) + 1; api.save();
+    preloadFigure(wp).then(() => later(() => { applyStage(); api.S.footstep(-0.8 + 0.2 * fl.figStage, 0.25 + 0.12 * fl.figStage); }, 600));
+  }
   let figBusy = false; const figReady = {};
   // 人影の絵は、先に読み込んで解読しておく（初回に一瞬、背景が真っ暗になるのを防ぐ）
   function preloadFigure(wp) {
-    const key = wp.className.replace(/\bfig\d?\b/g, "").trim();
+    const key = wp.className.replace(/\b(fig\d?|st\d)\b/g, "").trim();
     if (figReady[key]) return figReady[key];
     const urls = [], keep = wp.className;
-    ["fig0", "fig1", "fig"].forEach(c => {
+    ["fig0", "fig1", "fig", "st1", "st2", "st3", "st4"].forEach(c => {
       wp.className = key + " " + c;
       const m = /url\("?([^")]+)"?\)/.exec(getComputedStyle(wp).backgroundImage); if (m) urls.push(m[1]);
     });
@@ -128,7 +145,7 @@ window.Gimmicks = (function () {
       const hide = LV() >= 2, t = hide ? 380 : 0;
       api.S.creak();
       if (hide) { api.S.jolt(); shake(380, true); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
-      const set = c => { wp.classList.remove("fig0", "fig1", "fig"); if (c) wp.classList.add(c); };
+      const set = c => { wp.classList.remove("fig0", "fig1", "fig", "st1", "st2", "st3", "st4"); if (c) wp.classList.add(c); };
       later(() => set("fig0"), t);                 // 窓に明かりがつく
       later(() => set(null), t + 170);              // 一度消える（ちらつき）
       later(() => set("fig0"), t + 340);
@@ -136,9 +153,10 @@ window.Gimmicks = (function () {
       later(() => { set("fig"); api.S.breath(); }, t + 1000);   // 窓ぎわまで来る（息）
       later(() => set(null), t + 1550);
       setTimeout(() => {
-        set(null);
+        set(null); figBusy = false;
+        const fl = api.state().flags; if ((fl.figStage || 0) < figCap()) { fl.figStage = (fl.figStage || 0) + 1; fl.figAt = Date.now(); api.save(); }
+        applyStage();
         hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
-        figBusy = false;
       }, t + 1800);
     });
   }
@@ -310,5 +328,5 @@ window.Gimmicks = (function () {
     if (!was) active = false;
   }
   const fx = { shake, bigText, noiseSweep, blackout, redPulse, glitch, overlay, vibIcon: () => { if (fxOn()) overlay("fx-vib", 1300, "📱"); } };
-  return { fx, setForced: b => { forced = !!b; }, bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };
+  return { onWindowClosed, applyStage, fx, setForced: b => { forced = !!b; }, bind, start, stop, onDetail, shownPending, zeroTrick, clockText, fire, doSwap };
 })();

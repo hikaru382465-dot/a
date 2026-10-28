@@ -43,33 +43,39 @@ def human(d, cx, base_y, h_px, tilt=0.0, hand=False):
         gd.polygon([(cx + sgn * sh * .72, sy + u * 1.5), (cx + sgn * sh * .78, sy + u * 1.5), (cx + sgn * sh * .80, base_y), (cx + sgn * sh * .72, base_y)], fill=255)
     return gap
 
-def render(frame):
+# 人影の段階：x=横の位置(0-1)、base=足元の高さ、h=背の高さ、tilt=頭のかたむき、body=濃さ、cur=カーテンの濃さ(端,中)
+STAGES = {
+    "fig0": None,                                                                             # 明かりだけ（人はいない）
+    "fig1": dict(x=0.42, base=1.02, h=0.74, tilt=-0.4, body=0.72, cur=(0.62, 0.16)),         # 奥・カーテンのうしろ（一瞬の演出用）
+    "fig":  dict(x=0.52, base=1.14, h=1.04, tilt=-0.9, body=0.97, cur=(0.22, 0.0), face=True),  # 窓ぎわ（一瞬の演出用）
+    # 窓を閉じるたびに近づいてくる（4段階）。壁紙にそのまま残る
+    "st1": dict(x=0.36, base=1.02, h=0.50, tilt=-0.3, body=0.58, cur=(0.64, 0.18)),
+    "st2": dict(x=0.42, base=1.03, h=0.66, tilt=-0.4, body=0.70, cur=(0.58, 0.14)),
+    "st3": dict(x=0.47, base=1.07, h=0.86, tilt=-0.6, body=0.86, cur=(0.40, 0.06)),
+    "st4": dict(x=0.52, base=1.14, h=1.04, tilt=-0.9, body=0.97, cur=(0.22, 0.0), face=True),
+}
+
+def render(name):
+    cfg = STAGES[name]
     base = interior().convert("RGBA")
     mask = Image.new("L", (W, H), 0); d = ImageDraw.Draw(mask)
-    if frame == 1:      # 奥・小さい・カーテンのうしろ
-        gap = human(d, W * 0.42, H * 1.02, H * 0.74, tilt=-0.4)
-    elif frame == 2:    # 窓ぎわ・大きい・顔を少しかしげる
-        gap = human(d, W * 0.52, H * 1.14, H * 1.04, tilt=-0.9)
-    if frame:
-        m = mask.filter(ImageFilter.GaussianBlur(S * (0.55 if frame == 2 else 1.1)))
-        if frame == 2:
+    if cfg:
+        gap = human(d, W * cfg["x"], H * cfg["base"], H * cfg["h"], tilt=cfg["tilt"])
+        blur = S * (0.55 if cfg["h"] > 0.95 else 1.1 - 0.6 * (cfg["h"] - 0.5))
+        m = mask.filter(ImageFilter.GaussianBlur(blur))
+        if cfg["h"] > 0.95:
             gm = gap.filter(ImageFilter.GaussianBlur(S * 0.5)).point(lambda v: int(v * 0.75)); m = ImageChops.subtract(m, gm)
-        # 逆光のふち：人影のまわりが、ほんの少し明るくにじむ
         halo = ImageChops.subtract(mask.filter(ImageFilter.GaussianBlur(S * 1.8)), mask.filter(ImageFilter.GaussianBlur(S * 0.4))).point(lambda v: min(255, v * 2))
         base = Image.composite(Image.new("RGBA", (W, H), (255, 214, 150, 255)), base, halo.point(lambda v: int(v * 0.35)))
-        body = (20, 12, 9, 255) if frame == 2 else (46, 30, 20, 255)
-        alpha = m.point(lambda v: int(v * (0.97 if frame == 2 else 0.72)))
-        base = Image.composite(Image.new("RGBA", (W, H), body), base, alpha)
-        if frame == 2:   # 顔：ごくうすい明るみ（見えるか見えないか）
+        k = (cfg["h"] - 0.5) / 0.54
+        body = (int(46 - 26 * k), int(30 - 18 * k), int(20 - 11 * k), 255)
+        base = Image.composite(Image.new("RGBA", (W, H), body), base, m.point(lambda v: int(v * cfg["body"])))
+        if cfg.get("face"):
             fy = int(H * 0.10); ImageDraw.Draw(base).ellipse((W * 0.50 - 26, fy + 20, W * 0.50 + 26, fy + 100), fill=(70, 52, 42, 70))
-    if frame in (0, 1):
-        base = Image.alpha_composite(base, curtains(0.62, 0.16))
-    elif frame == 2:
-        base = Image.alpha_composite(base, curtains(0.22, 0.0))
-    # 窓の桟（人影の前を横切る）
+    ce = cfg["cur"] if cfg else (0.62, 0.16)
+    base = Image.alpha_composite(base, curtains(*ce))
     dd = ImageDraw.Draw(base); bw = int(S * 1.1)
     dd.rectangle((W // 2 - bw // 2, 0, W // 2 + bw // 2, H), fill=(52, 36, 26, 255)); yb = int(H * 0.50); dd.rectangle((0, yb - bw // 2, W, yb + bw // 2), fill=(52, 36, 26, 255))
-    # ガラスのよごれ・うっすらした反射（斜めの帯）
     ref = Image.new("RGBA", (W, H), (0, 0, 0, 0)); rd = ImageDraw.Draw(ref)
     rd.polygon([(W * .05, 0), (W * .30, 0), (W * .08, H), (-W * .17, H)], fill=(255, 255, 255, 22))
     base = Image.alpha_composite(base, ref.filter(ImageFilter.GaussianBlur(S * 1.5)))
@@ -82,16 +88,14 @@ def glow(base):
 
 if __name__ == "__main__":
     lit = Image.open(f"{SRC}/final2_lit.png").convert("RGB")
-    frames = [render(0), render(1), render(2)]
+    frames = {k: render(k) for k in STAGES}
     for m in ("dusk", "night", "red", "lit"):
         base = Image.open(f"{SRC}/final2_{m}.png").convert("RGB")
         base.paste(lit.crop((906, 366, 978, 462)), (906, 366))       # 窓の枠まわり（明るい状態）
         base = glow(base)
-        for name, fr in (("fig0", frames[0]), ("fig1", frames[1]), ("fig", frames[2])):
+        for name, fr in frames.items():
             im = base.copy(); im.paste(fr, (PX0, PY0)); im.save(f"{OUT}/wallpaper_b_{m}_{name}.jpg", quality=84, optimize=True)
-    # 確認用：拡大
-    n = Image.open(f"{OUT}/wallpaper_b_night_fig.jpg"); n0 = Image.open(f"{OUT}/wallpaper_b_night_fig0.jpg"); n1 = Image.open(f"{OUT}/wallpaper_b_night_fig1.jpg")
-    box = (820, 300, 1080, 520); strip = Image.new("RGB", (260 * 3, 220))
-    for i, im in enumerate((n0, n1, n)): strip.paste(im.crop(box), (i * 260, 0))
-    strip.resize((260 * 3 * 2, 440), Image.LANCZOS).save("/tmp/claude-0/fig_real.png")
-    print("ok")
+    # 確認用：段階を並べる（夜）
+    box = (820, 300, 1080, 520); names = ["fig0", "st1", "st2", "st3", "st4"]; strip = Image.new("RGB", (260 * 5, 220))
+    for i, n in enumerate(names): strip.paste(Image.open(f"{OUT}/wallpaper_b_night_{n}.jpg").crop(box), (i * 260, 0))
+    strip.save("/tmp/claude-0/fig_stages.png"); print("ok")

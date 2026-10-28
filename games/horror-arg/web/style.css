@@ -564,3 +564,21 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 #hint-tab .ht-n{min-width:18px;height:18px;border-radius:9px;background:#d9a93a;color:#1a1400;font-size:12px;line-height:18px;text-align:center;font-weight:700}
 #hint-tab .ht-n:empty{display:none}
 @media (max-width:760px){#hint-tab{top:auto;bottom:6px;z-index:8000}}
+
+/* 窓を閉じるたびに近づく人影（段階1〜4） */
+#wallpaper.b.st1{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_st1.jpg)}
+#wallpaper.b.night.st1{background-image:url(wallpaper_b_night_st1.jpg)}
+#wallpaper.b.red.st1{background-image:url(wallpaper_b_red_st1.jpg)}
+#wallpaper.b.lit.st1{background-image:url(wallpaper_b_lit_st1.jpg)}
+#wallpaper.b.st2{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_st2.jpg)}
+#wallpaper.b.night.st2{background-image:url(wallpaper_b_night_st2.jpg)}
+#wallpaper.b.red.st2{background-image:url(wallpaper_b_red_st2.jpg)}
+#wallpaper.b.lit.st2{background-image:url(wallpaper_b_lit_st2.jpg)}
+#wallpaper.b.st3{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_st3.jpg)}
+#wallpaper.b.night.st3{background-image:url(wallpaper_b_night_st3.jpg)}
+#wallpaper.b.red.st3{background-image:url(wallpaper_b_red_st3.jpg)}
+#wallpaper.b.lit.st3{background-image:url(wallpaper_b_lit_st3.jpg)}
+#wallpaper.b.st4{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_st4.jpg)}
+#wallpaper.b.night.st4{background-image:url(wallpaper_b_night_st4.jpg)}
+#wallpaper.b.red.st4{background-image:url(wallpaper_b_red_st4.jpg)}
+#wallpaper.b.lit.st4{background-image:url(wallpaper_b_lit_st4.jpg)}
