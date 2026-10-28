@@ -573,7 +573,7 @@
     S.heartbeat(); [0, 900, 1700, 2400].forEach(ms => setTimeout(() => G.fx.redPulse(800), ms));
     await sleep(2900);
     Object.keys(wins).forEach(k => { wins[k].el.style.display = "none"; });   // 窓が全部消える
-    const wp = $("#wallpaper"); setWall("lit"); wp.classList.remove("st1", "st2", "st3", "st4"); if (/\bb\b/.test(wp.className)) wp.classList.add("fig");
+    const wp = $("#wallpaper"); setWall("lit"); wp.classList.remove("st1", "st2", "st3", "st4", "o1", "o2", "o3", "o4"); if (/\bb\b/.test(wp.className)) wp.classList.add("fig");
     S.breath(); await sleep(2600); S.breath(); await sleep(1800);
     const cam = h("div", { id: "screen-cam" }, makePhoto(5), h("div", { class: "cam-rec" }, "● REC"), h("div", { class: "cam-time" }, ""));
     document.body.append(cam);                              // 監視カメラ風の映像（無音）

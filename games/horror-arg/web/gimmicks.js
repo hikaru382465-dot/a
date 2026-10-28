@@ -107,16 +107,18 @@ window.Gimmicks = (function () {
   // 流れ：窓の明かりがつく→奥にぼんやり小さな人影→窓ぎわまで来る→消える。窓が隠れないよう、開いている窓は先にいったん消える。
   // 窓を閉じるたびに、人影が家の窓に少しずつ近づく（壁紙にそのまま残る。気づかない人は気づかない）
   // 段階：0なし→1奥→2→3→4窓ぎわ。上限は日ごと（3日目は2、4日目は3、5日目は4）。1段進めるには45秒以上あける。
-  const figCap = () => Math.max(0, day() - 1);
+  // 段階：1〜3＝家の窓（奥→近く）、4〜7＝家の外（柵のむこう→庭→手前→目の前）。上限は日ごと：3日目は2、4日目は4、5日目は7
+  const STAGE_CLS = ["", "st1", "st2", "st3", "o1", "o2", "o3", "o4"], ALL_CLS = ["st1", "st2", "st3", "st4", "o1", "o2", "o3", "o4", "fig0"];
+  const figCap = () => (day() >= 5 ? 7 : day() === 4 ? 4 : day() === 3 ? 2 : 0);
   function figStage() { return (api.state().flags.figStage) || 0; }
   function applyStage() {
     const wp = document.querySelector("#wallpaper"); if (!wp) return;
-    wp.classList.remove("st1", "st2", "st3", "st4", "fig0");
+    wp.classList.remove(...ALL_CLS);
     const fl = api.state().flags, n = figStage();
     if (n > 0 && /\bb\b/.test(wp.className) && !figBusy) {
       if (fl.figVanish === "lit") wp.classList.add("fig0");        // 明かりだけ残って、人影がいない
       else if (fl.figVanish === "dark") { /* 明かりも消えて真っ暗 */ }
-      else wp.classList.add("st" + n);
+      else wp.classList.add(STAGE_CLS[n]);
     }
   }
   // 途中で、窓の明かりが点滅して、人影がいなくなる（段階2のあとは「明かりだけ残る」、段階3のあとは「明かりも消える」）。次の段階で、さらに近くに戻ってくる
@@ -124,7 +126,7 @@ window.Gimmicks = (function () {
     const wp = document.querySelector("#wallpaper"), fl = api.state().flags; if (!wp || fl.figStage !== n || fl.figVanish) return;
     api.S.noise();
     const cls = "st" + n, seq = [["fig0", 130], [null, 170], [cls, 120], [null, 190], ["fig0", 110], [null, 230], [cls, 90], [null, 260]];
-    let at = 0; seq.forEach(([c, d]) => { later(() => { wp.classList.remove("st1", "st2", "st3", "st4", "fig0"); if (c) wp.classList.add(c); }, at); at += d; });
+    let at = 0; seq.forEach(([c, d]) => { later(() => { wp.classList.remove(...ALL_CLS); if (c) wp.classList.add(c); }, at); at += d; });
     later(() => { fl.figVanish = n === 2 ? "lit" : "dark"; api.save(); applyStage(); }, at);
   }
   function onWindowClosed() {
@@ -133,15 +135,15 @@ window.Gimmicks = (function () {
     const fl = api.state().flags, now = Date.now();
     if ((fl.figStage || 0) >= figCap() || now - (fl.figAt || 0) < 45000) return;
     fl.figAt = now; fl.figStage = (fl.figStage || 0) + 1; fl.figVanish = null; api.save();
-    preloadFigure(wp).then(() => later(() => { applyStage(); api.S.footstep(-0.8 + 0.2 * fl.figStage, 0.25 + 0.12 * fl.figStage); const n = fl.figStage; if (n === 2 || n === 3) later(() => vanish(n), 3200); }, 600));
+    preloadFigure(wp).then(() => later(() => { applyStage(); api.S.footstep(-0.8 + 0.12 * fl.figStage, 0.22 + 0.1 * fl.figStage); if (fl.figStage === 7) setTimeout(() => api.S.breath(), 900); const n = fl.figStage; if (n === 2 || n === 3) later(() => vanish(n), 3200); }, 600));
   }
   let figBusy = false; const figReady = {};
   // 人影の絵は、先に読み込んで解読しておく（初回に一瞬、背景が真っ暗になるのを防ぐ）
   function preloadFigure(wp) {
-    const key = wp.className.replace(/\b(fig\d?|st\d)\b/g, "").trim();
+    const key = wp.className.replace(/\b(fig\d?|st\d|o\d)\b/g, "").trim();
     if (figReady[key]) return figReady[key];
     const urls = [], keep = wp.className;
-    ["fig0", "fig1", "fig", "st1", "st2", "st3", "st4"].forEach(c => {
+    ["fig0", "fig1", "fig", "st1", "st2", "st3", "o1", "o2", "o3", "o4"].forEach(c => {
       wp.className = key + " " + c;
       const m = /url\("?([^")]+)"?\)/.exec(getComputedStyle(wp).backgroundImage); if (m) urls.push(m[1]);
     });
@@ -158,7 +160,7 @@ window.Gimmicks = (function () {
       const hide = LV() >= 2, t = hide ? 380 : 0;
       api.S.creak();
       if (hide) { api.S.jolt(); shake(380, true); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
-      const set = c => { wp.classList.remove("fig0", "fig1", "fig", "st1", "st2", "st3", "st4"); if (c) wp.classList.add(c); };
+      const set = c => { wp.classList.remove("fig1", "fig", ...ALL_CLS); if (c) wp.classList.add(c); };
       later(() => set("fig0"), t);                 // 窓に明かりがつく
       later(() => set(null), t + 170);              // 一度消える（ちらつき）
       later(() => set("fig0"), t + 340);

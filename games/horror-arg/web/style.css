@@ -582,3 +582,21 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 #wallpaper.b.night.st4{background-image:url(wallpaper_b_night_st4.jpg)}
 #wallpaper.b.red.st4{background-image:url(wallpaper_b_red_st4.jpg)}
 #wallpaper.b.lit.st4{background-image:url(wallpaper_b_lit_st4.jpg)}
+
+/* 家の外に立つ人影（段階4〜7） */
+#wallpaper.b.o1{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_o1.jpg)}
+#wallpaper.b.night.o1{background-image:url(wallpaper_b_night_o1.jpg)}
+#wallpaper.b.red.o1{background-image:url(wallpaper_b_red_o1.jpg)}
+#wallpaper.b.lit.o1{background-image:url(wallpaper_b_lit_o1.jpg)}
+#wallpaper.b.o2{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_o2.jpg)}
+#wallpaper.b.night.o2{background-image:url(wallpaper_b_night_o2.jpg)}
+#wallpaper.b.red.o2{background-image:url(wallpaper_b_red_o2.jpg)}
+#wallpaper.b.lit.o2{background-image:url(wallpaper_b_lit_o2.jpg)}
+#wallpaper.b.o3{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_o3.jpg)}
+#wallpaper.b.night.o3{background-image:url(wallpaper_b_night_o3.jpg)}
+#wallpaper.b.red.o3{background-image:url(wallpaper_b_red_o3.jpg)}
+#wallpaper.b.lit.o3{background-image:url(wallpaper_b_lit_o3.jpg)}
+#wallpaper.b.o4{background-image:linear-gradient(rgba(6,8,14,.1),rgba(6,8,14,.1)),url(wallpaper_b_dusk_o4.jpg)}
+#wallpaper.b.night.o4{background-image:url(wallpaper_b_night_o4.jpg)}
+#wallpaper.b.red.o4{background-image:url(wallpaper_b_red_o4.jpg)}
+#wallpaper.b.lit.o4{background-image:url(wallpaper_b_lit_o4.jpg)}

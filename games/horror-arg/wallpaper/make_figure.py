@@ -99,3 +99,50 @@ if __name__ == "__main__":
     box = (820, 300, 1080, 520); names = ["fig0", "st1", "st2", "st3", "st4"]; strip = Image.new("RGB", (260 * 5, 220))
     for i, n in enumerate(names): strip.paste(Image.open(f"{OUT}/wallpaper_b_night_{n}.jpg").crop(box), (i * 260, 0))
     strip.save("/tmp/claude-0/fig_stages.png"); print("ok")
+
+# ===== 外に立つ人影（家の外・柵のあたり・手前の草の上。だんだん近づく）=====
+# 位置は 1600x900 の壁紙の座標。cx=横、feet=足元の高さ、h=背の高さ、blur=ピンボケ（近いほど大きい）、a=濃さ（遠いほどうすい）
+OUTDOOR = {
+    "o1": dict(cx=1235, feet=602, h=92, blur=1.0, a=0.62),
+    "o2": dict(cx=1010, feet=655, h=175, blur=1.5, a=0.80),
+    "o3": dict(cx=905, feet=770, h=340, blur=2.8, a=0.90),
+    "o4": dict(cx=820, feet=985, h=800, blur=7.5, a=0.95, face=True),
+}
+BODY = {"dusk": (24, 17, 9), "night": (5, 8, 16), "red": (14, 2, 2), "lit": (5, 8, 16)}
+RIM = {"dusk": (255, 215, 150), "night": (140, 165, 235), "red": (255, 90, 60), "lit": (140, 165, 235)}
+
+def outdoor_mask(size, cfg):
+    Wf, Hf = size; m = Image.new("L", size, 0); d = ImageDraw.Draw(m)
+    cx, feet, h = cfg["cx"], cfg["feet"], cfg["h"]; u = h / 7.6
+    top = feet - h; hx, hy = cx + u * 0.18, top + u * 0.55
+    d.ellipse((hx - u * .40, hy - u * .55, hx + u * .40, hy + u * .55), fill=255)                                     # 頭（少しかしぐ）
+    d.polygon([(hx - u * .17, hy + u * .35), (hx + u * .17, hy + u * .35), (cx + u * .21, hy + u * 1.05), (cx - u * .21, hy + u * 1.05)], fill=255)   # 首
+    sy = hy + u * 0.95; sh = u * 0.98; hip = sy + u * 2.9
+    d.polygon([(cx - u * .2, sy - u * .1), (cx + u * .2, sy - u * .1), (cx + sh * .86, sy + u * .35), (cx + sh * .62, hip), (cx - sh * .62, hip), (cx - sh * .86, sy + u * .35)], fill=255)   # 肩〜胴
+    for sg in (-1, 1):                                                       # 腕：胴との間に細いすきま
+        d.polygon([(cx + sg * sh * .90, sy + u * .30), (cx + sg * (sh * .90 + u * .36), sy + u * .55), (cx + sg * (sh * .92 + u * .34), sy + u * 3.15), (cx + sg * (sh * .74), sy + u * 3.10)], fill=255)
+        d.polygon([(cx + sg * sh * .60, hip - u * .1), (cx + sg * sh * .04, hip - u * .1), (cx + sg * sh * .10, feet), (cx + sg * sh * .56, feet)], fill=255)   # 脚
+    return m
+
+def outdoor(mood, name):
+    cfg = OUTDOOR[name]; base = Image.open(f"{SRC}/final2_{mood}.png").convert("RGB")
+    m = outdoor_mask(base.size, cfg)
+    soft = m.filter(ImageFilter.GaussianBlur(cfg["blur"]))
+    # ふち：月などの光で、輪郭がうっすら明るい
+    rim = ImageChops.subtract(m.filter(ImageFilter.GaussianBlur(cfg["blur"] + 1.6)), m.filter(ImageFilter.GaussianBlur(cfg["blur"] * 0.4))).point(lambda v: min(255, v * 2))
+    base = Image.composite(Image.new("RGB", base.size, RIM[mood]), base, rim.point(lambda v: int(v * 0.16 * cfg["a"])))
+    out = Image.composite(Image.new("RGB", base.size, BODY[mood]), base, soft.point(lambda v: int(v * cfg["a"])))
+    if cfg.get("face"):   # ごくうすい顔の明るみ（見えるか見えないか）
+        u = cfg["h"] / 7.6; hx = cfg["cx"] + u * 0.18; hy = cfg["feet"] - cfg["h"] + u * 0.55
+        fl = Image.new("L", base.size, 0); ImageDraw.Draw(fl).ellipse((hx - u * .22, hy - u * .30, hx + u * .22, hy + u * .34), fill=255)
+        fl = fl.filter(ImageFilter.GaussianBlur(cfg["blur"] * 0.8)).point(lambda v: int(v * 0.16))
+        out = Image.composite(Image.new("RGB", base.size, (190, 184, 170)), out, fl)
+    out.save(f"{OUT}/wallpaper_b_{mood}_{name}.jpg", quality=84, optimize=True)
+
+if __name__ == "__main__":
+    for mood in ("dusk", "night", "red", "lit"):
+        for name in OUTDOOR: outdoor(mood, name)
+    box = (500, 150, 1500, 900); strip = Image.new("RGB", (1000 * 2, 750 * 2))
+    for i, n in enumerate(("o1", "o2", "o3", "o4")):
+        strip.paste(Image.open(f"{OUT}/wallpaper_b_night_{n}.jpg").crop(box), ((i % 2) * 1000, (i // 2) * 750))
+    strip.resize((1400, 1050)).save("/tmp/claude-0/fig_outdoor.png"); print("outdoor ok")
