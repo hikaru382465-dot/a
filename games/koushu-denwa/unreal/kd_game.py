@@ -50,6 +50,10 @@ BOX_DEBUG = False              # True: ボタンの枠と数字を、線と文�
 BOX_HOVER = True               # True: 本物の箱で、マウスが指しているボタンに細い枠を出す
 BOX_FLIP = False               # True: 左右を反転する（ゲームの中で、ボタンの数字の並びが左右逆だったら True）
 BOX_TOP_H = 6.2                # 箱の原点から、ボタンの面までの高さ（cm・箱の倍率をかける前）
+ENVELOPE_CODE = [3, 6, 1, 8]   # 赤い封筒の4けたの鍵（仮の例。本物は、ひかるが決める。光る数字の張り紙の謎は、まだ作っていない）
+ENVELOPE_DECOYS = {"1997": "「えげつない」の張り紙の年だ……鍵は動かない", "0728": "カメラの広告の728円……これも違う"}   # ひっかけの数字と、出す文（はずれとして数える）
+ENVELOPE_WRONG_GHOST = True    # True: 封筒の鍵をまちがえると、幽霊が1歩近づく（謎が進まないときの「圧力」と同じ）
+DOOR_RANGE = 200.0             # 鍵を持ったとき、扉をこの距離（cm）まで見ると「Eで開ける」が出る
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
 TRAP_MARGIN = 3.0              # 閉じ込められている間、ガラスの内がわから、体（PAWN_RADIUS）のほかに、さらにこの距離（cm）あけて止まる（壁ぎわのガタガタ・すり抜け止め）
 PAWN_RADIUS = 22.0             # 体の太さ（カプセルの半径・cm）。ふつうの 34 より細くして、せまい電話ボックスの中を動きやすくする。0 で変えない
@@ -155,6 +159,10 @@ SETTINGS_DESCR = {
     "BOX_HOVER": "true: 箱のボタンのうち、マウスが指している1個に細い枠を出す",
     "BOX_FLIP": "true: 箱のボタンの左右を反転する（数字の並びが逆のとき）",
     "BOX_TOP_H": "箱の原点から、ボタンの面までの高さ（cm）",
+    "ENVELOPE_CODE": "赤い封筒の4けたの鍵。[3,6,1,8] のように、0〜9 の数字を4つ（仮の例）",
+    "ENVELOPE_DECOYS": "ひっかけの4けたと、出す文。{\"1997\": \"文\", \"0728\": \"文\"} のように（はずれとして数える）",
+    "ENVELOPE_WRONG_GHOST": "true: 封筒の鍵をまちがえると、幽霊が1歩近づく",
+    "DOOR_RANGE": "鍵を持ったとき、扉を「Eで開ける」ために見る距離（cm）",
     "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
     "START_DIST": "開始位置が変な所のとき、入口の正面から何cm 離して立たせるか",
@@ -290,7 +298,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
 
 
 def game_world():
@@ -428,6 +436,7 @@ class Game:
         self.safe_cam_on = False
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
         self.box_done, self.has_envelope, self.box_entries = False, False, []
+        self.envelope_open, self.has_door_key, self.env_digits, self.exit_stage = False, False, "", 0       # 封筒の鍵・扉の鍵・脱出（やり直しで最初に戻る）
         self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
         self.hatch_open = False
         self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
@@ -723,6 +732,10 @@ class Game:
             self.tick_phone(dt)
         elif self.state == "BOX":
             self.tick_box(dt)
+        elif self.state == "ENV":
+            self.tick_env(dt)
+        elif self.state == "EXIT":
+            self.tick_exit(dt)
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
@@ -1236,7 +1249,7 @@ class Game:
 
     def clamp_in_booth(self, loc, dt=0.016):
         """閉じ込められている間は、壁の外へ出られない。範囲を出たら、なめらかに押しもどす（ぱっと瞬間移動しない）"""
-        if self.state not in ("CLOSING", "TRAPPED", "SAFE", "PHONE", "READING") or self.pawn is None:
+        if self.state not in ("CLOSING", "TRAPPED", "SAFE", "PHONE", "READING", "ENV") or self.pawn is None:
             return
         (nx, ny), (tx, ty), ln, lt = self.booth_limits()
         rx, ry = loc.x - self.cx, loc.y - self.cy
@@ -1432,8 +1445,110 @@ class Game:
         self.play("latch")
         self.end_box()
         screen(self.world, "箱が開いた。赤い封筒が入っていた（4けたの鍵がついている）", (255, 170, 170), 6.0)
-        log("金庫の中の箱が開きました（赤い封筒）。次：封筒の4けたの鍵（まだ未実装）")
+        log("金庫の中の箱が開きました（赤い封筒）。次：封筒の4けたの鍵（開いた金庫を見て E）")
         self.on_flag("金庫の箱")
+
+    # ---- 赤い封筒の4けたの鍵（数字キーで入れる。電話の番号入れと同じキー） ----
+    def begin_env(self):
+        self.lock_input(True)
+        self.state, self.state_t = "ENV", 0.0
+        self.env_digits = ""
+        log("赤い封筒の鍵を使い始めました")
+
+    def end_env(self):
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def tick_env(self, dt):
+        try:
+            for name, ch in self.PHONE_KEYS:
+                if self.pc.was_input_key_just_pressed(self._key(name)) and len(self.env_digits) < 4:
+                    self.env_digits += ch
+                    self.play("safe_click")
+            if self.pc.was_input_key_just_pressed(self._key("BackSpace")):
+                self.env_digits = self.env_digits[:-1]
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self._key("Q")):
+                self.end_env()
+                return
+            if self.state_t > 0.3 and (self.pc.was_input_key_just_pressed(self._key("Enter")) or self.pc.was_input_key_just_pressed(self.key_e)):
+                if len(self.env_digits) == 4:
+                    self.env_try()
+                    return
+                screen(self.world, "4けた入れてください", (255, 200, 150), 1.5)
+        except Exception as e:  # noqa
+            log("  (封筒の鍵のキーを読めません) %s" % e)
+        if int(self.t * 8) != getattr(self, "_env_k", -1):
+            self._env_k = int(self.t * 8)
+            slots = " ".join(list(self.env_digits) + ["＿"] * (4 - len(self.env_digits)))
+            txt = "赤い封筒の鍵  [ %s ]   [0〜9] 入れる  [Enter]か[%s] 決める  [BackSpace] 消す  [Q] やめる" % (slots, ENTER_KEY)
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(1.0, 0.8, 0.8, 1), 0.3, "KD_ENV_UI")
+            except Exception:  # noqa
+                pass
+
+    def env_try(self):
+        code, self.env_digits = self.env_digits, ""
+        if code == "".join(str(d) for d in ENVELOPE_CODE):
+            self.envelope_open = True
+            self.has_door_key = True
+            self.play("latch")
+            self.end_env()
+            screen(self.world, "封筒の中に、鍵が入っていた（扉の鍵）", (255, 240, 160), 6.0)
+            log("赤い封筒が開きました（扉の鍵）。次：扉を見て E で外へ")
+            self.on_flag("封筒")
+            return
+        self.play("safe_clunk")
+        decoy = ENVELOPE_DECOYS.get(code)
+        screen(self.world, decoy if decoy else "ブッ…（はずれ）", (255, 120, 120), 3.0)
+        log("封筒の鍵：はずれ %s%s" % (code, "（ひっかけ）" if decoy else ""))
+        if ENVELOPE_WRONG_GHOST and getattr(self, "trapped_started", False):
+            self.pressure()                    # 謎が進まないときの圧力と同じ：幽霊が1歩近づく（近づききったら失敗）
+
+    # ---- 扉の鍵で外へ出る（エンディング①） ----
+    def door_inner_point(self):
+        """扉を見ているか調べる点：入口の内がわ（ボックスの入口の壁）、目の高さ"""
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        eye_z = getattr(self, "eye_z", None)
+        return unreal.Vector(self.cx + nx * (self.half_n - 8.0), self.cy + ny * (self.half_n - 8.0), eye_z if eye_z is not None else getattr(self, "cz", 200.0))
+
+    def begin_exit(self):
+        self.state, self.state_t = "EXIT", 0.0
+        self.exit_stage = 0
+        self.lock_input(True)
+        self.play("latch")
+        self.play("door_open")
+        self.fade(True, ENTER_FADE_OUT)
+        log("扉の鍵で外へ出ます（暗転＋ドアの音）")
+
+    def tick_exit(self, dt):
+        t = self.state_t
+        if self.exit_stage == 0 and t >= ENTER_FADE_OUT + 0.3:            # 真っ暗になってから、外へ移す
+            self.exit_stage = 1
+            self.steps, self.step_i, self.pending = [], 0, []            # 演出はぜんぶ止める
+            self.hide_all()
+            self.set_lights(1.0)
+            self.set_flash_scale(FLASH_OUTSIDE)
+            if self.hinge is not None:
+                self.door_yaw = DOOR_OPEN_YAW
+                self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
+            th = math.radians(self.front_yaw)
+            nx, ny = -math.sin(th), math.cos(th)
+            loc = self.pawn.get_actor_location()
+            self.pawn.set_actor_location(unreal.Vector(self.cx + nx * (self.half_n + 110.0), self.cy + ny * (self.half_n + 110.0), loc.z), False, False)
+            try:
+                self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(ny, nx))))       # 外むき（ボックスに背を向ける）
+            except Exception as e:  # noqa
+                log("  (向きを変えられません) %s" % e)
+        elif self.exit_stage == 1 and t >= ENTER_FADE_OUT + 1.2:
+            self.exit_stage = 2
+            self.blackout(0.0)
+            self.fade(False, ENTER_FADE_IN)
+            self.lock_input(False)
+            screen(self.world, "外に出られた……（エンディング①：脱出）", (200, 255, 200), 10.0)
+            log("脱出エンド①")
+        elif self.exit_stage == 2 and t >= ENTER_FADE_OUT + 1.2 + ENTER_FADE_IN:
+            self.state, self.state_t = "ESCAPED", 0.0
 
     def safe_enter(self):
         if self.dial_dir is None:
@@ -1512,7 +1627,7 @@ class Game:
 
     def tick_arrows(self):
         """矢印キーで歩く（W A S D が使えないテンプレ用）。歩く場面（外・中）だけ"""
-        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED") or not self.is_char or getattr(self, "manual_on", False) or MANUAL_WALK == "on":
+        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED", "ESCAPED") or not self.is_char or getattr(self, "manual_on", False) or MANUAL_WALK == "on":
             return
         try:
             f = (1.0 if self.pc.is_input_key_down(self._key("Up")) else 0.0) - (1.0 if self.pc.is_input_key_down(self._key("Down")) else 0.0)
@@ -1534,7 +1649,7 @@ class Game:
     def tick_manual(self, dt):
         """キャラが動かないときの、自分で動かす歩き：WASD と矢印。向いている方向へ、WALK_SPEED で進める。
         歩く人（Character）には、動きの部品（CharacterMovement）の速度を直接入れる（地面・坂をなめらかに進む）。それでも進まなければ、体を直接動かす"""
-        if MANUAL_WALK == "off" or self.state not in ("WALK", "TRAPPED"):
+        if MANUAL_WALK == "off" or self.state not in ("WALK", "TRAPPED", "ESCAPED"):
             return
         if MANUAL_WALK == "auto" and not getattr(self, "manual_on", False):
             return
@@ -1703,6 +1818,19 @@ class Game:
             if pressed:
                 self.begin_box()
                 return
+        if self.box_done and self.has_envelope and not self.envelope_open and self.state == "TRAPPED" and getattr(self, "safe_base", None) is not None and self.looking_at(self.safe_base, ITEM_RANGE):
+            self.prompt_item("[%s] 赤い封筒を開ける" % ENTER_KEY, "ENV")
+            if pressed:
+                self.begin_env()
+                return
+        if self.state == "TRAPPED" and self.looking_at_pt(self.door_inner_point(), DOOR_RANGE, 0.9):
+            if self.has_door_key:
+                self.prompt_item("[%s] 鍵で扉を開ける" % ENTER_KEY, "DOOR")
+                if pressed:
+                    self.begin_exit()
+                    return
+            elif pressed:
+                screen(self.world, "鍵がかかっている", (255, 200, 150), 2.0)
         if self.book is not None and self.state == "TRAPPED" and self.looking_at(self.book, ITEM_RANGE):
             self.prompt_item("[%s] 本を開く" % ENTER_KEY, "BOOK")
             if pressed:
@@ -1891,7 +2019,7 @@ class Game:
 
     def on_flag(self, name="?"):
         """謎を1つ解いた（フラグがたった）。演出を1つ選んで出す"""
-        if self.state not in ("TRAPPED", "PHONE", "SAFE", "BOX", "READING") or not getattr(self, "trapped_started", False):
+        if self.state not in ("TRAPPED", "PHONE", "SAFE", "BOX", "READING", "ENV") or not getattr(self, "trapped_started", False):
             log("(閉じ込められていないので、フラグは無視) %s" % name)
             return
         if self.state != "TRAPPED":                              # 電話・金庫・読んでいる最中は、終わってから演出を出す
