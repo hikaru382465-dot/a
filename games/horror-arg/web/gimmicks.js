@@ -111,16 +111,29 @@ window.Gimmicks = (function () {
   function figStage() { return (api.state().flags.figStage) || 0; }
   function applyStage() {
     const wp = document.querySelector("#wallpaper"); if (!wp) return;
-    wp.classList.remove("st1", "st2", "st3", "st4");
-    const n = figStage(); if (n > 0 && /\bb\b/.test(wp.className) && !figBusy) wp.classList.add("st" + n);
+    wp.classList.remove("st1", "st2", "st3", "st4", "fig0");
+    const fl = api.state().flags, n = figStage();
+    if (n > 0 && /\bb\b/.test(wp.className) && !figBusy) {
+      if (fl.figVanish === "lit") wp.classList.add("fig0");        // 明かりだけ残って、人影がいない
+      else if (fl.figVanish === "dark") { /* 明かりも消えて真っ暗 */ }
+      else wp.classList.add("st" + n);
+    }
+  }
+  // 途中で、窓の明かりが点滅して、人影がいなくなる（段階2のあとは「明かりだけ残る」、段階3のあとは「明かりも消える」）。次の段階で、さらに近くに戻ってくる
+  function vanish(n) {
+    const wp = document.querySelector("#wallpaper"), fl = api.state().flags; if (!wp || fl.figStage !== n || fl.figVanish) return;
+    api.S.noise();
+    const cls = "st" + n, seq = [["fig0", 130], [null, 170], [cls, 120], [null, 190], ["fig0", 110], [null, 230], [cls, 90], [null, 260]];
+    let at = 0; seq.forEach(([c, d]) => { later(() => { wp.classList.remove("st1", "st2", "st3", "st4", "fig0"); if (c) wp.classList.add(c); }, at); at += d; });
+    later(() => { fl.figVanish = n === 2 ? "lit" : "dark"; api.save(); applyStage(); }, at);
   }
   function onWindowClosed() {
     if (!active || day() < (api.D.gimmicks.windowFigure || 99) || figBusy || location.search.includes("nogimmick")) return;
     const wp = document.querySelector("#wallpaper"); if (!wp || !/\bb\b/.test(wp.className)) return;
     const fl = api.state().flags, now = Date.now();
     if ((fl.figStage || 0) >= figCap() || now - (fl.figAt || 0) < 45000) return;
-    fl.figAt = now; fl.figStage = (fl.figStage || 0) + 1; api.save();
-    preloadFigure(wp).then(() => later(() => { applyStage(); api.S.footstep(-0.8 + 0.2 * fl.figStage, 0.25 + 0.12 * fl.figStage); }, 600));
+    fl.figAt = now; fl.figStage = (fl.figStage || 0) + 1; fl.figVanish = null; api.save();
+    preloadFigure(wp).then(() => later(() => { applyStage(); api.S.footstep(-0.8 + 0.2 * fl.figStage, 0.25 + 0.12 * fl.figStage); const n = fl.figStage; if (n === 2 || n === 3) later(() => vanish(n), 3200); }, 600));
   }
   let figBusy = false; const figReady = {};
   // 人影の絵は、先に読み込んで解読しておく（初回に一瞬、背景が真っ暗になるのを防ぐ）
@@ -154,7 +167,7 @@ window.Gimmicks = (function () {
       later(() => set(null), t + 1550);
       setTimeout(() => {
         set(null); figBusy = false;
-        const fl = api.state().flags; if ((fl.figStage || 0) < figCap()) { fl.figStage = (fl.figStage || 0) + 1; fl.figAt = Date.now(); api.save(); }
+        const fl = api.state().flags; if ((fl.figStage || 0) < figCap()) { fl.figStage = (fl.figStage || 0) + 1; fl.figAt = Date.now(); fl.figVanish = null; api.save(); }
         applyStage();
         hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
       }, t + 1800);
