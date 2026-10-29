@@ -112,6 +112,18 @@ GHOST_YAW = -90.0                         # 幽霊の向きの補正（度）。
 GHOST_Z = 0.0                             # 幽霊の足の高さの補正（cm）。浮くなら－、地面にめり込むなら＋
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
+END2_HOLD = 7.0                            # エンディング②（行方不明）：新聞の絵を出しておく時間（秒）
+END2_SCARE = 3.0                           # エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの時間（秒）
+END2_FADE = 1.0                            # エンディング②：新聞の前に、真っ暗にする時間（秒）
+END2_SIZE = 47.0                           # エンディング②：新聞の絵の大きさ（cm・目の前 READ_DIST に出す）
+BREAK_CODE = "2929"                        # エンディング③（ドアぶっ壊し）：電話にかける番号（ニクニク）。ジム会員証の「俺最強2929」がヒント
+BREAK_FLY_TIME = 1.2                       # ドアが吹っ飛んでいる時間（秒）
+BREAK_FLY_DIST = 450.0                     # ドアが飛んでいく距離（cm・入口の外向き）
+BREAK_SHAKE = 1.5                          # ドアが飛ぶときの画面のゆれ（度）。0 でゆれない
+BREAK_CARD_TIME = 1.5                      # 「ムキッ！」のカットインを出す時間（秒）
+INV_KEY = "I"                              # 持ち物の一覧を開く／とじるキー。開いている間：[E] プロテインを飲む／[Y] 財布を見る
+INV_DRINK_KEY = "E"                        # 持ち物を開いている間の、プロテインを飲むキー
+INV_WALLET_KEY = "Y"                       # 持ち物を開いている間の、財布（ジムの会員証）を見るキー
 FLASH_OUTSIDE = 1.0            # 外にいるときの、懐中電灯の明るさの倍率（まぶしいときは小さく。0.5 で半分）
 FLASH_INSIDE = 0.12          # 閉じ込められたあと、懐中電灯の明るさを、外にいたときの何倍にするか（中は狭くてまぶしいので小さく）
 TUBE_SCALE = 1.0             # 蛍光灯の光の強さの倍率（明るすぎるときは小さくする）
@@ -130,9 +142,13 @@ def log(msg):
     unreal.log(LOG_PREFIX + str(msg))
 
 
-def screen(world, msg, color=(255, 255, 255), t=3.0):
+def screen(world, msg, color=(255, 255, 255), t=3.0, key=None):
     try:
-        unreal.SystemLibrary.print_string(world, str(msg), True, False, unreal.LinearColor(color[0] / 255.0, color[1] / 255.0, color[2] / 255.0, 1.0), t)
+        lc = unreal.LinearColor(color[0] / 255.0, color[1] / 255.0, color[2] / 255.0, 1.0)
+        if key:
+            unreal.SystemLibrary.print_string(world, str(msg), True, False, lc, t, key)          # 同じ key の文字は置きかわる（カットインの拡大用）
+        else:
+            unreal.SystemLibrary.print_string(world, str(msg), True, False, lc, t)
     except Exception:  # noqa
         pass
 
@@ -223,6 +239,18 @@ SETTINGS_DESCR = {
     "GHOST_Z": "幽霊の足の高さの補正（cm）。浮くなら－",
     "DEAD_DIST": "失敗のとき、幽霊が目の前に出る距離（cm）",
     "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
+    "END2_HOLD": "エンディング②（行方不明）：新聞の絵を出しておく秒数",
+    "END2_SCARE": "エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの秒数",
+    "END2_FADE": "エンディング②：新聞の前の、真っ暗の秒数",
+    "END2_SIZE": "エンディング②：新聞の絵の大きさ（cm）",
+    "BREAK_CODE": "エンディング③（ドアぶっ壊し）の電話番号。プロテインを飲んでからかける",
+    "BREAK_FLY_TIME": "エンディング③：ドアが吹っ飛んでいる秒数",
+    "BREAK_FLY_DIST": "エンディング③：ドアが飛んでいく距離（cm）",
+    "BREAK_SHAKE": "エンディング③：ドアが飛ぶときの画面のゆれ（度）。0 でゆれない",
+    "BREAK_CARD_TIME": "エンディング③：「ムキッ！」のカットインの秒数",
+    "INV_KEY": "持ち物の一覧を開く／とじるキー",
+    "INV_DRINK_KEY": "持ち物を開いている間の、プロテインを飲むキー",
+    "INV_WALLET_KEY": "持ち物を開いている間の、財布（ジムの会員証）を見るキー",
     "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
     "FRONT": "電話ボックスの入口の向き（+X / -X / +Y / -Y）",
     "START_DIST": "プレイヤーを入口の前から何cm離して立たせるか",
@@ -315,7 +343,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY"]
 
 
 def game_world():
@@ -456,6 +484,9 @@ class Game:
         self.envelope_open, self.has_door_key, self.env_digits, self.exit_stage = False, False, "", 0       # 封筒の鍵・扉の鍵・脱出（やり直しで最初に戻る）
         self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
         self.hatch_open = False
+        self.has_protein, self.protein_drunk, self.inv_open = True, False, False       # エンディング③：プロテインは最初から持っている（やり直しで最初に戻る）
+        self.ending, self.break_stage, self.door_broken = None, 0, False               # どのエンディングに着いたか："escape" / "missing" / "break"
+        self.dead_stage = 0
         self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
         log("触れる物: 10円=%s 本=%s 金庫=%s" % (label_of(self.coin) if self.coin else "なし", label_of(self.book) if self.book else "なし（BOOK_LABEL を直す）", label_of(self.safe) if self.safe else "なし（SAFE_LABEL を直す）"))
         self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
@@ -784,6 +815,8 @@ class Game:
     def begin_dead(self):
         """失敗：幽霊が目の前に出る → 赤く暗転 → しばらくして最初に戻る"""
         self.state, self.state_t = "DEAD", 0.0
+        self.ending, self.dead_stage = "missing", 0                   # エンディング②：このあと、黒い画面 → 行方不明の新聞（tick_dead）
+        self.inv_open = False
         self.set_lights(0.6)
         self.blackout(0.0)
         rot = self.pc.get_control_rotation()
@@ -791,12 +824,36 @@ class Game:
         loc = self.pawn.get_actor_location()
         x, y = loc.x + fwd.x * DEAD_DIST, loc.y + fwd.y * DEAD_DIST
         self.ghost_show(x, y, loc.x, loc.y)
-        screen(self.world, "……みつけた", (255, 40, 40), RESTART_AFTER)
+        screen(self.world, "……みつけた", (255, 40, 40), END2_SCARE)
         try:
             self.pc.player_camera_manager.start_camera_fade(0.0, 1.0, 2.5, unreal.LinearColor(0.5, 0, 0, 1), False, True)
         except Exception as e:  # noqa
             log("  (赤い暗転ができません) %s" % e)
-        log("失敗エンド（段階%d）" % self.stage)
+        log("失敗エンド（段階%d）→ エンディング②（行方不明）" % self.stage)
+
+    def tick_dead(self, dt):
+        """エンディング②：幽霊のジャンプスケア → 暗転 → 行方不明の新聞を全画面で出す → 一定時間後に最初に戻る"""
+        t = self.state_t
+        if self.dead_stage == 0 and t >= END2_SCARE:
+            self.dead_stage = 1
+            self.fade(True, END2_FADE)
+        elif self.dead_stage == 1 and t >= END2_SCARE + END2_FADE + 0.2:
+            self.dead_stage = 2
+            self.ghost_hide()
+            self.set_lights(0.0)                                        # 新聞のほかは、暗いまま（新聞は光らない材質なので、読める）
+            self.set_flash(False)
+            self.lock_input(True)
+            self.show_picture("M_KDReadMissing", END2_SIZE, 1.14)
+            self.blackout(0.0)
+            self.fade(False, 0.8)
+            screen(self.world, "エンディング②：行方不明", (255, 220, 220), END2_HOLD)
+            screen(self.world, "◯◯大学の学生が、公衆電話ボックスの近くで行方不明になった", (230, 230, 230), END2_HOLD, "KD_END2_SUB")
+            log("エンディング②（行方不明）：新聞を出しました（%.1f秒）" % END2_HOLD)
+        end_t = max(RESTART_AFTER, END2_SCARE + END2_FADE + 0.2 + END2_HOLD)
+        if t > end_t:
+            self.state = "RESTART"
+            log("最初に戻ります（RestartLevel）")
+            unreal.SystemLibrary.execute_console_command(self.world, "RestartLevel")
 
     def blackout(self, amount):
         """画面の黒さ（0〜1）を、すぐ変える。点滅の「消えた」瞬間を、光の遅れに関係なく暗くする"""
@@ -942,12 +999,13 @@ class Game:
                 self.code_req = False
                 self.start_code_seq(restart=True)
             self.tick_trapped(dt)
-            self.tick_items(loc)
+            self.tick_inventory()
+            if not self.inv_open:                                   # 持ち物を開いている間は、E で電話・ふた・扉などが反応しない
+                self.tick_items(loc)
         elif self.state == "DEAD":
-            if self.state_t > RESTART_AFTER:
-                self.state = "RESTART"
-                log("最初に戻ります（RestartLevel）")
-                unreal.SystemLibrary.execute_console_command(self.world, "RestartLevel")
+            self.tick_dead(dt)
+        elif self.state == "BREAK":
+            self.tick_break_door(dt)
 
     # ---- 買った電話ボックス用：Eキーで入る ----
     def door_point(self):
@@ -1211,6 +1269,14 @@ class Game:
     def phone_call(self, num):
         log("電話をかけました: %s（10円 %d枚）" % (num, self.coins))
         free = {"110", "119"}
+        if num == BREAK_CODE:                                             # エンディング③：いつでも・お金はいらない。プロテインを飲んでいれば、ドアぶっ壊し
+            if self.protein_drunk:
+                self.end_phone()
+                self.begin_break_door()
+            else:
+                screen(self.world, "……つながらない（力が足りない気がする）", (180, 180, 180), 4.0)
+                log("%s：プロテインをまだ飲んでいないので、つながらない" % BREAK_CODE)
+            return
         msgs = {"117": ("ポーン…「7月14日 午前0時を お知らせします」", (200, 230, 255)),
                 "177": ("「神狩村は…赤い雨です」", (255, 160, 160)),
                 "104": ("「お調べします…外の木に 光った順に」", (200, 230, 255))}
@@ -1707,9 +1773,29 @@ class Game:
         eye_z = getattr(self, "eye_z", None)
         return unreal.Vector(self.cx + nx * (self.half_n - 8.0), self.cy + ny * (self.half_n - 8.0), eye_z if eye_z is not None else getattr(self, "cz", 200.0))
 
+    def relocate_outside(self, reset_door=True):
+        """外へ出す共通処理（エンディング①③）：演出を止め、光を戻し、プレイヤーを入口の外へ移して外向きにする"""
+        self.steps, self.step_i, self.pending = [], 0, []            # 演出はぜんぶ止める
+        self.hide_all()
+        self.set_lights(1.0)
+        self.set_flash_scale(FLASH_OUTSIDE)
+        if reset_door and self.hinge is not None:
+            self.door_yaw = DOOR_OPEN_YAW
+            self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        loc = self.pawn.get_actor_location()
+        self.pawn.set_actor_location(unreal.Vector(self.cx + nx * (self.half_n + 110.0), self.cy + ny * (self.half_n + 110.0), loc.z), False, False)
+        try:
+            self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(ny, nx))))       # 外むき（ボックスに背を向ける）
+        except Exception as e:  # noqa
+            log("  (向きを変えられません) %s" % e)
+
     def begin_exit(self):
         self.state, self.state_t = "EXIT", 0.0
         self.exit_stage = 0
+        self.ending = "escape"
+        self.inv_open = False
         self.lock_input(True)
         self.play("latch")
         self.play("door_open")
@@ -1720,30 +1806,150 @@ class Game:
         t = self.state_t
         if self.exit_stage == 0 and t >= ENTER_FADE_OUT + 0.3:            # 真っ暗になってから、外へ移す
             self.exit_stage = 1
-            self.steps, self.step_i, self.pending = [], 0, []            # 演出はぜんぶ止める
-            self.hide_all()
-            self.set_lights(1.0)
-            self.set_flash_scale(FLASH_OUTSIDE)
-            if self.hinge is not None:
-                self.door_yaw = DOOR_OPEN_YAW
-                self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
-            th = math.radians(self.front_yaw)
-            nx, ny = -math.sin(th), math.cos(th)
-            loc = self.pawn.get_actor_location()
-            self.pawn.set_actor_location(unreal.Vector(self.cx + nx * (self.half_n + 110.0), self.cy + ny * (self.half_n + 110.0), loc.z), False, False)
-            try:
-                self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(ny, nx))))       # 外むき（ボックスに背を向ける）
-            except Exception as e:  # noqa
-                log("  (向きを変えられません) %s" % e)
+            self.relocate_outside()
         elif self.exit_stage == 1 and t >= ENTER_FADE_OUT + 1.2:
             self.exit_stage = 2
             self.blackout(0.0)
             self.fade(False, ENTER_FADE_IN)
             self.lock_input(False)
             screen(self.world, "外に出られた……（エンディング①：脱出）", (200, 255, 200), 10.0)
-            log("脱出エンド①")
+            log("脱出エンド①（ending=%s）" % self.ending)
         elif self.exit_stage == 2 and t >= ENTER_FADE_OUT + 1.2 + ENTER_FADE_IN:
             self.state, self.state_t = "ESCAPED", 0.0
+
+    # ---- エンディング③：プロテイン＋2929 でドアをぶっ壊す ----
+    def flash_color(self, color, alpha, dur):
+        """画面を一瞬、色でおおって（alpha）、dur 秒でもとに戻す"""
+        try:
+            self.pc.player_camera_manager.start_camera_fade(alpha, 0.0, dur, unreal.LinearColor(color[0], color[1], color[2], 1.0), False, False)
+        except Exception as e:  # noqa
+            log("  (画面をピカッとできません) %s" % e)
+
+    def begin_break_door(self):
+        self.state, self.state_t = "BREAK", 0.0
+        self.break_stage = 0
+        self.ending = "break"
+        self.inv_open = False
+        self.steps, self.step_i, self.pending = [], 0, []            # 演出はぜんぶ止める（点滅の途中でも、明るく戻す）
+        self.set_lights(1.0)
+        self.blackout(0.0)
+        self.lock_input(True)
+        self.fade(True, 0.25)
+        self.door_p0 = self.hinge.get_actor_location() if self.hinge is not None else None
+        self.door_r0 = self.hinge.get_actor_rotation() if self.hinge is not None else None
+        log("エンディング③：ドアぶっ壊し（プロテイン＋%s）" % BREAK_CODE)
+
+    def tick_break_door(self, dt):
+        t = self.state_t
+        t_card, t_blast = 0.3, 0.3 + BREAK_CARD_TIME
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        if self.break_stage == 0:
+            if t >= t_card and int(t * 10) != getattr(self, "_brk_k", -1):          # ムキッ！のカットイン：文字を段階的に大きく（print_string は大きさを変えられないので、飾りと文字数でズーム）
+                self._brk_k = int(t * 10)
+                k = min(1.0, (t - t_card) / BREAK_CARD_TIME)
+                txt = ("ム" if k < 0.25 else "ムキ" if k < 0.5 else "ムキッ！") if k < 0.7 else "＼＼　ムキッ！！　／／"
+                pad = "\n" * 3
+                screen(self.world, pad + "★ " + txt + " ★" + pad, (255, 215, 60), 0.3, "KD_MUSCLE")
+            if t >= t_blast:
+                self.break_stage = 1
+                self.t_fly0 = t
+                self.blackout(0.0)
+                self.flash_color((1.0, 1.0, 1.0), 1.0, 0.6)             # 白くピカッ → ドアが吹っ飛ぶ
+                self.play("safe_clunk")
+                self.play("door_open")
+                try:
+                    self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(ny, nx))))       # 扉のほうを向く
+                except Exception as e:  # noqa
+                    log("  (扉のほうを向けません) %s" % e)
+                self.shake_base = self.pc.get_control_rotation()
+                screen(self.world, "ドガァン！！", (255, 240, 160), 2.0)
+                log("ドアが吹っ飛びます（ドアの部品=%s）" % ("あり" if self.hinge is not None else "なし：白い光だけ"))
+        elif self.break_stage == 1:
+            k = min(1.0, (t - self.t_fly0) / max(0.1, BREAK_FLY_TIME))
+            if self.hinge is not None and self.door_p0 is not None:        # 物理を使わず、位置と回転を補間：外向きに飛びながらくるくる回る
+                d = BREAK_FLY_DIST * k
+                lift = 120.0 * math.sin(math.pi * k)
+                self.hinge.set_actor_location(unreal.Vector(self.door_p0.x + nx * d, self.door_p0.y + ny * d, self.door_p0.z + lift), False, False)
+                self.hinge.set_actor_rotation(unreal.Rotator(self.door_r0.roll + 540.0 * k, self.door_r0.pitch + 360.0 * k, self.door_r0.yaw + 720.0 * k), False)
+                self.door_broken = True
+            if BREAK_SHAKE > 0 and k < 0.7:                               # 画面のゆれ（見る向きに小さなランダムを足す）
+                try:
+                    b = self.shake_base
+                    a = BREAK_SHAKE * (1.0 - k)
+                    self.pc.set_control_rotation(unreal.Rotator(0, b.pitch + random.uniform(-a, a), b.yaw + random.uniform(-a, a)))
+                except Exception:  # noqa
+                    pass
+            if k >= 1.0:
+                self.break_stage = 2
+                self.t_fly1 = t
+                try:
+                    b = self.shake_base
+                    self.pc.set_control_rotation(unreal.Rotator(0, b.pitch, b.yaw))
+                except Exception:  # noqa
+                    pass
+        elif self.break_stage == 2 and t >= self.t_fly1 + 0.5:
+            self.break_stage = 3
+            self.fade(True, 0.5)
+        elif self.break_stage == 3 and t >= self.t_fly1 + 1.1:
+            self.break_stage = 4
+            self.relocate_outside(reset_door=False)                       # ①と同じ：外へ移す（ドアは飛んでいったまま）
+            self.blackout(0.0)
+            self.fade(False, ENTER_FADE_IN)
+            self.lock_input(False)
+            screen(self.world, "エンディング③：ドアぶっ壊し", (255, 230, 120), 10.0)
+            screen(self.world, "幽霊より筋肉が強かった", (255, 255, 255), 10.0, "KD_END3_SUB")
+            log("ドアぶっ壊しエンド③（ending=%s）" % self.ending)
+        elif self.break_stage == 4 and t >= self.t_fly1 + 1.1 + ENTER_FADE_IN:
+            self.state, self.state_t = "ESCAPED", 0.0
+
+    # ---- 持ち物（I キー）：一覧／プロテインを飲む／財布（ジムの会員証）を見る ----
+    def inv_lines(self):
+        pr = "なし" if not self.has_protein else ("飲んだ（空）" if self.protein_drunk else "あり")
+        return ["持ち物", "　10円: %d枚" % self.coins,
+                "　鍵: %s" % ("、".join([n for n, ok in (("小さな鍵", self.has_key and not self.hatch_open), ("扉の鍵", self.has_door_key)) if ok]) or "なし"),
+                "　赤い封筒: %s" % ("開けた" if self.envelope_open else "あり" if self.has_envelope else "なし"),
+                "　プロテイン: %s" % pr, "　財布（ジムの会員カード入り）"]
+
+    def tick_inventory(self):
+        """TRAPPED の間だけ呼ぶ。開いている間は、他の E の操作（tick_items）は止める"""
+        try:
+            if self.pc.was_input_key_just_pressed(self._key(INV_KEY)):
+                self.inv_open = not self.inv_open
+                self.play("safe_click")
+                if not self.inv_open:
+                    screen(self.world, "", (255, 255, 255), 0.01, "KD_INV")
+            if not self.inv_open:
+                return
+            if self.pc.was_input_key_just_pressed(self._key(INV_DRINK_KEY)):
+                self.drink_protein()
+            elif self.pc.was_input_key_just_pressed(self._key(INV_WALLET_KEY)):
+                self.inv_open = False
+                screen(self.world, "", (255, 255, 255), 0.01, "KD_INV")
+                self.begin_read("M_KDReadGym", 1.585)                     # 会員証を目の前に出す。[E] で閉じる
+                log("財布を見ました（ジムの会員証）")
+                return
+        except Exception as e:  # noqa
+            if not getattr(self, "_inv_err", False):
+                self._inv_err = True
+                log("  (持ち物のキーを読めません) %s" % e)
+            return
+        if int(self.t * 4) != getattr(self, "_inv_k", -1):
+            self._inv_k = int(self.t * 4)
+            can = self.has_protein and not self.protein_drunk
+            txt = "\n".join(self.inv_lines()) + "\n[%s] プロテインを飲む%s   [%s] 財布を見る   [%s] とじる" % (
+                INV_DRINK_KEY, "" if can else "（もう飲めない）", INV_WALLET_KEY, INV_KEY)
+            screen(self.world, txt, (255, 240, 200), 0.4, "KD_INV")
+
+    def drink_protein(self):
+        if not self.has_protein or self.protein_drunk:
+            screen(self.world, "もうプロテインはない", (200, 200, 200), 2.0)
+            return
+        self.protein_drunk = True
+        self.play("latch")
+        self.flash_color((1.0, 0.95, 0.4), 0.85, 0.3)
+        screen(self.world, "プロテインを飲んだ。力がみなぎる……（ギラッ）", (255, 230, 90), 5.0)
+        log("プロテインを飲んだ（%s で電話すると…）" % BREAK_CODE)
 
     def safe_enter(self):
         if self.dial_dir is None:
@@ -2068,14 +2274,17 @@ class Game:
         except Exception as e:  # noqa
             log("  (Eキーを読めません) %s" % e)
 
-    def begin_read(self, mat_name="M_KDRead", aspect=1.0):
-        """新聞・本を目の前に出す。歩く・見回すを止めて、Eでとじる"""
-        self.read_return = self.state
-        self.after_read = getattr(self, "after_read", None) if mat_name != "M_KDRead" else None
+    def show_picture(self, mat_name, size, aspect):
+        """絵（材質）を、目の前（READ_DIST）に出す。新聞・本・メモ・会員証・行方不明の新聞で共通。状態は変えない"""
+        if self.read_plane is None:
+            log("  (KD_ReadPlane が無いので絵を出せません) %s" % mat_name)
+            return
         try:
             m = unreal.EditorAssetLibrary.load_asset("/Game/KoushuDenwa/Materials/" + mat_name)
             if m is not None:
                 self.read_plane.get_component_by_class(unreal.StaticMeshComponent).set_material(0, m)
+            else:
+                log("  (材質 %s がありません。setup_game_fp.py を実行し直してください)" % mat_name)
         except Exception as e:  # noqa
             log("  (読む絵を入れ替えられません) %s" % e)
         eye, rot = self.eye_info()
@@ -2088,8 +2297,14 @@ class Game:
         loc = unreal.Vector(eye.x + math.cos(th) * READ_DIST, eye.y + math.sin(th) * READ_DIST, eye.z)
         self.read_plane.set_actor_location(loc, False, False)
         self.read_plane.set_actor_rotation(unreal.Rotator(0, 0, yaw + 90.0), False)
-        self.read_plane.set_actor_scale3d(unreal.Vector(READ_SIZE * aspect / 50.0, 1.0, READ_SIZE / 70.0))
+        self.read_plane.set_actor_scale3d(unreal.Vector(size * aspect / 50.0, 1.0, size / 70.0))
         self.read_plane.set_actor_hidden_in_game(False)
+
+    def begin_read(self, mat_name="M_KDRead", aspect=1.0):
+        """新聞・本を目の前に出す。歩く・見回すを止めて、Eでとじる"""
+        self.read_return = self.state
+        self.after_read = getattr(self, "after_read", None) if mat_name != "M_KDRead" else None
+        self.show_picture(mat_name, READ_SIZE, aspect)
         for fn in ("set_ignore_move_input", "set_ignore_look_input"):
             try:
                 getattr(self.pc, fn)(True)

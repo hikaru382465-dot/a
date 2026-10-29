@@ -1353,7 +1353,7 @@ def s_code_posters():
 
 
 # ---------------- 掲示板（外）と、手に取って読める新聞 ----------------
-BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "book_news", "memo_hatch", "wood_color", "wood_normal", "wood_rough"]
+BOARD_FILES = ["board_egetsunai", "board_camera", "paper_kamigari", "book_news", "memo_hatch", "missing_news", "gym_card", "wood_color", "wood_normal", "wood_rough"]
 
 
 def s_board_textures():
@@ -1523,6 +1523,14 @@ def s_board_materials():
     mel.recompile_material(rmm)
     unreal.EditorAssetLibrary.save_loaded_asset(rmm)
     STATE["M_KDReadMemo"] = rmm
+    for rn_, tx_ in (("M_KDReadMissing", "missing_news"), ("M_KDReadGym", "gym_card")):      # エンディング②の行方不明の新聞／エンディング③のヒント（ジムの会員証）。本の新聞と同じ作り
+        rx = new_material(rn_)
+        setp(rx, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+        tx2 = tex_param(rx, "Tex", ld(T + tx_), -800, 0)
+        mel.connect_material_property(mulx(rx, tx2, scalar_param(rx, "Brightness", 0.9, -800, -150), 0), "", MP.MP_EMISSIVE_COLOR)
+        mel.recompile_material(rx)
+        unreal.EditorAssetLibrary.save_loaded_asset(rx)
+        STATE[rn_] = rx
     cm = new_material("M_KDCoin")                                                  # 10円玉：銅色の金属
     cc = xx(cm, unreal.MaterialExpressionConstant3Vector, -600, 0)
     cc.set_editor_property("constant", unreal.LinearColor(0.62, 0.30, 0.14, 1.0))
