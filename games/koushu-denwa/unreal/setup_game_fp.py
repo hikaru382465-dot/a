@@ -43,8 +43,21 @@ GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面�
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
 GLASS_GLOW = 6.0                     # ガラスの文字の光り方（大きいほど、暗い中で白く光る）
 GLASS_SCALE = 1.3                    # ガラスの文字の大きさ（1.0 = 横50×縦70cm の板。1.3 で 65×91cm。大きいほどガラスいっぱいに出る）
-CODE_SCALE = 0.8                     # 謎7：貼られる4枚の紙（ガラスの文字）と光る数字の大きさ（GLASS_SCALE にかける倍率）
-CODE_GLOW_LIFT = 1.0                 # 謎7：光る数字を、ガラスの文字から内側へ何cm 離すか（重なってチラつくなら大きく）
+CODE_SCALE = 0.8                     # 謎7：貼られる4枚の紙（ガラスの文字）の大きさ（GLASS_SCALE にかける倍率）
+CODE_TREE_SIZE = 110.0               # 謎7：外の木に光る数字の板の高さ（cm）。数字そのものは板の高さの約6割。小さくて読めないなら大きく
+CODE_TREE_Z = 170.0                  # 謎7：光る数字の中心の高さ（木の根もと＝地面から cm）。目の高さくらい
+CODE_TREE_MIN = 450.0                # 謎7：数字を光らせる木を、ボックスの中心から何cm 以上はなれた所から選ぶか
+CODE_TREE_MAX = 800.0                # 同じく、何cm 以内か（遠いと小さくて読めない）
+CODE_TREE_ANGLE = 40.0               # 同じく、入口の向きから左右に何度までの木を選ぶか（ガラスごしに4本いっぺんに見える範囲）
+CODE_TREE_PICK = "auto"              # "auto": 森の木から自動で4本選ぶ（足りなければ、黒い枯れ木の柱を足す）／"spawn": いつも専用の柱を4本立てる
+CODE_TREE_ORDER = [1, 3, 0, 2]       # 左→右に並べた4本のうち、光る順番（0=いちばん左）。[1,3,0,2] = 左から2番目→右はし→左はし→右から2番目。左から右にならない順番
+CODE_TREE_TRUNK_R = 25.0             # 木の幹の半径の見つもり（cm）。数字を、幹の表面からさらに3cm 手前に貼る。幹にめり込む／浮くなら変える
+CODE_TREE_GLOW = 3.0                 # 謎7：外の木の数字の光り方（GLASS_GLOW にかける倍率）。まぶしすぎ・暗すぎなら変える
+GLASS_SPREAD = True                  # True: ガラスの文字を、ガラスぜんたい（4面・上から下まで）に散りばめる。False: 昔の12か所だけ
+GLASS_COUNT = 24                     # ガラスの文字の枚数（GLASS_SPREAD=True のとき。12より多く・36以下。4面に同じ数ずつ）
+GLASS_SIZE_MIN = 0.8                 # 散りばめる文字の大きさのばらつき（GLASS_SCALE にかける倍率の下限と上限）
+GLASS_SIZE_MAX = 1.5
+GLASS_TILT = 7.0                     # 散りばめる文字の傾き（度。±）
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
@@ -78,8 +91,21 @@ SETTINGS_DESCR = {
     "TUBE_SCALE": "蛍光灯の光の強さの倍率。明るすぎたら小さく",
     "TUBE_GLOW": "蛍光灯の「光る見た目」の倍率",
     "FLICKER_BLACK": "点滅の「消えた」瞬間に画面を黒くする割合（0〜1）。点滅が暗くならないなら大きく",
-    "CODE_SCALE": "謎7：貼られる4枚の紙と光る数字の大きさ（ガラスの文字の大きさにかける倍率）",
-    "CODE_GLOW_LIFT": "謎7：光る数字を、ガラスの文字から内側へ何cm 離すか",
+    "CODE_SCALE": "謎7：貼られる4枚の紙（ガラスの文字）の大きさ（ガラスの文字の大きさにかける倍率）",
+    "CODE_TREE_SIZE": "謎7：外の木に光る数字の板の高さ（cm）。数字は板の約6割",
+    "CODE_TREE_Z": "謎7：光る数字の中心の高さ（地面から cm）",
+    "CODE_TREE_MIN": "謎7：数字を光らせる木の、ボックス中心からの最小の距離（cm）",
+    "CODE_TREE_MAX": "謎7：同じく最大の距離（cm）",
+    "CODE_TREE_ANGLE": "謎7：木を選ぶ範囲。入口の向きから左右に何度まで",
+    "CODE_TREE_PICK": "謎7：auto=森の木から自動で4本選ぶ（足りなければ柱を足す）／spawn=いつも専用の柱を4本立てる",
+    "CODE_TREE_ORDER": "謎7：左→右に並べた4本の光る順番（0=いちばん左）。[1,3,0,2] は左右の順にならない",
+    "CODE_TREE_TRUNK_R": "謎7：木の幹の半径の見つもり（cm）。数字は、幹の表面からさらに3cm 手前に貼る",
+    "CODE_TREE_GLOW": "謎7：外の木の数字の光り方（ガラスの文字の光り方にかける倍率）",
+    "GLASS_SPREAD": "true: ガラスの文字を、ガラスぜんたいに散りばめる。false: 昔の12か所だけ",
+    "GLASS_COUNT": "ガラスの文字の枚数（散りばめるとき。12〜36）",
+    "GLASS_SIZE_MIN": "散りばめる文字の大きさの倍率の下限（ガラスの文字の大きさにかける）",
+    "GLASS_SIZE_MAX": "散りばめる文字の大きさの倍率の上限",
+    "GLASS_TILT": "散りばめる文字の傾き（度。±）",
     "DARK_BLACK": "暗転のあいだに画面を黒くする割合（0〜1）",
     "DARK_WORLD": "暗転のとき、月と空の光を何倍まで下げるか",
     "GLASS_DIRT": "ガラスのくもりの強さ（M_KDGlass を使うとき）",
@@ -205,7 +231,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_GLOW_LIFT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_TREE_SIZE", "CODE_TREE_Z", "CODE_TREE_MIN", "CODE_TREE_MAX", "CODE_TREE_ANGLE", "CODE_TREE_PICK", "CODE_TREE_ORDER", "CODE_TREE_TRUNK_R", "CODE_TREE_GLOW", "GLASS_SPREAD", "GLASS_COUNT", "GLASS_SIZE_MIN", "GLASS_SIZE_MAX", "GLASS_TILT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -462,6 +488,19 @@ def mulx(m, a, b, y=0):
     return e
 
 
+def glass_glow_material(m, t, glow, fog=True):
+    """ガラスの文字の材質：両面・透明な背景・文字だけが光る（明るさ glow）。fog=False は、霧にうすめられないようにする（遠くの光る数字用）"""
+    setp(m, "two_sided", True)
+    setp(m, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    setp(m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    if not fog:
+        setp(m, "apply_fogging", False)
+    mel.connect_material_property(mulx(m, t, cst(m, glow, 100), 0), "", MP.MP_EMISSIVE_COLOR)
+    mel.connect_material_property(t, "A", MP.MP_OPACITY)
+    mel.recompile_material(m)
+    unreal.EditorAssetLibrary.save_loaded_asset(m)
+
+
 def s_poster_materials():
     mats = {}
     for f in STATE["poster_files"]:
@@ -472,13 +511,15 @@ def s_poster_materials():
         t = xx(m, unreal.MaterialExpressionTextureSample, -800, 0)
         t.set_editor_property("texture", tex)
         if base.startswith("glass_"):                       # ガラスの文字：紙なし。背景は透明、文字だけがうっすら光る
-            setp(m, "blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
-            setp(m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
-            mel.connect_material_property(mulx(m, t, cst(m, GLASS_GLOW, 100), 0), "", MP.MP_EMISSIVE_COLOR)
-            mel.connect_material_property(t, "A", MP.MP_OPACITY)
-            mel.recompile_material(m)
-            unreal.EditorAssetLibrary.save_loaded_asset(m)
+            glass_glow_material(m, t, GLASS_GLOW)
             mats[base] = m
+            if base.startswith("glass_glow_"):               # 外の木に光る数字用：もっと強く光る別の材質（M_CodeGlowTree0〜9）
+                dg = base.split("_")[-1]
+                mt = new_material("M_CodeGlowTree%s" % dg)
+                tt = xx(mt, unreal.MaterialExpressionTextureSample, -800, 0)
+                tt.set_editor_property("texture", tex)
+                glass_glow_material(mt, tt, GLASS_GLOW * CODE_TREE_GLOW, fog=False)
+                mats["tree_glow_%s" % dg] = mt
             continue
         mel.connect_material_property(mulx(m, t, cst(m, 0.8, -100), 0), "", MP.MP_BASE_COLOR)
         mel.connect_material_property(mulx(m, t, cst(m, POSTER_GLOW, 100), 150), "", MP.MP_EMISSIVE_COLOR)
@@ -488,15 +529,6 @@ def s_poster_materials():
         mats[base] = m
     STATE["poster_mats"] = mats
     log("張り紙の材質を作りました: %d" % len(mats))
-
-
-# 壁ごとの貼る位置：(壁, 壁にそった位置, 高さ, 大きさ)。R=右(+X) L=左(-X) B=奥(-Y・電話機の壁) F=手前(+Y・ドアの壁)
-SLOTS = [("R", -40, 125, 1.0), ("R", 5, 160, 1.0), ("R", 45, 115, 1.0), ("R", -5, 195, 1.0),
-         ("L", -45, 150, 1.0), ("L", 42, 160, 1.0), ("L", -5, 195, 1.0),
-         ("F", -45, 130, 1.0), ("F", 40, 155, 1.0), ("F", 0, 195, 1.0),
-         ("B", -46, 120, 1.0), ("B", 46, 150, 1.0)]
-HINT_SLOT = ("B", 0, 185, 0.5)       # 電話機の真上（ガラスの文字としては小さめ）
-EYE_SLOT = ("L", 0, 140, 1.6)         # 左の壁の真ん中に、少し大きく
 
 
 def ghost_textures():
@@ -1031,17 +1063,24 @@ def glass_halves():
     return STATE[key]
 
 
-def wall_pose_rel(wall, u, z):
-    """壁の名前から、世界座標と、張り紙の面が内側を向く yaw を返す。張り紙の板は yaw=0 で +Y 向き"""
-    g = STATE["geo"]
+def wall_half(wall):
+    """壁にそった位置 u の、ガラスの内がわの半分の長さ(cm)。B/F は 横(t)方向、R/L は 入口方向(n)"""
     half_n, half_t = front_half()
-    n = g["n"]
-    zmin = g["zmin"]
     gh = glass_halves()
-    if gh:                                                                  # ガラスの面にぴったり貼る（浮かない）
+    if gh:
         wn, wt = gh[0] - GLASS_GAP, gh[1] - GLASS_GAP
     else:
         wn, wt = half_n - WALL_INSET, half_t - WALL_INSET
+    return wt if wall in ("B", "F") else wn
+
+
+def wall_pose_rel(wall, u, z, extra=0.0):
+    """壁の名前から、世界座標と、張り紙の面が内側を向く yaw を返す。張り紙の板は yaw=0 で +Y 向き。extra: さらに内側へ何cm 寄せるか（重なる板どうしのチラつき防止）"""
+    g = STATE["geo"]
+    n = g["n"]
+    zmin = g["zmin"]
+    wn = wall_half("R")                                # 入口方向(n)のガラスの半分
+    wt = wall_half("B")                                # 横(t)方向のガラスの半分
     if wall == "B":
         d, s, inward = -wn, u, (n[0], n[1])            # 奥の壁：面は入口側（+n）を向く
     elif wall == "F":
@@ -1059,7 +1098,49 @@ def wall_pose_rel(wall, u, z):
         pos = world(u, s, zmin + z)
     else:
         pos = world(d, s, zmin + z)
+    if extra:
+        pos = (pos[0] + inward[0] * extra, pos[1] + inward[1] * extra, pos[2])
     return pos, yaw
+
+
+# 散りばめるとき、よける場所：(壁, 壁の中心から ±何cm 以内, 高さの下, 高さの上)。電話機とヒントの文字（奥）・目の写真（左）を隠さないため
+GLASS_KEEPOUT = [("B", 32.0, 80.0, 230.0), ("L", 30.0, 100.0, 185.0)]
+GLASS_Z_MIN, GLASS_Z_MAX = 45.0, 245.0      # ガラスの文字の中心の高さ（床から cm）の範囲。下の方から上の方まで
+GLASS_WALLS = ["R", "L", "F", "B"]
+
+
+def glass_slot_plan(count, seed=714):
+    """ガラスの文字の場所の一覧 [(壁, u, z, 大きさ, 傾き度)]。4面に同じ数ずつ、格子（1行ごとに半分ずらす）＋ゆらぎ。
+    先頭から順に取ると、どの途中までを取っても 4面にまんべんなく散る（面を順ぐりに並べる）。同じ seed なら、いつも同じ"""
+    rng = random.Random(seed)
+    per = max(1, int(round(count / 4.0)))
+    cols = 2 if per <= 6 else 3
+    rows = int(math.ceil(per / float(cols)))
+    faces = {}
+    for wall in GLASS_WALLS:
+        half = wall_half(wall)
+        cells = [(r, c) for r in range(rows) for c in range(cols)]
+        rng.shuffle(cells)                                     # 余る分は、ランダムな区画を外す
+        out = []
+        for r, c in sorted(cells[:per]):
+            shift = (0.25 if r % 2 else -0.25) if cols > 1 else 0.0
+            fu = (c + 0.5 + shift) / cols + rng.uniform(-0.12, 0.12) / cols
+            fu = min(0.97, max(0.03, fu))
+            u = (fu * 2 - 1) * half * 0.92
+            fz = (r + 0.5 + rng.uniform(-0.3, 0.3)) / rows
+            z = GLASS_Z_MIN + (GLASS_Z_MAX - GLASS_Z_MIN) * min(1.0, max(0.0, fz))
+            for kw, ku, zlo, zhi in GLASS_KEEPOUT:
+                if kw == wall and abs(u) < ku and zlo <= z <= zhi:
+                    u = (1.0 if u >= 0 else -1.0) * max(abs(u), half * 0.72)
+            out.append((wall, u, z, rng.uniform(GLASS_SIZE_MIN, GLASS_SIZE_MAX), rng.uniform(-GLASS_TILT, GLASS_TILT)))
+        rng.shuffle(out)
+        faces[wall] = out
+    plan = []
+    for i in range(per):                                       # 面を順ぐりに：R, L, F, B, R, L, F, B...
+        for wall in GLASS_WALLS:
+            if i < len(faces[wall]):
+                plan.append(faces[wall][i])
+    return plan[:max(1, min(36, count))]
 
 
 def s_posters():
@@ -1067,18 +1148,29 @@ def s_posters():
     mats = STATE["poster_mats"]
     rng = random.Random(714)
     normal = ["glass_%02d" % i for i in range(1, 13)]
-    rng.shuffle(normal)
-    plan = [("Poster_%02d" % (i + 1), normal[i], SLOTS[i]) for i in range(len(SLOTS))]
-    plan.append(("Poster_Hint", "glass_hint", HINT_SLOT))
+    if GLASS_SPREAD:
+        cnt = max(1, min(36, int(GLASS_COUNT)))
+        order = []                                             # 12種類を順ぐりに使い回す（毎周シャッフル）
+        while len(order) < cnt:
+            lap = list(normal)
+            rng.shuffle(lap)
+            order += lap
+        slots = [(w, u, z, sc, tilt, (i % 24) * 0.05) for i, (w, u, z, sc, tilt) in enumerate(glass_slot_plan(cnt))]
+        plan = [("Poster_%02d" % (i + 1), order[i], slots[i]) for i in range(len(slots))]
+    else:
+        rng.shuffle(normal)
+        plan = [("Poster_%02d" % (i + 1), normal[i], SLOTS[i][:3] + (SLOTS[i][3], 0.0, 0.0)) for i in range(len(SLOTS))]
+    plan.append(("Poster_Hint", "glass_hint", HINT_SLOT + (0.0, 0.0)))
     if "poster_eye" in mats:
-        plan.append(("Poster_Eye", "poster_eye", EYE_SLOT))
+        plan.append(("Poster_Eye", "poster_eye", EYE_SLOT + (0.0, 0.0)))
     n = 0
-    for label, key, (wall, u, z, sc) in plan:
+    for label, key, (wall, u, z, sc, tilt, extra) in plan:
         if key not in mats:
             log("  (画像なし) %s" % key)
             continue
-        loc, yaw = wall_pose_rel(wall, u, z)
-        a = spawn(unreal.StaticMeshActor, loc, (0, 0, yaw + rng.uniform(-4, 4)))
+        loc, yaw = wall_pose_rel(wall, u, z, extra)
+        # 板は +Y 向きの縦板：pitch が板の面の中でのかたむき（紙を斜めに貼った感じ）、yaw は壁に合わせて少しゆらす
+        a = spawn(unreal.StaticMeshActor, loc, (0, tilt, yaw + rng.uniform(-4, 4)))
         c = a.get_component_by_class(unreal.StaticMeshComponent)
         c.set_static_mesh(mesh)
         c.set_material(0, mats[key])
@@ -1088,26 +1180,122 @@ def s_posters():
         tag_actor(a, label)
         a.set_actor_hidden_in_game(True)
         n += 1
-    log("張り紙を貼りました: %d 枚（最初は見えません）" % n)
+    log("張り紙を貼りました: %d 枚（最初は見えません）%s" % (n, "。ガラスぜんたいに散りばめました" if GLASS_SPREAD else ""))
 
 
-# 謎7：暗い間だけ光る数字。貼られる順に 右の奥→左の手前→ドア→右の手前（形式は SLOTS と同じ）。奥の壁（電話機とヒント）は避ける
+# 謎7：4枚の「貼られる紙」（ガラスの文字）。貼られる順に 右の奥→左の手前→ドア→右の手前（形式は SLOTS と同じ）。奥の壁（電話機とヒント）は避ける
 CODE_SLOTS = [("R", -40, 150, 1.0), ("L", 42, 150, 1.0), ("F", 0, 150, 1.0), ("R", 45, 150, 1.0)]
 CODE_POSTER_TEX = ["glass_03", "glass_05", "glass_07", "glass_10"]      # でられない／たすけて／まってた／みぃつけた
+CODE_POSTER_EXTRA = 2.5                  # 普通の張り紙と重なっても、この4枚のほうが手前（内側へ何cm）になるようにする
+
+
+def yaw_to(dx, dy):
+    """+Y 向きの板が、方向 (dx,dy) を向くための yaw"""
+    return math.degrees(math.atan2(dy, dx)) - 90.0
+
+
+def tree_candidates():
+    """入口の前、距離 CODE_TREE_MIN〜MAX、入口の向きから ±CODE_TREE_ANGLE 度の中にある、森の木（setup_forest.py が置いた pine_* / dead_*）。
+    [(左右の位置 s, 左右の角度 deg, 距離 dist, x, y, アクター)]"""
+    g = STATE["geo"]
+    cx, cy, _ = g["center"]
+    n, t = g["n"], g["t"]
+    res = []
+    for a in eas().get_all_level_actors():
+        lab = label_of(a)
+        if not (lab.startswith("pine_") or lab.startswith("dead_")):
+            continue
+        try:
+            if TAG in [str(x) for x in a.get_editor_property("tags")]:
+                continue
+            p = a.get_actor_location()
+        except Exception:  # noqa
+            continue
+        dx, dy = p.x - cx, p.y - cy
+        d_n = dx * n[0] + dy * n[1]
+        d_t = dx * t[0] + dy * t[1]
+        dist = math.hypot(dx, dy)
+        if d_n <= 0 or not (CODE_TREE_MIN <= dist <= CODE_TREE_MAX):
+            continue
+        ang = math.degrees(math.atan2(d_t, d_n))
+        if abs(ang) > CODE_TREE_ANGLE:
+            continue
+        res.append((d_t, ang, dist, p.x, p.y, a))
+    return res
+
+
+def pick_code_trees(cands, n=4):
+    """候補から、左右にばらけた n 本を選ぶ。角度の範囲を n 等分した中心（目標）に近い木を1本ずつ（距離は中間に近いほうを優先）。
+    目標の近く（等分の幅の半分＋3度）に木がなければ None（専用の柱を足す）。戻り値：(左→右の長さ n のリスト, 目標の角度のリスト)"""
+    lo = CODE_TREE_ANGLE
+    targets = [-lo + (i + 0.5) * (2.0 * lo / n) for i in range(n)]
+    tol = lo / n + 3.0
+    mid = 0.5 * (CODE_TREE_MIN + CODE_TREE_MAX)
+    used = set()
+    out = []
+    for tg in targets:
+        best, bi = None, None
+        for i, c in enumerate(cands):
+            if i in used or abs(c[1] - tg) > tol:
+                continue
+            score = abs(c[1] - tg) + abs(c[2] - mid) / 100.0
+            if best is None or score < best:
+                best, bi = score, i
+        if bi is None:
+            out.append(None)
+        else:
+            used.add(bi)
+            out.append(cands[bi])
+    return out, targets
+
+
+def code_tree_spots():
+    """4本の置き場所を、左→右の順で返す：[(x, y, 木の actor か None, 目標の角度)]。木がなければ、目標の角度・中間あたりの距離に専用の柱"""
+    g = STATE["geo"]
+    cx, cy, _ = g["center"]
+    n, t = g["n"], g["t"]
+    cands = tree_candidates() if CODE_TREE_PICK != "spawn" else []
+    picked, targets = pick_code_trees(cands)
+    rng = random.Random(7140)
+    span = CODE_TREE_MAX - CODE_TREE_MIN
+    spots = []
+    for i, c in enumerate(picked):
+        if c is not None:
+            spots.append((c[3], c[4], c[5], targets[i]))
+        else:
+            ang = math.radians(targets[i])
+            dist = rng.uniform(CODE_TREE_MIN + 0.15 * span, CODE_TREE_MAX - 0.15 * span)
+            dn, dt = math.cos(ang) * dist, math.sin(ang) * dist
+            spots.append((cx + n[0] * dn + t[0] * dt, cy + n[1] * dn + t[1] * dt, None, targets[i]))
+    log("光る数字の木: 候補%d本（CODE_TREE_PICK=%s）→ 森の木 %d本・専用の柱 %d本" % (len(cands), CODE_TREE_PICK, sum(1 for s_ in spots if s_[2] is not None), sum(1 for s_ in spots if s_[2] is None)))
+    return spots
+
+
+def trunk_material():
+    """専用の柱の、暗い樹皮の材質（光らない・ざらざら）"""
+    m = new_material("M_CodeTrunk")
+    c = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 0)
+    setp(c, "constant", unreal.LinearColor(0.03, 0.022, 0.016, 1.0))
+    mel.connect_material_property(c, "", MP.MP_BASE_COLOR)
+    mel.connect_material_property(cst(m, 0.95, 240), "", MP.MP_ROUGHNESS)
+    mel.recompile_material(m)
+    unreal.EditorAssetLibrary.save_loaded_asset(m)
+    return m
 
 
 def s_code_posters():
-    """謎7の4枚：KD_CodePoster_1〜4（ガラスの文字）と、その内側の KD_CodeGlow_1〜4（数字。材質は kd_game.py が ENVELOPE_CODE から入れる）"""
+    """謎7：KD_CodePoster_1〜4（内側のガラスの文字・貼られる紙）と、外の4本の木に光る KD_CodeGlow_1〜4（数字。材質は kd_game.py が ENVELOPE_CODE から入れる）。
+    i 番目に光る数字の木は、左→右に並べた4本の CODE_TREE_ORDER[i] 番目"""
     mesh = STATE["poster_mesh"]
     mats = STATE["poster_mats"]
-    glow0 = mats.get("glass_glow_0")
+    glow0 = mats.get("tree_glow_0") or mats.get("glass_glow_0")
     n = 0
     for i, (wall, u, z, sc) in enumerate(CODE_SLOTS):
         key = CODE_POSTER_TEX[i]
-        if key not in mats or glow0 is None:
-            log("  (画像なし) %s / glass_glow_0" % key)
+        if key not in mats:
+            log("  (画像なし) %s" % key)
             continue
-        loc, yaw = wall_pose_rel(wall, u, z)
+        loc, yaw = wall_pose_rel(wall, u, z, CODE_POSTER_EXTRA)
         k = CODE_SCALE * sc * GLASS_SCALE
         a = spawn(unreal.StaticMeshActor, loc, (0, 0, yaw))
         c = a.get_component_by_class(unreal.StaticMeshComponent)
@@ -1117,19 +1305,51 @@ def s_code_posters():
         a.set_actor_scale3d(unreal.Vector(k, k, k))
         tag_actor(a, "KD_CodePoster_%d" % (i + 1))
         a.set_actor_hidden_in_game(True)
-        th = math.radians(yaw + 90.0)                                   # 板の面が向く（内側の）向き
-        gloc = (loc[0] + math.cos(th) * CODE_GLOW_LIFT, loc[1] + math.sin(th) * CODE_GLOW_LIFT, loc[2])
-        g = spawn(unreal.StaticMeshActor, gloc, (0, 0, yaw))
-        gc = g.get_component_by_class(unreal.StaticMeshComponent)
-        gc.set_static_mesh(mesh)
-        gc.set_material(0, glow0)
-        setp(gc, "mobility", unreal.ComponentMobility.MOVABLE)
-        setp(gc, "translucency_sort_priority", 1)
-        g.set_actor_scale3d(unreal.Vector(k, k, k))
-        tag_actor(g, "KD_CodeGlow_%d" % (i + 1))
-        g.set_actor_hidden_in_game(True)
         n += 1
-    log("暗号の張り紙: %d枚" % n)
+    log("暗号の張り紙（内側の紙）: %d枚" % n)
+    if glow0 is None:
+        log("  (画像なし) glass_glow_0")
+        return
+    g = STATE["geo"]
+    cx, cy, _ = g["center"]
+    zg = g["zmin"]                                              # 地面の高さ（ボックスの足もと）
+    spots = code_tree_spots()                                   # 左→右
+    order = list(CODE_TREE_ORDER)
+    if sorted(order) != [0, 1, 2, 3]:
+        log("[注意] CODE_TREE_ORDER は 0〜3 を1回ずつ並べてください（いま %s）。[1,3,0,2] にします" % (order,))
+        order = [1, 3, 0, 2]
+    cyl = tmat = None
+    k = CODE_TREE_SIZE / 70.0                                   # 板（高さ70cm）を、高さ CODE_TREE_SIZE にする倍率
+    made = 0
+    for i in range(4):
+        tx, ty, tree, tg = spots[order[i]]
+        if tree is None:                                        # 専用の柱：直径 CODE_TREE_TRUNK_R×2・高さ350 の黒い円柱（根もとは地面）
+            if cyl is None:
+                cyl = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cylinder")
+                tmat = trunk_material()
+            tr = spawn(unreal.StaticMeshActor, (tx, ty, zg + 175.0), (0, 0, 0))
+            trc = tr.get_component_by_class(unreal.StaticMeshComponent)
+            trc.set_static_mesh(cyl)
+            trc.set_material(0, tmat)
+            tr.set_actor_scale3d(unreal.Vector(CODE_TREE_TRUNK_R * 2 / 100.0, CODE_TREE_TRUNK_R * 2 / 100.0, 3.5))
+            tag_actor(tr, "KD_CodeTrunk_%d" % (i + 1))
+        dx, dy = cx - tx, cy - ty
+        dl = math.hypot(dx, dy) or 1.0
+        ux, uy = dx / dl, dy / dl                               # 木から、ボックスの中心へ向かう向き
+        off = CODE_TREE_TRUNK_R + 3.0
+        loc = (tx + ux * off, ty + uy * off, zg + CODE_TREE_Z)
+        a = spawn(unreal.StaticMeshActor, loc, (0, 0, yaw_to(ux, uy)))
+        c = a.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(mesh)
+        c.set_material(0, glow0)
+        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+        setp(c, "cast_shadow", False)
+        a.set_actor_scale3d(unreal.Vector(k, k, k))
+        tag_actor(a, "KD_CodeGlow_%d" % (i + 1))
+        a.set_actor_hidden_in_game(True)
+        made += 1
+        log("  光る数字 %d番目 → 左から%d本目の木（距離 %.0fcm・角度 %.0f度・%s）" % (i + 1, order[i] + 1, dl, tg, "森の木" if tree is not None else "専用の柱"))
+    log("暗号の数字（外の木）: %d枚" % made)
 
 
 # ---------------- 掲示板（外）と、手に取って読める新聞 ----------------

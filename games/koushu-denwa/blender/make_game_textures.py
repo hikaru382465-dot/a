@@ -234,7 +234,7 @@ def make_glass_texts():
     print('保存', 'game/glass_hint.png', im.size, os.path.getsize(p) // 1024, 'KB')
 
 
-CODE_HINT_TEXTS = ['くらいときに\nみて', 'はられた\nじゅんに', 'もういちど\n0714']       # 謎7のヒント（電話機の上の文字が90秒ごとに変わる）
+CODE_HINT_TEXTS = ['そとの\nきを みて', 'ひかった\nじゅんに', 'もういちど\n0714']       # 謎7のヒント（電話機の上の文字が90秒ごとに変わる。数字は外の木に光る）
 
 
 def glass_glow_digit(d):
@@ -242,7 +242,14 @@ def glass_glow_digit(d):
     W, H = 512, 704
     f, _c = _glass_font(400)
     can = Image.new('L', (W, H), 0)
-    ImageDraw.Draw(can).text((W // 2, H // 2), str(d), font=f, fill=255, anchor='mm')
+    if d == 1:                                                # 「1」は「7」と見まちがえないよう、専用に描く：たて棒＋足の横棒＋短くて斜めの旗（上の横棒はなし）
+        dr = ImageDraw.Draw(can)
+        cx, top, bot, sw = W // 2, 110, 594, 66
+        dr.rectangle([cx - sw // 2, top, cx + sw // 2, bot], fill=255)                          # たて棒
+        dr.polygon([(cx - sw // 2, top + 10), (cx + sw // 2, top), (cx + sw // 2, top + 70), (cx - 130, top + 190), (cx - 160, top + 140)], fill=255)   # 短い旗（左下に斜め）
+        dr.rectangle([cx - 135, bot - 48, cx + 135, bot], fill=255)                             # 足（台）
+    else:
+        ImageDraw.Draw(can).text((W // 2, H // 2), str(d), font=f, fill=255, anchor='mm')
     bb = can.getbbox()
     target = int(H * 0.60)                                    # 高さ約60%に合わせる（フォントごとの差を吸収）
     if bb and (bb[3] - bb[1]) > 0:

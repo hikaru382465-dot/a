@@ -97,7 +97,7 @@ ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
 ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
 ENTER_FADE_IN = 1.4            # 明るくなるまでの時間（秒）
 SOUND_DIR = "/Game/KoushuDenwa/Sounds"
-MATERIAL_DIR = "/Game/KoushuDenwa/Materials"          # setup_game_fp.py が材質（M_GlassGlow0〜9・M_GlassHintC1〜3）を置く場所
+MATERIAL_DIR = "/Game/KoushuDenwa/Materials"          # setup_game_fp.py が材質（M_CodeGlowTree0〜9・M_GlassGlow0〜9・M_GlassHintC1〜3）を置く場所
 # 幽霊が出る場所（ボックス中心からの位置 cm。正面＝+Y）。段階1〜4で、だんだん近づく
 GHOST_SPOTS = [(0.0, 1300.0), (-240.0, 750.0), (270.0, 360.0), (115.0, 25.0)]
 GHOST_SUBS = ["（外に、誰か立っている……）", "（さっきより、近い）", "（ガラスに、何か貼られている）", "（すぐそこにいる）"]
@@ -579,15 +579,25 @@ class Game:
             if a is None or i >= len(code) or not isinstance(code[i], int) or not 0 <= code[i] <= 9:
                 continue
             mat = None
-            try:
-                mat = unreal.EditorAssetLibrary.load_asset("%s/M_GlassGlow%d" % (MATERIAL_DIR, code[i]))
-                a.get_component_by_class(unreal.StaticMeshComponent).set_material(0, mat)
-            except Exception as e:  # noqa
-                log("  (光る数字の材質を入れられません) KD_CodeGlow_%d: %s" % (i + 1, e))
-            if mat is None:
-                missing.append("M_GlassGlow%d" % code[i])
+            for pre in ("M_CodeGlowTree", "M_GlassGlow"):                    # 外の木用の強い光の材質。なければガラスの文字用で代用
+                try:
+                    mat = unreal.EditorAssetLibrary.load_asset("%s/%s%d" % (MATERIAL_DIR, pre, code[i]))
+                except Exception as e:  # noqa
+                    log("  (光る数字の材質を読めません) %s%d: %s" % (pre, code[i], e))
+                    mat = None
+                if mat is not None:
+                    if pre != "M_CodeGlowTree":
+                        log("[注意] M_CodeGlowTree%d がないので M_GlassGlow%d で代用します（外の木では暗いかも）。setup_game_fp.py を実行し直してください" % (code[i], code[i]))
+                    break
+            if mat is not None:
+                try:
+                    a.get_component_by_class(unreal.StaticMeshComponent).set_material(0, mat)
+                except Exception as e:  # noqa
+                    log("  (光る数字の材質を入れられません) KD_CodeGlow_%d: %s" % (i + 1, e))
+            else:
+                missing.append("M_CodeGlowTree%d" % code[i])
         if missing:
-            log("[エラー] 光る数字の材質がありません: %s。setup_game_fp.py を実行し直してください" % ", ".join(missing))
+            log("[エラー] 外の木の光る数字の材質がありません: %s。setup_game_fp.py を実行し直してください" % ", ".join(missing))
         self.hint_comp, self.hint_mat0, self.hint_mats = None, None, []
         if self.hint is not None:
             try:
@@ -604,21 +614,31 @@ class Game:
         log("暗号の張り紙: 紙%d枚・数字%d枚・答え %s" % (sum(1 for a in self.code_posters if a is not None), sum(1 for a in self.code_glow if a is not None), ans))
 
     def update_code_glow(self, mult):
-        """光る数字を出す・隠す。暗い間（mult<0.05・蛍光灯の棒を隠す条件と同じ）で、謎の場面の間だけ、貼られた分を出す。変わったときだけ切りかえる"""
-        n = self.code_pasted if (self.code_active and mult < 0.05) else 0
-        if n == self._glow_key:
+        """外の木の光る数字と、内側のガラスの言葉（貼られた紙）を、切りかえる。
+        暗い間（mult<0.05・蛍光灯の棒を隠す条件と同じ）：ガラスの言葉は1枚も出さず（外の木が見えるように）、貼られた分の数字だけが木で光る。
+        明るい間：数字は消えて、貼られた分の言葉だけがガラスに出る。変わったときだけ切りかえる"""
+        dark = self.code_active and mult < 0.05
+        n_glow = self.code_pasted if dark else 0
+        n_word = 0 if dark else (self.code_pasted if self.code_active else 0)
+        key = (n_glow, n_word)
+        if key == self._glow_key:
             return
-        self._glow_key = n
+        self._glow_key = key
         for i, a in enumerate(self.code_glow):
             if a is not None:
-                a.set_actor_hidden_in_game(i >= n)
+                a.set_actor_hidden_in_game(i >= n_glow)
+        for i, a in enumerate(self.code_posters):
+            if a is not None:
+                a.set_actor_hidden_in_game(i >= n_word)
+        if dark:                                                   # ふつうの張り紙も、1枚も出さない（念のため）
+            self.posters_hide()
 
     def code_clear(self):
         for a in self.code_posters + self.code_glow:
             if a is not None:
                 a.set_actor_hidden_in_game(True)
         self.code_pasted = 0
-        self._glow_key = 0
+        self._glow_key = (0, 0)
 
     def code_begin(self):
         self.code_active = True
@@ -628,10 +648,7 @@ class Game:
         log("謎7の場面を始めます（答え %s）" % "".join(str(d) for d in ENVELOPE_CODE))
 
     def code_paste(self, k):
-        a = self.code_posters[k] if k < len(self.code_posters) else None
-        if a is not None:
-            a.set_actor_hidden_in_game(False)
-        self.code_pasted = k + 1
+        self.code_pasted = k + 1                                   # 紙は、この暗い間が終わって明るくなったときにガラスに出る（暗い間は外の木の数字だけ）
         self.update_code_glow(self.mult)
         log("謎7：%d枚目の張り紙が貼られました（数字 %s）" % (k + 1, ENVELOPE_CODE[k] if k < len(ENVELOPE_CODE) else "?"))
 
@@ -1196,7 +1213,7 @@ class Game:
         free = {"110", "119"}
         msgs = {"117": ("ポーン…「7月14日 午前0時を お知らせします」", (200, 230, 255)),
                 "177": ("「神狩村は…赤い雨です」", (255, 160, 160)),
-                "104": ("「お調べします…張り紙は 貼られた順に」", (200, 230, 255))}
+                "104": ("「お調べします…外の木に 光った順に」", (200, 230, 255))}
         if num in free:
             first = not self.lcd_seen
             screen(self.world, "（声はない。……液晶に文字が出た）  ソト ヒダリ ミギ ヒダリ", (255, 120, 120), 7.0)
