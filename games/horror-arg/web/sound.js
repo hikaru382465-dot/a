@@ -191,10 +191,26 @@ window.Snd = (function () {
       resonantClick(out, 1.0, [2350, 3700, 6100], 22, 0.5, 0.05);
       [1.55, 1.66, 1.77, 1.88].forEach((t, i) => resonantClick(out, t, [2900 + i * 120, 4500, 7200], 22, 0.45, 0.04));
     },
-    // ドンと響く低い音（派手な演出用）。音量は控えめにしてある
-    jolt() { if (!ok()) return; tone(52, 0, 0.7, "sine", 0.32, 28); tone(190, 0, 0.14, "sawtooth", 0.07, 70); burst(0, 0.3, 0.2, "lowpass", 900); },
-    // 不協和音の短い一撃
-    stinger() { if (!ok()) return; tone(466, 0, 0.5, "sawtooth", 0.05, 440); tone(493, 0, 0.5, "sawtooth", 0.05, 466); tone(65, 0, 0.8, "sine", 0.22, 40); burst(0, 0.18, 0.12, "highpass", 3000); },
+    // 部屋のどこかで、ドアが強く閉まる「バタン！」（重い低音＋木の板の音＋金具のカチャ＋部屋の響き）
+    jolt() {
+      if (!ok()) return; const out = wetDry(-0.4, 0.6);
+      toneTo(out, 95, 0, 0.45, "sine", 0.5, 38);                 // ドアが枠に当たる重い音
+      burstTo(out, 0, 0.16, 0.45, "lowpass", 650);               // 板がぶつかる
+      burstTo(out, 0, 0.22, 0.22, "bandpass", 260, 3);           // ドアの板がふるえる
+      resonantClick(out, 0.012, [2300, 3900, 5600], 18, 0.35, 0.09);   // 金具（ラッチ）のカチャ
+      resonantClick(out, 0.09, [2100, 3600], 16, 0.18, 0.06);
+    },
+    // 「ザッ」と一瞬の雑音が走って、そのあと耳鳴り「キーン…」がしばらく残る（驚いたときの耳の感じ）
+    stinger() {
+      if (!ok()) return; const t = ctx.currentTime;
+      burstTo(master, 0, 0.14, 0.32, "highpass", 900);                     // ザッ
+      [[7150, 0.045], [7185, 0.03]].forEach(([f, v]) => {                  // キーン（2つの高い音がかすかにうなる）
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + 0.1); g.gain.exponentialRampToValueAtTime(v, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
+        o.connect(g); g.connect(master); o.start(t + 0.1); o.stop(t + 3.3);
+      });
+      toneTo(master, 48, 0.05, 1.2, "sine", 0.12, 40);                     // 耳がつまったような低い圧
+    },
     // 電気の不調（蛍光灯や配線がショートしかける音）：「ジッ…ジジジッ…ジッ」。ブーンという電気のうなりが、不規則に入ったり切れたりし、ときどきパチッと鳴る
     noise() {
       if (!ok()) return; const out = wetDry(0.2, 0.15), t = ctx.currentTime, dur = 0.85;
