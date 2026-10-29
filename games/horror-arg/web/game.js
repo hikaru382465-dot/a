@@ -649,13 +649,13 @@
 // 効果音テスト：ログイン画面の「効果音テスト」（またはURLに ?sfx）で、全部の効果音を1つずつ聞ける窓が出る（何の音のつもりかも書いてある）
 function openSfxPanel() {
   if (document.querySelector("#sfxpanel")) { document.querySelector("#sfxpanel").remove(); return; }
-  const list = [["click", "マウスのクリック（カチ・チ）"], ["key", "キーボード（トッ）"], ["open", "窓が開く（小さなポッ）"], ["close", "窓が閉じる"], ["notify", "通知（やわらかいベルの2音）"], ["login", "ログイン（ベルの2音）"],
-    ["approve", "承認（ポン）"], ["reject", "却下（ボン）"], ["hold", "保留（トントン）"], ["error", "できない・まちがい（低いボッ）"], ["found", "謎が解けた（鍵が開くカチャ＋チン）"],
-    ["knock", "壁やドアをこぶしで叩く（ドン・ドン…ドン）"], ["creak", "ドアがきしむ（ギィィ）"], ["creakLow", "床がきしむ（低めのギシッ）"], ["breath", "耳元の息（鼻でスッ→口ではぁぁ）"], ["footsteps", "木の床の足音（近づく）"], ["vibrate", "机に置いたスマホが震える（ヴーッ＋カタカタ）"],
-    ["noise", "電気の不調・蛍光灯がショートしかける（ジッ…ジジジッ）"], ["tickBack", "置き時計の秒針（チッ、タッ）→逆回り"], ["heartbeat", "鼓動（ドクン）"], ["relayClick", "カメラのランプが点くカチッ"], ["recBeep", "録画のピッ"],
-    ["jolt", "部屋のどこかでドアが強く閉まる（バタン！）"], ["stinger", "ザッと雑音のあと、小さな耳鳴り"], ["sting", "1日の終わり（外の風と、遠くの低いうなり）"]];
+  const list = [["click", "【PC】マウスのクリック（カチ・チ）"], ["key", "【PC】キーボード（トッ）"], ["open", "【PC】窓が開く（小さなポッ）"], ["close", "【PC】窓が閉じる"], ["notify", "【PC】通知（やわらかいベルの2音）"], ["login", "【PC】ログイン（ベルの2音）"],
+    ["approve", "【PC】承認（ポン）"], ["reject", "【PC】却下（ボン）"], ["hold", "【PC】保留（トントン）"], ["error", "【PC】できない・まちがい（低いボッ）"], ["found", "【PC】謎が解けた（鍵が開くカチャ＋チン）"],
+    ["knock", "【部屋】壁やドアをこぶしで叩く（ドン・ドン…ドン）"], ["creak", "【部屋】ドアがきしむ（ギィィ）"], ["creakLow", "【部屋】床がきしむ（低めのギシッ）"], ["breath", "【部屋】耳元の息（鼻でスッ→口ではぁぁ）"], ["footsteps", "【部屋】木の床の足音（近づく）"], ["vibrate", "【部屋】机に置いたスマホが震える（ヴーッ＋カタカタ）"],
+    ["noise", "【PC】電気の不調・蛍光灯がショートしかける（ジッ…ジジジッ）"], ["tickBack", "【部屋】置き時計の秒針（チッ、タッ）→逆回り"], ["heartbeat", "【頭の中】鼓動（ドクン）"], ["relayClick", "【PC】カメラのランプが点くカチッ"], ["recBeep", "【PC】録画のピッ"],
+    ["jolt", "【部屋】部屋のどこかでドアが強く閉まる（バタン！）"], ["stinger", "【頭の中】ザッと雑音のあと、小さな耳鳴り"], ["sting", "【部屋】1日の終わり（外の風と、遠くの低いうなり）"]];
   const panel = document.createElement("div"); panel.id = "sfxpanel";
-  panel.append(Object.assign(document.createElement("div"), { textContent: "効果音テスト（聞いて「分かる／分からない」を教えてください）" }));
+  panel.append(Object.assign(document.createElement("div"), { textContent: "効果音テスト（ヘッドホン推奨）【PC】＝画面の前のスピーカー／【部屋】＝うしろ・横・机など、部屋のどこか（立体音響）／【頭の中】" }));
   list.forEach(([k, label]) => { const r = document.createElement("div"); r.className = "r"; const b = document.createElement("button"); b.textContent = "▶ " + k;
     b.onclick = () => { window.Snd.init(); window.Snd[k] && window.Snd[k](); }; r.append(b, label); panel.append(r); });
   const amb = document.createElement("div"); amb.className = "r";

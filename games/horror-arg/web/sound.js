@@ -31,7 +31,7 @@ window.Snd = (function () {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(master);
+    o.connect(g); g.connect(pcBus());
     o.start(t); o.stop(t + dur + 0.05);
   }
   function burst(start, dur, vol, filterType, freq) {
@@ -41,12 +41,36 @@ window.Snd = (function () {
     const g = ctx.createGain();
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(master);
+    s.connect(f); f.connect(g); g.connect(pcBus());
     s.start(t);
   }
 
   // 左右の位置（-1左〜1右）つきの出口
-  function dest(p) { if (!p || !ctx.createStereoPanner) return master; const sp = ctx.createStereoPanner(); sp.pan.value = p; sp.connect(master); return sp; }
+  // ===== 音の出どころを2つに分ける =====
+  // ① PCの中の音（通知・クリック・管理画面など）：画面の前のスピーカーから。まんなか・響きなし・低音が少し細い
+  let pc = null;
+  function pcBus() {
+    if (pc) return pc;
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 200;
+    const pk = ctx.createBiquadFilter(); pk.type = "peaking"; pk.frequency.value = 2800; pk.Q.value = 0.9; pk.gain.value = 2.5;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 9500;
+    hp.connect(pk); pk.connect(lp); lp.connect(master); pc = hp; return pc;
+  }
+  function dest(p) { const bus = pcBus(); if (!p || !ctx.createStereoPanner) return bus; const sp = ctx.createStereoPanner(); sp.pan.value = p * 0.35; sp.connect(bus); return sp; }
+  // ② 部屋（家の中）で起きる音：立体音響（HRTF）で、プレイヤーの後ろ・横・机の上など、本当にその場所から聞こえるようにする
+  //   x：右が＋、y：上が＋、z：うしろが＋（前は－）。単位はだいたいメートル。wet＝部屋の響き、lp＝壁ごしのこもり（Hz）
+  function space(x, y, z, wet, lp) {
+    const inG = ctx.createGain(); let node = inG;
+    if (lp) { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = lp; node.connect(f); node = f; }
+    let pn;
+    if (ctx.createPanner) {
+      pn = ctx.createPanner(); pn.panningModel = "HRTF"; pn.distanceModel = "inverse"; pn.refDistance = 0.6; pn.rolloffFactor = 0.9;
+      if (pn.positionX) { pn.positionX.value = x; pn.positionY.value = y; pn.positionZ.value = z; } else pn.setPosition(x, y, z);
+      node.connect(pn); pn.connect(master);
+    } else node.connect(master);
+    if (wet) { const w = ctx.createGain(); w.gain.value = wet; node.connect(w); w.connect(roomBus()); }
+    return inG;
+  }
   function burstTo(out, start, dur, vol, filterType, freq, q) {
     const t = ctx.currentTime + start, src = ctx.createBufferSource(); src.buffer = noiseBuf(dur);
     const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; if (q) f.Q.value = q;
@@ -108,7 +132,7 @@ window.Snd = (function () {
     // 謎が解けた：鍵が開く「カチャ・カチッ」＋明るい「チン」
     found() { if (!ok()) return; const o = dest(0.1); resonantClick(o, 0, [2300, 3900, 5600], 16, 0.32, 0.06); resonantClick(o, 0.11, [2000, 3400], 16, 0.26, 0.05); [[1568, 0.24], [2093, 0.32]].forEach(([f, t]) => { toneTo(o, f, t, 0.6, "sine", 0.05); toneTo(o, f * 2.76, t, 0.1, "sine", 0.012); }); },
     // 1日の終わり：外の風が少し強くなり、遠くで低い音がうなる（静かな不安）
-    sting() { if (!ok()) return; const t = ctx.currentTime, src = ctx.createBufferSource(); src.buffer = pinkBuf(3.2); const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 0.8; f.frequency.setValueAtTime(260, t); f.frequency.linearRampToValueAtTime(520, t + 1.6); f.frequency.linearRampToValueAtTime(220, t + 3); const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + 1.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.1); src.connect(f); f.connect(g); g.connect(master); src.start(t); toneTo(master, 55, 0.2, 2.6, "sine", 0.07, 49); },
+    sting() { if (!ok()) return; const t = ctx.currentTime, src = ctx.createBufferSource(); src.buffer = pinkBuf(3.2); const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 0.8; f.frequency.setValueAtTime(260, t); f.frequency.linearRampToValueAtTime(520, t + 1.6); f.frequency.linearRampToValueAtTime(220, t + 3); const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + 1.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.1); src.connect(f); f.connect(g); const sp = space(0, 0.6, 4, 0.6, 900); g.connect(sp); src.start(t); toneTo(sp, 55, 0.2, 2.6, "sine", 0.07, 49); },
     login() { if (!ok()) return; const o = dest(0); [[659, 0], [988, 0.16]].forEach(([f, t]) => { toneTo(o, f, t, 0.45, "sine", 0.05); toneTo(o, f * 2.76, t, 0.1, "sine", 0.012); }); },
     // 部屋の音：PCのファン（やわらかいノイズ）と、冷蔵庫のようなごく小さなブーン。ずっと鳴っているが、止めると「静けさ」になる
     startAmbient() {
@@ -139,7 +163,7 @@ window.Snd = (function () {
     },
     // 壁やドアを、こぶしで叩く「ドン、ドン…ドン」。低く重く、壁が少し響く。間隔は不規則で右のほうから
     knock() {
-      if (!ok()) return; const out = wetDry(0.35, 0.35), times = [0, 0.42 + Math.random() * 0.06, 1.0 + Math.random() * 0.15];
+      if (!ok()) return; const out = space(0.9, 0, 2.2, 0.45, 1100), times = [0, 0.42 + Math.random() * 0.06, 1.0 + Math.random() * 0.15];
       times.forEach((t, i) => {
         const v = i === 2 ? 1.15 : 1;
         toneTo(out, 115, t, 0.32, "sine", 0.42 * v, 48);                 // ドン（音の高さが一気に下がる）
@@ -151,7 +175,7 @@ window.Snd = (function () {
     // きしみ（ドア・床）：「ギ…ギィィ」。こすれが小さく引っかかるたびに、木が細く共鳴する（引っかかりの速さが、ゆっくり変わる）
     creak(low) {
       if (!ok()) return;
-      const dur = 1.1 + Math.random() * 0.5, out = wetDry(low ? -0.3 : 0.3, 0.3);
+      const dur = 1.1 + Math.random() * 0.5, out = low ? space(0.3, -1.2, 1.4, 0.35) : space(-1.9, 0, 1.7, 0.4);
       const buf = bufFrom(dur, (d, sr, n) => {
         let ph = 0, next = 0; const r0 = low ? 28 : 45, r1 = low ? 70 : 130;
         for (let i = 0; i < n; i++) {
@@ -165,7 +189,7 @@ window.Snd = (function () {
     },
     // 息：鼻から「スッ」と吸って、口から「はぁぁ…」と吐く。すぐ耳元（中央）。吐く息は「あ」の口の形の響き（ささやき声と同じ作り方）
     breath() {
-      if (!ok()) return; const t = ctx.currentTime, out = wetDry(0, 0.08);
+      if (!ok()) return; const t = ctx.currentTime, out = space(0.22, 0.05, 0.3, 0.05);
       const mk = (start, dur, bands, peak, peakAt, rise) => {
         const src = ctx.createBufferSource(); src.buffer = pinkBuf(dur + 0.1);
         const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 220; src.connect(hp);
@@ -177,15 +201,17 @@ window.Snd = (function () {
       mk(0.05, 0.7, [[2200, 4, 1.4], [3400, 5, 0.8], [900, 2, 0.5]], 0.5, 0.75, 1.12);    // 吸う（鼻・細く高い）
       mk(1.0, 1.4, [[720, 5, 1.5], [1220, 6, 1.0], [2600, 6, 0.5]], 0.55, 0.14, 0.92);   // 吐く（「はぁ」）
     },
+    // 人影が点滅して消えるときの、ごく小さな「ジッ」（画面の音）
+    flick() { if (!ok()) return; const o = dest(0); for (let i = 0; i < 3; i++) burstTo(o, i * 0.11 + Math.random() * 0.04, 0.012, 0.05, "highpass", 3500); toneTo(o, 100, 0, 0.25, "sawtooth", 0.012); },
     creakLow() { api.creak(true); },   // 床のきしみ（低め）
     whisper() { api.breath(); },   // 古い名前。息に置き換えた
     // 足音：ドスッ…ドスッ。n回、だんだん近く・大きく（左→中央）
     // 足音（木の床）：かかとの「ドッ」と、少しあとのつま先「トッ」。ときどき床が小さくきしむ。部屋の響きつき
-    footstep(pan, vol) { if (!ok()) return; const o = wetDry(pan || 0, 0.3), v = vol == null ? 1 : vol; toneTo(o, 85, 0, 0.09, "sine", 0.22 * v, 55); burstTo(o, 0, 0.06, 0.2 * v, "lowpass", 380); burstTo(o, 0.045, 0.035, 0.08 * v, "bandpass", 900, 2); if (Math.random() < 0.25) setTimeout(() => api.creak(true), 60); },
+    footstep(pan, vol) { if (!ok()) return; const v = vol == null ? 1 : vol, o = space((pan || 0) * 2.2, -1.1, 1.2 + (1 - v) * 4, 0.35, 2400); toneTo(o, 85, 0, 0.09, "sine", 0.22 * v, 55); burstTo(o, 0, 0.06, 0.2 * v, "lowpass", 380); burstTo(o, 0.045, 0.035, 0.08 * v, "bandpass", 900, 2); if (Math.random() < 0.25) setTimeout(() => api.creak(true), 60); },
     footsteps(n) { if (!ok()) return; let t = 0; for (let i = 0; i < (n || 4); i++) { const k = i, pn = (n || 4) - 1 || 1; setTimeout(() => api.footstep(-0.7 + 0.7 * k / pn, 0.35 + 0.65 * k / pn), t * 1000); t += 0.55 + Math.random() * 0.2; } },
     // 机に置いたスマホが震える：「ヴーッ、ヴーッ」。振動そのものの低い音と、机にふれてカタカタ鳴る音（右）
     vibrate() {
-      if (!ok()) return; const t = ctx.currentTime, out = dest(0.65);
+      if (!ok()) return; const t = ctx.currentTime, out = space(0.55, -0.45, -0.45, 0.04);
       [0, 0.62].forEach(b => {
         const o = ctx.createOscillator(); o.type = "square"; o.frequency.value = 185;
         const lp = ctx.createBiquadFilter(); lp.type = "bandpass"; lp.frequency.value = 230; lp.Q.value = 1.2;
@@ -201,14 +227,14 @@ window.Snd = (function () {
     recBeep() { if (!ok()) return; tone(1000, 0, 0.12, "sine", 0.06); },
     // 置き時計の秒針：「チッ、タッ」（金属の小さな共鳴）。そのあと、逆回りに速く「チチチッ」
     tickBack() {
-      if (!ok()) return; const out = wetDry(-0.15, 0.12);
+      if (!ok()) return; const out = space(-0.7, -0.3, -0.8, 0.15);
       resonantClick(out, 0, [2650, 4100, 6800], 22, 0.55, 0.05);
       resonantClick(out, 1.0, [2350, 3700, 6100], 22, 0.5, 0.05);
       [1.55, 1.66, 1.77, 1.88].forEach((t, i) => resonantClick(out, t, [2900 + i * 120, 4500, 7200], 22, 0.45, 0.04));
     },
     // 部屋のどこかで、ドアが強く閉まる「バタン！」（重い低音＋木の板の音＋金具のカチャ＋部屋の響き）
     jolt() {
-      if (!ok()) return; const out = wetDry(-0.4, 0.6);
+      if (!ok()) return; const out = space(-3, 0, 3.5, 0.8, 1800);
       toneTo(out, 95, 0, 0.45, "sine", 0.5, 38);                 // ドアが枠に当たる重い音
       burstTo(out, 0, 0.16, 0.45, "lowpass", 650);               // 板がぶつかる
       burstTo(out, 0, 0.22, 0.22, "bandpass", 260, 3);           // ドアの板がふるえる
@@ -228,7 +254,7 @@ window.Snd = (function () {
     },
     // 電気の不調（蛍光灯や配線がショートしかける音）：「ジッ…ジジジッ…ジッ」。ブーンという電気のうなりが、不規則に入ったり切れたりし、ときどきパチッと鳴る
     noise() {
-      if (!ok()) return; const out = wetDry(0.2, 0.15), t = ctx.currentTime, dur = 0.85;
+      if (!ok()) return; const out = dest(0), t = ctx.currentTime, dur = 0.85;
       const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = 100;
       const o2 = ctx.createOscillator(); o2.type = "square"; o2.frequency.value = 150;
       const sh = ctx.createWaveShaper(); const c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 6); } sh.curve = c;
@@ -242,7 +268,7 @@ window.Snd = (function () {
     },
     // 鼓動
     // 鼓動：ドクン…ドクン（1拍は2つの音。間隔はだんだん縮む）
-    heartbeat() { if (!ok()) return; const o = dest(0); [0, 0.88, 1.66, 2.36].forEach(t => { toneTo(o, 58, t, 0.13, "sine", 0.26, 40); burstTo(o, t, 0.08, 0.14, "lowpass", 120); toneTo(o, 52, t + 0.23, 0.11, "sine", 0.15, 38); burstTo(o, t + 0.23, 0.06, 0.08, "lowpass", 110); }); },
+    heartbeat() { if (!ok()) return; const o = master; [0, 0.88, 1.66, 2.36].forEach(t => { toneTo(o, 58, t, 0.13, "sine", 0.26, 40); burstTo(o, t, 0.08, 0.14, "lowpass", 120); toneTo(o, 52, t + 0.23, 0.11, "sine", 0.15, 38); burstTo(o, t + 0.23, 0.06, 0.08, "lowpass", 110); }); },
     toggleMute() {
       muted = !muted;
       if (master) master.gain.value = muted ? 0 : 0.62;

@@ -1,7 +1,7 @@
 // ギミック（画面の中の小さな異変）。いつから起きるかは data.js の gimmicks で決める。
 // URLに ?nogimmick を付けると全部止まる。開発用：__game.fire("swap") などで1つだけ起こせる。
 window.Gimmicks = (function () {
-  let api = null, active = false, timers = [], zeroDone = {};
+  let api = null, active = false, timers = [], zeroDone = {}, noiseCount = {};
   const day = () => api.state().day;
   const on = name => active && day() >= (api.D.gimmicks[name] || 99);
   const later = (fn, ms) => { const t = setTimeout(() => { if (active || forced) fn(); }, ms); timers.push(t); return t; };
@@ -105,45 +105,17 @@ window.Gimmicks = (function () {
 
   // 壁紙の家の窓に、人影が一瞬だけ立つ（Blender版の壁紙のとき）。
   // 流れ：窓の明かりがつく→奥にぼんやり小さな人影→窓ぎわまで来る→消える。窓が隠れないよう、開いている窓は先にいったん消える。
-  // 窓を閉じるたびに、人影が家の窓に少しずつ近づく（壁紙にそのまま残る。気づかない人は気づかない）
-  // 段階：0なし→1奥→2→3→4窓ぎわ。上限は日ごと（3日目は2、4日目は3、5日目は4）。1段進めるには45秒以上あける。
-  // 段階：1〜3＝家の窓（奥→近く）、4〜7＝家の外（柵のむこう→庭→手前→目の前）。上限は日ごと：3日目は2、4日目は4、5日目は7
-  const STAGE_CLS = ["", "st1", "st2", "st3", "o1", "o2", "o3", "o4"], ALL_CLS = ["st1", "st2", "st3", "st4", "o1", "o2", "o3", "o4", "fig0"];
-  const figCap = () => (day() >= 5 ? 7 : day() === 4 ? 4 : day() === 3 ? 2 : 0);
-  function figStage() { return (api.state().flags.figStage) || 0; }
-  function applyStage() {
-    const wp = document.querySelector("#wallpaper"); if (!wp) return;
-    wp.classList.remove(...ALL_CLS);
-    const fl = api.state().flags, n = figStage();
-    if (n > 0 && /\bb\b/.test(wp.className) && !figBusy) {
-      if (fl.figVanish === "lit") wp.classList.add("fig0");        // 明かりだけ残って、人影がいない
-      else if (fl.figVanish === "dark") { /* 明かりも消えて真っ暗 */ }
-      else wp.classList.add(STAGE_CLS[n]);
-    }
-  }
-  // 途中で、窓の明かりが点滅して、人影がいなくなる（段階2のあとは「明かりだけ残る」、段階3のあとは「明かりも消える」）。次の段階で、さらに近くに戻ってくる
-  function vanish(n) {
-    const wp = document.querySelector("#wallpaper"), fl = api.state().flags; if (!wp || fl.figStage !== n || fl.figVanish) return;
-    api.S.noise();
-    const cls = "st" + n, seq = [["fig0", 130], [null, 170], [cls, 120], [null, 190], ["fig0", 110], [null, 230], [cls, 90], [null, 260]];
-    let at = 0; seq.forEach(([c, d]) => { later(() => { wp.classList.remove(...ALL_CLS); if (c) wp.classList.add(c); }, at); at += d; });
-    later(() => { fl.figVanish = n === 2 ? "lit" : "dark"; api.save(); applyStage(); }, at);
-  }
-  function onWindowClosed() {
-    if (!active || day() < (api.D.gimmicks.windowFigure || 99) || figBusy || location.search.includes("nogimmick")) return;
-    const wp = document.querySelector("#wallpaper"); if (!wp || !/\bb\b/.test(wp.className)) return;
-    const fl = api.state().flags, now = Date.now();
-    if ((fl.figStage || 0) >= figCap() || now - (fl.figAt || 0) < 45000) return;
-    fl.figAt = now; fl.figStage = (fl.figStage || 0) + 1; fl.figVanish = null; api.save();
-    preloadFigure(wp).then(() => later(() => { applyStage(); api.S.footstep(-0.8 + 0.12 * fl.figStage, 0.22 + 0.1 * fl.figStage); if (fl.figStage === 7) setTimeout(() => api.S.breath(), 900); const n = fl.figStage; if (n === 2 || n === 3) later(() => vanish(n), 3200); }, 600));
-  }
-  let figBusy = false; const figReady = {};
-  // 人影の絵は、先に読み込んで解読しておく（初回に一瞬、背景が真っ暗になるのを防ぐ）
+  // ===== 壁紙の人影：出てきて、点滅して、いなくなる（近づいてはこない）=====
+  // 窓を閉じたとき（45秒以上あけて）と、ときどき（windowFigure）に起きる。Blender版の壁紙のときだけ。
+  const ALL_CLS = ["st1", "st2", "st3", "st4", "o1", "o2", "o3", "o4", "fig0", "fig1", "fig"];
+  const FIG_POOL = () => (day() >= 5 ? ["st3", "o1", "o2", "o3"] : day() === 4 ? ["st2", "st3", "o1", "o2"] : ["st1", "st2"]);
+  let figBusy = false, figAt = 0; const figReady = {};
+  function applyStage() { const wp = document.querySelector("#wallpaper"); if (wp && !figBusy) wp.classList.remove(...ALL_CLS); }   // 残りを消すだけ
   function preloadFigure(wp) {
     const key = wp.className.replace(/\b(fig\d?|st\d|o\d)\b/g, "").trim();
     if (figReady[key]) return figReady[key];
     const urls = [], keep = wp.className;
-    ["fig0", "fig1", "fig", "st1", "st2", "st3", "o1", "o2", "o3", "o4"].forEach(c => {
+    ["fig0", "fig", "st1", "st2", "st3", "o1", "o2", "o3"].forEach(c => {
       wp.className = key + " " + c;
       const m = /url\("?([^")]+)"?\)/.exec(getComputedStyle(wp).backgroundImage); if (m) urls.push(m[1]);
     });
@@ -151,28 +123,38 @@ window.Gimmicks = (function () {
     figReady[key] = Promise.all(urls.map(src => { const im = new Image(); im.src = src; return im.decode ? im.decode().catch(() => {}) : Promise.resolve(); }));
     return figReady[key];
   }
+  // 点滅して消える（明かりの「ジッ」は小さく）
+  function flickerOut(wp, cls, onDone) {
+    const seq = [[null, 120], [cls, 90], [null, 160], [cls, 70], [null, 220], [cls, 60], [null, 0]];
+    let at = 0; api.S.flick && api.S.flick();
+    seq.forEach(([c, d]) => { later(() => { wp.classList.remove(...ALL_CLS); if (c) wp.classList.add(c); }, at); at += d; });
+    later(() => { wp.classList.remove(...ALL_CLS); figBusy = false; if (onDone) onDone(); }, at + 10);
+  }
+  function onWindowClosed() {
+    if (!active || day() < (api.D.gimmicks.windowFigure || 99) || figBusy || location.search.includes("nogimmick")) return;
+    const wp = document.querySelector("#wallpaper"); if (!wp || !/\bb\b/.test(wp.className)) return;
+    const now = Date.now(); if (now - figAt < 45000) return;
+    figAt = now; figBusy = true;
+    const pool = FIG_POOL(), cls = pool[Math.floor(Math.random() * pool.length)];
+    preloadFigure(wp).then(() => {
+      later(() => { wp.classList.remove(...ALL_CLS); wp.classList.add(cls); }, 600);                 // 気づくと、そこにいる
+      later(() => flickerOut(wp, cls), 600 + 2600);                                                  // 少し見えたあと、点滅して消える
+    });
+  }
   function windowFigure() {
     const wp = document.querySelector("#wallpaper");
     if (figBusy || !wp || !/\bb\b/.test(wp.className)) return;
-    figBusy = true;
+    figBusy = true; figAt = Date.now();
     preloadFigure(wp).then(() => {
       const w = api.wins(), hidden = Object.keys(w).filter(k => !w[k].min);
       const hide = LV() >= 2, t = hide ? 380 : 0;
-      api.S.creak();
       if (hide) { api.S.jolt(); shake(380, true); hidden.forEach(k => { w[k].el.style.display = "none"; }); }
-      const set = c => { wp.classList.remove("fig1", "fig", ...ALL_CLS); if (c) wp.classList.add(c); };
-      later(() => set("fig0"), t);                 // 窓に明かりがつく
-      later(() => set(null), t + 170);              // 一度消える（ちらつき）
+      const set = c => { wp.classList.remove(...ALL_CLS); if (c) wp.classList.add(c); };
+      later(() => set("fig0"), t);            // 窓に明かり
+      later(() => set(null), t + 170);
       later(() => set("fig0"), t + 340);
-      later(() => { set("fig1"); api.S.footsteps(3); }, t + 640);            // 奥に、ぼんやり小さく（足音）
-      later(() => { set("fig"); api.S.breath(); }, t + 1000);   // 窓ぎわまで来る（息）
-      later(() => set(null), t + 1550);
-      setTimeout(() => {
-        set(null); figBusy = false;
-        const fl = api.state().flags; if ((fl.figStage || 0) < figCap()) { fl.figStage = (fl.figStage || 0) + 1; fl.figAt = Date.now(); fl.figVanish = null; api.save(); }
-        applyStage();
-        hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; });
-      }, t + 1800);
+      later(() => { set("fig"); api.S.breath(); }, t + 700);   // 窓ぎわに立っている
+      later(() => flickerOut(wp, "fig", () => hidden.forEach(k => { if (w[k] && !w[k].min) w[k].el.style.display = "flex"; })), t + 1700);
     });
   }
   function whisperText(text) {
@@ -198,7 +180,7 @@ window.Gimmicks = (function () {
     every("windowNudge", 25000, 45000, windowNudge);
     every("ambientEvent", 35000, 75000, ambientEvent);
     every("bigFlash", 110000, 190000, bigFlash);
-    every("noise", 60000, 110000, noiseSweep);
+    every("noise", 180000, 300000, () => { const k = "n" + day(); noiseCount[k] = (noiseCount[k] || 0) + 1; if (noiseCount[k] <= 3) noiseSweep(); });
     every("windowFigure", 150000, 260000, windowFigure);
     later(() => { const wp = document.querySelector("#wallpaper"); if (wp && /\bb\b/.test(wp.className)) preloadFigure(wp); }, 3000);
   }
@@ -328,7 +310,7 @@ window.Gimmicks = (function () {
   async function clockGlitch() {
     const el = api.clockEl(), m = api.clockMin();
     const f = x => String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
-    api.S.tickBack(); glitch(600); blackout(1); shake(300); if (LV() >= 2) noiseSweep();
+    api.S.tickBack(); glitch(600); blackout(1); shake(300);
     el.classList.add("flick");
     el.textContent = f(m - 1); await new Promise(r => setTimeout(r, 800));
     el.textContent = "02:41"; await new Promise(r => setTimeout(r, 800));
