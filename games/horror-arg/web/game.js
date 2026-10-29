@@ -649,9 +649,11 @@
 // 効果音テスト：ログイン画面の「効果音テスト」（またはURLに ?sfx）で、全部の効果音を1つずつ聞ける窓が出る（何の音のつもりかも書いてある）
 function openSfxPanel() {
   if (document.querySelector("#sfxpanel")) { document.querySelector("#sfxpanel").remove(); return; }
-  const list = [["click", "ボタンを押した音"], ["key", "文字を打つ音"], ["open", "窓が開く"], ["close", "窓が閉じる"], ["notify", "通知（メールなど）"], ["approve", "承認した"], ["reject", "却下した（低いドン）"], ["hold", "保留した"], ["error", "できない・まちがい"],
-    ["found", "謎が解けた（鍵が開く音＋チン）"], ["knock", "壁やドアをこぶしで叩く（ドン・ドン…ドン）"], ["creak", "ドアがきしむ（ギィィ）"], ["creakLow", "床がきしむ（低めのギシッ）"], ["breath", "耳元の息（鼻でスッ→口ではぁぁ）"], ["footsteps", "足音（近づく）"], ["vibrate", "机のスマホが震える"],
-    ["noise", "電気の不調・蛍光灯がショートしかける（ジッ…ジジジッ）"], ["tickBack", "置き時計の秒針（チッ、タッ）→逆回り"], ["heartbeat", "鼓動"], ["relayClick", "カメラのランプが点くカチッ"], ["recBeep", "録画のピッ"], ["jolt", "部屋のどこかでドアが強く閉まる（バタン！）"], ["stinger", "ザッと雑音のあと、耳鳴り（キーン…）"], ["sting", "1日の終わりの低い音"]];
+  const list = [["click", "マウスのクリック（カチ・チ）"], ["key", "キーボード（トッ）"], ["open", "窓が開く（小さなポッ）"], ["close", "窓が閉じる"], ["notify", "通知（やわらかいベルの2音）"], ["login", "ログイン（ベルの2音）"],
+    ["approve", "承認（ポン）"], ["reject", "却下（ボン）"], ["hold", "保留（トントン）"], ["error", "できない・まちがい（低いボッ）"], ["found", "謎が解けた（鍵が開くカチャ＋チン）"],
+    ["knock", "壁やドアをこぶしで叩く（ドン・ドン…ドン）"], ["creak", "ドアがきしむ（ギィィ）"], ["creakLow", "床がきしむ（低めのギシッ）"], ["breath", "耳元の息（鼻でスッ→口ではぁぁ）"], ["footsteps", "木の床の足音（近づく）"], ["vibrate", "机に置いたスマホが震える（ヴーッ＋カタカタ）"],
+    ["noise", "電気の不調・蛍光灯がショートしかける（ジッ…ジジジッ）"], ["tickBack", "置き時計の秒針（チッ、タッ）→逆回り"], ["heartbeat", "鼓動（ドクン）"], ["relayClick", "カメラのランプが点くカチッ"], ["recBeep", "録画のピッ"],
+    ["jolt", "部屋のどこかでドアが強く閉まる（バタン！）"], ["stinger", "ザッと雑音のあと、小さな耳鳴り"], ["sting", "1日の終わり（外の風と、遠くの低いうなり）"]];
   const panel = document.createElement("div"); panel.id = "sfxpanel";
   panel.append(Object.assign(document.createElement("div"), { textContent: "効果音テスト（聞いて「分かる／分からない」を教えてください）" }));
   list.forEach(([k, label]) => { const r = document.createElement("div"); r.className = "r"; const b = document.createElement("button"); b.textContent = "▶ " + k;
