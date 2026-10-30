@@ -69,7 +69,7 @@
   function toggleWall() { wallB = !wallB; try { localStorage.setItem("horror-arg-wall", wallB ? "b" : "a"); } catch (e) {} setWall(curWall); }
 
   $("#tb-wall").addEventListener("click", toggleWall);
-  $("#hint-tab").addEventListener("click", () => { S.click(); openNotes(); });
+  $("#hint-tab").addEventListener("click", () => { S.click(); openHints(); });
 
   // ---------- 時計 ----------
   let clockMin = 0;
@@ -376,45 +376,55 @@
     if (fresh.length) save();
     updateBadge(); if (notesRepaint) notesRepaint();
     const newTodo = fresh.filter(q => !qDone(q));
-    if (newTodo.length && qToastReady) toast("調査メモ", "新しく調べることが " + newTodo.length + " 件あります。デスクトップの「調査メモ」を開いてください。");
+    if (newTodo.length && qToastReady) toast("調査メモ", "前任者の書きかけに、読める行が増えています。");
   }
+  // 調査メモ：前任者の書きかけノート。前任者の疑問だけが書いてあり、やり方も答えもない。解くと、あなたの赤い✓が付く
   function openNotes() {
-    state.hintLv = state.hintLv || {}; state.qShown = state.qShown || {};
-    const input = h("input", { class: "note-input", placeholder: "答えを書く", autocomplete: "off" });
-    const list = h("div", { class: "q-list" });
-    const log = h("div", { class: "note-log" });
+    state.qShown = state.qShown || {};
+    const input = h("input", { class: "note-input", placeholder: "わかったことを書きこむ", autocomplete: "off" });
+    const page = h("div", { class: "nb-page" });
     const msg = h("div", { class: "cmp-msg" });
-    function hintLevel(q) { return state.hintLv[q.id] || 0; }   // 見たい人だけ：自分で押した段まで
     function paint() {
       const items = D.questions.filter(qOpen);
-      list.replaceChildren(h("div", { class: "q-h" }, "いま調べること"), ...items.map(q => {
-        const done = qDone(q), lv = hintLevel(q);
-        return h("div", { class: "q-item" + (done ? " done" : "") },
-          h("div", { class: "q-t" }, h("span", { class: "q-ck" }, done ? "✓" : "□"), q.q + (q.len && !done ? "（" + q.len + "文字／けた）" : "")),
-          done ? null : h("div", { class: "q-hints" },
-            ...[0, 1, 2].filter(i => i < lv).map(i => h("div", { class: "q-hint" }, "ヒント" + "①②③"[i] + "：" + q.hints[i])),
-            lv < 3 ? h("button", { class: "btn q-btn", onclick: () => { state.hintLv[q.id] = Math.min(3, lv + 1); save(); S.click(); paint(); } }, lv ? "次のヒント" : "ヒントを見る") : null));
-      }), ...(items.length ? [] : [h("div", { class: "adm-empty small" }, "いま調べることはありません")]));
-      log.replaceChildren(...(D.answers.filter(a => state.answers[a.id]).map(a => h("div", { class: "note-item" }, "✓ " + a.log))));
+      const solved = id => { const a = D.answers.find(x => x.id === id); return a && state.answers[a.id] ? a : null; };
+      page.replaceChildren(
+        h("div", { class: "nb-title" }, "調べること（書きかけ）"),
+        ...D.notesCrossed.map(t => h("div", { class: "nb-line crossed" }, "□ " + t)),
+        ...items.map(q => { const done = qDone(q), a = solved(q.id);
+          return h("div", { class: "nb-line" + (done ? " done" : "") }, h("span", { class: "nb-box" }, done ? "" : "□"), done ? h("span", { class: "nb-ck" }, "✓") : null, q.note,
+            a ? h("div", { class: "nb-you" }, "→ " + a.accept[0]) : null); }),
+        h("div", { class: "nb-line faint" }, "□ "));
     }
     notesRepaint = () => { if (input.isConnected) paint(); };
     function submit() {
       const v = norm(input.value); if (!v) return;
       const a = D.answers.find(x => x.day <= state.day && x.accept.some(c => norm(c) === v));
-      if (!a) { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "該当する手がかりが見つかりません。"; return; }
+      if (!a) { S.error(); msg.className = "cmp-msg bad"; msg.textContent = "…ちがう気がする。"; return; }
       input.value = "";
-      if (state.answers[a.id]) { msg.className = "cmp-msg"; msg.textContent = "すでに記録済みです。"; S.click(); return; }
+      if (state.answers[a.id]) { msg.className = "cmp-msg"; msg.textContent = "もう書いてある。"; S.click(); return; }
       state.answers[a.id] = true; save(); S.found(); paint(); checkQuestions();
-      msg.className = "cmp-msg good"; msg.textContent = "記録しました。";
+      msg.className = "cmp-msg good"; msg.textContent = "書きこんだ。";
       if (a.memo && D.memoAddenda[a.memo]) setTimeout(() => appendMemo(D.memoAddenda[a.memo]), 1600);
       if (a.ending) setTimeout(() => showEnding("secret"), 2600);
     }
     input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); else S.key(); });
-    openWin("notes", "調査メモ", h("div", { class: "notes" },
-      list,
-      h("div", { class: "note-help" }, "答えがわかったら、ここに書き込むと記録されます。（調べるだけで解けるものは、自動でチェックが付きます）"),
-      h("div", { class: "note-row" }, input, h("button", { class: "btn primary", onclick: submit }, "記録")),
-      msg, log), { w: 520, h: 470, x: 300, y: 60 });
+    openWin("notes", "調査メモ（前任者の書きかけ）", h("div", { class: "notes nb" }, page,
+      h("div", { class: "note-row" }, input, h("button", { class: "btn primary", onclick: submit }, "書く")), msg), { w: 500, h: 470, x: 300, y: 60 });
+    paint();
+  }
+  // 💡ヒント（見たい人だけ）：問いと、3段階のヒント
+  function openHints() {
+    state.hintLv = state.hintLv || {};
+    const list = h("div", { class: "q-list" });
+    function paint() {
+      const items = D.questions.filter(q => qOpen(q) && !qDone(q));
+      list.replaceChildren(h("div", { class: "q-h" }, "ヒント（見たい人だけ）"), ...items.map(q => { const lv = state.hintLv[q.id] || 0;
+        return h("div", { class: "q-item" }, h("div", { class: "q-t" }, q.q + (q.len ? "（" + q.len + "文字／けた）" : "")),
+          h("div", { class: "q-hints" }, ...[0, 1, 2].filter(i => i < lv).map(i => h("div", { class: "q-hint" }, "ヒント" + "①②③"[i] + "：" + q.hints[i])),
+            lv < 3 ? h("button", { class: "btn q-btn", onclick: () => { state.hintLv[q.id] = lv + 1; save(); S.click(); paint(); } }, lv ? "次のヒント" : "ヒントを見る") : null)); }),
+        ...(items.length ? [] : [h("div", { class: "adm-empty small" }, "いまは、ヒントはありません")]));
+    }
+    openWin("hints", "ヒント", h("div", { class: "notes" }, list), { w: 480, h: 460, x: 900, y: 50 });
     paint();
   }
 
@@ -625,7 +635,7 @@
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。");
     qToastReady = false; checkQuestions();
-    setTimeout(() => { qToastReady = true; const n = qTodo().length; if (n) toast("調査メモ", "いま調べることが " + n + " 件あります。デスクトップの「調査メモ」を開いてください。"); }, 3800);
+    setTimeout(() => { qToastReady = true; if (state.day === 1 && !state.flags.notesToast) { state.flags.notesToast = true; save(); toast("調査メモ", "前任者の調査メモが、デスクトップに残っています。"); } }, 3800);
     if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
     const um = window.Apps.unread();
     if (um) setTimeout(() => { S.notify(); toast("新着メール", um + "件の未読メールがあります。"); }, 600);

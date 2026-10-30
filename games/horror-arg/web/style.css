@@ -600,3 +600,16 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 #wallpaper.b.night.o4{background-image:url(wallpaper_b_night_o4.jpg)}
 #wallpaper.b.red.o4{background-image:url(wallpaper_b_red_o4.jpg)}
 #wallpaper.b.lit.o4{background-image:url(wallpaper_b_lit_o4.jpg)}
+
+/* 調査メモ：前任者の書きかけノート（罫線の紙・手書きふう・あなたの赤ペン） */
+.notes.nb{background:#f6f1e3;color:#2b2a26}
+.nb-page{padding:6px 4px 10px;background:repeating-linear-gradient(180deg,transparent 0 29px,rgba(80,110,160,.22) 29px 30px);line-height:30px;font-family:"Klee One","Yu Kyokasho","YuKyokasho","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;font-size:15px}
+.nb-title{font-weight:700;letter-spacing:.1em;color:#3b3a33}
+.nb-line{position:relative;padding-left:4px;color:#33322c}
+.nb-line.crossed{color:#8a857a;text-decoration:line-through;text-decoration-color:#4a463d;text-decoration-thickness:2px}
+.nb-line.faint{color:#b8b2a2}
+.nb-box{display:inline-block;width:1.4em}
+.nb-ck{position:absolute;left:2px;top:-4px;color:#c4251c;font-size:22px;font-weight:700;transform:rotate(-8deg)}
+.nb-line.done{color:#55534b}
+.nb-you{color:#c4251c;font-size:14px;line-height:22px;padding-left:2.2em;transform:rotate(-1deg)}
+.notes.nb .note-input{background:#fffdf6}
