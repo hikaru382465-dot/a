@@ -376,7 +376,7 @@
     if (fresh.length) save();
     updateBadge(); if (notesRepaint) notesRepaint();
     const newTodo = fresh.filter(q => !qDone(q));
-    if (newTodo.length && qToastReady) toast("調査メモ", "前任者の書きかけに、読める行が増えています。");
+    if (newTodo.length && qToastReady && state.flags.notesFound && newTodo.some(q => q.note)) toast("調査メモ.txt", "前任者の書きかけに、読める行が増えています。");
   }
   // 調査メモ：前任者の書きかけノート。前任者の疑問だけが書いてあり、やり方も答えもない。解くと、あなたの赤い✓が付く
   function openNotes() {
@@ -385,7 +385,7 @@
     const page = h("div", { class: "nb-page" });
     const msg = h("div", { class: "cmp-msg" });
     function paint() {
-      const items = D.questions.filter(qOpen);
+      const items = D.questions.filter(q => q.note && qOpen(q));
       const solved = id => { const a = D.answers.find(x => x.id === id); return a && state.answers[a.id] ? a : null; };
       page.replaceChildren(
         h("div", { class: "nb-title" }, "調べること（書きかけ）"),
@@ -412,6 +412,35 @@
       h("div", { class: "note-row" }, input, h("button", { class: "btn primary", onclick: submit }, "書く")), msg), { w: 500, h: 470, x: 300, y: 60 });
     paint();
   }
+  // ファイルの一覧（エクスプローラーふう）。ごみ箱には、前任者が捨てた調査メモがある
+  function openFolder(id, title, files, cols) {
+    let pick = null;
+    const tbody = h("tbody"), info = h("div", { class: "cmp-msg" }), cnt = h("span");
+    const act = f => {
+      if (!f) return;
+      if (f.kind === "notes") { state.flags.notesFound = true; save(); checkQuestions(); buildIcons(); openNotes(); return; }
+      S.error(); info.className = "cmp-msg bad"; info.textContent = f.msg || "開けません。";
+    };
+    const restore = () => {
+      if (!pick || pick.kind !== "notes") { S.error(); info.className = "cmp-msg bad"; info.textContent = pick ? "元に戻せません。" : "ファイルを選んでください。"; return; }
+      state.flags.notesFound = true; state.flags.notesRestored = true; save(); S.click(); checkQuestions(); buildIcons(); paint();
+      info.className = "cmp-msg good"; info.textContent = "「調査メモ.txt」をデスクトップに戻しました。";
+    };
+    function paint() {
+      const list = files.filter(f => !(id === "trash" && f.kind === "notes" && state.flags.notesRestored));
+      tbody.replaceChildren(...list.map(f => h("tr", { class: pick === f ? "sel" : "", tabindex: "0", onclick: () => { pick = f; S.click(); paint(); }, ondblclick: () => act(f), onkeydown: ev => { if (ev.key === "Enter") act(f); } },
+        h("td", {}, (/\.txt$/.test(f.name) ? "📄 " : /\.(jpg|png)$/.test(f.name) ? "🖼 " : /\.zip$/.test(f.name) ? "🗜 " : "📄 ") + f.name), ...cols.map(c => h("td", {}, f[c] || "")))));
+      if (!list.length) tbody.append(h("tr", {}, h("td", { colspan: String(cols.length + 1), class: "tbl-none" }, "空です")));
+      cnt.textContent = list.length + " 個の項目";
+    }
+    const heads = { from: "元の場所", at: id === "trash" ? "削除した日時" : "更新日時" };
+    const bar = h("div", { class: "tbl-bar" }, h("button", { class: "btn", onclick: () => act(pick) }, "開く"), id === "trash" ? h("button", { class: "btn", onclick: restore }, "元に戻す") : null, h("span", { class: "sp" }), cnt);
+    openWin(id, title, h("div", { class: "tbl-wrap folder" }, bar, h("div", { class: "tbl-scroll" }, h("table", { class: "tbl" }, h("thead", {}, h("tr", {}, h("th", {}, "名前"), ...cols.map(c => h("th", {}, heads[c])))), tbody)), h("div", { class: "tbl-foot" }, info)), { w: 560, h: 320, x: 380, y: 160 });
+    paint();
+  }
+  const openTrash = () => openFolder("trash", "ごみ箱", D.trash, ["from", "at"]);
+  const openDownloads = () => openFolder("downloads", "ダウンロード", D.downloads, ["at"]);
+
   // 💡ヒント（見たい人だけ）：問いと、3段階のヒント
   function openHints() {
     state.hintLv = state.hintLv || {};
@@ -476,9 +505,9 @@
     box.append(mk("管理画面", "▤", "linear-gradient(135deg,#3b78e0,#2759b5)", openAdmin, true),
       mk("引き継ぎメモ", "✎", "linear-gradient(135deg,#d9a93a,#a97a14)", openMemo, false));
     window.Apps.iconDefs().forEach(d => box.append(mk(d.label, d.glyph, d.color, d.fn, false, d.badge)));
-    box.append(mk("調査メモ", "？", "linear-gradient(135deg,#6a5acd,#46399c)", openNotes, false, () => qTodo().length));
+    if (state.flags.notesRestored) box.append(mk("調査メモ.txt", "✎", "linear-gradient(135deg,#8a8170,#5f5848)", openNotes, false));
     if (state.day >= 4) box.append(mk("最後の投稿者", "🔒", "linear-gradient(135deg,#555d70,#323847)", openLocked, false));
-    box.append(mk("ダウンロード", "↓", "linear-gradient(135deg,#6b7280,#444a56)", () => {}, false), mk("ごみ箱", "🗑", "linear-gradient(135deg,#59606e,#383d48)", () => {}, false));
+    box.append(mk("ダウンロード", "↓", "linear-gradient(135deg,#6b7280,#444a56)", openDownloads, false), mk("ごみ箱", "🗑", "linear-gradient(135deg,#59606e,#383d48)", openTrash, false, () => (state.flags.notesFound ? 0 : 1)));
     updateBadge();
   }
   function resetDesktop() {
@@ -635,7 +664,7 @@
     const retries = state.queue.filter(e => e.retryN > 0).length;
     toast("新着", "未審査の投稿が" + pendingCount() + "件あります。");
     qToastReady = false; checkQuestions();
-    setTimeout(() => { qToastReady = true; if (state.day === 1 && !state.flags.notesToast) { state.flags.notesToast = true; save(); toast("調査メモ", "前任者の調査メモが、デスクトップに残っています。"); } }, 3800);
+    setTimeout(() => { qToastReady = true;  }, 3800);
     if (retries) setTimeout(() => toast("再投稿", "却下した投稿が、" + retries + "件、再投稿されています。", "warn"), 900);
     const um = window.Apps.unread();
     if (um) setTimeout(() => { S.notify(); toast("新着メール", um + "件の未読メールがあります。"); }, 600);

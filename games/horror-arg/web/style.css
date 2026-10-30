@@ -613,3 +613,7 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .nb-line.done{color:#55534b}
 .nb-you{color:#c4251c;font-size:14px;line-height:22px;padding-left:2.2em;transform:rotate(-1deg)}
 .notes.nb .note-input{background:#fffdf6}
+
+/* ごみ箱・ダウンロード（エクスプローラーふう） */
+.folder .tbl tbody tr.sel{background:#dbe7fb}
+.folder .tbl td:first-child{font-weight:500}
