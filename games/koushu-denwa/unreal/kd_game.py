@@ -111,6 +111,15 @@ FLAG_KEY = "P"                             # テスト用：「謎を1つ解い�
 GHOST_YAW = -90.0                         # 幽霊の向きの補正（度）。今のモデルは回転0度で +Y 向きなので -90。背中を向けるなら 90、横を向くなら 0 か 180
 GHOST_Z = 0.0                             # 幽霊の足の高さの補正（cm）。浮くなら－、地面にめり込むなら＋
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
+GHOST_TILT_DEG = 14.0                      # 幽霊の首かしげの角度（度）。かしげる向きが逆なら － にする。0 で首かしげなし
+GHOST_TILT_SPEED = 0.6                     # 首かしげのゆらぎの速さ（大きいほど速い。0.6 で1往復が約10秒）
+GHOST_JERK = True                          # True: 最後に近づくとき（4回目の場面の終わり・失敗の瞬間）、首をカクッ、カクッと2回動かす
+GHOST_MORPH = True                         # True: 表情（口が開く・笑う）をモーフで動かす。False: 表情は動かさない
+GHOST_JAW_MAX = 0.6                        # 口が開く最大（0〜1）。場面の終わりに向けて、ゆっくり開く
+GHOST_SMILE_BY_LEVEL = [0.0, 0.2, 0.5, 0.8]    # 笑い顔の強さ（演出の強さ1〜4ごと）。失敗の瞬間は歯を見せて笑う（Grin 1.0）
+GHOST_TILT_MODE = "auto"                   # 首かしげのやり方。"auto"=骨が動かせれば骨、だめなら全体／"bone"=骨だけ／"body"=体ぜんたいを傾ける
+GHOST_ANIM_DIR = "/Game/KoushuDenwa/Ghost"     # 幽霊のアニメ（Ghost_HeadTilt_Natural）の置き場所（setup_game_fp.py が取り込む）
+GHOST_ANIM_FULL_DEG = 40.0                 # そのアニメの首の最大の傾き（度）。blender/ghost_face.py の「Natural」= 約40度
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 END2_HOLD = 7.0                            # エンディング②（行方不明）：新聞の絵を出しておく時間（秒）
 END2_SCARE = 3.0                           # エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの時間（秒）
@@ -238,6 +247,13 @@ SETTINGS_DESCR = {
     "GHOST_YAW": "幽霊の向きの補正（度）。背中を向けるなら 180",
     "GHOST_Z": "幽霊の足の高さの補正（cm）。浮くなら－",
     "DEAD_DIST": "失敗のとき、幽霊が目の前に出る距離（cm）",
+    "GHOST_TILT_DEG": "幽霊の首かしげの角度（度）。向きが逆なら － に。0 でなし",
+    "GHOST_TILT_SPEED": "首かしげのゆらぎの速さ（大きいほど速い）",
+    "GHOST_JERK": "true: 最後に近づくとき、首をカクッと2回動かす",
+    "GHOST_MORPH": "true: 幽霊の表情（口が開く・笑う）を動かす。false でなし",
+    "GHOST_JAW_MAX": "幽霊の口が開く最大（0〜1）",
+    "GHOST_SMILE_BY_LEVEL": "幽霊の笑い顔の強さ（演出の強さ1〜4ごと）",
+    "GHOST_TILT_MODE": "首かしげのやり方。auto / bone（骨だけ）/ body（体ぜんたい）",
     "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
     "END2_HOLD": "エンディング②（行方不明）：新聞の絵を出しておく秒数",
     "END2_SCARE": "エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの秒数",
@@ -343,7 +359,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "GHOST_TILT_DEG", "GHOST_TILT_SPEED", "GHOST_JERK", "GHOST_MORPH", "GHOST_JAW_MAX", "GHOST_SMILE_BY_LEVEL", "GHOST_TILT_MODE", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY"]
 
 
 def game_world():
@@ -358,6 +374,250 @@ def game_world():
         except Exception:  # noqa
             continue
     return None
+
+
+class GhostFx:
+    """幽霊の首かしげと表情。アニメBP（ABP）なしで動かす。Game が setup で1つ作り、毎フレーム update(dt) するだけ（tick の中で検索しない）。
+    首かしげ：①骨（FBXに焼いてある Ghost_HeadTilt_Natural を「1コマの再生位置」で止めて、傾きの量だけ位置を動かす）→ だめなら ②体ぜんたいを傾ける
+    表情：SkeletalMeshComponent.set_morph_target で JawOpen / Smile / Grin（blender/ghost_face.py の形状キー名）"""
+
+    JERK_WINDOWS = ((0.0, 0.12), (0.26, 0.38))        # カクッと動く2回の時間帯（秒）
+    MORPHS = ("JawOpen", "Smile", "Grin")
+
+    def __init__(self, actor, logf):
+        self.log = logf
+        self.actor = actor
+        self.comp = None
+        self.method = "none"                           # "bone" / "body"
+        self.morph_ok = False
+        self.names = {}
+        self._warned = set()
+        self.active = False
+        self.dead = False
+        self.level = 0
+        self.hold = 10.0
+        self.t = 0.0
+        self.phase = 0.0
+        self.base_yaw = 0.0
+        self.cur_tilt = 0.0
+        self.jerk_t = -1.0
+        self.jerk_fired = False
+        self.last_jv = 0
+        self.cur = {}                                  # いまの表情の値（なめらかに近づける）
+        self.sent = {}                                 # 最後にモデルへ送った値
+        self.length = 0.0
+        try:
+            self.comp = actor.get_component_by_class(unreal.SkeletalMeshComponent)
+        except Exception:  # noqa
+            self.comp = None
+        self._setup_morph()
+        self._setup_tilt()
+
+    def _warn(self, key, msg):
+        if key not in self._warned:
+            self._warned.add(key)
+            self.log(msg)
+
+    # ---- 準備 ----
+    def _setup_morph(self):
+        if not GHOST_MORPH:
+            self.log("幽霊の表情: 設定でオフ（GHOST_MORPH=False）")
+            return
+        if self.comp is None or not callable(getattr(self.comp, "set_morph_target", None)):
+            self.log("幽霊の表情: 動かせません（本物のモデルではない／set_morph_target がない）")
+            return
+        have = None
+        try:
+            mesh = self.comp.get_editor_property("skeletal_mesh_asset")
+            have = [str(m.get_name()) for m in mesh.get_editor_property("morph_targets")]
+        except Exception:  # noqa
+            have = None
+        for n in self.MORPHS:
+            real = n
+            if have is not None:
+                real = next((h for h in have if h == n), None) or next((h for h in have if h.endswith("." + n) or h.endswith("_" + n)), None)
+                if real is None:
+                    self._warn("m_" + n, "幽霊の表情: モーフ「%s」がモデルにありません（あるのは %s）。この表情は動かしません" % (n, ", ".join(have) or "なし"))
+                    continue
+            self.names[n] = real
+        if have is None:
+            self.log("  (モーフ名の一覧を読めないので、JawOpen/Smile/Grin があるものとして送ります)")
+        self.morph_ok = bool(self.names)
+        if self.morph_ok:
+            self.log("幽霊の表情: モーフ %s を動かします" % ", ".join(self.names))
+
+    def _find_anim(self):
+        comp = self.comp
+        cands = []
+        try:
+            cands.append(comp.get_editor_property("animation_data").get_editor_property("anim_to_play"))
+        except Exception:  # noqa
+            pass
+        try:
+            cands.append(comp.get_editor_property("animation_to_play"))
+        except Exception:  # noqa
+            pass
+        for a in cands:
+            if a is not None and "Face" not in str(a.get_name()):
+                return a
+        try:                                                                  # 見つからないとき：置き場所から「Natural」を探す（setup の外なので1回だけ）
+            for p in unreal.EditorAssetLibrary.list_assets(GHOST_ANIM_DIR, recursive=True, include_folder=False):
+                a = unreal.EditorAssetLibrary.load_asset(p)
+                nm = str(a.get_name())
+                if "Natural" in nm and "Face" not in nm:
+                    return a
+        except Exception:  # noqa
+            pass
+        return None
+
+    def _init_bone(self):
+        comp = self.comp
+        for n in ("set_position", "set_play_rate", "set_animation", "play", "set_animation_mode"):
+            if not callable(getattr(comp, n, None)):
+                return "%s がない" % n
+        seq = self._find_anim()
+        if seq is None:
+            return "首かしげのアニメ（Ghost_HeadTilt_Natural）が見つからない"
+        try:
+            length = float(seq.get_play_length())
+        except Exception:  # noqa
+            length = float(seq.get_editor_property("sequence_length"))
+        if length <= 0.0:
+            return "アニメの長さが読めない"
+        comp.set_animation_mode(unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+        comp.set_animation(seq)
+        comp.play(False)
+        comp.set_play_rate(0.0)                                               # 勝手に進めず、set_position で傾きを決める
+        comp.set_position(0.0, False)
+        self.length = length
+        return None
+
+    def _setup_tilt(self):
+        mode = str(GHOST_TILT_MODE).lower()
+        if GHOST_TILT_DEG == 0.0:
+            self.log("幽霊の首かしげ: 設定でオフ（GHOST_TILT_DEG=0）")
+            return
+        self.method = "body"
+        why = None
+        if self.comp is None:
+            why = "仮の姿（筒）なので"
+        elif mode == "body":
+            why = "GHOST_TILT_MODE=body なので"
+        elif GHOST_TILT_DEG < 0.0:
+            why = "骨のアニメは一方向にしか傾かないので（GHOST_TILT_DEG が－）"
+        else:
+            try:
+                why = self._init_bone()
+            except Exception as e:  # noqa
+                why = "骨を動かす準備でエラー %s" % e
+            if why is None:
+                self.method = "bone"
+        self.log("幽霊の首かしげ: %s%s" % ("骨" if self.method == "bone" else "全体", "" if why is None else "（%s）" % why))
+
+    # ---- 場面の出入り ----
+    def begin(self, level, dead, hold, yaw):
+        self.active = True
+        self.dead = bool(dead)
+        self.level = max(0, int(level))
+        self.hold = max(1.0, float(hold))
+        self.t = 0.0
+        self.phase = 0.0
+        self.base_yaw = float(yaw)
+        self.cur_tilt = 0.0
+        self.jerk_t = -1.0
+        self.jerk_fired = False
+        self.last_jv = 0
+        if self.dead:
+            self.jerk()
+
+    def jerk(self):
+        if GHOST_JERK and GHOST_TILT_DEG != 0.0:
+            self.jerk_t = 0.0
+
+    def end(self):
+        """幽霊が消える：首も表情も、ふつうの状態に戻す"""
+        was = self.active
+        self.active = False
+        self.dead = False
+        self.cur_tilt = 0.0
+        self.jerk_t = -1.0
+        for n in list(self.sent):
+            if self.sent[n] != 0.0:
+                self._send(n, 0.0)
+        self.cur = {}
+        if was:
+            self._apply_tilt(0.0, 0.0)
+
+    # ---- 毎フレーム ----
+    def update(self, dt):
+        if not self.active:
+            return
+        self.t += dt
+        p = 1.0 if self.dead else min(1.0, self.t / self.hold)
+        n_lv = max(1, len(GHOST_SMILE_BY_LEVEL))
+        if GHOST_JERK and not self.dead and not self.jerk_fired and self.level >= n_lv - 1 and p >= 0.8:
+            self.jerk_fired = True                                            # 最後の段階：近づききるころ、首をカクッとさせる
+            self.jerk()
+        jv = 0
+        if self.jerk_t >= 0.0:
+            self.jerk_t += dt
+            if any(a <= self.jerk_t < b for a, b in self.JERK_WINDOWS):
+                jv = 1
+            elif self.jerk_t >= self.JERK_WINDOWS[-1][1]:
+                self.jerk_t = -1.0
+        edge = jv != self.last_jv
+        self.last_jv = jv
+        # 首かしげ：ゆっくり揺れる傾き（0.1〜1.0倍）＋ カクッのときの一瞬の上乗せ
+        self.phase += GHOST_TILT_SPEED * dt
+        sway = 0.55 + 0.45 * math.sin(self.phase)
+        tgt = GHOST_TILT_DEG * sway + GHOST_TILT_DEG * 0.9 * jv
+        k = 1.0 if edge else 1.0 - math.exp(-dt * 3.0)                       # カクッは一瞬で、ふだんはなめらかに
+        self.cur_tilt += (tgt - self.cur_tilt) * k
+        nod = 0.3 * GHOST_TILT_DEG * (0.5 + 0.5 * math.sin(self.phase * 0.7 + 1.0))
+        self._apply_tilt(self.cur_tilt, nod)
+        # 表情
+        if self.morph_ok:
+            if self.dead:
+                tg = {"JawOpen": min(1.0, GHOST_JAW_MAX + 0.4 * jv), "Smile": 0.0, "Grin": 1.0}
+            else:
+                lv = min(self.level, n_lv - 1)
+                tg = {"JawOpen": GHOST_JAW_MAX * p * (lv + 1.0) / n_lv, "Smile": float(GHOST_SMILE_BY_LEVEL[lv]), "Grin": 0.0}
+            kk = 1.0 if edge else 1.0 - math.exp(-dt * 5.0)
+            for n, v in tg.items():
+                if n not in self.names:
+                    continue
+                c = self.cur.get(n, 0.0)
+                c += (v - c) * kk
+                self.cur[n] = c
+                if abs(c - self.sent.get(n, 0.0)) > 0.003:
+                    self._send(n, c)
+
+    def _send(self, n, v):
+        real = self.names.get(n)
+        if real is None or not self.morph_ok:
+            return
+        try:
+            self.comp.set_morph_target(real, float(v))
+            self.sent[n] = float(v)
+        except Exception as e:  # noqa
+            self.morph_ok = False
+            self._warn("m_err", "幽霊の表情: set_morph_target でエラーなので、表情は止めます: %s" % e)
+
+    def _apply_tilt(self, deg, nod):
+        if self.method == "bone":
+            try:
+                f = max(0.0, min(1.0, deg / GHOST_ANIM_FULL_DEG))
+                u = 0.5 - math.sin(math.asin(1.0 - 2.0 * f) / 3.0)            # アニメのなめらかな加速（smoothstep）を逆に引く
+                self.comp.set_position((29.0 + 60.0 * u) / 179.0 * self.length, False)    # コマ1〜30は直立、30〜90で傾く
+            except Exception as e:  # noqa
+                self.method = "body"
+                self._warn("t_err", "幽霊の首かしげ: 骨が動かせないので、全体に切りかえます: %s" % e)
+        elif self.method == "body":
+            try:                                                              # 幽霊は +Y 向き。体の前後の軸まわり＝ピッチ（横にかしげる）、左右の軸まわり＝ロール（少しうなずく）
+                self.actor.set_actor_rotation(unreal.Rotator(nod, deg, self.base_yaw), False)
+            except Exception as e:  # noqa
+                self.method = "none"
+                self._warn("t_err", "幽霊の首かしげ: 体を傾けられません: %s" % e)
 
 
 def label_of(a):
@@ -519,6 +779,11 @@ class Game:
             self.ghost_head = found.get("Ghost_Head")
             if self.ghost_head is not None:
                 self.ghost_head.set_actor_hidden_in_game(True)
+            try:
+                self.gfx = GhostFx(self.ghost, log)                       # 首かしげと表情の準備（部品を最初に1回だけ探す）
+            except Exception as e:  # noqa
+                self.gfx = None
+                log("  (幽霊の首かしげ・表情を準備できません) %s" % e)
         self.dead_t = -1.0
         self.pc = unreal.GameplayStatics.get_player_controller(self.world, 0)
         self.pawn = unreal.GameplayStatics.get_player_pawn(self.world, 0)
@@ -783,7 +1048,7 @@ class Game:
         if self.eye is not None and stage >= 3:
             self.eye.set_actor_hidden_in_game(False)
 
-    def ghost_show(self, x, y, face_x=None, face_y=None):
+    def ghost_show(self, x, y, face_x=None, face_y=None, level=0, dead=False, hold=10.0):
         if self.ghost is None:
             return
         fx = self.cx if face_x is None else face_x
@@ -805,8 +1070,14 @@ class Game:
         self.ghost.set_actor_hidden_in_game(False)
         if self.ghost_head is not None:
             self.ghost_head.set_actor_hidden_in_game(False)
+        gfx = getattr(self, "gfx", None)
+        if gfx is not None:
+            gfx.begin(level, dead, hold, yaw)
 
     def ghost_hide(self):
+        gfx = getattr(self, "gfx", None)
+        if gfx is not None:
+            gfx.end()
         if self.ghost is not None:
             self.ghost.set_actor_hidden_in_game(True)
             if self.ghost_head is not None:
@@ -823,7 +1094,7 @@ class Game:
         fwd = unreal.MathLibrary.get_forward_vector(rot)
         loc = self.pawn.get_actor_location()
         x, y = loc.x + fwd.x * DEAD_DIST, loc.y + fwd.y * DEAD_DIST
-        self.ghost_show(x, y, loc.x, loc.y)
+        self.ghost_show(x, y, loc.x, loc.y, level=len(GHOST_SPOTS) - 1, dead=True, hold=END2_SCARE)
         screen(self.world, "……みつけた", (255, 40, 40), END2_SCARE)
         try:
             self.pc.player_camera_manager.start_camera_fade(0.0, 1.0, 2.5, unreal.LinearColor(0.5, 0, 0, 1), False, True)
@@ -957,6 +1228,8 @@ class Game:
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
+        if getattr(self, "gfx", None) is not None:
+            self.gfx.update(dt)                                   # 幽霊の首かしげと表情（見えていないときは何もしない）
         self.tick_hud()
         if self.state == "READING":
             self.tick_reading()
@@ -2487,7 +2760,8 @@ class Game:
         self.stage = r + 1
         gx, gy = GHOST_SPOTS[min(r, len(GHOST_SPOTS) - 1)]
         th = math.radians(self.front_yaw)               # 入口の向きに合わせて回す（入口が +Y のとき 0 度）
-        self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th))
+        hold = GHOST_HOLD[min(self.level_now, len(GHOST_HOLD) - 1)]
+        self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th), None, None, level=r, hold=hold)
         screen(self.world, GHOST_SUBS[min(r, len(GHOST_SUBS) - 1)], (200, 220, 255), 4.0)
         log("幽霊の場面 %d" % (r + 1))
 
