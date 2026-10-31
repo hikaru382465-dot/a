@@ -9,9 +9,11 @@
   missing_news … バッドエンド用の新聞             sign_entrance … 入口の看板
   lcd_board_idle / lcd_board_1〜3 … 警察・消防の欄の液晶
   glass_glow_0〜9 … 暗い間だけ光る数字（謎7）   glass_hint_c1〜3 … 謎7のヒントの文字
+  glass_hand_1〜4 … ガラスに張りついた幽霊の手形・指の筋（python make_game_textures.py hands）
 使い方：python make_game_textures.py     （謎7の数字とヒントだけなら: python make_game_textures.py glow）
 """
 import os
+import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import make_textures as M
@@ -462,11 +464,170 @@ def make_lcds():
     lcd('みてる', 'lcd_board_3.png', bad=True)
 
 
+# ---------------- ガラスの手形（glass_hand_1〜4）：幽霊がガラスに張りついた跡 ----------------
+HW, HH = 512, 640
+HAND_ALPHA_MAX = 0.55                                         # 手形ぜんたいの透け具合の上限（材質が光らせても、うっすらにする）
+
+
+def _hand_noise(rg, h, w, cell, amp):
+    """手形用のなめらかなノイズ（-amp〜amp）。共有乱数 R を使わない（ほかの画像を変えないため）"""
+    gh, gw = max(2, h // cell + 2), max(2, w // cell + 2)
+    g = (rg.random((gh, gw)) * 2 - 1).astype(np.float32)
+    im = Image.fromarray(((g * 0.5 + 0.5) * 255).astype(np.uint8)).resize((w, h), Image.BICUBIC)
+    return (np.asarray(im, np.float32) / 255.0 * 2 - 1) * amp
+
+
+def _hand_mask(rg, spread=1.0, close=False, mirror=False, scale=1.0, angle=0.0):
+    """手のひら＋指5本（親指つき）の強さ 0〜1（HH x HW）。指先と関節の腹が強く、手のひらの中ほど（くぼみ）は弱い"""
+    S = 2
+    can = Image.new('L', (HW * S, HH * S), 0)
+    d = ImageDraw.Draw(can)
+    cx, py0, py1 = HW // 2, 285, 480                           # 手のひらの上・下
+    pw = 88
+    d.rounded_rectangle([(cx - pw) * S, py0 * S, (cx + pw) * S, py1 * S], radius=60 * S, fill=150)
+    d.rectangle([(cx - 62) * S, (py1 - 20) * S, (cx + 62) * S, (HH + 10) * S], fill=110)           # 手首（下に消える）
+    fingers = [(-64, 150, -9, 38), (-22, 172, -3, 41), (21, 160, 3, 39), (60, 124, 10, 33)]
+    k = 0.45 if close else 1.0
+    for ox, ln, ang, w in fingers:
+        a = math.radians(ang * spread * k)
+        bx, by = cx + ox, py0 + 22
+        ln = ln * (0.97 + 0.06 * rg.random())
+        tx, ty = bx + ln * math.sin(a), by - ln * math.cos(a)
+        d.line([bx * S, by * S, tx * S, ty * S], fill=165, width=int(w * S))
+        for (px, py) in ((bx, by), (tx, ty)):
+            d.ellipse([(px - w / 2) * S, (py - w / 2) * S, (px + w / 2) * S, (py + w / 2) * S], fill=165)
+        for f in (0.0, 0.36, 0.72, 1.0):                         # 関節ごとの腹（強い）
+            px, py = bx + (tx - bx) * f, by + (ty - by) * f
+            r = w * (0.5 if f < 1.0 else 0.56)
+            d.ellipse([(px - r) * S, (py - r * 0.8) * S, (px + r) * S, (py + r * 0.8) * S], fill=235 if f == 1.0 else 205)
+    a = math.radians(-58 * (0.6 if close else 1.0) * spread)             # 親指
+    bx, by = cx - 80, py0 + 120
+    ln, w = 112, 46
+    tx, ty = bx + ln * math.sin(a), by - ln * math.cos(a)
+    d.line([bx * S, by * S, tx * S, ty * S], fill=165, width=int(w * S))
+    d.ellipse([(bx - w / 2) * S, (by - w / 2) * S, (bx + w / 2) * S, (by + w / 2) * S], fill=165)
+    d.ellipse([(tx - w / 2) * S, (ty - w / 2) * S, (tx + w / 2) * S, (ty + w / 2) * S], fill=235)
+    m = np.asarray(can.resize((HW, HH), Image.LANCZOS), np.float32) / 255.0
+    yy = np.arange(HH, dtype=np.float32)[:, None]
+    prof = np.where(yy < py0 + 30, 1.0, np.where(yy < py0 + 75, 0.95, np.where(yy < py1 - 85, 0.55, 0.9)))        # 手のひらの縦の強さ
+    palm = ((yy >= py0 + 20) & (yy <= py1 + 40))
+    m = np.where(palm, m * prof, m)
+    m *= (1.0 - 0.9 * np.clip((yy - 495) / 120.0, 0, 1))          # 手首は下へ消える
+    m *= 0.82 + 0.5 * (_hand_noise(rg, HH, HW, 7, 0.3) + _hand_noise(rg, HH, HW, 26, 0.35))        # 皮ふのむら
+    m = np.clip(m, 0, 1)
+    im = Image.fromarray((m * 255).astype(np.uint8))
+    if mirror:
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    if scale != 1.0 or angle:
+        im = im.resize((int(HW * scale), int(HH * scale)), Image.BICUBIC)
+        can2 = Image.new('L', (HW, HH), 0)
+        can2.paste(im, ((HW - im.width) // 2, (HH - im.height) // 2 + 20))
+        im = can2.rotate(angle, resample=Image.BICUBIC, center=(HW // 2, int(HH * 0.72)))
+    return np.asarray(im, np.float32) / 255.0
+
+
+def _hand_smear(rg, m, length=190, strength=0.75):
+    """指先やふちから下へ、なぞれた筋：列ごとに長さをかえて、下へいくほどうすくなる"""
+    H, W = m.shape
+    Lc = (length * (0.35 + 0.9 * np.clip(_hand_noise(rg, 1, W, 9, 0.5) + 0.5, 0, 1)))[0][None, :]
+    out = m.copy()
+    for k in range(2, int(length * 1.3), 3):
+        wgt = np.clip(1.0 - k / np.maximum(Lc, 1.0), 0, 1) ** 1.4 * strength
+        sh = np.zeros_like(m)
+        sh[k:] = m[:-k]
+        out = np.maximum(out, sh * wgt)
+    return out
+
+
+def _hand_finish(rg, m, smear, drips=7):
+    """強さ m とかすれ smear から、霧のかかったガラスの手形の RGBA 画像を作る：白っぽい灰色・ふちに赤茶・やわらかい端・透け具合は HAND_ALPHA_MAX まで"""
+    H, W = m.shape
+
+    def g(a, r):
+        return np.asarray(Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(r)), np.float32) / 255.0
+    body = g(m, 1.6)
+    sm = g(smear, 2.2)
+    streak = np.clip(sm - body, 0, 1)                             # 筋だけの部分
+    drip = np.zeros_like(m)                                       # 指先から垂れる細い筋
+    ys, xs = np.nonzero((body[:-1] > 0.55) & (body[1:] <= 0.55))
+    if len(ys):
+        for j in rg.choice(len(ys), size=min(len(ys), drips), replace=False):
+            y0, x0 = ys[j], xs[j]
+            ln = int(rg.integers(60, 230))
+            wd = int(rg.integers(1, 3))
+            for t in range(ln):
+                if y0 + t >= H:
+                    break
+                xo = int(x0 + 5 * math.sin(t / 23.0 + j))
+                xo = min(W - 4, max(3, xo))
+                drip[y0 + t, xo - wd:xo + wd + 1] = np.maximum(drip[y0 + t, xo - wd:xo + wd + 1], (1 - t / ln) ** 0.8 * 0.4)
+    drip = g(drip, 1.6)
+    fog = g(np.maximum(m, smear * 0.6), 28) * 0.16                # 手のまわりの、霧がにじんだ広いもや
+    a = np.clip(body * 0.50 + streak * 0.42 + drip * 0.6 + fog, 0, HAND_ALPHA_MAX)
+    inner = g(m, 7)
+    rim = np.clip(1.0 - inner * 1.5, 0, 1) * np.clip(body * 4, 0, 1)         # ふち（中が薄いところ）
+    rim = g(np.maximum(rim, np.clip(streak * 1.5, 0, 1) * 0.5), 3.0)
+    base = np.array([214, 214, 220], np.float32)
+    red = np.array([140, 52, 40], np.float32)
+    rgb = base[None, None, :] * (1 - 0.75 * rim[..., None]) + red[None, None, :] * (0.75 * rim[..., None])
+    rgb *= (0.92 + 0.12 * _hand_noise(rg, H, W, 12, 1.0))[..., None]
+    img = np.zeros((H, W, 4), np.uint8)
+    img[..., :3] = rgb.clip(0, 255).astype(np.uint8)
+    img[..., 3] = (a * 255).astype(np.uint8)
+    return Image.fromarray(img, 'RGBA')
+
+
+def _hand_streaks(rg):
+    """5本の指を、上から下へ引きずった筋（手のひらなし）：頭にだけ指先の丸い跡"""
+    m = np.zeros((HH, HW), np.float32)
+    xs = [128, 200, 272, 340, 396]
+    yy, xx_ = np.mgrid[0:HH, 0:HW]
+    for i, x0 in enumerate(xs):
+        top = 70 + int(rg.integers(0, 40)) + (30 if i in (0, 4) else 0)
+        w = int(rg.integers(15, 22))
+        x = x0 + 14 * np.sin((yy - top) / 90.0 + i) + (yy - top) * 0.06 * (i - 2)
+        L = int(rg.integers(360, 520))
+        t = (yy - top)
+        prof = np.exp(-((xx_ - x) / (w * (0.6 + 0.4 * np.clip(1 - t / L, 0, 1)))) ** 2) * ((t >= 0) & (t < L)) * np.clip(1 - t / L, 0, 1) ** 0.7
+        stp = np.exp(-(((xx_ - x0) / (w * 1.15)) ** 2 + ((yy - top) / (w * 1.4)) ** 2))
+        m = np.maximum(m, np.maximum(prof * 0.8, stp))
+    m *= 0.8 + 0.4 * np.clip(_hand_noise(rg, HH, HW, 10, 0.5) + 0.5, 0, 1)
+    return np.clip(m, 0, 1)
+
+
+def make_hand_prints():
+    """glass_hand_1〜4.png（512x640 の透明PNG）。1=右手・2=左手(指をひらく)・3=指をとじて強く押す(手のひらが下へ流れる)・4=5本の指を引きずった筋。
+    共有乱数 R は使わない（ほかの画像は変えない）"""
+    specs = [
+        dict(kind='hand', seed=1, spread=1.0, mirror=False, scale=0.92, angle=-7, smear=170),
+        dict(kind='hand', seed=2, spread=1.35, mirror=True, scale=0.82, angle=11, smear=120),
+        dict(kind='hand', seed=3, spread=0.8, close=True, mirror=False, scale=0.88, angle=22, smear=260, palm_drag=True),
+        dict(kind='streak', seed=4),
+    ]
+    for i, sp in enumerate(specs, 1):
+        rg = np.random.default_rng(7140 + sp['seed'])
+        if sp['kind'] == 'streak':
+            m = _hand_streaks(rg)
+            sm = _hand_smear(rg, m, length=90, strength=0.5)
+        else:
+            m = _hand_mask(rg, sp['spread'], sp.get('close', False), sp['mirror'], sp['scale'], sp['angle'])
+            sm = _hand_smear(rg, m, length=sp['smear'], strength=0.8)
+            if sp.get('palm_drag'):                               # 手のひらをずらして押しつけた：全体が下へ引きずられる
+                sm = np.maximum(sm, _hand_smear(rg, np.clip(m * 0.9, 0, 1), length=330, strength=0.7))
+        im = _hand_finish(rg, m, sm)
+        p = os.path.join(OUT, 'glass_hand_%d.png' % i)
+        im.save(p, optimize=True)
+        print('保存', 'game/glass_hand_%d.png' % i, im.size, os.path.getsize(p) // 1024, 'KB')
+
+
 if __name__ == '__main__':
     import sys
-    if len(sys.argv) > 1 and sys.argv[1] == 'glow':          # 謎7の数字・ヒントだけ作る（ほかの画像は触らない）
+    if len(sys.argv) > 1 and sys.argv[1] == 'hands':         # ガラスの手形だけ作る（ほかの画像は触らない）
+        make_hand_prints()
+    elif len(sys.argv) > 1 and sys.argv[1] == 'glow':          # 謎7の数字・ヒントだけ作る（ほかの画像は触らない）
         make_glow_digits(); make_code_hints()
     else:
         make_posters(); make_glass_texts(); make_tree_poster(); make_newspapers(); make_gym_card(); make_memo(); make_phonebook(); make_sign(); make_lcds()
         make_glow_digits(); make_code_hints()                  # 共有乱数 R の順番を変えないよう、必ず最後
+        make_hand_prints()                                     # 手形は専用の乱数を使う（順番は関係ない）
     print('完了')

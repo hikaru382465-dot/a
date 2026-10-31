@@ -119,7 +119,21 @@ GHOST_JAW_MAX = 0.6                        # 口が開く最大（0〜1）。場
 GHOST_SMILE_BY_LEVEL = [0.0, 0.2, 0.5, 0.8]    # 笑い顔の強さ（演出の強さ1〜4ごと）。失敗の瞬間は歯を見せて笑う（Grin 1.0）
 GHOST_TILT_MODE = "auto"                   # 首かしげのやり方。"auto"=骨が動かせれば骨、だめなら全体／"bone"=骨だけ／"body"=体ぜんたいを傾ける
 GHOST_ANIM_DIR = "/Game/KoushuDenwa/Ghost"     # 幽霊のアニメ（Ghost_HeadTilt_Natural）の置き場所（setup_game_fp.py が取り込む）
-GHOST_ANIM_FULL_DEG = 40.0                 # そのアニメの首の最大の傾き（度）。blender/ghost_face.py の「Natural」= 約40度
+GLASSGHOST_ENABLE = True                   # True: 幽霊の場面（GLASSGHOST_CARDS）で、幽霊がガラスの外にぴったり張りつく。False: 前と同じ（GHOST_SPOTS の場所に立つだけ）
+GLASSGHOST_CARDS = [4]                     # ガラスに張りつく幽霊の札（1〜4）。[4]=4回目だけ／[3, 4]=3回目と4回目
+GLASSGHOST_GAP = 3.0                       # 幽霊の顔とガラス（外の面）のすきま（cm）。めり込むなら大きく、離れて見えるなら小さく
+GLASSGHOST_FACES = [("L", -0.45), ("R", -0.45), ("F", 0.0)]    # 張りつく面（面, 位置）。面: R=右 L=左 F=入口（ドア）B=奥。位置: -1〜1（R・L は入口側が＋、F は右が＋）。初期値=左の奥寄り・右の奥寄り・ドア
+GLASSGHOST_LEAN_DEG = 10.0                 # ガラスへ体をかたむける角度（度）。向きが逆（のけぞる）なら － にする
+GLASSGHOST_SLIDE = True                    # True: 暗い間に、別の面へ外がわをすべって移る（その場面の後半は、別のガラスにいる）
+GLASSGHOST_HEIGHT = 160.0                  # 幽霊の身長（cm。setup_game_fp.py の GHOST_HEIGHT と同じ）
+GLASSGHOST_HEAD = 0.93                     # 頭の高さ（身長にかける割合）。顔をこの高さに合わせる
+GLASSGHOST_FACE_DEPTH = 9.0                # 頭の中心から顔の表面までの前後の長さ（cm）。顔がガラスにめり込む・離れるときは直す
+GLASSGHOST_GRIN = 0.85                     # ガラスに張りついているときの、笑い（Grin 0〜1）。口は GHOST_JAW_MAX まで開く
+GLASSGHOST_SOUND = "safe_clunk"            # 張りついたときの「ドン」という音（SOUND_DIR の音の名前）。""で鳴らさない
+GLASSGHOST_HANDS = (2, 3)                  # 1回の場面で、あらたに見えるようになる手形の数（最小, 最大）。残りの手形は見えないまま
+HAND_PER_SCARE = 1                         # 強さ2以上の「張り紙の演出」のたびに、あらたに見える手形の数
+HAND_DELAY = 0.6                           # 手形が1つずつ見えるまでの間隔（秒）
+GHOST_ANIM_FULL_DEG = 40.0                # そのアニメの首の最大の傾き（度）。blender/ghost_face.py の「Natural」= 約40度
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
 END2_HOLD = 7.0                            # エンディング②（行方不明）：新聞の絵を出しておく時間（秒）
 END2_SCARE = 3.0                           # エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの時間（秒）
@@ -267,6 +281,20 @@ SETTINGS_DESCR = {
     "INV_KEY": "持ち物の一覧を開く／とじるキー",
     "INV_DRINK_KEY": "持ち物を開いている間の、プロテインを飲むキー",
     "INV_WALLET_KEY": "持ち物を開いている間の、財布（ジムの会員証）を見るキー",
+    "GLASSGHOST_ENABLE": "true: 幽霊がガラスの外に張りつく場面を使う。false: 前と同じ",
+    "GLASSGHOST_CARDS": "ガラスに張りつく幽霊の札（1〜4。[4]=4回目だけ、[3,4]=3回目と4回目）",
+    "GLASSGHOST_GAP": "幽霊の顔とガラスの外の面のすきま（cm）",
+    "GLASSGHOST_FACES": "張りつく面の一覧 [面, 位置]。面は R/L/F/B、位置は -1〜1（初期値は 左・右・ドア）",
+    "GLASSGHOST_LEAN_DEG": "ガラスへ体をかたむける角度（度）。逆向きなら －",
+    "GLASSGHOST_SLIDE": "true: 暗い間に、別の面へすべって移る",
+    "GLASSGHOST_HEIGHT": "幽霊の身長（cm）",
+    "GLASSGHOST_HEAD": "頭の高さ（身長にかける割合）",
+    "GLASSGHOST_FACE_DEPTH": "頭の中心から顔の表面までの長さ（cm）",
+    "GLASSGHOST_GRIN": "ガラスに張りついているときの笑い（0〜1）",
+    "GLASSGHOST_SOUND": "張りついたときの音の名前（空で鳴らさない）",
+    "GLASSGHOST_HANDS": "1回の場面であらたに見える手形の数 [最小, 最大]",
+    "HAND_PER_SCARE": "強さ2以上の張り紙の演出のたびに、あらたに見える手形の数",
+    "HAND_DELAY": "手形が1つずつ見えるまでの間隔（秒）",
     "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
     "FRONT": "電話ボックスの入口の向き（+X / -X / +Y / -Y）",
     "START_DIST": "プレイヤーを入口の前から何cm離して立たせるか",
@@ -359,7 +387,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "GHOST_TILT_DEG", "GHOST_TILT_SPEED", "GHOST_JERK", "GHOST_MORPH", "GHOST_JAW_MAX", "GHOST_SMILE_BY_LEVEL", "GHOST_TILT_MODE", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "GHOST_TILT_DEG", "GHOST_TILT_SPEED", "GHOST_JERK", "GHOST_MORPH", "GHOST_JAW_MAX", "GHOST_SMILE_BY_LEVEL", "GHOST_TILT_MODE", "GLASSGHOST_ENABLE", "GLASSGHOST_CARDS", "GLASSGHOST_GAP", "GLASSGHOST_FACES", "GLASSGHOST_LEAN_DEG", "GLASSGHOST_SLIDE", "GLASSGHOST_HEIGHT", "GLASSGHOST_HEAD", "GLASSGHOST_FACE_DEPTH", "GLASSGHOST_GRIN", "GLASSGHOST_SOUND", "GLASSGHOST_HANDS", "HAND_PER_SCARE", "HAND_DELAY", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY"]
 
 
 def game_world():
@@ -403,6 +431,8 @@ class GhostFx:
         self.jerk_t = -1.0
         self.jerk_fired = False
         self.last_jv = 0
+        self.glass = False                             # True: ガラスに張りついている（口を開けて笑う・体をガラスへかたむける）
+        self.lean = 0.0
         self.cur = {}                                  # いまの表情の値（なめらかに近づける）
         self.sent = {}                                 # 最後にモデルへ送った値
         self.length = 0.0
@@ -515,8 +545,10 @@ class GhostFx:
         self.log("幽霊の首かしげ: %s%s" % ("骨" if self.method == "bone" else "全体", "" if why is None else "（%s）" % why))
 
     # ---- 場面の出入り ----
-    def begin(self, level, dead, hold, yaw):
+    def begin(self, level, dead, hold, yaw, glass=False, lean=0.0):
         self.active = True
+        self.glass = bool(glass) and not dead
+        self.lean = float(lean) if self.glass else 0.0
         self.dead = bool(dead)
         self.level = max(0, int(level))
         self.hold = max(1.0, float(hold))
@@ -539,6 +571,8 @@ class GhostFx:
         was = self.active
         self.active = False
         self.dead = False
+        self.glass = False
+        self.lean = 0.0
         self.cur_tilt = 0.0
         self.jerk_t = -1.0
         for n in list(self.sent):
@@ -579,6 +613,8 @@ class GhostFx:
         if self.morph_ok:
             if self.dead:
                 tg = {"JawOpen": min(1.0, GHOST_JAW_MAX + 0.4 * jv), "Smile": 0.0, "Grin": 1.0}
+            elif self.glass:                                                  # ガラスに張りつく：口を大きく開け、にたあっと笑う
+                tg = {"JawOpen": min(1.0, GHOST_JAW_MAX * min(1.0, 0.5 + 0.5 * p) + 0.4 * jv), "Smile": 0.0, "Grin": float(GLASSGHOST_GRIN)}
             else:
                 lv = min(self.level, n_lv - 1)
                 tg = {"JawOpen": GHOST_JAW_MAX * p * (lv + 1.0) / n_lv, "Smile": float(GHOST_SMILE_BY_LEVEL[lv]), "Grin": 0.0}
@@ -614,7 +650,7 @@ class GhostFx:
                 self._warn("t_err", "幽霊の首かしげ: 骨が動かせないので、全体に切りかえます: %s" % e)
         elif self.method == "body":
             try:                                                              # 幽霊は +Y 向き。体の前後の軸まわり＝ピッチ（横にかしげる）、左右の軸まわり＝ロール（少しうなずく）
-                self.actor.set_actor_rotation(unreal.Rotator(nod, deg, self.base_yaw), False)
+                self.actor.set_actor_rotation(unreal.Rotator(nod + self.lean, deg, self.base_yaw), False)
             except Exception as e:  # noqa
                 self.method = "none"
                 self._warn("t_err", "幽霊の首かしげ: 体を傾けられません: %s" % e)
@@ -773,6 +809,7 @@ class Game:
         if self.hint is not None:
             self.hint.set_actor_hidden_in_game(False)             # 手がかりの張り紙は、はじめから貼ってある（入った瞬間に現れない）
         self.setup_code(found)
+        self.setup_hands(found)
         self.ghost = found.get("Ghost")
         if self.ghost is not None:
             self.ghost.set_actor_hidden_in_game(True)
@@ -829,6 +866,7 @@ class Game:
             isc = inner.get_actor_scale3d()
             if isc.x > 5.0 and isc.y > 5.0:
                 self.in_t, self.in_n = isc.x, isc.y
+        self.glass_n, self.glass_t = (self.in_n + 1.5, self.in_t + 1.5) if inner is not None else (max(20.0, self.half_n - 3.0), max(20.0, self.half_t - 3.0))      # ガラスの外の面（setup_game_fp.py は、歩ける広さを ガラスの外の面 − 1.5cm にしている）
         log("中の歩ける広さ: 横 ±%.0fcm・奥行き ±%.0fcm（体の太さ %.0fcm）" % (self.in_t, self.in_n, PAWN_RADIUS))
         self.shrink_capsule()
         self.snd = {}
@@ -1037,6 +1075,7 @@ class Game:
         for kind, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if kind == "world" else mult))
         self.update_code_glow(mult)
+        self.update_hands()
 
     def reveal(self, stage):
         frac = POSTER_FRAC[min(stage, len(POSTER_FRAC)) - 1]
@@ -1048,9 +1087,10 @@ class Game:
         if self.eye is not None and stage >= 3:
             self.eye.set_actor_hidden_in_game(False)
 
-    def ghost_show(self, x, y, face_x=None, face_y=None, level=0, dead=False, hold=10.0):
+    def ghost_show(self, x, y, face_x=None, face_y=None, level=0, dead=False, hold=10.0, glass=False, lean=0.0):
         if self.ghost is None:
             return
+        self.gslide = None                                                    # ガラスをすべっている最中なら、止める
         fx = self.cx if face_x is None else face_x
         fy = self.cy if face_y is None else face_y
         yaw = math.degrees(math.atan2(fy - y, fx - x)) + GHOST_YAW
@@ -1066,15 +1106,17 @@ class Game:
             real = False
         if not real:
             gz += 80.0
-        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, gz + GHOST_Z), unreal.Rotator(0, 0, yaw), False, False)
+        self.ghost_z = gz + GHOST_Z
+        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, gz + GHOST_Z), unreal.Rotator(lean, 0, yaw), False, False)
         self.ghost.set_actor_hidden_in_game(False)
         if self.ghost_head is not None:
             self.ghost_head.set_actor_hidden_in_game(False)
         gfx = getattr(self, "gfx", None)
         if gfx is not None:
-            gfx.begin(level, dead, hold, yaw)
+            gfx.begin(level, dead, hold, yaw, glass, lean)
 
     def ghost_hide(self):
+        self.gslide = None
         gfx = getattr(self, "gfx", None)
         if gfx is not None:
             gfx.end()
@@ -1228,6 +1270,8 @@ class Game:
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
+        self.tick_glass_slide(dt)
+        self.tick_hands(dt)
         if getattr(self, "gfx", None) is not None:
             self.gfx.update(dt)                                   # 幽霊の首かしげと表情（見えていないときは何もしない）
         self.tick_hud()
@@ -2681,6 +2725,8 @@ class Game:
         n_hold = min(level, len(GHOST_HOLD) - 1)
         if typ == "ghost":
             sp = level if spot is None else spot
+            if self.glass_enabled(sp):
+                return self.glass_steps(sp, GHOST_HOLD[n_hold])
             return [("flicker", FLICKER_TIME, None, None),
                     ("dark", DARK_TIME, self.hide_all, lambda sp=sp: self.ghost_scene(sp)),
                     ("idle", GHOST_HOLD[n_hold], None, None),
@@ -2765,12 +2811,204 @@ class Game:
         screen(self.world, GHOST_SUBS[min(r, len(GHOST_SUBS) - 1)], (200, 220, 255), 4.0)
         log("幽霊の場面 %d" % (r + 1))
 
+    # ---- ガラスに張りつく幽霊（GLASSGHOST_*）と、ガラスの外の手形（KD_Hand_*） ----
+    def glass_enabled(self, sp):
+        return bool(GLASSGHOST_ENABLE) and self.ghost is not None and (sp + 1) in [int(c) for c in GLASSGHOST_CARDS] and len(self.glass_faces()) > 0
+
+    def glass_faces(self):
+        return [(str(f[0]).upper(), max(-1.0, min(1.0, float(f[1])))) for f in GLASSGHOST_FACES if str(f[0]).upper() in ("R", "L", "F", "B")]
+
+    def glass_off(self):
+        """ガラスの外の面から、幽霊の足もとまでの距離（cm）。体をかたむけた分（頭が前に出る）と顔の厚みを足して、顔とガラスのすきまが GLASSGHOST_GAP になるようにする"""
+        rad = math.radians(abs(GLASSGHOST_LEAN_DEG))
+        return GLASSGHOST_GAP + GLASSGHOST_FACE_DEPTH * math.cos(rad) + GLASSGHOST_HEIGHT * GLASSGHOST_HEAD * math.sin(rad)
+
+    def glass_rect(self):
+        off = self.glass_off()
+        gn = getattr(self, "glass_n", None) or max(20.0, self.half_n - 3.0)
+        gt = getattr(self, "glass_t", None) or max(20.0, self.half_t - 3.0)
+        return gn, gt, gn + off, gt + off                                    # ガラスの半分(n, t)・幽霊の足もとが並ぶ長方形の半分(n, t)
+
+    def glass_s(self, face):
+        """面（壁, 位置）を、長方形のまわりの道のりの上の位置 s にする（入口 F の左端から、R→B→L の順に一周）"""
+        gn, gt, hn, ht = self.glass_rect()
+        wall, f = face
+        if wall == "F":
+            return ht + f * gt
+        if wall == "R":
+            return 2 * ht + (hn - f * gn)
+        if wall == "B":
+            return 2 * ht + 2 * hn + (ht - f * gt)
+        return 4 * ht + 2 * hn + (f * gn + hn)
+
+    def glass_pt(self, s):
+        """道のりの位置 s → (入口方向の位置 n, 横の位置 t, 壁の名前)"""
+        gn, gt, hn, ht = self.glass_rect()
+        s %= 4 * (hn + ht)
+        if s < 2 * ht:
+            return hn, s - ht, "F"
+        s -= 2 * ht
+        if s < 2 * hn:
+            return hn - s, ht, "R"
+        s -= 2 * hn
+        if s < 2 * ht:
+            return -hn, ht - s, "B"
+        s -= 2 * ht
+        return -hn + s, -ht, "L"
+
+    def glass_world(self, n, t):
+        th = math.radians(self.front_yaw)
+        return self.cx + n * (-math.sin(th)) + t * math.cos(th), self.cy + n * math.cos(th) + t * math.sin(th)
+
+    def glass_inward(self, wall):
+        """壁の名前 → 内向きの単位ベクトル（世界）"""
+        th = math.radians(self.front_yaw)
+        nx, ny, tx, ty = -math.sin(th), math.cos(th), math.cos(th), math.sin(th)
+        return {"F": (-nx, -ny), "B": (nx, ny), "R": (-tx, -ty), "L": (tx, ty)}[wall]
+
+    def glass_pick(self, avoid=None):
+        fs = [f for f in self.glass_faces() if f != avoid]
+        c = [f for f in fs if f != getattr(self, "glass_last", None)] or fs          # 前の場面と同じ面は、なるべく避ける
+        return random.choice(c) if c else None
+
+    def glass_steps(self, sp, hold):
+        """ガラスに張りつく幽霊の場面：明るくなるとガラスの外にぴったり張りついている → 暗い間に別の面へすべる → 明るくなると別のガラスにいる"""
+        fa = self.glass_pick()
+        fb = self.glass_pick(fa) if GLASSGHOST_SLIDE else None
+        n = random.randint(int(min(GLASSGHOST_HANDS)), int(max(GLASSGHOST_HANDS)))
+        fl = ("flicker", FLICKER_TIME, None, None)
+        if fb is None:
+            return [fl, ("dark", DARK_TIME, self.hide_all, lambda: self.glass_ghost_scene(sp, fa, hold, n, True)),
+                    ("idle", hold, None, None), fl, ("dark", DARK_TIME, self.ghost_hide, None)]
+        h = hold * 0.5
+        n1 = n - n // 2
+        return [fl, ("dark", DARK_TIME, self.hide_all, lambda: self.glass_ghost_scene(sp, fa, h, n1, True)),
+                ("idle", h, None, None), fl,
+                ("dark", DARK_TIME, lambda: self.glass_slide_begin(fa, fb), lambda: self.glass_ghost_scene(sp, fb, h, n - n1, False)),
+                ("idle", h, None, None), fl, ("dark", DARK_TIME, self.ghost_hide, None)]
+
+    def glass_ghost_scene(self, r, face, hold, n_hands, first):
+        if self.code_active or self.ghost is None:                           # 謎7の場面の間は、幽霊を出さない
+            return
+        self.stage = r + 1
+        wall, f = face
+        n, t, _w = self.glass_pt(self.glass_s(face))
+        x, y = self.glass_world(n, t)
+        ix, iy = self.glass_inward(wall)
+        self.ghost_show(x, y, x + ix * 100.0, y + iy * 100.0, level=r, hold=hold, glass=True, lean=GLASSGHOST_LEAN_DEG)
+        self.glass_last = face
+        if GLASSGHOST_SOUND:
+            self.play(GLASSGHOST_SOUND)
+        self.hand_reveal_near(x, y, n_hands)
+        if first:
+            screen(self.world, GHOST_SUBS[min(r, len(GHOST_SUBS) - 1)], (200, 220, 255), 4.0)
+        log("幽霊の場面 %d（ガラスに張りつく：%s %.2f・顔とガラスのすきま %.1fcm）" % (r + 1, wall, f, GLASSGHOST_GAP))
+
+    def glass_slide_begin(self, fa, fb):
+        """暗い間：幽霊が、ガラスの外がわを、別の面へすべる（角は曲がる）"""
+        if self.ghost is None:
+            return
+        sa, sb = self.glass_s(fa), self.glass_s(fb)
+        r = self.glass_rect()
+        P = 4 * (r[2] + r[3])
+        d = (sb - sa + P / 2.0) % P - P / 2.0                                # 近いほうの回り方
+        self.gslide = {"sa": sa, "d": d, "t": 0.0, "dur": max(0.3, DARK_TIME * 0.9)}
+
+    def tick_glass_slide(self, dt):
+        sl = getattr(self, "gslide", None)
+        if sl is None or self.ghost is None:
+            return
+        sl["t"] += dt
+        u = min(1.0, sl["t"] / sl["dur"])
+        e = u * u * (3.0 - 2.0 * u)
+        n, t, wall = self.glass_pt(sl["sa"] + sl["d"] * e)
+        x, y = self.glass_world(n, t)
+        ix, iy = self.glass_inward(wall)
+        yaw = math.degrees(math.atan2(iy, ix)) + GHOST_YAW
+        try:
+            self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, getattr(self, "ghost_z", 0.0)), unreal.Rotator(GLASSGHOST_LEAN_DEG, 0, yaw), False, False)
+            gfx = getattr(self, "gfx", None)
+            if gfx is not None:
+                gfx.base_yaw = yaw
+        except Exception as ex:  # noqa
+            self.gslide = None
+            log("  (ガラスをすべる動きを止めます) %s" % ex)
+        if u >= 1.0:
+            self.gslide = None
+
+    def setup_hands(self, found):
+        self.hands = sorted([(k, v) for k, v in found.items() if k.startswith("KD_Hand_")], key=lambda kv: kv[0])
+        self.hand_shown = set()
+        self.hand_queue = []
+        self._hand_key = None
+        self.gslide = None
+        self.glass_last = None
+        for _k, a in self.hands:
+            a.set_actor_hidden_in_game(True)
+        log("ガラスの手形: %d 枚（最初は見えません）" % len(self.hands))
+
+    def hand_pick(self, n, near=None):
+        taken = set(self.hand_shown) | set(i for _d, i in self.hand_queue)
+        cand = [i for i in range(len(self.hands)) if i not in taken]
+        if near is not None:
+            def dist(i):
+                try:
+                    p = self.hands[i][1].get_actor_location()
+                    return math.hypot(p.x - near[0], p.y - near[1]) + 0.3 * abs(p.z - near[2])
+                except Exception:  # noqa
+                    return 1e9
+            cand.sort(key=dist)
+            return cand[:n]
+        random.shuffle(cand)
+        return cand[:n]
+
+    def hand_reveal_near(self, x, y, n):
+        if not getattr(self, "hands", None) or n <= 0:
+            return
+        z = getattr(self, "ghost_z", 0.0) + GLASSGHOST_HEIGHT * GLASSGHOST_HEAD
+        for k, i in enumerate(self.hand_pick(n, (x, y, z))):
+            self.hand_queue.append([HAND_DELAY * (k + 1), i])
+
+    def hand_reveal_random(self, n):
+        if not getattr(self, "hands", None) or n <= 0:
+            return
+        for k, i in enumerate(self.hand_pick(n)):
+            self.hand_queue.append([HAND_DELAY * (k + 1), i])
+
+    def tick_hands(self, dt):
+        q = getattr(self, "hand_queue", None)
+        if not q:
+            return
+        for e in q:
+            e[0] -= dt
+        due = [e for e in q if e[0] <= 0.0]
+        if due:
+            self.hand_queue = [e for e in q if e[0] > 0.0]
+            for _d, i in due:
+                self.hand_shown.add(i)
+            self.update_hands()
+
+    def update_hands(self):
+        """見えるようになった手形だけ見せる。謎7の暗い間（外の木の数字が見えるように、ガラスの言葉を消す間）は、ぜんぶ隠す"""
+        hands = getattr(self, "hands", None)
+        if not hands:
+            return
+        hide = bool(getattr(self, "code_active", False)) and self.mult < 0.05
+        key = (tuple(sorted(self.hand_shown)), hide)
+        if key == self._hand_key:
+            return
+        self._hand_key = key
+        for i, (_k, a) in enumerate(hands):
+            a.set_actor_hidden_in_game(hide or i not in self.hand_shown)
+
     def poster_scene_begin(self, r):
         self.stage = r + 1
         frac = POSTER_FRAC[min(r, len(POSTER_FRAC) - 1)]
         self.poster_target = int(math.ceil(len(self.posters) * frac))
         self.poster_shown = 0
         self.poster_round = r
+        if r >= 1 and HAND_PER_SCARE > 0:                          # 強さ2以上の張り紙の演出：手形もひとつ、ガラスの外に見えてくる
+            self.hand_reveal_random(HAND_PER_SCARE)
         screen(self.world, "（紙が……貼られていく）", (255, 160, 160), 3.0)
         try:
             a0 = self.posters[0][1]

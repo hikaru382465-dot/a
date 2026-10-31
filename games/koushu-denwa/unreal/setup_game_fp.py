@@ -59,6 +59,12 @@ GLASS_SIZE_MIN = 0.8                 # 散りばめる文字の大きさのば�
 GLASS_SIZE_MAX = 1.5
 GLASS_TILT = 7.0                     # 散りばめる文字の傾き（度。±）
 POSTER_SCALE = 0.5                   # 張り紙の大きさ（1.0 = 横50cm×縦70cm）。大きすぎて外が見えないときは小さくする
+HAND_COUNT = 12                      # ガラスの外がわに貼る手形（KD_Hand_01〜）の数。0 でなし（最初は隠れていて、幽霊がガラスに張りつくたびに増える）。最大 24
+HAND_GLOW = 1.0                      # 手形の光り方（ガラスの文字 GLASS_GLOW よりずっと弱く、うっすら白く）
+HAND_SIZE_MIN = 25.0                 # 手形の大きさ（板の高さ cm）の下限と上限。ランダムに決める
+HAND_SIZE_MAX = 40.0
+HAND_HEIGHT_MIN, HAND_HEIGHT_MAX = 90.0, 190.0     # 手形の中心の高さ（床から cm）の範囲
+HAND_OUT = 1.5                       # 手形を、ガラスの外がわの面から、さらに外へ何cm 離すか（ガラスにめり込むなら大きく）
 KEEP_HAND_PLACEMENT = True           # True: 掲示板・張り紙を手で動かしてあれば、この準備を実行し直しても、その位置のまま。false にすると、BOARD_* などの数字の位置に作り直す
 BOARD_SCALE = 0.75                   # 掲示板の大きさ（1.0 = 横264×高さ245cm。公衆電話が高さ約314cm なので、0.75 で横198×高さ184cm）
 SAFE_BACK = -28.0                    # ダイヤル式の金庫を、ボックスの中心から奥（入口の反対）へ何cm（－が奥）
@@ -103,6 +109,13 @@ SETTINGS_DESCR = {
     "CODE_TREE_GLOW": "謎7：外の木の数字の光り方（ガラスの文字の光り方にかける倍率）",
     "GLASS_SPREAD": "true: ガラスの文字を、ガラスぜんたいに散りばめる。false: 昔の12か所だけ",
     "GLASS_COUNT": "ガラスの文字の枚数（散りばめるとき。12〜36）",
+    "HAND_COUNT": "ガラスの外がわの手形の数（0でなし。最大24）。幽霊がガラスに張りつくたびに、近くの手形が見えるようになる",
+    "HAND_GLOW": "手形の光り方（ガラスの文字より弱く、うっすら）",
+    "HAND_SIZE_MIN": "手形の大きさ（高さcm）の下限",
+    "HAND_SIZE_MAX": "手形の大きさ（高さcm）の上限",
+    "HAND_HEIGHT_MIN": "手形の中心の高さ（床からcm）の下限",
+    "HAND_HEIGHT_MAX": "手形の中心の高さ（床からcm）の上限",
+    "HAND_OUT": "手形を、ガラスの外がわの面から外へ何cm離すか",
     "GLASS_SIZE_MIN": "散りばめる文字の大きさの倍率の下限（ガラスの文字の大きさにかける）",
     "GLASS_SIZE_MAX": "散りばめる文字の大きさの倍率の上限",
     "GLASS_TILT": "散りばめる文字の傾き（度。±）",
@@ -231,7 +244,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_TREE_SIZE", "CODE_TREE_Z", "CODE_TREE_MIN", "CODE_TREE_MAX", "CODE_TREE_ANGLE", "CODE_TREE_PICK", "CODE_TREE_ORDER", "CODE_TREE_TRUNK_R", "CODE_TREE_GLOW", "GLASS_SPREAD", "GLASS_COUNT", "GLASS_SIZE_MIN", "GLASS_SIZE_MAX", "GLASS_TILT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_TREE_SIZE", "CODE_TREE_Z", "CODE_TREE_MIN", "CODE_TREE_MAX", "CODE_TREE_ANGLE", "CODE_TREE_PICK", "CODE_TREE_ORDER", "CODE_TREE_TRUNK_R", "CODE_TREE_GLOW", "GLASS_SPREAD", "GLASS_COUNT", "GLASS_SIZE_MIN", "GLASS_SIZE_MAX", "GLASS_TILT", "HAND_COUNT", "HAND_GLOW", "HAND_SIZE_MIN", "HAND_SIZE_MAX", "HAND_HEIGHT_MIN", "HAND_HEIGHT_MAX", "HAND_OUT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -510,6 +523,10 @@ def s_poster_materials():
         setp(m, "two_sided", True)
         t = xx(m, unreal.MaterialExpressionTextureSample, -800, 0)
         t.set_editor_property("texture", tex)
+        if base.startswith("glass_hand_"):                  # 手形：透明な背景に、白っぽい灰色の跡。文字より弱くうっすら光る（M_GlassHand1〜4）
+            glass_glow_material(m, t, HAND_GLOW)
+            mats[base] = m
+            continue
         if base.startswith("glass_"):                       # ガラスの文字：紙なし。背景は透明、文字だけがうっすら光る
             glass_glow_material(m, t, GLASS_GLOW)
             mats[base] = m
@@ -1181,6 +1198,51 @@ def s_posters():
         a.set_actor_hidden_in_game(True)
         n += 1
     log("張り紙を貼りました: %d 枚（最初は見えません）%s" % (n, "。ガラスぜんたいに散りばめました" if GLASS_SPREAD else ""))
+
+
+HAND_WALLS = ["R", "L", "F"]                       # 手形をつける面（電話機のある奥 B は避ける）
+
+
+def hand_plan(count, seed=1313):
+    """手形の場所の一覧 [(壁, u, 高さ z, 板の高さ cm, 傾き度, 絵の番号 1〜4)]。3面に順ぐりに、1面の中は端から端まで均等＋ゆらぎ。同じ seed なら、いつも同じ"""
+    rng = random.Random(seed)
+    count = max(0, min(24, int(count)))
+    per = int(math.ceil(count / float(len(HAND_WALLS)))) if count else 0
+    out = []
+    for i in range(count):
+        wall = HAND_WALLS[i % len(HAND_WALLS)]
+        j = i // len(HAND_WALLS)
+        fu = (j + 0.5) / max(1, per) * 2.0 - 1.0 + rng.uniform(-0.25, 0.25) / max(1, per)
+        u = max(-0.85, min(0.85, fu * 0.85)) * wall_half(wall)
+        z = rng.uniform(HAND_HEIGHT_MIN, HAND_HEIGHT_MAX)
+        size = rng.uniform(min(HAND_SIZE_MIN, HAND_SIZE_MAX), max(HAND_SIZE_MIN, HAND_SIZE_MAX))
+        out.append((wall, u, z, size, rng.uniform(-14.0, 14.0), 1 + rng.randrange(4)))
+    return out
+
+
+def s_hands():
+    """ガラスの外がわの手形 KD_Hand_01〜（最初は隠れている）。ガラスの外の面から HAND_OUT cm 外へ、面が内側を向くように貼る。kd_game.py が、幽霊の張りつきに合わせて見せる"""
+    mesh = STATE["poster_mesh"]
+    mats = STATE["poster_mats"]
+    n = 0
+    rng = random.Random(1314)
+    for i, (wall, u, z, size, tilt, tex) in enumerate(hand_plan(HAND_COUNT)):
+        key = "glass_hand_%d" % tex
+        if key not in mats:
+            log("  (手形の画像なし) %s" % key)
+            continue
+        loc, yaw = wall_pose_rel(wall, u, z, -(GLASS_GAP + HAND_OUT))       # extra がマイナス＝外へ。GLASS_GAP ぶん戻ると、ガラスの外の面
+        a = spawn(unreal.StaticMeshActor, loc, (0, tilt, yaw + rng.uniform(-3, 3)))
+        c = a.get_component_by_class(unreal.StaticMeshComponent)
+        c.set_static_mesh(mesh)
+        c.set_material(0, mats[key])
+        setp(c, "mobility", unreal.ComponentMobility.MOVABLE)
+        k = size / 70.0                                     # 板の高さ 70cm を size にする倍率
+        a.set_actor_scale3d(unreal.Vector(k * 1.12, k, k))   # 絵は 512x640（板は 50x70）なので、横を 1.12 倍して形を合わせる
+        tag_actor(a, "KD_Hand_%02d" % (i + 1))
+        a.set_actor_hidden_in_game(True)
+        n += 1
+    log("ガラスの手形（外がわ）: %d 枚（最初は見えません）" % n)
 
 
 # 謎7：4枚の「貼られる紙」（ガラスの文字）。貼られる順に 右の奥→左の手前→ドア→右の手前（形式は SLOTS と同じ）。奥の壁（電話機とヒント）は避ける
@@ -1932,6 +1994,7 @@ def main():
     step("張り紙の板", s_poster_mesh, ["環境確認"])
     step("張り紙の材質", s_poster_materials, ["張り紙の画像"])
     step("張り紙を貼る", s_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
+    step("ガラスの手形", s_hands, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("暗号の張り紙", s_code_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("幽霊（仮）", s_ghost, ["前回の生成物を消す"])
     step("掲示板の画像", s_board_textures, ["環境確認"])
