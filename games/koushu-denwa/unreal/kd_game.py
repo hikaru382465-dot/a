@@ -42,6 +42,26 @@ SWAY_SPEED = 0.35              # ゆれる速さ（1秒に何回）
 BOOK_LABEL = "book"            # 本の名前（アウトライナーの名前に入っている言葉）。違うときは kd_settings.json で直す
 SAFE_LABEL = "safe"            # 金庫の名前に入っている言葉
 SAFE_CODE = [("L", 19), ("R", 3), ("L", 8)]   # 金庫の外の扉の番号（L=左へ回して止める／R=右）。新聞の「19-3-8」と、液晶の「ヒダリ ミギ ヒダリ」
+BOX_CODE = [2, 15, 4, 9]       # 金庫の中の箱（ボタン1〜16）を押す順番。新聞の2つ目の数列「2-15-4-9」
+BOX_CAM_FOV = 60.0             # 箱のボタンを押す間の、専用カメラの視野（大きいほど広く見える）
+BOX_DIST = 25.0                # カメラから、ボタンの面までの距離（cm）
+BOX_BTN = 3.2                  # ボタン1個の大きさ（cm）。4×4 を画面の真ん中に並べる
+BOX_DEBUG = False              # True: ボタンの枠と数字を、線と文字で全部出す（本物の箱があるので、ふだんは False）
+BOX_HOVER = True               # True: 本物の箱で、マウスが指しているボタンに細い枠を出す
+BOX_FLIP = False               # True: 左右を反転する（ゲームの中で、ボタンの数字の並びが左右逆だったら True）
+BOX_TOP_H = 6.2                # 箱の原点から、ボタンの面までの高さ（cm・箱の倍率をかける前）
+ENVELOPE_CODE = [3, 6, 1, 8]   # 赤い封筒の4けたの鍵（仮の例。本物は、ひかるが決める）。答えはここ1か所だけ：i番目に貼られる張り紙に、i番目の数字が暗い間だけ光る（謎7）
+ENVELOPE_DECOYS = {"1997": "「えげつない」の張り紙の年だ……鍵は動かない", "0728": "カメラの広告の728円……これも違う"}   # ひっかけの数字と、出す文（はずれとして数える）
+CODE_FLICKER = 1.0             # 謎7（暗い間だけ光る数字）：1枚ごとの最初の点滅（秒）
+CODE_DARK = 2.5                # 暗い間（秒）。暗くなった瞬間に、新しい張り紙が貼られ、貼られた分の数字が光る
+CODE_LIT = 3.0                 # 明るい間（秒）。数字は消えて、ガラスの文字の言葉だけ見える
+CODE_FINAL_DARK = 6.0          # 4枚目のあとの、最後の暗い間（秒）。4つ全部の数字が光る
+CODE_HOLD = 8.0                # そのあと、明るいまま4枚が貼られている時間（秒）
+CODE_DARK_BLACK = 0.0          # 謎7の暗い間の、画面の黒さ（0〜1）。0 なら光だけ消して画面は見える（数字が見えるように）。1.0 にすると数字も見えなくなる
+CODE_HINT_INTERVAL = 90.0      # 封筒を持っているのに開けていないとき、電話機の上のヒントの文字が変わる間隔（秒）
+CODE_PERM_SAFE = True          # True: 封筒の鍵が答えの「並べかえ」のとき、「順番がちがう？」と出すだけで、幽霊は近づかない
+ENVELOPE_WRONG_GHOST = True    # True: 封筒の鍵をまちがえると、幽霊が1歩近づく（謎が進まないときの「圧力」と同じ）
+DOOR_RANGE = 200.0             # 鍵を持ったとき、扉をこの距離（cm）まで見ると「Eで開ける」が出る
 DIAL_STEP_TIME = 0.07          # ダイヤルが1目盛り回るのに、キーを押しつづける時間（秒）
 TRAP_MARGIN = 3.0              # 閉じ込められている間、ガラスの内がわから、体（PAWN_RADIUS）のほかに、さらにこの距離（cm）あけて止まる（壁ぎわのガタガタ・すり抜け止め）
 PAWN_RADIUS = 22.0             # 体の太さ（カプセルの半径・cm）。ふつうの 34 より細くして、せまい電話ボックスの中を動きやすくする。0 で変えない
@@ -77,6 +97,7 @@ ENTER_FADE_OUT = 0.9           # 暗くなるまでの時間（秒）
 ENTER_BLACK = 2.6              # 真っ暗のまま待つ時間（秒）。この間に「ドアが開く音 → 中に入る音 → 扉が閉まる音」が鳴る
 ENTER_FADE_IN = 1.4            # 明るくなるまでの時間（秒）
 SOUND_DIR = "/Game/KoushuDenwa/Sounds"
+MATERIAL_DIR = "/Game/KoushuDenwa/Materials"          # setup_game_fp.py が材質（M_CodeGlowTree0〜9・M_GlassGlow0〜9・M_GlassHintC1〜3）を置く場所
 # 幽霊が出る場所（ボックス中心からの位置 cm。正面＝+Y）。段階1〜4で、だんだん近づく
 GHOST_SPOTS = [(0.0, 1300.0), (-240.0, 750.0), (270.0, 360.0), (115.0, 25.0)]
 GHOST_SUBS = ["（外に、誰か立っている……）", "（さっきより、近い）", "（ガラスに、何か貼られている）", "（すぐそこにいる）"]
@@ -90,7 +111,42 @@ FLAG_KEY = "P"                             # テスト用：「謎を1つ解い�
 GHOST_YAW = -90.0                         # 幽霊の向きの補正（度）。今のモデルは回転0度で +Y 向きなので -90。背中を向けるなら 90、横を向くなら 0 か 180
 GHOST_Z = 0.0                             # 幽霊の足の高さの補正（cm）。浮くなら－、地面にめり込むなら＋
 DEAD_DIST = 70.0                           # 失敗のとき、幽霊が目の前に出る距離（cm）
+GHOST_TILT_DEG = 14.0                      # 幽霊の首かしげの角度（度）。かしげる向きが逆なら － にする。0 で首かしげなし
+GHOST_TILT_SPEED = 0.6                     # 首かしげのゆらぎの速さ（大きいほど速い。0.6 で1往復が約10秒）
+GHOST_JERK = True                          # True: 最後に近づくとき（4回目の場面の終わり・失敗の瞬間）、首をカクッ、カクッと2回動かす
+GHOST_MORPH = True                         # True: 表情（口が開く・笑う）をモーフで動かす。False: 表情は動かさない
+GHOST_JAW_MAX = 0.6                        # 口が開く最大（0〜1）。場面の終わりに向けて、ゆっくり開く
+GHOST_SMILE_BY_LEVEL = [0.0, 0.2, 0.5, 0.8]    # 笑い顔の強さ（演出の強さ1〜4ごと）。失敗の瞬間は歯を見せて笑う（Grin 1.0）
+GHOST_TILT_MODE = "auto"                   # 首かしげのやり方。"auto"=骨が動かせれば骨、だめなら全体／"bone"=骨だけ／"body"=体ぜんたいを傾ける
+GHOST_ANIM_DIR = "/Game/KoushuDenwa/Ghost"     # 幽霊のアニメ（Ghost_HeadTilt_Natural）の置き場所（setup_game_fp.py が取り込む）
+GLASSGHOST_ENABLE = True                   # True: 幽霊の場面（GLASSGHOST_CARDS）で、幽霊がガラスの外にぴったり張りつく。False: 前と同じ（GHOST_SPOTS の場所に立つだけ）
+GLASSGHOST_CARDS = [4]                     # ガラスに張りつく幽霊の札（1〜4）。[4]=4回目だけ／[3, 4]=3回目と4回目
+GLASSGHOST_GAP = 3.0                       # 幽霊の顔とガラス（外の面）のすきま（cm）。めり込むなら大きく、離れて見えるなら小さく
+GLASSGHOST_FACES = [("L", -0.45), ("R", -0.45), ("F", 0.0)]    # 張りつく面（面, 位置）。面: R=右 L=左 F=入口（ドア）B=奥。位置: -1〜1（R・L は入口側が＋、F は右が＋）。初期値=左の奥寄り・右の奥寄り・ドア
+GLASSGHOST_LEAN_DEG = 10.0                 # ガラスへ体をかたむける角度（度）。向きが逆（のけぞる）なら － にする
+GLASSGHOST_SLIDE = True                    # True: 暗い間に、別の面へ外がわをすべって移る（その場面の後半は、別のガラスにいる）
+GLASSGHOST_HEIGHT = 160.0                  # 幽霊の身長（cm。setup_game_fp.py の GHOST_HEIGHT と同じ）
+GLASSGHOST_HEAD = 0.93                     # 頭の高さ（身長にかける割合）。顔をこの高さに合わせる
+GLASSGHOST_FACE_DEPTH = 9.0                # 頭の中心から顔の表面までの前後の長さ（cm）。顔がガラスにめり込む・離れるときは直す
+GLASSGHOST_GRIN = 0.85                     # ガラスに張りついているときの、笑い（Grin 0〜1）。口は GHOST_JAW_MAX まで開く
+GLASSGHOST_SOUND = "safe_clunk"            # 張りついたときの「ドン」という音（SOUND_DIR の音の名前）。""で鳴らさない
+GLASSGHOST_HANDS = (2, 3)                  # 1回の場面で、あらたに見えるようになる手形の数（最小, 最大）。残りの手形は見えないまま
+HAND_PER_SCARE = 1                         # 強さ2以上の「張り紙の演出」のたびに、あらたに見える手形の数
+HAND_DELAY = 0.6                           # 手形が1つずつ見えるまでの間隔（秒）
+GHOST_ANIM_FULL_DEG = 40.0                # そのアニメの首の最大の傾き（度）。blender/ghost_face.py の「Natural」= 約40度
 RESTART_AFTER = 6.0                        # 失敗してから、最初に戻るまでの時間（秒）
+END2_HOLD = 7.0                            # エンディング②（行方不明）：新聞の絵を出しておく時間（秒）
+END2_SCARE = 3.0                           # エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの時間（秒）
+END2_FADE = 1.0                            # エンディング②：新聞の前に、真っ暗にする時間（秒）
+END2_SIZE = 47.0                           # エンディング②：新聞の絵の大きさ（cm・目の前 READ_DIST に出す）
+BREAK_CODE = "2929"                        # エンディング③（ドアぶっ壊し）：電話にかける番号（ニクニク）。ジム会員証の「俺最強2929」がヒント
+BREAK_FLY_TIME = 1.2                       # ドアが吹っ飛んでいる時間（秒）
+BREAK_FLY_DIST = 450.0                     # ドアが飛んでいく距離（cm・入口の外向き）
+BREAK_SHAKE = 1.5                          # ドアが飛ぶときの画面のゆれ（度）。0 でゆれない
+BREAK_CARD_TIME = 1.5                      # 「ムキッ！」のカットインを出す時間（秒）
+INV_KEY = "I"                              # 持ち物の一覧を開く／とじるキー。開いている間：[E] プロテインを飲む／[Y] 財布を見る
+INV_DRINK_KEY = "E"                        # 持ち物を開いている間の、プロテインを飲むキー
+INV_WALLET_KEY = "Y"                       # 持ち物を開いている間の、財布（ジムの会員証）を見るキー
 FLASH_OUTSIDE = 1.0            # 外にいるときの、懐中電灯の明るさの倍率（まぶしいときは小さく。0.5 で半分）
 FLASH_INSIDE = 0.12          # 閉じ込められたあと、懐中電灯の明るさを、外にいたときの何倍にするか（中は狭くてまぶしいので小さく）
 TUBE_SCALE = 1.0             # 蛍光灯の光の強さの倍率（明るすぎるときは小さくする）
@@ -100,6 +156,16 @@ GLASS_DIRT = 0.25            # ガラスのくもり具合（0=ほぼ透明 〜 
 FLICKER_BLACK = 0.88         # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
 DARK_BLACK = 1.0             # 暗転のあいだ、画面をこの割合だけ黒くする（どの光が残っていても、ちゃんと暗くなる）。1.0=真っ黒
 DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
+GHOSTLIGHT_ENABLE = True     # True: ガラスの外に幽霊が見えているあいだ、幽霊の顔に冷たい小さな光（KD_GhostLight）を当てる。False: 当てない
+GHOSTLIGHT_INTENSITY = 8.0   # その光の明るさ（カンデラ）。ジャンプスケア（失敗エンド）のときは2倍。ガラスに光の点が映るなら小さく
+GHOSTLIGHT_RADIUS = 220.0    # その光の届く距離（cm）。小さいほど、電話ボックスの中を照らさない
+GHOSTLIGHT_COLOR = (0.6, 0.75, 1.0)   # その光の色（赤, 緑, 青 各0〜1）。青白い
+GHOSTLIGHT_UP = 45.0         # ガラスに張りつく場面：頭の上へ何cm（光の高さ）
+GHOSTLIGHT_BACK = 40.0       # ガラスに張りつく場面：ガラスと反対がわ（幽霊のうしろ）へ何cm
+GHOSTLIGHT_FRONT = 70.0      # 遠くに立つ場面：顔の前（ボックスのほう）へ何cm
+GHOSTLIGHT_FLICKER = 0.2     # 光のゆらぎ（0.1秒ごとに ±この割合）。0 でゆれない
+GHOST_INTERIOR_DIM = 0.35    # ガラスの外に幽霊が見えているあいだ、ボックスの中の蛍光灯をこの倍率まで暗くする（ガラスの映り込みが減る）。1.0 で暗くしない
+GHOST_INTERIOR_TIME = 0.4    # その暗くなる／戻る時間（秒）
 # ----------------------------------------------------
 
 LOG_PREFIX = "[KD] "
@@ -109,9 +175,13 @@ def log(msg):
     unreal.log(LOG_PREFIX + str(msg))
 
 
-def screen(world, msg, color=(255, 255, 255), t=3.0):
+def screen(world, msg, color=(255, 255, 255), t=3.0, key=None):
     try:
-        unreal.SystemLibrary.print_string(world, str(msg), True, False, unreal.LinearColor(color[0] / 255.0, color[1] / 255.0, color[2] / 255.0, 1.0), t)
+        lc = unreal.LinearColor(color[0] / 255.0, color[1] / 255.0, color[2] / 255.0, 1.0)
+        if key:
+            unreal.SystemLibrary.print_string(world, str(msg), True, False, lc, t, key)          # 同じ key の文字は置きかわる（カットインの拡大用）
+        else:
+            unreal.SystemLibrary.print_string(world, str(msg), True, False, lc, t)
     except Exception:  # noqa
         pass
 
@@ -129,6 +199,16 @@ SETTINGS_DESCR = {
     "FLICKER_BLACK": "点滅の「消えた」瞬間に画面を黒くする割合（0〜1）。点滅が暗くならないなら大きく",
     "DARK_BLACK": "暗転のあいだに画面を黒くする割合（0〜1）",
     "DARK_WORLD": "暗転のとき、月と空の光を何倍まで下げるか",
+    "GHOSTLIGHT_ENABLE": "true: 外の幽霊の顔に、冷たい小さな光を当てる（暗くて見えにくいとき）。false: 当てない",
+    "GHOSTLIGHT_INTENSITY": "幽霊の光の明るさ（カンデラ）。ガラスに光の点が映って目立つなら小さく、幽霊が暗いなら大きく",
+    "GHOSTLIGHT_RADIUS": "幽霊の光の届く距離（cm）。小さいほど、ボックスの中を照らさない",
+    "GHOSTLIGHT_COLOR": "幽霊の光の色（赤, 緑, 青 各0〜1）",
+    "GHOSTLIGHT_UP": "ガラスに張りつく場面で、光を頭の上へ何cm 置くか",
+    "GHOSTLIGHT_BACK": "ガラスに張りつく場面で、光を幽霊のうしろ（ガラスと反対）へ何cm 置くか",
+    "GHOSTLIGHT_FRONT": "遠くに立つ場面で、光を顔の前へ何cm 置くか",
+    "GHOSTLIGHT_FLICKER": "幽霊の光のゆらぎ（±割合）。0 でゆれない",
+    "GHOST_INTERIOR_DIM": "外に幽霊が見えているあいだ、ボックスの中の蛍光灯を何倍まで暗くするか（1.0 で暗くしない）",
+    "GHOST_INTERIOR_TIME": "中の光が暗くなる／戻る時間（秒）",
     "GLASS_DIRT": "ガラスのくもりの強さ（M_KDGlass を使うとき）",
     "WALK_SPEED": "歩く速さ（cm/秒）。テンプレのキャラには効かない",
     "ENTER_RANGE": "入口の前の、E で入れる距離（cm）",
@@ -139,6 +219,26 @@ SETTINGS_DESCR = {
     "BOOK_LABEL": "本の名前に入っている言葉（アウトライナーで確認）",
     "SAFE_LABEL": "金庫の名前に入っている言葉（アウトライナーで確認）",
     "SAFE_CODE": "金庫の番号。[[\"L\",19],[\"R\",3],[\"L\",8]] のように、向き（L左・R右）と数字",
+    "BOX_CODE": "金庫の中の箱のボタンを押す順番。[2,15,4,9] のように、1〜16 の数字",
+    "BOX_CAM_FOV": "箱のボタンを押す間の、カメラの視野（大きいほど広く見える）",
+    "BOX_DIST": "カメラから、箱のボタンの面までの距離（cm）",
+    "BOX_BTN": "箱のボタン1個の大きさ（cm）",
+    "BOX_DEBUG": "true: 箱のボタンの枠と数字を線と文字で全部出す",
+    "BOX_HOVER": "true: 箱のボタンのうち、マウスが指している1個に細い枠を出す",
+    "BOX_FLIP": "true: 箱のボタンの左右を反転する（数字の並びが逆のとき）",
+    "BOX_TOP_H": "箱の原点から、ボタンの面までの高さ（cm）",
+    "ENVELOPE_CODE": "赤い封筒の4けたの鍵。[3,6,1,8] のように、0〜9 の数字を4つ（仮の例）",
+    "ENVELOPE_DECOYS": "ひっかけの4けたと、出す文。{\"1997\": \"文\", \"0728\": \"文\"} のように（はずれとして数える）",
+    "ENVELOPE_WRONG_GHOST": "true: 封筒の鍵をまちがえると、幽霊が1歩近づく",
+    "CODE_FLICKER": "謎7：1枚ごとの最初の点滅の長さ（秒）",
+    "CODE_DARK": "謎7：暗い間の長さ（秒）。新しい張り紙が貼られ、光る数字が出る",
+    "CODE_LIT": "謎7：明るい間の長さ（秒）。数字は消える",
+    "CODE_FINAL_DARK": "謎7：4枚目のあとの、最後の暗い間（秒）。4つ全部光る",
+    "CODE_HOLD": "謎7：最後に、明るいまま4枚が貼られている時間（秒）",
+    "CODE_DARK_BLACK": "謎7：暗い間の画面の黒さ（0〜1）。0 で数字が見える。1 だと数字も見えない",
+    "CODE_HINT_INTERVAL": "謎7：封筒が開かないとき、電話機の上のヒントが変わる間隔（秒）",
+    "CODE_PERM_SAFE": "true: 封筒の鍵が答えの並べかえのとき、幽霊は近づかない（順番がちがう、と出すだけ）",
+    "DOOR_RANGE": "鍵を持ったとき、扉を「Eで開ける」ために見る距離（cm）",
     "DIAL_STEP_TIME": "ダイヤルが1目盛り回る秒数（小さいほど速い）",
     "DIAL_SIGN": "ダイヤルの見た目の向きが逆なら -1 にする",
     "START_DIST": "開始位置が変な所のとき、入口の正面から何cm 離して立たせるか",
@@ -181,7 +281,40 @@ SETTINGS_DESCR = {
     "GHOST_YAW": "幽霊の向きの補正（度）。背中を向けるなら 180",
     "GHOST_Z": "幽霊の足の高さの補正（cm）。浮くなら－",
     "DEAD_DIST": "失敗のとき、幽霊が目の前に出る距離（cm）",
+    "GHOST_TILT_DEG": "幽霊の首かしげの角度（度）。向きが逆なら － に。0 でなし",
+    "GHOST_TILT_SPEED": "首かしげのゆらぎの速さ（大きいほど速い）",
+    "GHOST_JERK": "true: 最後に近づくとき、首をカクッと2回動かす",
+    "GHOST_MORPH": "true: 幽霊の表情（口が開く・笑う）を動かす。false でなし",
+    "GHOST_JAW_MAX": "幽霊の口が開く最大（0〜1）",
+    "GHOST_SMILE_BY_LEVEL": "幽霊の笑い顔の強さ（演出の強さ1〜4ごと）",
+    "GHOST_TILT_MODE": "首かしげのやり方。auto / bone（骨だけ）/ body（体ぜんたい）",
     "RESTART_AFTER": "失敗してから最初に戻るまでの秒数",
+    "END2_HOLD": "エンディング②（行方不明）：新聞の絵を出しておく秒数",
+    "END2_SCARE": "エンディング②：幽霊が目の前に出てから、新聞に切りかわるまでの秒数",
+    "END2_FADE": "エンディング②：新聞の前の、真っ暗の秒数",
+    "END2_SIZE": "エンディング②：新聞の絵の大きさ（cm）",
+    "BREAK_CODE": "エンディング③（ドアぶっ壊し）の電話番号。プロテインを飲んでからかける",
+    "BREAK_FLY_TIME": "エンディング③：ドアが吹っ飛んでいる秒数",
+    "BREAK_FLY_DIST": "エンディング③：ドアが飛んでいく距離（cm）",
+    "BREAK_SHAKE": "エンディング③：ドアが飛ぶときの画面のゆれ（度）。0 でゆれない",
+    "BREAK_CARD_TIME": "エンディング③：「ムキッ！」のカットインの秒数",
+    "INV_KEY": "持ち物の一覧を開く／とじるキー",
+    "INV_DRINK_KEY": "持ち物を開いている間の、プロテインを飲むキー",
+    "INV_WALLET_KEY": "持ち物を開いている間の、財布（ジムの会員証）を見るキー",
+    "GLASSGHOST_ENABLE": "true: 幽霊がガラスの外に張りつく場面を使う。false: 前と同じ",
+    "GLASSGHOST_CARDS": "ガラスに張りつく幽霊の札（1〜4。[4]=4回目だけ、[3,4]=3回目と4回目）",
+    "GLASSGHOST_GAP": "幽霊の顔とガラスの外の面のすきま（cm）",
+    "GLASSGHOST_FACES": "張りつく面の一覧 [面, 位置]。面は R/L/F/B、位置は -1〜1（初期値は 左・右・ドア）",
+    "GLASSGHOST_LEAN_DEG": "ガラスへ体をかたむける角度（度）。逆向きなら －",
+    "GLASSGHOST_SLIDE": "true: 暗い間に、別の面へすべって移る",
+    "GLASSGHOST_HEIGHT": "幽霊の身長（cm）",
+    "GLASSGHOST_HEAD": "頭の高さ（身長にかける割合）",
+    "GLASSGHOST_FACE_DEPTH": "頭の中心から顔の表面までの長さ（cm）",
+    "GLASSGHOST_GRIN": "ガラスに張りついているときの笑い（0〜1）",
+    "GLASSGHOST_SOUND": "張りついたときの音の名前（空で鳴らさない）",
+    "GLASSGHOST_HANDS": "1回の場面であらたに見える手形の数 [最小, 最大]",
+    "HAND_PER_SCARE": "強さ2以上の張り紙の演出のたびに、あらたに見える手形の数",
+    "HAND_DELAY": "手形が1つずつ見えるまでの間隔（秒）",
     "GHOST_SPOTS": "幽霊の出る場所（[横, 入口の方向] の cm。ボックスの中心から。4か所）",
     "FRONT": "電話ボックスの入口の向き（+X / -X / +Y / -Y）",
     "START_DIST": "プレイヤーを入口の前から何cm離して立たせるか",
@@ -274,7 +407,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "RESTART_AFTER", "GHOST_SPOTS"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "GHOST_TILT_DEG", "GHOST_TILT_SPEED", "GHOST_JERK", "GHOST_MORPH", "GHOST_JAW_MAX", "GHOST_SMILE_BY_LEVEL", "GHOST_TILT_MODE", "GLASSGHOST_ENABLE", "GLASSGHOST_CARDS", "GLASSGHOST_GAP", "GLASSGHOST_FACES", "GLASSGHOST_LEAN_DEG", "GLASSGHOST_SLIDE", "GLASSGHOST_HEIGHT", "GLASSGHOST_HEAD", "GLASSGHOST_FACE_DEPTH", "GLASSGHOST_GRIN", "GLASSGHOST_SOUND", "GLASSGHOST_HANDS", "HAND_PER_SCARE", "HAND_DELAY", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY", "GHOSTLIGHT_ENABLE", "GHOSTLIGHT_INTENSITY", "GHOSTLIGHT_RADIUS", "GHOSTLIGHT_COLOR", "GHOSTLIGHT_UP", "GHOSTLIGHT_BACK", "GHOSTLIGHT_FRONT", "GHOSTLIGHT_FLICKER", "GHOST_INTERIOR_DIM", "GHOST_INTERIOR_TIME"]
 
 
 def game_world():
@@ -291,6 +424,258 @@ def game_world():
     return None
 
 
+class GhostFx:
+    """幽霊の首かしげと表情。アニメBP（ABP）なしで動かす。Game が setup で1つ作り、毎フレーム update(dt) するだけ（tick の中で検索しない）。
+    首かしげ：①骨（FBXに焼いてある Ghost_HeadTilt_Natural を「1コマの再生位置」で止めて、傾きの量だけ位置を動かす）→ だめなら ②体ぜんたいを傾ける
+    表情：SkeletalMeshComponent.set_morph_target で JawOpen / Smile / Grin（blender/ghost_face.py の形状キー名）"""
+
+    JERK_WINDOWS = ((0.0, 0.12), (0.26, 0.38))        # カクッと動く2回の時間帯（秒）
+    MORPHS = ("JawOpen", "Smile", "Grin")
+
+    def __init__(self, actor, logf):
+        self.log = logf
+        self.actor = actor
+        self.comp = None
+        self.method = "none"                           # "bone" / "body"
+        self.morph_ok = False
+        self.names = {}
+        self._warned = set()
+        self.active = False
+        self.dead = False
+        self.level = 0
+        self.hold = 10.0
+        self.t = 0.0
+        self.phase = 0.0
+        self.base_yaw = 0.0
+        self.cur_tilt = 0.0
+        self.jerk_t = -1.0
+        self.jerk_fired = False
+        self.last_jv = 0
+        self.glass = False                             # True: ガラスに張りついている（口を開けて笑う・体をガラスへかたむける）
+        self.lean = 0.0
+        self.cur = {}                                  # いまの表情の値（なめらかに近づける）
+        self.sent = {}                                 # 最後にモデルへ送った値
+        self.length = 0.0
+        try:
+            self.comp = actor.get_component_by_class(unreal.SkeletalMeshComponent)
+        except Exception:  # noqa
+            self.comp = None
+        self._setup_morph()
+        self._setup_tilt()
+
+    def _warn(self, key, msg):
+        if key not in self._warned:
+            self._warned.add(key)
+            self.log(msg)
+
+    # ---- 準備 ----
+    def _setup_morph(self):
+        if not GHOST_MORPH:
+            self.log("幽霊の表情: 設定でオフ（GHOST_MORPH=False）")
+            return
+        if self.comp is None or not callable(getattr(self.comp, "set_morph_target", None)):
+            self.log("幽霊の表情: 動かせません（本物のモデルではない／set_morph_target がない）")
+            return
+        have = None
+        try:
+            mesh = self.comp.get_editor_property("skeletal_mesh_asset")
+            have = [str(m.get_name()) for m in mesh.get_editor_property("morph_targets")]
+        except Exception:  # noqa
+            have = None
+        for n in self.MORPHS:
+            real = n
+            if have is not None:
+                real = next((h for h in have if h == n), None) or next((h for h in have if h.endswith("." + n) or h.endswith("_" + n)), None)
+                if real is None:
+                    self._warn("m_" + n, "幽霊の表情: モーフ「%s」がモデルにありません（あるのは %s）。この表情は動かしません" % (n, ", ".join(have) or "なし"))
+                    continue
+            self.names[n] = real
+        if have is None:
+            self.log("  (モーフ名の一覧を読めないので、JawOpen/Smile/Grin があるものとして送ります)")
+        self.morph_ok = bool(self.names)
+        if self.morph_ok:
+            self.log("幽霊の表情: モーフ %s を動かします" % ", ".join(self.names))
+
+    def _find_anim(self):
+        comp = self.comp
+        cands = []
+        try:
+            cands.append(comp.get_editor_property("animation_data").get_editor_property("anim_to_play"))
+        except Exception:  # noqa
+            pass
+        try:
+            cands.append(comp.get_editor_property("animation_to_play"))
+        except Exception:  # noqa
+            pass
+        for a in cands:
+            if a is not None and "Face" not in str(a.get_name()):
+                return a
+        try:                                                                  # 見つからないとき：置き場所から「Natural」を探す（setup の外なので1回だけ）
+            for p in unreal.EditorAssetLibrary.list_assets(GHOST_ANIM_DIR, recursive=True, include_folder=False):
+                a = unreal.EditorAssetLibrary.load_asset(p)
+                nm = str(a.get_name())
+                if "Natural" in nm and "Face" not in nm:
+                    return a
+        except Exception:  # noqa
+            pass
+        return None
+
+    def _init_bone(self):
+        comp = self.comp
+        for n in ("set_position", "set_play_rate", "set_animation", "play", "set_animation_mode"):
+            if not callable(getattr(comp, n, None)):
+                return "%s がない" % n
+        seq = self._find_anim()
+        if seq is None:
+            return "首かしげのアニメ（Ghost_HeadTilt_Natural）が見つからない"
+        try:
+            length = float(seq.get_play_length())
+        except Exception:  # noqa
+            length = float(seq.get_editor_property("sequence_length"))
+        if length <= 0.0:
+            return "アニメの長さが読めない"
+        comp.set_animation_mode(unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+        comp.set_animation(seq)
+        comp.play(False)
+        comp.set_play_rate(0.0)                                               # 勝手に進めず、set_position で傾きを決める
+        comp.set_position(0.0, False)
+        self.length = length
+        return None
+
+    def _setup_tilt(self):
+        mode = str(GHOST_TILT_MODE).lower()
+        if GHOST_TILT_DEG == 0.0:
+            self.log("幽霊の首かしげ: 設定でオフ（GHOST_TILT_DEG=0）")
+            return
+        self.method = "body"
+        why = None
+        if self.comp is None:
+            why = "仮の姿（筒）なので"
+        elif mode == "body":
+            why = "GHOST_TILT_MODE=body なので"
+        elif GHOST_TILT_DEG < 0.0:
+            why = "骨のアニメは一方向にしか傾かないので（GHOST_TILT_DEG が－）"
+        else:
+            try:
+                why = self._init_bone()
+            except Exception as e:  # noqa
+                why = "骨を動かす準備でエラー %s" % e
+            if why is None:
+                self.method = "bone"
+        self.log("幽霊の首かしげ: %s%s" % ("骨" if self.method == "bone" else "全体", "" if why is None else "（%s）" % why))
+
+    # ---- 場面の出入り ----
+    def begin(self, level, dead, hold, yaw, glass=False, lean=0.0):
+        self.active = True
+        self.glass = bool(glass) and not dead
+        self.lean = float(lean) if self.glass else 0.0
+        self.dead = bool(dead)
+        self.level = max(0, int(level))
+        self.hold = max(1.0, float(hold))
+        self.t = 0.0
+        self.phase = 0.0
+        self.base_yaw = float(yaw)
+        self.cur_tilt = 0.0
+        self.jerk_t = -1.0
+        self.jerk_fired = False
+        self.last_jv = 0
+        if self.dead:
+            self.jerk()
+
+    def jerk(self):
+        if GHOST_JERK and GHOST_TILT_DEG != 0.0:
+            self.jerk_t = 0.0
+
+    def end(self):
+        """幽霊が消える：首も表情も、ふつうの状態に戻す"""
+        was = self.active
+        self.active = False
+        self.dead = False
+        self.glass = False
+        self.lean = 0.0
+        self.cur_tilt = 0.0
+        self.jerk_t = -1.0
+        for n in list(self.sent):
+            if self.sent[n] != 0.0:
+                self._send(n, 0.0)
+        self.cur = {}
+        if was:
+            self._apply_tilt(0.0, 0.0)
+
+    # ---- 毎フレーム ----
+    def update(self, dt):
+        if not self.active:
+            return
+        self.t += dt
+        p = 1.0 if self.dead else min(1.0, self.t / self.hold)
+        n_lv = max(1, len(GHOST_SMILE_BY_LEVEL))
+        if GHOST_JERK and not self.dead and not self.jerk_fired and self.level >= n_lv - 1 and p >= 0.8:
+            self.jerk_fired = True                                            # 最後の段階：近づききるころ、首をカクッとさせる
+            self.jerk()
+        jv = 0
+        if self.jerk_t >= 0.0:
+            self.jerk_t += dt
+            if any(a <= self.jerk_t < b for a, b in self.JERK_WINDOWS):
+                jv = 1
+            elif self.jerk_t >= self.JERK_WINDOWS[-1][1]:
+                self.jerk_t = -1.0
+        edge = jv != self.last_jv
+        self.last_jv = jv
+        # 首かしげ：ゆっくり揺れる傾き（0.1〜1.0倍）＋ カクッのときの一瞬の上乗せ
+        self.phase += GHOST_TILT_SPEED * dt
+        sway = 0.55 + 0.45 * math.sin(self.phase)
+        tgt = GHOST_TILT_DEG * sway + GHOST_TILT_DEG * 0.9 * jv
+        k = 1.0 if edge else 1.0 - math.exp(-dt * 3.0)                       # カクッは一瞬で、ふだんはなめらかに
+        self.cur_tilt += (tgt - self.cur_tilt) * k
+        nod = 0.3 * GHOST_TILT_DEG * (0.5 + 0.5 * math.sin(self.phase * 0.7 + 1.0))
+        self._apply_tilt(self.cur_tilt, nod)
+        # 表情
+        if self.morph_ok:
+            if self.dead:
+                tg = {"JawOpen": min(1.0, GHOST_JAW_MAX + 0.4 * jv), "Smile": 0.0, "Grin": 1.0}
+            elif self.glass:                                                  # ガラスに張りつく：口を大きく開け、にたあっと笑う
+                tg = {"JawOpen": min(1.0, GHOST_JAW_MAX * min(1.0, 0.5 + 0.5 * p) + 0.4 * jv), "Smile": 0.0, "Grin": float(GLASSGHOST_GRIN)}
+            else:
+                lv = min(self.level, n_lv - 1)
+                tg = {"JawOpen": GHOST_JAW_MAX * p * (lv + 1.0) / n_lv, "Smile": float(GHOST_SMILE_BY_LEVEL[lv]), "Grin": 0.0}
+            kk = 1.0 if edge else 1.0 - math.exp(-dt * 5.0)
+            for n, v in tg.items():
+                if n not in self.names:
+                    continue
+                c = self.cur.get(n, 0.0)
+                c += (v - c) * kk
+                self.cur[n] = c
+                if abs(c - self.sent.get(n, 0.0)) > 0.003:
+                    self._send(n, c)
+
+    def _send(self, n, v):
+        real = self.names.get(n)
+        if real is None or not self.morph_ok:
+            return
+        try:
+            self.comp.set_morph_target(real, float(v))
+            self.sent[n] = float(v)
+        except Exception as e:  # noqa
+            self.morph_ok = False
+            self._warn("m_err", "幽霊の表情: set_morph_target でエラーなので、表情は止めます: %s" % e)
+
+    def _apply_tilt(self, deg, nod):
+        if self.method == "bone":
+            try:
+                f = max(0.0, min(1.0, deg / GHOST_ANIM_FULL_DEG))
+                u = 0.5 - math.sin(math.asin(1.0 - 2.0 * f) / 3.0)            # アニメのなめらかな加速（smoothstep）を逆に引く
+                self.comp.set_position((29.0 + 60.0 * u) / 179.0 * self.length, False)    # コマ1〜30は直立、30〜90で傾く
+            except Exception as e:  # noqa
+                self.method = "body"
+                self._warn("t_err", "幽霊の首かしげ: 骨が動かせないので、全体に切りかえます: %s" % e)
+        elif self.method == "body":
+            try:                                                              # 幽霊は +Y 向き。体の前後の軸まわり＝ピッチ（横にかしげる）、左右の軸まわり＝ロール（少しうなずく）
+                self.actor.set_actor_rotation(unreal.Rotator(nod + self.lean, deg, self.base_yaw), False)
+            except Exception as e:  # noqa
+                self.method = "none"
+                self._warn("t_err", "幽霊の首かしげ: 体を傾けられません: %s" % e)
+
+
 def label_of(a):
     try:
         return a.get_actor_label()
@@ -300,6 +685,13 @@ def label_of(a):
 
 class Game:
     """状態：WALK(歩く) → CLOSING(扉が閉まる) → TRAPPED(閉じ込め：IDLE/FLICKER/DARK をくりかえす)"""
+    int_k = 1.0                                   # 幽霊の光まわりの初期値（__init__ でも入れ直す）
+    ghost_out = False
+    gl_actor = gl_comp = None
+    gl_want = gl_vis = gl_dead = gl_warned = False
+    gl_tick = -1
+    gl_flick = 1.0
+    ghost_foot_z = 0.0
 
     def __init__(self, world):
         apply_settings(KD_SETTING_NAMES, log)        # Play のたびに、設定ファイルの数字を読み直す（ファイルを保存して Play するだけで反映）
@@ -324,6 +716,14 @@ class Game:
         self.fade_t = -1.0
         self.errors = 0
         self.mult = 1.0           # 蛍光灯の明るさの倍率
+        self.int_k = 1.0          # 外に幽霊が見えているあいだ、ボックスの中の蛍光灯にかける係数（GHOST_INTERIOR_DIM まで下がる）
+        self.ghost_out = False    # 幽霊がボックスの外に見えている（失敗エンドの目の前の幽霊は含めない）
+        self.gl_actor = self.gl_comp = None   # 幽霊の光（KD_GhostLight）。setup で1回だけ探して持っておく
+        self.gl_want = self.gl_vis = self.gl_dead = False
+        self.gl_tick = -1
+        self.gl_flick = 1.0
+        self.gl_warned = False
+        self.ghost_foot_z = 0.0
         self.door_yaw = DOOR_OPEN_YAW
         self.door_base = 0.0
         self.front_yaw = 0.0
@@ -352,7 +752,7 @@ class Game:
         self.extra = []
         for a in all_actors:
             lab = label_of(a)
-            if lab == "Flashlight" or lab.startswith("TubeLight"):
+            if lab == "Flashlight" or lab.startswith("TubeLight") or lab == "KD_GhostLight":      # 幽霊の光は、点滅・暗転の仲間に入れない（自分で管理する）
                 continue
             try:
                 comps = a.get_components_by_class(unreal.LightComponent)
@@ -390,6 +790,7 @@ class Game:
         self.read_plane = found.get("KD_ReadPlane")
         self.coin = found.get("Coin_10yen")
         self.coin_light = found.get("Coin_Light")
+        self.ghost_light_setup(found.get("KD_GhostLight"))
         self.coins = 0                                       # 持っている10円
         self.read_mat = None
         low = [(k.lower(), v) for k, v in found.items()]
@@ -401,6 +802,8 @@ class Game:
         self.safe_lid = found.get("DialSafe_Lid")
         self.safe_key = found.get("DialSafe_Key")                    # 開いた金庫の中の、鍵と10円（見せて、すぐ消す）
         self.safe_coin = found.get("DialSafe_Coin")
+        self.safe_box = found.get("DialSafe_Box")                    # 金庫の中の、16個ボタンの箱
+        self.box_cam = found.get("KD_BoxCam")                        # 箱のボタンを押すときの専用カメラ
         self.lid_pending, self.loot_t = -1.0, -1.0
         self.lid_rot0 = self.safe_lid.get_actor_rotation() if self.safe_lid is not None else None
         self.lid_t = -1.0
@@ -409,8 +812,13 @@ class Game:
         self.dial_cam = found.get("KD_DialCam")                      # ダイヤル専用のカメラ（setup_game_fp.py が置く）
         self.safe_cam_on = False
         self.dial_value, self.dial_dir, self.dial_entries, self.safe_open, self.has_key = 0, None, [], False, False
+        self.box_done, self.has_envelope, self.box_entries = False, False, []
+        self.envelope_open, self.has_door_key, self.env_digits, self.exit_stage = False, False, "", 0       # 封筒の鍵・扉の鍵・脱出（やり直しで最初に戻る）
         self.has_memo, self.called_0115, self.dialed_0714, self.lcd_seen, self.digits = False, False, False, False, ""
         self.hatch_open = False
+        self.has_protein, self.protein_drunk, self.inv_open = True, False, False       # エンディング③：プロテインは最初から持っている（やり直しで最初に戻る）
+        self.ending, self.break_stage, self.door_broken = None, 0, False               # どのエンディングに着いたか："escape" / "missing" / "break"
+        self.dead_stage = 0
         self.dial_knob_rot = self.dial_knob.get_actor_rotation() if self.dial_knob is not None else None
         log("触れる物: 10円=%s 本=%s 金庫=%s" % (label_of(self.coin) if self.coin else "なし", label_of(self.book) if self.book else "なし（BOOK_LABEL を直す）", label_of(self.safe) if self.safe else "なし（SAFE_LABEL を直す）"))
         self.sway = []                                       # 掲示板の紙：上の画びょうを軸に、風でゆれる
@@ -436,12 +844,19 @@ class Game:
                 a.set_actor_hidden_in_game(True)
         if self.hint is not None:
             self.hint.set_actor_hidden_in_game(False)             # 手がかりの張り紙は、はじめから貼ってある（入った瞬間に現れない）
+        self.setup_code(found)
+        self.setup_hands(found)
         self.ghost = found.get("Ghost")
         if self.ghost is not None:
             self.ghost.set_actor_hidden_in_game(True)
             self.ghost_head = found.get("Ghost_Head")
             if self.ghost_head is not None:
                 self.ghost_head.set_actor_hidden_in_game(True)
+            try:
+                self.gfx = GhostFx(self.ghost, log)                       # 首かしげと表情の準備（部品を最初に1回だけ探す）
+            except Exception as e:  # noqa
+                self.gfx = None
+                log("  (幽霊の首かしげ・表情を準備できません) %s" % e)
         self.dead_t = -1.0
         self.pc = unreal.GameplayStatics.get_player_controller(self.world, 0)
         self.pawn = unreal.GameplayStatics.get_player_pawn(self.world, 0)
@@ -487,6 +902,7 @@ class Game:
             isc = inner.get_actor_scale3d()
             if isc.x > 5.0 and isc.y > 5.0:
                 self.in_t, self.in_n = isc.x, isc.y
+        self.glass_n, self.glass_t = (self.in_n + 1.5, self.in_t + 1.5) if inner is not None else (max(20.0, self.half_n - 3.0), max(20.0, self.half_t - 3.0))      # ガラスの外の面（setup_game_fp.py は、歩ける広さを ガラスの外の面 − 1.5cm にしている）
         log("中の歩ける広さ: 横 ±%.0fcm・奥行き ±%.0fcm（体の太さ %.0fcm）" % (self.in_t, self.in_n, PAWN_RADIUS))
         self.shrink_capsule()
         self.snd = {}
@@ -507,6 +923,164 @@ class Game:
             self.hinge is not None, self.flash is not None, len(self.tubes), len(self.tube_mats), len(self.extra), self.pawn is not None, self.cx, self.cy))
         screen(self.world, "WASD：歩く / マウス：見る / F：懐中電灯", (200, 255, 200), 6.0)
 
+    # ---- 謎7：暗い間だけ光る数字（答えは ENVELOPE_CODE だけで決まる） ----
+    def setup_code(self, found):
+        self.code_posters = [found.get("KD_CodePoster_%d" % (i + 1)) for i in range(4)]
+        self.code_glow = [found.get("KD_CodeGlow_%d" % (i + 1)) for i in range(4)]
+        self.code_active = self.code_queued = self.code_seen = self.code_req = False
+        self.code_pasted = 0
+        self.hint_t, self.hint_stage = 0.0, 0
+        self._glow_key = None
+        for a in self.code_posters + self.code_glow:
+            if a is not None:
+                a.set_actor_hidden_in_game(True)
+        code = list(ENVELOPE_CODE)
+        ans = "".join(str(d) for d in code)
+        if len(code) != 4 or not all(isinstance(d, int) and 0 <= d <= 9 for d in code):
+            log("[エラー] ENVELOPE_CODE は 0〜9 の数字を4つにしてください（いま %s）" % (code,))
+        else:
+            if len(set(code)) < 4:
+                log("[注意] ENVELOPE_CODE に同じ数字があります（%s）。順番の謎になりにくいので、4つとも別の数字にするのがおすすめ" % ans)
+            if ans in ENVELOPE_DECOYS:
+                log("[注意] ENVELOPE_CODE（%s）が ENVELOPE_DECOYS の中にあります。ひっかけと答えが同じです" % ans)
+        missing = []
+        for i in range(4):
+            a = self.code_glow[i]
+            if a is None or i >= len(code) or not isinstance(code[i], int) or not 0 <= code[i] <= 9:
+                continue
+            mat = None
+            for pre in ("M_CodeGlowTree", "M_GlassGlow"):                    # 外の木用の強い光の材質。なければガラスの文字用で代用
+                try:
+                    mat = unreal.EditorAssetLibrary.load_asset("%s/%s%d" % (MATERIAL_DIR, pre, code[i]))
+                except Exception as e:  # noqa
+                    log("  (光る数字の材質を読めません) %s%d: %s" % (pre, code[i], e))
+                    mat = None
+                if mat is not None:
+                    if pre != "M_CodeGlowTree":
+                        log("[注意] M_CodeGlowTree%d がないので M_GlassGlow%d で代用します（外の木では暗いかも）。setup_game_fp.py を実行し直してください" % (code[i], code[i]))
+                    break
+            if mat is not None:
+                try:
+                    a.get_component_by_class(unreal.StaticMeshComponent).set_material(0, mat)
+                except Exception as e:  # noqa
+                    log("  (光る数字の材質を入れられません) KD_CodeGlow_%d: %s" % (i + 1, e))
+            else:
+                missing.append("M_CodeGlowTree%d" % code[i])
+        if missing:
+            log("[エラー] 外の木の光る数字の材質がありません: %s。setup_game_fp.py を実行し直してください" % ", ".join(missing))
+        self.hint_comp, self.hint_mat0, self.hint_mats = None, None, []
+        if self.hint is not None:
+            try:
+                self.hint_comp = self.hint.get_component_by_class(unreal.StaticMeshComponent)
+                self.hint_mat0 = self.hint_comp.get_material(0)
+            except Exception as e:  # noqa
+                log("  (ヒントの材質を読めません) %s" % e)
+            try:
+                self.hint_mats = [unreal.EditorAssetLibrary.load_asset("%s/M_GlassHintC%d" % (MATERIAL_DIR, i)) for i in (1, 2, 3)]
+            except Exception:  # noqa
+                self.hint_mats = [None, None, None]
+            if any(m is None for m in self.hint_mats):
+                log("[注意] ヒントの材質（M_GlassHintC1〜3）がありません。setup_game_fp.py を実行し直してください")
+        log("暗号の張り紙: 紙%d枚・数字%d枚・答え %s" % (sum(1 for a in self.code_posters if a is not None), sum(1 for a in self.code_glow if a is not None), ans))
+
+    def update_code_glow(self, mult):
+        """外の木の光る数字と、内側のガラスの言葉（貼られた紙）を、切りかえる。
+        暗い間（mult<0.05・蛍光灯の棒を隠す条件と同じ）：ガラスの言葉は1枚も出さず（外の木が見えるように）、貼られた分の数字だけが木で光る。
+        明るい間：数字は消えて、貼られた分の言葉だけがガラスに出る。変わったときだけ切りかえる"""
+        dark = self.code_active and mult < 0.05
+        n_glow = self.code_pasted if dark else 0
+        n_word = 0 if dark else (self.code_pasted if self.code_active else 0)
+        key = (n_glow, n_word)
+        if key == self._glow_key:
+            return
+        self._glow_key = key
+        for i, a in enumerate(self.code_glow):
+            if a is not None:
+                a.set_actor_hidden_in_game(i >= n_glow)
+        for i, a in enumerate(self.code_posters):
+            if a is not None:
+                a.set_actor_hidden_in_game(i >= n_word)
+        if dark:                                                   # ふつうの張り紙も、1枚も出さない（念のため）
+            self.posters_hide()
+
+    def code_clear(self):
+        for a in self.code_posters + self.code_glow:
+            if a is not None:
+                a.set_actor_hidden_in_game(True)
+        self.code_pasted = 0
+        self._glow_key = (0, 0)
+
+    def code_begin(self):
+        self.code_active = True
+        self.code_queued = False
+        self.hide_all()
+        self.code_pasted = 0
+        log("謎7の場面を始めます（答え %s）" % "".join(str(d) for d in ENVELOPE_CODE))
+
+    def code_paste(self, k):
+        self.code_pasted = k + 1                                   # 紙は、この暗い間が終わって明るくなったときにガラスに出る（暗い間は外の木の数字だけ）
+        self.update_code_glow(self.mult)
+        log("謎7：%d枚目の張り紙が貼られました（数字 %s）" % (k + 1, ENVELOPE_CODE[k] if k < len(ENVELOPE_CODE) else "?"))
+
+    def code_end(self):
+        self.code_clear()
+        self.code_active = False
+        self.code_seen = True
+        self.hint_t = 0.0
+        log("謎7の場面が終わりました")
+
+    def code_steps(self):
+        st = []
+        for k in range(4):
+            st.append(("flicker", CODE_FLICKER, self.code_begin if k == 0 else None, None))
+            st.append(("cdark", CODE_DARK, lambda k=k: self.code_paste(k), None))
+            st.append(("clit", CODE_LIT, None, None))
+        st.append(("flicker", CODE_FLICKER, None, None))
+        st.append(("cdark", CODE_FINAL_DARK, None, None))
+        st.append(("clit", CODE_HOLD, None, None))
+        st.append(("flicker", FLICKER_TIME, None, None))
+        st.append(("dark", DARK_TIME, self.code_clear, self.code_end))
+        return st
+
+    def start_code_seq(self, restart=False):
+        if self.code_queued and not self.code_active:            # 待っている場面が、まだ始まっていない：そのまま待たせる
+            return
+        if restart and self.code_active:                          # 場面の途中：止めて、最初から
+            self.steps = []
+            self.step_i = 0
+            self.code_clear()
+            self.code_active = False
+            self.set_lights(1.0)
+            self.blackout(0.0)
+        self.code_queued = True
+        self.run_steps(self.code_steps())
+
+    def set_hint_stage(self, st):
+        self.hint_stage = st
+        if self.hint_comp is None:
+            return
+        mat = self.hint_mat0 if st == 0 else self.hint_mats[st - 1]
+        if mat is None:
+            return
+        try:
+            self.hint_comp.set_material(0, mat)
+            log("電話機の上のヒントを変えました（段階 %d）" % st)
+        except Exception as e:  # noqa
+            log("  (ヒントを変えられません) %s" % e)
+
+    def tick_code_hint(self, dt):
+        """封筒を持っていて、まだ開けていない間だけ、CODE_HINT_INTERVAL 秒ごとに、ヒントの文字が変わる。開いたら元に戻る"""
+        if self.hint is None:
+            return
+        if not (self.code_seen and self.has_envelope and not self.envelope_open):
+            if self.hint_stage != 0:
+                self.set_hint_stage(0)
+            return
+        self.hint_t += dt
+        st = min(3, int(self.hint_t // CODE_HINT_INTERVAL))
+        if st != self.hint_stage:
+            self.set_hint_stage(st)
+
     # ---- 部品 ----
     def set_flash_scale(self, k):
         if self.flash is not None and getattr(self, "flash_base", None) is not None:
@@ -524,10 +1098,11 @@ class Game:
 
     def set_lights(self, mult):
         self.mult = mult
+        km = mult * self.int_k                                                  # 外に幽霊が見えているあいだだけ、中の蛍光灯をさらに暗くする（int_k=1 なら今まで通り）
         for c, base in self.tubes:
-            c.set_editor_property("intensity", base * mult)
+            c.set_editor_property("intensity", base * km)
         for mid in self.tube_mats:
-            mid.set_scalar_parameter_value("Flicker", mult * TUBE_GLOW)          # 蛍光灯の見た目も、光といっしょにちらつく
+            mid.set_scalar_parameter_value("Flicker", km * TUBE_GLOW)          # 蛍光灯の見た目も、光といっしょにちらつく
         for bar in self.tube_bars:                                              # 消えたときは、光る棒そのものも隠す（材質が残り光るのを防ぐ）
             try:
                 bar.set_actor_hidden_in_game(mult < 0.05)
@@ -536,6 +1111,8 @@ class Game:
         part = 1.0 if mult >= 0.5 else DARK_WORLD + (1.0 - DARK_WORLD) * (mult / 0.5)
         for kind, c, base in self.extra:
             c.set_editor_property("intensity", base * (part if kind == "world" else mult))
+        self.update_code_glow(mult)
+        self.update_hands()
 
     def reveal(self, stage):
         frac = POSTER_FRAC[min(stage, len(POSTER_FRAC)) - 1]
@@ -547,9 +1124,96 @@ class Game:
         if self.eye is not None and stage >= 3:
             self.eye.set_actor_hidden_in_game(False)
 
-    def ghost_show(self, x, y, face_x=None, face_y=None):
+    # ---- 幽霊の光（KD_GhostLight）と、中の光を暗くする係数 ----
+    def ghost_light_setup(self, actor):
+        """setup で1回だけ。光の部品を持っておき、色・届く距離・影なしを決めて、消しておく（tick の中で探さない）"""
+        self.gl_actor = actor
+        self.gl_comp = None
+        if actor is None:
+            log("幽霊の光: KD_GhostLight がレベルにありません（setup_game_fp.py を実行し直すと置かれます）。光なしで続けます")
+            return
+        try:
+            c = actor.get_component_by_class(unreal.PointLightComponent)
+            col = GHOSTLIGHT_COLOR
+            c.set_editor_property("light_color", unreal.Color(int(255 * col[0]), int(255 * col[1]), int(255 * col[2]), 255))
+            c.set_editor_property("attenuation_radius", float(GHOSTLIGHT_RADIUS))
+            c.set_editor_property("intensity", float(GHOSTLIGHT_INTENSITY))
+            try:
+                c.set_editor_property("cast_shadows", False)               # ガラスで影ができて光がさえぎられないように（中にも漏れにくい）
+            except Exception as e:  # noqa
+                log("  (幽霊の光の影を切れません。そのまま使います) %s" % e)
+            c.set_visibility(False, False)
+            self.gl_comp = c
+            self.gl_vis = False
+            log("幽霊の光: 使います（明るさ %.1f・届く距離 %.0fcm・影なし・%s）" % (GHOSTLIGHT_INTENSITY, GHOSTLIGHT_RADIUS, "オン" if GHOSTLIGHT_ENABLE else "設定でオフ"))
+        except Exception as e:  # noqa
+            self.gl_comp = None
+            log("  (幽霊の光を準備できません。光なしで続けます) %s" % e)
+
+    def ghost_light_follow(self, x, y, dx, dy, mode):
+        """幽霊の足もと (x, y) と向き (dx, dy)（ガラスに張りつくときはガラスのほう＝内向き、ほかは顔が向く先）から、光を置く場所を決めて動かす。
+        glass: 頭の上 UP・うしろ BACK（顔とガラスのすきまは3cm しかないので、ガラスの外・幽霊のうしろから照らす）／far: 顔の前 FRONT・少し上／dead: 目の前なので近め"""
+        if self.gl_comp is None or self.gl_actor is None:
+            return
+        n = math.hypot(dx, dy)
+        if n < 1e-6:
+            dx, dy, n = 0.0, 1.0, 1.0
+        dx, dy = dx / n, dy / n
+        hz = self.ghost_foot_z + GLASSGHOST_HEIGHT * GLASSGHOST_HEAD
+        if mode == "glass":
+            p = (x - dx * GHOSTLIGHT_BACK, y - dy * GHOSTLIGHT_BACK, hz + GHOSTLIGHT_UP)
+        elif mode == "dead":
+            p = (x + dx * GHOSTLIGHT_FRONT * 0.5, y + dy * GHOSTLIGHT_FRONT * 0.5, hz + GHOSTLIGHT_UP * 0.5)
+        else:
+            p = (x + dx * GHOSTLIGHT_FRONT, y + dy * GHOSTLIGHT_FRONT, hz + 15.0)
+        try:
+            self.gl_actor.set_actor_location(unreal.Vector(p[0], p[1], p[2]), False, False)
+        except Exception as e:  # noqa
+            if not self.gl_warned:
+                self.gl_warned = True
+                log("  (幽霊の光を動かせません) %s" % e)
+
+    def tick_ghost_light(self, dt):
+        """毎フレーム：①中の蛍光灯の係数 int_k を目標へなめらかに動かす ②幽霊の光のオン・オフとゆらぎ（0.1秒ごと）。検索も新しい物の生成もしない"""
+        tgt = 1.0
+        if GHOST_INTERIOR_DIM < 1.0 and self.ghost_out and not self.code_active:
+            tgt = max(0.0, float(GHOST_INTERIOR_DIM))
+        if self.code_active and self.int_k != 1.0:                                # 謎7の場面は mult を自分で決める：何も変えない（すぐ戻す）
+            self.int_k = 1.0
+            self.set_lights(self.mult)
+        elif self.int_k != tgt:
+            step = abs(1.0 - GHOST_INTERIOR_DIM) / max(0.05, GHOST_INTERIOR_TIME) * dt
+            if abs(tgt - self.int_k) <= step:
+                self.int_k = tgt
+            else:
+                self.int_k += step if tgt > self.int_k else -step
+            self.set_lights(self.mult)
+        c = self.gl_comp
+        if c is None:
+            return
+        want = bool(GHOSTLIGHT_ENABLE and self.gl_want)
+        k = int(self.t * 10.0)
+        if want != self.gl_vis:
+            self.gl_vis = want
+            self.gl_tick = -1                                                    # 付け直したら、明るさも決め直す
+            try:
+                c.set_visibility(want, False)
+            except Exception as e:  # noqa
+                if not self.gl_warned:
+                    self.gl_warned = True
+                    log("  (幽霊の光の切りかえ不可) %s" % e)
+        if want and k != self.gl_tick:
+            self.gl_tick = k
+            self.gl_flick = 1.0 + random.uniform(-GHOSTLIGHT_FLICKER, GHOSTLIGHT_FLICKER)
+            try:
+                c.set_editor_property("intensity", GHOSTLIGHT_INTENSITY * (2.0 if self.gl_dead else 1.0) * self.gl_flick)
+            except Exception:  # noqa
+                pass
+
+    def ghost_show(self, x, y, face_x=None, face_y=None, level=0, dead=False, hold=10.0, glass=False, lean=0.0):
         if self.ghost is None:
             return
+        self.gslide = None                                                    # ガラスをすべっている最中なら、止める
         fx = self.cx if face_x is None else face_x
         fy = self.cy if face_y is None else face_y
         yaw = math.degrees(math.atan2(fy - y, fx - x)) + GHOST_YAW
@@ -563,14 +1227,29 @@ class Game:
             real = self.ghost.get_component_by_class(unreal.SkeletalMeshComponent) is not None          # 本物のモデル（足元が原点）か、仮の筒（中心が原点）か
         except Exception:  # noqa
             real = False
+        self.ghost_foot_z = gz + GHOST_Z
         if not real:
             gz += 80.0
-        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, gz + GHOST_Z), unreal.Rotator(0, 0, yaw), False, False)
+        self.ghost_z = gz + GHOST_Z
+        self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, gz + GHOST_Z), unreal.Rotator(lean, 0, yaw), False, False)
         self.ghost.set_actor_hidden_in_game(False)
         if self.ghost_head is not None:
             self.ghost_head.set_actor_hidden_in_game(False)
+        gfx = getattr(self, "gfx", None)
+        if gfx is not None:
+            gfx.begin(level, dead, hold, yaw, glass, lean)
+        self.ghost_out = not dead
+        self.gl_want = bool(GHOSTLIGHT_ENABLE)
+        self.gl_dead = bool(dead)
+        self.ghost_light_follow(x, y, fx - x, fy - y, "dead" if dead else ("glass" if glass else "far"))
 
     def ghost_hide(self):
+        self.gslide = None
+        self.ghost_out = False
+        self.gl_want = False
+        gfx = getattr(self, "gfx", None)
+        if gfx is not None:
+            gfx.end()
         if self.ghost is not None:
             self.ghost.set_actor_hidden_in_game(True)
             if self.ghost_head is not None:
@@ -579,19 +1258,45 @@ class Game:
     def begin_dead(self):
         """失敗：幽霊が目の前に出る → 赤く暗転 → しばらくして最初に戻る"""
         self.state, self.state_t = "DEAD", 0.0
+        self.ending, self.dead_stage = "missing", 0                   # エンディング②：このあと、黒い画面 → 行方不明の新聞（tick_dead）
+        self.inv_open = False
         self.set_lights(0.6)
         self.blackout(0.0)
         rot = self.pc.get_control_rotation()
         fwd = unreal.MathLibrary.get_forward_vector(rot)
         loc = self.pawn.get_actor_location()
         x, y = loc.x + fwd.x * DEAD_DIST, loc.y + fwd.y * DEAD_DIST
-        self.ghost_show(x, y, loc.x, loc.y)
-        screen(self.world, "……みつけた", (255, 40, 40), RESTART_AFTER)
+        self.ghost_show(x, y, loc.x, loc.y, level=len(GHOST_SPOTS) - 1, dead=True, hold=END2_SCARE)
+        screen(self.world, "……みつけた", (255, 40, 40), END2_SCARE)
         try:
             self.pc.player_camera_manager.start_camera_fade(0.0, 1.0, 2.5, unreal.LinearColor(0.5, 0, 0, 1), False, True)
         except Exception as e:  # noqa
             log("  (赤い暗転ができません) %s" % e)
-        log("失敗エンド（段階%d）" % self.stage)
+        log("失敗エンド（段階%d）→ エンディング②（行方不明）" % self.stage)
+
+    def tick_dead(self, dt):
+        """エンディング②：幽霊のジャンプスケア → 暗転 → 行方不明の新聞を全画面で出す → 一定時間後に最初に戻る"""
+        t = self.state_t
+        if self.dead_stage == 0 and t >= END2_SCARE:
+            self.dead_stage = 1
+            self.fade(True, END2_FADE)
+        elif self.dead_stage == 1 and t >= END2_SCARE + END2_FADE + 0.2:
+            self.dead_stage = 2
+            self.ghost_hide()
+            self.set_lights(0.0)                                        # 新聞のほかは、暗いまま（新聞は光らない材質なので、読める）
+            self.set_flash(False)
+            self.lock_input(True)
+            self.show_picture("M_KDReadMissing", END2_SIZE, 1.14)
+            self.blackout(0.0)
+            self.fade(False, 0.8)
+            screen(self.world, "エンディング②：行方不明", (255, 220, 220), END2_HOLD)
+            screen(self.world, "◯◯大学の学生が、公衆電話ボックスの近くで行方不明になった", (230, 230, 230), END2_HOLD, "KD_END2_SUB")
+            log("エンディング②（行方不明）：新聞を出しました（%.1f秒）" % END2_HOLD)
+        end_t = max(RESTART_AFTER, END2_SCARE + END2_FADE + 0.2 + END2_HOLD)
+        if t > end_t:
+            self.state = "RESTART"
+            log("最初に戻ります（RestartLevel）")
+            unreal.SystemLibrary.execute_console_command(self.world, "RestartLevel")
 
     def blackout(self, amount):
         """画面の黒さ（0〜1）を、すぐ変える。点滅の「消えた」瞬間を、光の遅れに関係なく暗くする"""
@@ -695,6 +1400,11 @@ class Game:
         self.tick_unstuck(loc, dt)
         self.update_flashlight()
         self.tick_sway()
+        self.tick_glass_slide(dt)
+        self.tick_ghost_light(dt)
+        self.tick_hands(dt)
+        if getattr(self, "gfx", None) is not None:
+            self.gfx.update(dt)                                   # 幽霊の首かしげと表情（見えていないときは何もしない）
         self.tick_hud()
         if self.state == "READING":
             self.tick_reading()
@@ -702,6 +1412,12 @@ class Game:
             self.tick_safe(dt)
         elif self.state == "PHONE":
             self.tick_phone(dt)
+        elif self.state == "BOX":
+            self.tick_box(dt)
+        elif self.state == "ENV":
+            self.tick_env(dt)
+        elif self.state == "EXIT":
+            self.tick_exit(dt)
         elif self.state == "WALK" and self.hinge is None:
             self.tick_walk_e(loc)
             self.tick_news(loc)
@@ -727,13 +1443,17 @@ class Game:
         elif self.state == "TRAPPED":
             if getattr(self, "deferred", None):
                 self.on_flag(self.deferred.pop(0))
+            if self.code_req:
+                self.code_req = False
+                self.start_code_seq(restart=True)
             self.tick_trapped(dt)
-            self.tick_items(loc)
+            self.tick_inventory()
+            if not self.inv_open:                                   # 持ち物を開いている間は、E で電話・ふた・扉などが反応しない
+                self.tick_items(loc)
         elif self.state == "DEAD":
-            if self.state_t > RESTART_AFTER:
-                self.state = "RESTART"
-                log("最初に戻ります（RestartLevel）")
-                unreal.SystemLibrary.execute_console_command(self.world, "RestartLevel")
+            self.tick_dead(dt)
+        elif self.state == "BREAK":
+            self.tick_break_door(dt)
 
     # ---- 買った電話ボックス用：Eキーで入る ----
     def door_point(self):
@@ -951,6 +1671,8 @@ class Game:
             if self.state_t > 0.3 and (self.pc.was_input_key_just_pressed(self._key("Enter")) or self.pc.was_input_key_just_pressed(self._key("E"))) and self.digits:
                 num, self.digits = self.digits, ""
                 self.phone_call(num)
+                if self.state != "PHONE":                                 # 電話を閉じた（0714 など）
+                    return
         except Exception as e:  # noqa
             log("  (電話のキーを読めません) %s" % e)
         hover = None
@@ -970,6 +1692,8 @@ class Game:
                 elif lab == "call" and self.digits:
                     num, self.digits = self.digits, ""
                     self.phone_call(num)
+                    if self.state != "PHONE":
+                        return
         except Exception as e:  # noqa
             if not getattr(self, "_ph_mouse_err", False):
                 self._ph_mouse_err = True
@@ -993,9 +1717,17 @@ class Game:
     def phone_call(self, num):
         log("電話をかけました: %s（10円 %d枚）" % (num, self.coins))
         free = {"110", "119"}
+        if num == BREAK_CODE:                                             # エンディング③：いつでも・お金はいらない。プロテインを飲んでいれば、ドアぶっ壊し
+            if self.protein_drunk:
+                self.end_phone()
+                self.begin_break_door()
+            else:
+                screen(self.world, "……つながらない（力が足りない気がする）", (180, 180, 180), 4.0)
+                log("%s：プロテインをまだ飲んでいないので、つながらない" % BREAK_CODE)
+            return
         msgs = {"117": ("ポーン…「7月14日 午前0時を お知らせします」", (200, 230, 255)),
                 "177": ("「神狩村は…赤い雨です」", (255, 160, 160)),
-                "104": ("「お調べします…張り紙は 貼られた順に」", (200, 230, 255))}
+                "104": ("「お調べします…外の木に 光った順に」", (200, 230, 255))}
         if num in free:
             first = not self.lcd_seen
             screen(self.world, "（声はない。……液晶に文字が出た）  ソト ヒダリ ミギ ヒダリ", (255, 120, 120), 7.0)
@@ -1018,7 +1750,10 @@ class Game:
                 screen(self.world, "カチッ。液晶に「2 15 4 9」の文字が、一瞬だけ出た", (255, 120, 120), 8.0)
                 if not self.dialed_0714:
                     self.dialed_0714 = True
-                    self.on_flag("0714")
+                    self.on_flag("0714")                                  # 電話中なので、あとで処理される（deferred）
+                else:
+                    self.code_req = True                                  # お金はいらない：押すたびに、謎7を最初から
+                self.end_phone()                                          # 電話カメラのままだとガラスが見えないので、閉じる
             else:
                 screen(self.world, "ツー、ツー……（つながらない）", (180, 180, 180), 3.0)
             return
@@ -1075,7 +1810,7 @@ class Game:
                     a.set_actor_hidden_in_game(True)
             self.safe_base.set_actor_hidden_in_game(False)
             self.safe_lid.set_actor_hidden_in_game(False)
-            for a in (self.safe_key, self.safe_coin):
+            for a in (self.safe_key, self.safe_coin, getattr(self, "safe_box", None)):
                 if a is not None:
                     a.set_actor_hidden_in_game(False)
             self.play("safe_clunk")
@@ -1215,7 +1950,7 @@ class Game:
 
     def clamp_in_booth(self, loc, dt=0.016):
         """閉じ込められている間は、壁の外へ出られない。範囲を出たら、なめらかに押しもどす（ぱっと瞬間移動しない）"""
-        if self.state not in ("CLOSING", "TRAPPED", "SAFE", "PHONE", "READING") or self.pawn is None:
+        if self.state not in ("CLOSING", "TRAPPED", "SAFE", "PHONE", "READING", "ENV") or self.pawn is None:
             return
         (nx, ny), (tx, ty), ln, lt = self.booth_limits()
         rx, ry = loc.x - self.cx, loc.y - self.cy
@@ -1254,6 +1989,415 @@ class Game:
                 unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(0.8, 1, 0.8, 1), 0.3, "KD_SAFE_UI")
             except Exception:  # noqa
                 pass
+
+    # ---- 金庫の中の箱（16個のボタンを、2→15→4→9 の順に押す） ----
+    def box_setup(self):
+        """箱のボタンの面を一度だけ計算して保存する（tick では計算だけ）。frame = (中心, 面の法線, 右, 上, ボタン1個の大きさ)"""
+        box, bcam = getattr(self, "safe_box", None), getattr(self, "box_cam", None)
+        if box is not None and bcam is not None:
+            self.box_view = bcam
+            sc = box.get_actor_scale3d().x
+            bl, cl = box.get_actor_location(), bcam.get_actor_location()
+            fx, fy = cl.x - bl.x, cl.y - bl.y                       # 箱から、おもて側（カメラのある側）へ向かう水平の向き
+            ln = math.hypot(fx, fy) or 1.0
+            fx, fy = fx / ln, fy / ln
+            rx, ry = fy, -fx                                         # おもてを見たときの右（setup の right = (f[1], -f[0]) と同じ）
+            if BOX_FLIP:
+                rx, ry = -rx, -ry
+            c = unreal.Vector(bl.x, bl.y, bl.z + BOX_TOP_H * sc)
+            n, r, u = unreal.Vector(0.0, 0.0, 1.0), unreal.Vector(rx, ry, 0.0), unreal.Vector(-fx, -fy, 0.0)      # 上（図の上）＝うしろ側＝ボタン1の列
+            pitch = BOX_BTN * sc
+            self.box_rot = box.get_actor_rotation()
+            self.box_ext = unreal.Vector(pitch * 0.45, pitch * 0.45, 0.3)
+            lift, real = 0.25, True
+        else:
+            self.box_view = self.dial_cam
+            o = self.dial_cam.get_actor_location()
+            n, r, u = self.dial_cam.get_actor_forward_vector(), self.dial_cam.get_actor_right_vector(), self.dial_cam.get_actor_up_vector()
+            if BOX_FLIP:
+                r = unreal.Vector(-r.x, -r.y, -r.z)
+            c = unreal.Vector(o.x + n.x * BOX_DIST, o.y + n.y * BOX_DIST, o.z + n.z * BOX_DIST)
+            pitch = BOX_BTN
+            self.box_rot = self.dial_cam.get_actor_rotation()
+            self.box_ext = unreal.Vector(0.1, pitch * 0.45, pitch * 0.45)
+            lift, real = 0.0, False
+        self.box_real = real
+        self.box_fr = (c, n, r, u, pitch)
+        pts = []
+        for k in range(16):
+            x, y = (k % 4 - 1.5) * pitch, (1.5 - k // 4) * pitch
+            pts.append(unreal.Vector(c.x + r.x * x + u.x * y + n.x * lift, c.y + r.y * x + u.y * y + n.y * lift, c.z + r.z * x + u.z * y + n.z * lift))
+        self.box_pts = pts
+        log("箱のボタンの面: %s・中心=(%.0f,%.0f,%.0f)・ボタン1個=%.1fcm" % ("本物の箱（KD_BoxCam）" if real else "デバッグ（ダイヤルのカメラの前）", c.x, c.y, c.z, pitch))
+
+    def box_cell(self, ray):
+        """マウスが指している箱のボタンの番号（1〜16）。ボタンの外なら None"""
+        c, f, r, u, pitch = self.box_fr
+        O, D = ray
+        den = D.x * f.x + D.y * f.y + D.z * f.z
+        if abs(den) < 1e-4:
+            return None
+        t = ((c.x - O.x) * f.x + (c.y - O.y) * f.y + (c.z - O.z) * f.z) / den
+        if t < 0:
+            return None
+        h = (O.x + D.x * t - c.x, O.y + D.y * t - c.y, O.z + D.z * t - c.z)
+        x = h[0] * r.x + h[1] * r.y + h[2] * r.z
+        y = h[0] * u.x + h[1] * u.y + h[2] * u.z
+        col = int(math.floor(x / pitch + 2.0))
+        row = int(math.floor(2.0 - y / pitch))
+        if 0 <= col < 4 and 0 <= row < 4:
+            return row * 4 + col + 1
+        return None
+
+    def draw_box_buttons(self, hover):
+        if not (BOX_DEBUG or (BOX_HOVER and self.box_real and hover is not None)):
+            return
+        try:
+            for n in (range(1, 17) if BOX_DEBUG else (hover,)):
+                p = self.box_pts[n - 1]
+                done = n in self.box_entries
+                col_ = unreal.LinearColor(1.0, 0.9, 0.2, 1.0) if hover == n else (unreal.LinearColor(0.4, 1.0, 0.4, 1.0) if done else unreal.LinearColor(0.2, 0.8, 1.0, 1.0))
+                unreal.SystemLibrary.draw_debug_box(self.world, p, self.box_ext, col_, self.box_rot, 0.06, 0.2)
+                if BOX_DEBUG:
+                    unreal.SystemLibrary.draw_debug_string(self.world, p, str(n), None, col_, 0.06)
+        except Exception as e:  # noqa
+            if not getattr(self, "_box_dbg_err", False):
+                self._box_dbg_err = True
+                log("  (箱のボタンを描けません) %s" % e)
+
+    def begin_box(self):
+        """金庫の中の箱を調べる：箱の専用カメラ（なければダイヤルのカメラ）の正面に、16個のボタンを出して、マウスで押す"""
+        try:
+            self.box_setup()
+        except Exception as e:  # noqa
+            log("  (箱のボタンの面を計算できません) %s" % e)
+            return
+        try:
+            cc = self.box_view.get_component_by_class(unreal.CameraComponent)
+            self.box_fov0 = float(cc.get_editor_property("field_of_view"))
+            cc.set_editor_property("field_of_view", float(BOX_CAM_FOV))
+        except Exception as e:  # noqa
+            self.box_fov0 = None
+            log("  (箱のカメラの視野を設定できません) %s" % e)
+        self.box_cam_on = self.set_view(self.box_view, DIAL_ZOOM_TIME)
+        self.lock_input(True)
+        self.show_mouse(True)
+        if getattr(self, "key_lmb", None) is None:
+            self.key_lmb = unreal.Key()
+            self.key_lmb.set_editor_property("key_name", "LeftMouseButton")
+        self.key_quit = unreal.Key()
+        self.key_quit.set_editor_property("key_name", "Q")
+        self.state, self.state_t = "BOX", 0.0
+        self.box_entries = []
+        log("金庫の中の箱を調べ始めました（ボタンはマウスでクリック）")
+
+    def end_box(self):
+        if getattr(self, "box_cam_on", False):
+            self.set_view(self.pawn, 0.45)
+            self.box_cam_on = False
+        if getattr(self, "box_fov0", None) is not None:
+            try:
+                self.box_view.get_component_by_class(unreal.CameraComponent).set_editor_property("field_of_view", float(self.box_fov0))
+            except Exception:  # noqa
+                pass
+        self.show_mouse(False)
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def tick_box(self, dt):
+        hover = None
+        try:
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_quit):
+                self.end_box()
+                return
+            ray = self.mouse_ray()
+            hover = self.box_cell(ray) if ray else None
+            self.draw_box_buttons(hover)
+            if hover is not None and self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self.key_lmb):
+                self.box_press(hover)
+        except Exception as e:  # noqa
+            if not getattr(self, "_box_err", False):
+                self._box_err = True
+                log("  (箱のマウス操作でエラー) %s" % e)
+        if int(self.t * 8) != getattr(self, "_box_k", -1):
+            self._box_k = int(self.t * 8)
+            done = " → ".join(str(n) for n in self.box_entries) or "なし"
+            txt = "金庫の中の箱  [クリック] ボタンを押す  [Q] やめる   押した順: %s%s" % (done, ("   いま指しているボタン: %d" % hover) if hover else "")
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(1.0, 0.85, 0.85, 1), 0.3, "KD_BOX_UI")
+            except Exception:  # noqa
+                pass
+
+    def box_press(self, n):
+        self.box_entries.append(n)
+        k = len(self.box_entries)
+        want = list(BOX_CODE)
+        if self.box_entries[-1] != want[k - 1]:
+            screen(self.world, "ブッ…（はずれ。最初から）", (255, 120, 120), 2.5)
+            log("金庫の箱：はずれ %s" % (self.box_entries,))
+            self.box_entries = []
+            return
+        self.play("safe_click")
+        if k < len(want):
+            screen(self.world, "カチッ（%d/%d）" % (k, len(want)), (200, 255, 200), 1.5)
+            return
+        self.box_done = True
+        self.has_envelope = True
+        self.play("latch")
+        self.end_box()
+        screen(self.world, "箱が開いた。赤い封筒が入っていた（4けたの鍵がついている）", (255, 170, 170), 6.0)
+        log("金庫の中の箱が開きました（赤い封筒）。次：封筒の4けたの鍵（開いた金庫を見て E）")
+        self.on_flag("金庫の箱")
+
+    # ---- 赤い封筒の4けたの鍵（数字キーで入れる。電話の番号入れと同じキー） ----
+    def begin_env(self):
+        self.lock_input(True)
+        self.state, self.state_t = "ENV", 0.0
+        self.env_digits = ""
+        log("赤い封筒の鍵を使い始めました")
+
+    def end_env(self):
+        self.lock_input(False)
+        self.state, self.state_t = "TRAPPED", 0.0
+
+    def tick_env(self, dt):
+        try:
+            for name, ch in self.PHONE_KEYS:
+                if self.pc.was_input_key_just_pressed(self._key(name)) and len(self.env_digits) < 4:
+                    self.env_digits += ch
+                    self.play("safe_click")
+            if self.pc.was_input_key_just_pressed(self._key("BackSpace")):
+                self.env_digits = self.env_digits[:-1]
+            if self.state_t > 0.3 and self.pc.was_input_key_just_pressed(self._key("Q")):
+                self.end_env()
+                return
+            if self.state_t > 0.3 and (self.pc.was_input_key_just_pressed(self._key("Enter")) or self.pc.was_input_key_just_pressed(self.key_e)):
+                if len(self.env_digits) == 4:
+                    self.env_try()
+                    return
+                screen(self.world, "4けた入れてください", (255, 200, 150), 1.5)
+        except Exception as e:  # noqa
+            log("  (封筒の鍵のキーを読めません) %s" % e)
+        if int(self.t * 8) != getattr(self, "_env_k", -1):
+            self._env_k = int(self.t * 8)
+            slots = " ".join(list(self.env_digits) + ["＿"] * (4 - len(self.env_digits)))
+            txt = "赤い封筒の鍵  [ %s ]   [0〜9] 入れる  [Enter]か[%s] 決める  [BackSpace] 消す  [Q] やめる" % (slots, ENTER_KEY)
+            try:
+                unreal.SystemLibrary.print_string(self.world, txt, True, False, unreal.LinearColor(1.0, 0.8, 0.8, 1), 0.3, "KD_ENV_UI")
+            except Exception:  # noqa
+                pass
+
+    def env_try(self):
+        code, self.env_digits = self.env_digits, ""
+        if code == "".join(str(d) for d in ENVELOPE_CODE):
+            self.envelope_open = True
+            self.has_door_key = True
+            self.play("latch")
+            self.end_env()
+            screen(self.world, "封筒の中に、鍵が入っていた（扉の鍵）", (255, 240, 160), 6.0)
+            log("赤い封筒が開きました（扉の鍵）。次：扉を見て E で外へ")
+            self.on_flag("封筒")
+            return
+        self.play("safe_clunk")
+        decoy = ENVELOPE_DECOYS.get(code)
+        ans = "".join(str(d) for d in ENVELOPE_CODE)
+        if decoy is None and sorted(code) == sorted(ans):               # 数字は合っているが、順番がちがう
+            screen(self.world, "数字は合っている気がする……順番がちがう？", (255, 200, 150), 4.0)
+            log("封筒の鍵：数字は合っているが順番がちがう %s" % code)
+            if CODE_PERM_SAFE:
+                return
+        else:
+            screen(self.world, decoy if decoy else "ブッ…（はずれ）", (255, 120, 120), 3.0)
+        if decoy is not None or sorted(code) != sorted(ans):
+            log("封筒の鍵：はずれ %s%s" % (code, "（ひっかけ）" if decoy else ""))
+        if ENVELOPE_WRONG_GHOST and getattr(self, "trapped_started", False):
+            self.pressure()                    # 謎が進まないときの圧力と同じ：幽霊が1歩近づく（近づききったら失敗）
+
+    # ---- 扉の鍵で外へ出る（エンディング①） ----
+    def door_inner_point(self):
+        """扉を見ているか調べる点：入口の内がわ（ボックスの入口の壁）、目の高さ"""
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        eye_z = getattr(self, "eye_z", None)
+        return unreal.Vector(self.cx + nx * (self.half_n - 8.0), self.cy + ny * (self.half_n - 8.0), eye_z if eye_z is not None else getattr(self, "cz", 200.0))
+
+    def relocate_outside(self, reset_door=True):
+        """外へ出す共通処理（エンディング①③）：演出を止め、光を戻し、プレイヤーを入口の外へ移して外向きにする"""
+        self.steps, self.step_i, self.pending = [], 0, []            # 演出はぜんぶ止める
+        self.hide_all()
+        self.set_lights(1.0)
+        self.set_flash_scale(FLASH_OUTSIDE)
+        if reset_door and self.hinge is not None:
+            self.door_yaw = DOOR_OPEN_YAW
+            self.hinge.set_actor_rotation(unreal.Rotator(0, 0, self.door_base + self.door_yaw), False)
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        loc = self.pawn.get_actor_location()
+        self.pawn.set_actor_location(unreal.Vector(self.cx + nx * (self.half_n + 110.0), self.cy + ny * (self.half_n + 110.0), loc.z), False, False)
+        try:
+            self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(ny, nx))))       # 外むき（ボックスに背を向ける）
+        except Exception as e:  # noqa
+            log("  (向きを変えられません) %s" % e)
+
+    def begin_exit(self):
+        self.state, self.state_t = "EXIT", 0.0
+        self.exit_stage = 0
+        self.ending = "escape"
+        self.inv_open = False
+        self.lock_input(True)
+        self.play("latch")
+        self.play("door_open")
+        self.fade(True, ENTER_FADE_OUT)
+        log("扉の鍵で外へ出ます（暗転＋ドアの音）")
+
+    def tick_exit(self, dt):
+        t = self.state_t
+        if self.exit_stage == 0 and t >= ENTER_FADE_OUT + 0.3:            # 真っ暗になってから、外へ移す
+            self.exit_stage = 1
+            self.relocate_outside()
+        elif self.exit_stage == 1 and t >= ENTER_FADE_OUT + 1.2:
+            self.exit_stage = 2
+            self.blackout(0.0)
+            self.fade(False, ENTER_FADE_IN)
+            self.lock_input(False)
+            screen(self.world, "外に出られた……（エンディング①：脱出）", (200, 255, 200), 10.0)
+            log("脱出エンド①（ending=%s）" % self.ending)
+        elif self.exit_stage == 2 and t >= ENTER_FADE_OUT + 1.2 + ENTER_FADE_IN:
+            self.state, self.state_t = "ESCAPED", 0.0
+
+    # ---- エンディング③：プロテイン＋2929 でドアをぶっ壊す ----
+    def flash_color(self, color, alpha, dur):
+        """画面を一瞬、色でおおって（alpha）、dur 秒でもとに戻す"""
+        try:
+            self.pc.player_camera_manager.start_camera_fade(alpha, 0.0, dur, unreal.LinearColor(color[0], color[1], color[2], 1.0), False, False)
+        except Exception as e:  # noqa
+            log("  (画面をピカッとできません) %s" % e)
+
+    def begin_break_door(self):
+        self.state, self.state_t = "BREAK", 0.0
+        self.break_stage = 0
+        self.ending = "break"
+        self.inv_open = False
+        self.steps, self.step_i, self.pending = [], 0, []            # 演出はぜんぶ止める（点滅の途中でも、明るく戻す）
+        self.set_lights(1.0)
+        self.blackout(0.0)
+        self.lock_input(True)
+        self.fade(True, 0.25)
+        self.door_p0 = self.hinge.get_actor_location() if self.hinge is not None else None
+        self.door_r0 = self.hinge.get_actor_rotation() if self.hinge is not None else None
+        log("エンディング③：ドアぶっ壊し（プロテイン＋%s）" % BREAK_CODE)
+
+    def tick_break_door(self, dt):
+        t = self.state_t
+        t_card, t_blast = 0.3, 0.3 + BREAK_CARD_TIME
+        th = math.radians(self.front_yaw)
+        nx, ny = -math.sin(th), math.cos(th)
+        if self.break_stage == 0:
+            if t >= t_card and int(t * 10) != getattr(self, "_brk_k", -1):          # ムキッ！のカットイン：文字を段階的に大きく（print_string は大きさを変えられないので、飾りと文字数でズーム）
+                self._brk_k = int(t * 10)
+                k = min(1.0, (t - t_card) / BREAK_CARD_TIME)
+                txt = ("ム" if k < 0.25 else "ムキ" if k < 0.5 else "ムキッ！") if k < 0.7 else "＼＼　ムキッ！！　／／"
+                pad = "\n" * 3
+                screen(self.world, pad + "★ " + txt + " ★" + pad, (255, 215, 60), 0.3, "KD_MUSCLE")
+            if t >= t_blast:
+                self.break_stage = 1
+                self.t_fly0 = t
+                self.blackout(0.0)
+                self.flash_color((1.0, 1.0, 1.0), 1.0, 0.6)             # 白くピカッ → ドアが吹っ飛ぶ
+                self.play("safe_clunk")
+                self.play("door_open")
+                try:
+                    self.pc.set_control_rotation(unreal.Rotator(0, 0, math.degrees(math.atan2(ny, nx))))       # 扉のほうを向く
+                except Exception as e:  # noqa
+                    log("  (扉のほうを向けません) %s" % e)
+                self.shake_base = self.pc.get_control_rotation()
+                screen(self.world, "ドガァン！！", (255, 240, 160), 2.0)
+                log("ドアが吹っ飛びます（ドアの部品=%s）" % ("あり" if self.hinge is not None else "なし：白い光だけ"))
+        elif self.break_stage == 1:
+            k = min(1.0, (t - self.t_fly0) / max(0.1, BREAK_FLY_TIME))
+            if self.hinge is not None and self.door_p0 is not None:        # 物理を使わず、位置と回転を補間：外向きに飛びながらくるくる回る
+                d = BREAK_FLY_DIST * k
+                lift = 120.0 * math.sin(math.pi * k)
+                self.hinge.set_actor_location(unreal.Vector(self.door_p0.x + nx * d, self.door_p0.y + ny * d, self.door_p0.z + lift), False, False)
+                self.hinge.set_actor_rotation(unreal.Rotator(self.door_r0.roll + 540.0 * k, self.door_r0.pitch + 360.0 * k, self.door_r0.yaw + 720.0 * k), False)
+                self.door_broken = True
+            if BREAK_SHAKE > 0 and k < 0.7:                               # 画面のゆれ（見る向きに小さなランダムを足す）
+                try:
+                    b = self.shake_base
+                    a = BREAK_SHAKE * (1.0 - k)
+                    self.pc.set_control_rotation(unreal.Rotator(0, b.pitch + random.uniform(-a, a), b.yaw + random.uniform(-a, a)))
+                except Exception:  # noqa
+                    pass
+            if k >= 1.0:
+                self.break_stage = 2
+                self.t_fly1 = t
+                try:
+                    b = self.shake_base
+                    self.pc.set_control_rotation(unreal.Rotator(0, b.pitch, b.yaw))
+                except Exception:  # noqa
+                    pass
+        elif self.break_stage == 2 and t >= self.t_fly1 + 0.5:
+            self.break_stage = 3
+            self.fade(True, 0.5)
+        elif self.break_stage == 3 and t >= self.t_fly1 + 1.1:
+            self.break_stage = 4
+            self.relocate_outside(reset_door=False)                       # ①と同じ：外へ移す（ドアは飛んでいったまま）
+            self.blackout(0.0)
+            self.fade(False, ENTER_FADE_IN)
+            self.lock_input(False)
+            screen(self.world, "エンディング③：ドアぶっ壊し", (255, 230, 120), 10.0)
+            screen(self.world, "幽霊より筋肉が強かった", (255, 255, 255), 10.0, "KD_END3_SUB")
+            log("ドアぶっ壊しエンド③（ending=%s）" % self.ending)
+        elif self.break_stage == 4 and t >= self.t_fly1 + 1.1 + ENTER_FADE_IN:
+            self.state, self.state_t = "ESCAPED", 0.0
+
+    # ---- 持ち物（I キー）：一覧／プロテインを飲む／財布（ジムの会員証）を見る ----
+    def inv_lines(self):
+        pr = "なし" if not self.has_protein else ("飲んだ（空）" if self.protein_drunk else "あり")
+        return ["持ち物", "　10円: %d枚" % self.coins,
+                "　鍵: %s" % ("、".join([n for n, ok in (("小さな鍵", self.has_key and not self.hatch_open), ("扉の鍵", self.has_door_key)) if ok]) or "なし"),
+                "　赤い封筒: %s" % ("開けた" if self.envelope_open else "あり" if self.has_envelope else "なし"),
+                "　プロテイン: %s" % pr, "　財布（ジムの会員カード入り）"]
+
+    def tick_inventory(self):
+        """TRAPPED の間だけ呼ぶ。開いている間は、他の E の操作（tick_items）は止める"""
+        try:
+            if self.pc.was_input_key_just_pressed(self._key(INV_KEY)):
+                self.inv_open = not self.inv_open
+                self.play("safe_click")
+                if not self.inv_open:
+                    screen(self.world, "", (255, 255, 255), 0.01, "KD_INV")
+            if not self.inv_open:
+                return
+            if self.pc.was_input_key_just_pressed(self._key(INV_DRINK_KEY)):
+                self.drink_protein()
+            elif self.pc.was_input_key_just_pressed(self._key(INV_WALLET_KEY)):
+                self.inv_open = False
+                screen(self.world, "", (255, 255, 255), 0.01, "KD_INV")
+                self.begin_read("M_KDReadGym", 1.585)                     # 会員証を目の前に出す。[E] で閉じる
+                log("財布を見ました（ジムの会員証）")
+                return
+        except Exception as e:  # noqa
+            if not getattr(self, "_inv_err", False):
+                self._inv_err = True
+                log("  (持ち物のキーを読めません) %s" % e)
+            return
+        if int(self.t * 4) != getattr(self, "_inv_k", -1):
+            self._inv_k = int(self.t * 4)
+            can = self.has_protein and not self.protein_drunk
+            txt = "\n".join(self.inv_lines()) + "\n[%s] プロテインを飲む%s   [%s] 財布を見る   [%s] とじる" % (
+                INV_DRINK_KEY, "" if can else "（もう飲めない）", INV_WALLET_KEY, INV_KEY)
+            screen(self.world, txt, (255, 240, 200), 0.4, "KD_INV")
+
+    def drink_protein(self):
+        if not self.has_protein or self.protein_drunk:
+            screen(self.world, "もうプロテインはない", (200, 200, 200), 2.0)
+            return
+        self.protein_drunk = True
+        self.play("latch")
+        self.flash_color((1.0, 0.95, 0.4), 0.85, 0.3)
+        screen(self.world, "プロテインを飲んだ。力がみなぎる……（ギラッ）", (255, 230, 90), 5.0)
+        log("プロテインを飲んだ（%s で電話すると…）" % BREAK_CODE)
 
     def safe_enter(self):
         if self.dial_dir is None:
@@ -1332,7 +2476,7 @@ class Game:
 
     def tick_arrows(self):
         """矢印キーで歩く（W A S D が使えないテンプレ用）。歩く場面（外・中）だけ"""
-        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED") or not self.is_char or getattr(self, "manual_on", False) or MANUAL_WALK == "on":
+        if not ARROW_MOVE or self.state not in ("WALK", "TRAPPED", "ESCAPED") or not self.is_char or getattr(self, "manual_on", False) or MANUAL_WALK == "on":
             return
         try:
             f = (1.0 if self.pc.is_input_key_down(self._key("Up")) else 0.0) - (1.0 if self.pc.is_input_key_down(self._key("Down")) else 0.0)
@@ -1354,7 +2498,7 @@ class Game:
     def tick_manual(self, dt):
         """キャラが動かないときの、自分で動かす歩き：WASD と矢印。向いている方向へ、WALK_SPEED で進める。
         歩く人（Character）には、動きの部品（CharacterMovement）の速度を直接入れる（地面・坂をなめらかに進む）。それでも進まなければ、体を直接動かす"""
-        if MANUAL_WALK == "off" or self.state not in ("WALK", "TRAPPED"):
+        if MANUAL_WALK == "off" or self.state not in ("WALK", "TRAPPED", "ESCAPED"):
             return
         if MANUAL_WALK == "auto" and not getattr(self, "manual_on", False):
             return
@@ -1518,6 +2662,24 @@ class Game:
             if pressed:
                 self.begin_safe()
                 return
+        if self.safe_open and not self.box_done and self.state == "TRAPPED" and getattr(self, "safe_base", None) is not None and getattr(self, "dial_cam", None) is not None and self.looking_at(self.safe_base, ITEM_RANGE):
+            self.prompt_item("[%s] 金庫の中の箱を調べる" % ENTER_KEY, "BOX")
+            if pressed:
+                self.begin_box()
+                return
+        if self.box_done and self.has_envelope and not self.envelope_open and self.state == "TRAPPED" and getattr(self, "safe_base", None) is not None and self.looking_at(self.safe_base, ITEM_RANGE):
+            self.prompt_item("[%s] 赤い封筒を開ける" % ENTER_KEY, "ENV")
+            if pressed:
+                self.begin_env()
+                return
+        if self.state == "TRAPPED" and self.looking_at_pt(self.door_inner_point(), DOOR_RANGE, 0.9):
+            if self.has_door_key:
+                self.prompt_item("[%s] 鍵で扉を開ける" % ENTER_KEY, "DOOR")
+                if pressed:
+                    self.begin_exit()
+                    return
+            elif pressed:
+                screen(self.world, "鍵がかかっている", (255, 200, 150), 2.0)
         if self.book is not None and self.state == "TRAPPED" and self.looking_at(self.book, ITEM_RANGE):
             self.prompt_item("[%s] 本を開く" % ENTER_KEY, "BOOK")
             if pressed:
@@ -1560,14 +2722,17 @@ class Game:
         except Exception as e:  # noqa
             log("  (Eキーを読めません) %s" % e)
 
-    def begin_read(self, mat_name="M_KDRead", aspect=1.0):
-        """新聞・本を目の前に出す。歩く・見回すを止めて、Eでとじる"""
-        self.read_return = self.state
-        self.after_read = getattr(self, "after_read", None) if mat_name != "M_KDRead" else None
+    def show_picture(self, mat_name, size, aspect):
+        """絵（材質）を、目の前（READ_DIST）に出す。新聞・本・メモ・会員証・行方不明の新聞で共通。状態は変えない"""
+        if self.read_plane is None:
+            log("  (KD_ReadPlane が無いので絵を出せません) %s" % mat_name)
+            return
         try:
             m = unreal.EditorAssetLibrary.load_asset("/Game/KoushuDenwa/Materials/" + mat_name)
             if m is not None:
                 self.read_plane.get_component_by_class(unreal.StaticMeshComponent).set_material(0, m)
+            else:
+                log("  (材質 %s がありません。setup_game_fp.py を実行し直してください)" % mat_name)
         except Exception as e:  # noqa
             log("  (読む絵を入れ替えられません) %s" % e)
         eye, rot = self.eye_info()
@@ -1580,8 +2745,14 @@ class Game:
         loc = unreal.Vector(eye.x + math.cos(th) * READ_DIST, eye.y + math.sin(th) * READ_DIST, eye.z)
         self.read_plane.set_actor_location(loc, False, False)
         self.read_plane.set_actor_rotation(unreal.Rotator(0, 0, yaw + 90.0), False)
-        self.read_plane.set_actor_scale3d(unreal.Vector(READ_SIZE * aspect / 50.0, 1.0, READ_SIZE / 70.0))
+        self.read_plane.set_actor_scale3d(unreal.Vector(size * aspect / 50.0, 1.0, size / 70.0))
         self.read_plane.set_actor_hidden_in_game(False)
+
+    def begin_read(self, mat_name="M_KDRead", aspect=1.0):
+        """新聞・本を目の前に出す。歩く・見回すを止めて、Eでとじる"""
+        self.read_return = self.state
+        self.after_read = getattr(self, "after_read", None) if mat_name != "M_KDRead" else None
+        self.show_picture(mat_name, READ_SIZE, aspect)
         for fn in ("set_ignore_move_input", "set_ignore_look_input"):
             try:
                 getattr(self.pc, fn)(True)
@@ -1685,6 +2856,8 @@ class Game:
         n_hold = min(level, len(GHOST_HOLD) - 1)
         if typ == "ghost":
             sp = level if spot is None else spot
+            if self.glass_enabled(sp):
+                return self.glass_steps(sp, GHOST_HOLD[n_hold])
             return [("flicker", FLICKER_TIME, None, None),
                     ("dark", DARK_TIME, self.hide_all, lambda sp=sp: self.ghost_scene(sp)),
                     ("idle", GHOST_HOLD[n_hold], None, None),
@@ -1706,7 +2879,7 @@ class Game:
 
     def on_flag(self, name="?"):
         """謎を1つ解いた（フラグがたった）。演出を1つ選んで出す"""
-        if self.state not in ("TRAPPED", "PHONE", "SAFE", "READING") or not getattr(self, "trapped_started", False):
+        if self.state not in ("TRAPPED", "PHONE", "SAFE", "BOX", "READING", "ENV") or not getattr(self, "trapped_started", False):
             log("(閉じ込められていないので、フラグは無視) %s" % name)
             return
         if self.state != "TRAPPED":                              # 電話・金庫・読んでいる最中は、終わってから演出を出す
@@ -1717,6 +2890,13 @@ class Game:
         n_lv = len(GHOST_SPOTS)
         level = min(n_lv - 1, (self.solved - 1) * n_lv // max(1, PUZZLE_COUNT))
         self.level_now = level
+        if name == "0714":                                 # 謎7：ふつうの抽選はしない。そのときの強さの「張り紙」の札を使ったことにして、謎7の場面を流す
+            self.used.add(("poster", level))
+            self.last_type = "poster"
+            log("謎 %d/%d（%s）→ 謎7の場面（張り紙の札 強さ%d を使ったことにする）" % (self.solved, PUZZLE_COUNT, name, level))
+            screen(self.world, "謎 %d/%d" % (self.solved, PUZZLE_COUNT), (200, 255, 200), 3.0)
+            self.start_code_seq()
+            return
         choice = None
         for lv in range(level, n_lv):                      # 今の強さの札から探す。なければ、1つ強い札へ
             order = ["ghost", "poster"]
@@ -1751,14 +2931,207 @@ class Game:
     def hide_all(self):
         self.ghost_hide()
         self.posters_hide()
+        self.code_clear()
 
     def ghost_scene(self, r):
         self.stage = r + 1
         gx, gy = GHOST_SPOTS[min(r, len(GHOST_SPOTS) - 1)]
         th = math.radians(self.front_yaw)               # 入口の向きに合わせて回す（入口が +Y のとき 0 度）
-        self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th))
+        hold = GHOST_HOLD[min(self.level_now, len(GHOST_HOLD) - 1)]
+        self.ghost_show(self.cx + gx * math.cos(th) - gy * math.sin(th), self.cy + gx * math.sin(th) + gy * math.cos(th), None, None, level=r, hold=hold)
         screen(self.world, GHOST_SUBS[min(r, len(GHOST_SUBS) - 1)], (200, 220, 255), 4.0)
         log("幽霊の場面 %d" % (r + 1))
+
+    # ---- ガラスに張りつく幽霊（GLASSGHOST_*）と、ガラスの外の手形（KD_Hand_*） ----
+    def glass_enabled(self, sp):
+        return bool(GLASSGHOST_ENABLE) and self.ghost is not None and (sp + 1) in [int(c) for c in GLASSGHOST_CARDS] and len(self.glass_faces()) > 0
+
+    def glass_faces(self):
+        return [(str(f[0]).upper(), max(-1.0, min(1.0, float(f[1])))) for f in GLASSGHOST_FACES if str(f[0]).upper() in ("R", "L", "F", "B")]
+
+    def glass_off(self):
+        """ガラスの外の面から、幽霊の足もとまでの距離（cm）。体をかたむけた分（頭が前に出る）と顔の厚みを足して、顔とガラスのすきまが GLASSGHOST_GAP になるようにする"""
+        rad = math.radians(abs(GLASSGHOST_LEAN_DEG))
+        return GLASSGHOST_GAP + GLASSGHOST_FACE_DEPTH * math.cos(rad) + GLASSGHOST_HEIGHT * GLASSGHOST_HEAD * math.sin(rad)
+
+    def glass_rect(self):
+        off = self.glass_off()
+        gn = getattr(self, "glass_n", None) or max(20.0, self.half_n - 3.0)
+        gt = getattr(self, "glass_t", None) or max(20.0, self.half_t - 3.0)
+        return gn, gt, gn + off, gt + off                                    # ガラスの半分(n, t)・幽霊の足もとが並ぶ長方形の半分(n, t)
+
+    def glass_s(self, face):
+        """面（壁, 位置）を、長方形のまわりの道のりの上の位置 s にする（入口 F の左端から、R→B→L の順に一周）"""
+        gn, gt, hn, ht = self.glass_rect()
+        wall, f = face
+        if wall == "F":
+            return ht + f * gt
+        if wall == "R":
+            return 2 * ht + (hn - f * gn)
+        if wall == "B":
+            return 2 * ht + 2 * hn + (ht - f * gt)
+        return 4 * ht + 2 * hn + (f * gn + hn)
+
+    def glass_pt(self, s):
+        """道のりの位置 s → (入口方向の位置 n, 横の位置 t, 壁の名前)"""
+        gn, gt, hn, ht = self.glass_rect()
+        s %= 4 * (hn + ht)
+        if s < 2 * ht:
+            return hn, s - ht, "F"
+        s -= 2 * ht
+        if s < 2 * hn:
+            return hn - s, ht, "R"
+        s -= 2 * hn
+        if s < 2 * ht:
+            return -hn, ht - s, "B"
+        s -= 2 * ht
+        return -hn + s, -ht, "L"
+
+    def glass_world(self, n, t):
+        th = math.radians(self.front_yaw)
+        return self.cx + n * (-math.sin(th)) + t * math.cos(th), self.cy + n * math.cos(th) + t * math.sin(th)
+
+    def glass_inward(self, wall):
+        """壁の名前 → 内向きの単位ベクトル（世界）"""
+        th = math.radians(self.front_yaw)
+        nx, ny, tx, ty = -math.sin(th), math.cos(th), math.cos(th), math.sin(th)
+        return {"F": (-nx, -ny), "B": (nx, ny), "R": (-tx, -ty), "L": (tx, ty)}[wall]
+
+    def glass_pick(self, avoid=None):
+        fs = [f for f in self.glass_faces() if f != avoid]
+        c = [f for f in fs if f != getattr(self, "glass_last", None)] or fs          # 前の場面と同じ面は、なるべく避ける
+        return random.choice(c) if c else None
+
+    def glass_steps(self, sp, hold):
+        """ガラスに張りつく幽霊の場面：明るくなるとガラスの外にぴったり張りついている → 暗い間に別の面へすべる → 明るくなると別のガラスにいる"""
+        fa = self.glass_pick()
+        fb = self.glass_pick(fa) if GLASSGHOST_SLIDE else None
+        n = random.randint(int(min(GLASSGHOST_HANDS)), int(max(GLASSGHOST_HANDS)))
+        fl = ("flicker", FLICKER_TIME, None, None)
+        if fb is None:
+            return [fl, ("dark", DARK_TIME, self.hide_all, lambda: self.glass_ghost_scene(sp, fa, hold, n, True)),
+                    ("idle", hold, None, None), fl, ("dark", DARK_TIME, self.ghost_hide, None)]
+        h = hold * 0.5
+        n1 = n - n // 2
+        return [fl, ("dark", DARK_TIME, self.hide_all, lambda: self.glass_ghost_scene(sp, fa, h, n1, True)),
+                ("idle", h, None, None), fl,
+                ("dark", DARK_TIME, lambda: self.glass_slide_begin(fa, fb), lambda: self.glass_ghost_scene(sp, fb, h, n - n1, False)),
+                ("idle", h, None, None), fl, ("dark", DARK_TIME, self.ghost_hide, None)]
+
+    def glass_ghost_scene(self, r, face, hold, n_hands, first):
+        if self.code_active or self.ghost is None:                           # 謎7の場面の間は、幽霊を出さない
+            return
+        self.stage = r + 1
+        wall, f = face
+        n, t, _w = self.glass_pt(self.glass_s(face))
+        x, y = self.glass_world(n, t)
+        ix, iy = self.glass_inward(wall)
+        self.ghost_show(x, y, x + ix * 100.0, y + iy * 100.0, level=r, hold=hold, glass=True, lean=GLASSGHOST_LEAN_DEG)
+        self.glass_last = face
+        if GLASSGHOST_SOUND:
+            self.play(GLASSGHOST_SOUND)
+        self.hand_reveal_near(x, y, n_hands)
+        if first:
+            screen(self.world, GHOST_SUBS[min(r, len(GHOST_SUBS) - 1)], (200, 220, 255), 4.0)
+        log("幽霊の場面 %d（ガラスに張りつく：%s %.2f・顔とガラスのすきま %.1fcm）" % (r + 1, wall, f, GLASSGHOST_GAP))
+
+    def glass_slide_begin(self, fa, fb):
+        """暗い間：幽霊が、ガラスの外がわを、別の面へすべる（角は曲がる）"""
+        if self.ghost is None:
+            return
+        sa, sb = self.glass_s(fa), self.glass_s(fb)
+        r = self.glass_rect()
+        P = 4 * (r[2] + r[3])
+        d = (sb - sa + P / 2.0) % P - P / 2.0                                # 近いほうの回り方
+        self.gslide = {"sa": sa, "d": d, "t": 0.0, "dur": max(0.3, DARK_TIME * 0.9)}
+
+    def tick_glass_slide(self, dt):
+        sl = getattr(self, "gslide", None)
+        if sl is None or self.ghost is None:
+            return
+        sl["t"] += dt
+        u = min(1.0, sl["t"] / sl["dur"])
+        e = u * u * (3.0 - 2.0 * u)
+        n, t, wall = self.glass_pt(sl["sa"] + sl["d"] * e)
+        x, y = self.glass_world(n, t)
+        ix, iy = self.glass_inward(wall)
+        yaw = math.degrees(math.atan2(iy, ix)) + GHOST_YAW
+        try:
+            self.ghost.set_actor_location_and_rotation(unreal.Vector(x, y, getattr(self, "ghost_z", 0.0)), unreal.Rotator(GLASSGHOST_LEAN_DEG, 0, yaw), False, False)
+            gfx = getattr(self, "gfx", None)
+            if gfx is not None:
+                gfx.base_yaw = yaw
+            self.ghost_light_follow(x, y, ix, iy, "glass")                       # すべる幽霊について行く
+        except Exception as ex:  # noqa
+            self.gslide = None
+            log("  (ガラスをすべる動きを止めます) %s" % ex)
+        if u >= 1.0:
+            self.gslide = None
+
+    def setup_hands(self, found):
+        self.hands = sorted([(k, v) for k, v in found.items() if k.startswith("KD_Hand_")], key=lambda kv: kv[0])
+        self.hand_shown = set()
+        self.hand_queue = []
+        self._hand_key = None
+        self.gslide = None
+        self.glass_last = None
+        for _k, a in self.hands:
+            a.set_actor_hidden_in_game(True)
+        log("ガラスの手形: %d 枚（最初は見えません）" % len(self.hands))
+
+    def hand_pick(self, n, near=None):
+        taken = set(self.hand_shown) | set(i for _d, i in self.hand_queue)
+        cand = [i for i in range(len(self.hands)) if i not in taken]
+        if near is not None:
+            def dist(i):
+                try:
+                    p = self.hands[i][1].get_actor_location()
+                    return math.hypot(p.x - near[0], p.y - near[1]) + 0.3 * abs(p.z - near[2])
+                except Exception:  # noqa
+                    return 1e9
+            cand.sort(key=dist)
+            return cand[:n]
+        random.shuffle(cand)
+        return cand[:n]
+
+    def hand_reveal_near(self, x, y, n):
+        if not getattr(self, "hands", None) or n <= 0:
+            return
+        z = getattr(self, "ghost_z", 0.0) + GLASSGHOST_HEIGHT * GLASSGHOST_HEAD
+        for k, i in enumerate(self.hand_pick(n, (x, y, z))):
+            self.hand_queue.append([HAND_DELAY * (k + 1), i])
+
+    def hand_reveal_random(self, n):
+        if not getattr(self, "hands", None) or n <= 0:
+            return
+        for k, i in enumerate(self.hand_pick(n)):
+            self.hand_queue.append([HAND_DELAY * (k + 1), i])
+
+    def tick_hands(self, dt):
+        q = getattr(self, "hand_queue", None)
+        if not q:
+            return
+        for e in q:
+            e[0] -= dt
+        due = [e for e in q if e[0] <= 0.0]
+        if due:
+            self.hand_queue = [e for e in q if e[0] > 0.0]
+            for _d, i in due:
+                self.hand_shown.add(i)
+            self.update_hands()
+
+    def update_hands(self):
+        """見えるようになった手形だけ見せる。謎7の暗い間（外の木の数字が見えるように、ガラスの言葉を消す間）は、ぜんぶ隠す"""
+        hands = getattr(self, "hands", None)
+        if not hands:
+            return
+        hide = bool(getattr(self, "code_active", False)) and self.mult < 0.05
+        key = (tuple(sorted(self.hand_shown)), hide)
+        if key == self._hand_key:
+            return
+        self._hand_key = key
+        for i, (_k, a) in enumerate(hands):
+            a.set_actor_hidden_in_game(hide or i not in self.hand_shown)
 
     def poster_scene_begin(self, r):
         self.stage = r + 1
@@ -1766,6 +3139,8 @@ class Game:
         self.poster_target = int(math.ceil(len(self.posters) * frac))
         self.poster_shown = 0
         self.poster_round = r
+        if r >= 1 and HAND_PER_SCARE > 0:                          # 強さ2以上の張り紙の演出：手形もひとつ、ガラスの外に見えてくる
+            self.hand_reveal_random(HAND_PER_SCARE)
         screen(self.world, "（紙が……貼られていく）", (255, 160, 160), 3.0)
         try:
             a0 = self.posters[0][1]
@@ -1811,6 +3186,9 @@ class Game:
         if typ == "dark":
             self.set_lights(0.0)
             self.blackout(DARK_BLACK)
+        elif typ == "cdark":                               # 謎7の暗い間：光だけ消す。画面は真っ黒にしない（数字が見えるように）
+            self.set_lights(0.0)
+            self.blackout(CODE_DARK_BLACK)
         if enter_fn is not None:
             enter_fn()
 
@@ -1822,6 +3200,7 @@ class Game:
             pass
         if self.step_i >= len(self.steps):                    # 演出がない間：静か（ときどき光がゆれる）
             self.set_lights(1.0 if self.t % 7.0 > 0.3 else IDLE_DIP)
+            self.tick_code_hint(dt)
             self.pressure_t += dt
             if self.pressure_t >= PRESSURE_INTERVAL:
                 self.pressure_t = 0.0
@@ -1833,6 +3212,8 @@ class Game:
             self.set_lights(1.0 if self.t % 7.0 > 0.3 else IDLE_DIP)     # ときどきすこし弱まる
             if typ == "posters":
                 self.poster_progress(self.step_t)
+        elif typ == "clit":
+            self.set_lights(1.0)                                         # 謎7の明るい間：ちらつかせない
         elif typ == "flicker":
             if self.step_t >= self.flicker_next:
                 self.flicker_lit = not self.flicker_lit
@@ -1842,7 +3223,7 @@ class Game:
         if self.step_t >= ln:
             if typ == "flicker":
                 self.blackout(0.0)
-            if typ == "dark":
+            if typ in ("dark", "cdark"):
                 self.set_lights(1.0)
                 self.blackout(0.0)
             self.next_step()
