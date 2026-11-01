@@ -149,7 +149,10 @@
   S.nextNet = s => D.NET_LV[s.net.lv];       // 次のレベル（なければ undefined）
   // ミナが住んでいれば、鉄・石を使う物は、その材料が1つ少なくて済む
   S.discount = function (s, cost) { if (!cost || !s.res.mina.live) return cost; const o = {}; Object.keys(cost).forEach(k => { const n = D.RESIDENT.perk.mina.off.includes(k) ? Math.max(0, cost[k] - 1) : cost[k]; if (n > 0) o[k] = n; }); return o; };
-  const costOf = (s, r) => S.discount(s, r.special === 'net' ? (S.nextNet(s) ? S.nextNet(s).cost : null) : r.cost);
+  S.lvOf = (s, k) => k === 'rod' ? (s.rodLv || 1) : (s.plotLv || 1);
+  S.lvData = (s, k) => D.LVUP[k].lv[Math.min(D.LVUP[k].lv.length, S.lvOf(s, k)) - 1];
+  S.nextLv = (s, k) => D.LVUP[k].lv[S.lvOf(s, k)];      // なければ undefined
+  const costOf = (s, r) => S.discount(s, r.special === 'net' ? (S.nextNet(s) ? S.nextNet(s).cost : null) : r.special === 'lvup' ? (S.nextLv(s, r.up) ? S.nextLv(s, r.up).cost : null) : r.cost);
   S.costOf = costOf;
   // その日にあったこと（住人の会話に使う）。日がかわると、昨日ぶんが prev に残る
   S.note = function (s, k) { const d = s.clock.day; let h = s.hist; if (!h || h.day !== d) { h = s.hist = { day: d, prev: h && h.day === d - 1 ? { storm: h.storm || 0 } : {} }; } h[k] = (h[k] || 0) + 1; };
@@ -164,10 +167,11 @@
   // 作れるか：{ ok, why }  why = 'locked'（作業台がいる）／'short'（材料がたりない）／'max'／'have'（もうある）
   S.canCraft = function (s, r, hv) {
     const cost = r.special === 'hut' ? S.discount(s, D.HUT_LOOKS[hv == null ? 0 : hv].c) : costOf(s, r);
-    if (r.special === 'net' && !cost) return { ok: false, why: 'max' };
+    if ((r.special === 'net' || r.special === 'lvup') && !cost) return { ok: false, why: 'max' };
     if (r.need === 'bench' && !S.hasBench(s)) return { ok: false, why: 'locked' };
     if (r.special === 'fix' && (s.dur[r.tool] >= 95)) return { ok: false, why: 'full' };
     if (r.special === 'rod' && s.tools.includes('rod')) return { ok: false, why: 'have' };
+    if (r.special === 'lvup' && r.up === 'rod' && !s.tools.includes('rod')) return { ok: false, why: 'short' };
     if (r.out === 'bench' && (S.hasBench(s) || (s.inv.bench || 0) > 0)) return { ok: false, why: 'have' };
     if (!S.canPay(s, cost)) return { ok: false, why: 'short' };
     return { ok: true };
@@ -182,6 +186,7 @@
     S.pay(s, costOf(s, r)); S.tally(s, 'craft', r.id);
     if (r.special === 'fix') { s.dur[r.tool] = 100; s.events.push({ e: 'fixed', k: r.tool }); }
     else if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
+    else if (r.special === 'lvup') { if (r.up === 'rod') s.rodLv = S.lvOf(s, 'rod') + 1; else s.plotLv = S.lvOf(s, 'plot') + 1; s.events.push({ e: 'objlv', k: r.up, lv: S.lvOf(s, r.up), up: 1 }); }
     else if (r.special === 'rod') { s.tools.push('rod'); s.events.push({ e: 'crafted', k: 'rod' }); }
     else { s.inv[r.out] = (s.inv[r.out] || 0) + 1; s.events.push({ e: 'crafted', k: r.out }); }
     return true;
@@ -269,7 +274,7 @@
   S.castRod = function (s, tx, tz) {
     if (s.hand !== 'rod' || s.rod) return false;
     s.dur.rod = Math.max(0, s.dur.rod - D.DUR.rod.use); s.events.push({ e: 'dur', k: 'rod' });
-    const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, dist = clamp(d, D.ROD.min, D.ROD.range);
+    const b = s.player, dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz) || 1, dist = clamp(d, D.ROD.min, S.lvData(s, 'rod').range);
     const x = b.x + dx / d * dist, z = b.z + dz / d * dist;
     if (S.has(s, Math.floor(x), Math.floor(z))) return false;
     b.path = []; b.task = null; b.act = { type: 'throw', t: 0.5 }; b.dir = dirOf(dx, dz);
@@ -280,7 +285,7 @@
     const r = s.rod; if (!r || r.phase === 'fight') return false;
     s.rod = null; s.player.act = { type: 'throw', t: 0.4 };
     if (r.phase !== 'bite') { s.events.push({ e: 'rodempty' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return true; }
-    const g = D.ROD.great, q = Math.abs(r.t / D.ROD.bite - g[0]) <= g[1] ? 'great' : 'good';   // リズム：輪が重なる頃にタップ
+    const g = D.ROD.great, q = Math.abs(r.t / D.ROD.bite - g[0]) <= S.lvData(s, 'rod').great ? 'great' : 'good';   // リズム：輪が重なる頃にタップ
     let k = 'fish';
     if (S.rand() > D.ROD.fishP) { const o = ['wood', 'coconut', 'cloth', 'rope']; k = o[Math.floor(S.rand() * o.length)]; }
     if (k === 'fish') {      // 魚：やりとりを始める（★が多いほど、よくあばれる）
@@ -297,7 +302,7 @@
     if (r.sg > 0) r.sg -= dt;
     r.tn += ((s.rodHold ? F.up : -F.down) + (r.sg > 0 ? P[0] : 0)) * dt; r.tn = Math.max(0, r.tn);
     const inZ = r.tn >= F.zone[0] && r.tn <= F.zone[1], worn = S.worn(s, 'rod') ? 0.75 : 1;
-    r.pg += inZ ? F.gain * worn / (1 + 0.3 * (star - 1)) * dt : -F.lose * dt; r.inZ = inZ;
+    r.pg += inZ ? F.gain * S.lvData(s, 'rod').gain * worn / (1 + 0.3 * (star - 1)) * dt : -F.lose * dt; r.inZ = inZ;
     if (r.tn >= 1) { s.rod = null; s.rodHold = false; s.dur.rod = Math.max(0, s.dur.rod - F.snapWear); s.events.push({ e: 'rodsnap' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return; }
     if (r.pg <= 0) { s.rod = null; s.rodHold = false; s.events.push({ e: 'rodescape' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return; }
     if (r.pg >= 1) { s.rod = null; s.rodHold = false; s.player.act = { type: 'throw', t: 0.4 };
@@ -487,7 +492,7 @@
   S.plotUse = function (s, o) {
     const P = D.PLOT, C = D.CROPS, cr = o.c && C[o.c];
     if (cr && o.p >= cr.sec) {
-      const n = cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1; s.inv.veg = (s.inv.veg || 0) + n; S.tally(s, 'veg', n); S.note(s, 'farm'); const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
+      const n = (cr.star === 3 ? 3 : cr.star === 2 ? 2 : 1) + (S.rand() < S.lvData(s, 'plot').extra ? 1 : 0); s.inv.veg = (s.inv.veg || 0) + n; S.tally(s, 'veg', n); S.note(s, 'farm'); const first = !(s.cropdex || (s.cropdex = {}))[o.c]; s.cropdex[o.c] = (s.cropdex[o.c] || 0) + 1;
       const back = S.rand() < P.seedBack; if (back) { const sk = 'sd_' + o.c; s.inv[sk] = (s.inv[sk] || 0) + 1; }      // 収穫で戻る種は、その作物の種袋
       s.events.push({ e: 'plotharvest', c: o.c, n, back }); if (first) s.events.push({ e: 'cropnew', id: o.c }); o.c = null; o.p = 0; o.w = 0; return true;
     }
@@ -640,7 +645,7 @@
     });
     s.objects.forEach(o => { if (o.k === 'plot' && o.c) {     // 畑：水があるあいだ育つ。嵐の雨は水を入れる。晴れは早く乾く、凪はよく育つ
       const P = D.PLOT, cr = D.CROPS[o.c]; if (s.weather.id === 'storm') o.w = P.water;
-      if ((o.w || 0) > 0 && o.p < cr.sec) { o.p = Math.min(cr.sec, o.p + dt * (s.weather.id === 'calm' ? P.calmGrow : 1)); o.w = Math.max(0, o.w - dt * (s.weather.id === 'sunny' ? P.sunDry : 1)); }
+      if ((o.w || 0) > 0 && o.p < cr.sec) { o.p = Math.min(cr.sec, o.p + dt * S.lvData(s, 'plot').grow * (s.weather.id === 'calm' ? P.calmGrow : 1)); o.w = Math.max(0, o.w - dt * (s.weather.id === 'sunny' ? P.sunDry : 1)); }
     } });
     s.objects.forEach(o => { if (o.k === 'rack' && o.h) for (let i = 0; i < o.h.length; i++) o.h[i] = Math.min(o.h[i] + dt, D.RACK.sec); });     // 干し魚だな：つるした魚が干物になっていく
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
@@ -745,5 +750,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.rodLv = s.rodLv || 1; out.plotLv = s.plotLv || 1; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

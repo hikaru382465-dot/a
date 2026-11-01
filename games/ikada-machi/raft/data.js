@@ -50,6 +50,8 @@ window.RAFT.data = {
     { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
     { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
     { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
+    { id: 'rodup',  special: 'lvup', up: 'rod',  need: 'bench', tip: '釣りざおを強くする' },
+    { id: 'plotup', special: 'lvup', up: 'plot', need: 'bench', tip: '畑をぜんぶ強くする' },
     { id: 'fixnet', special: 'fix', tool: 'net', cost: { wood: 2 }, need: 'bench', tip: '網のいたみを直す' },
     { id: 'fixrod', special: 'fix', tool: 'rod', cost: { wood: 2 }, need: 'bench', tip: '釣りざおのいたみを直す' },
     { id: 'campfire', out: 'campfire', cost: { wood: 8 }, need: 'bench', tip: '魚を焼ける' },
@@ -249,3 +251,14 @@ window.RAFT.data.UPG = {
 // 釣りの「やりとり」：かかったら、押す＝巻く（糸がはる）／はなす＝ゆるめる。はり具合を緑の帯に入れておくと、引きよせが進む
 window.RAFT.data.FIGHT = { zone: [0.3, 0.72], up: 0.6, down: 0.55, gain: 0.15, lose: 0.08, start: 0.25, greatStart: 0.4, snapWear: 10,
   pull: { 1: [0.9, 1.8], 2: [1.3, 1.3], 3: [1.8, 0.9] } };      // pull[★]＝[あばれる強さ, あばれる間かく(秒)]
+// 釣りざお・畑のレベル（lv[i]＝Lv(i+1)。cost＝そのレベルにする材料）
+window.RAFT.data.LVUP = {
+  rod: { name: '釣りざお', lv: [
+    { range: 4.5, great: 0.2, gain: 1 },
+    { range: 6, great: 0.26, gain: 1.25, cost: { wood: 6, rope: 3, cloth: 2 } },
+    { range: 7.5, great: 0.32, gain: 1.5, cost: { wood: 8, rope: 4, iron: 1, glass: 1 } }] },      // range＝とどくマス／great＝ぴったりの幅／gain＝やりとりで引きよせが進む速さ
+  plot: { name: '畑', lv: [
+    { grow: 1, extra: 0 },
+    { grow: 1.3, extra: 0.25, cost: { wood: 6, cloth: 2, clay: 3 } },
+    { grow: 1.6, extra: 0.5, cost: { clay: 6, stone: 4, cloth: 3 } }] }      // grow＝育つ速さ／extra＝収穫でもう1つ増える確率
+};
