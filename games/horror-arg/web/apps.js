@@ -7,27 +7,56 @@ window.Apps = (function () {
   function bind(a) { api = a; }
   const h = (...a) => api.h(...a);
 
+  // 小さな線のアイコン（絵文字は使わない）
+  const ICONS = {
+    reply: '<path d="M4 12a8 8 0 1 0 3-6.2L4 4v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    comment: '<path d="M4 5h16v10H9l-4 4V15H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    repost: '<path d="M7 7h10l-3-3M17 17H7l3 3M17 7v5M7 17v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    views: '<path d="M5 19V11M10 19V6M15 19v-9M20 19V14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    star: '<path d="M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+    clip: '<path d="M8 12l6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    fire: '<path d="M12 21c-4 0-6-2.7-6-6 0-4 4-6 4-10 2 1 4 3.5 4 6 1-1 1.5-2 1.5-3 2 2 2.5 4.5 2.5 7 0 3.3-2 6-6 6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    share: '<path d="M12 4v11M7 9l5-5 5 5M5 14v5h14v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    like: '<path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H19a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    back: '<path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+  };
+  const ico = (n, cls) => { const sp = document.createElement("span"); sp.className = "ico " + (cls || ""); sp.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' + ICONS[n] + "</svg>"; return sp; };
+  const hashN = (t, m) => String(t).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 99991, 7) % m;
+  const AV_COLORS = ["#6b8fd6", "#d67a6b", "#5fae8b", "#c49a3c", "#9a6bd6", "#d66b9e", "#4fa3b8", "#8a8f6b"];
+  const avatar = (name, key, cls) => h("span", { class: "av " + (cls || ""), style: "background:" + AV_COLORS[hashN(key || name, AV_COLORS.length)] }, (name || "?").replace(/[（(].*$/, "").trim().slice(0, 1) || "?");
+
   // ---------- メール ----------
   const visibleMails = () => E().mails.filter(m => m.day <= day());
   const unread = () => visibleMails().filter(m => !api.state().mailRead[m.id]).length;
   function openMail() {
-    const st = api.state();
+    const st = api.state(); st.mailStar = st.mailStar || {};
     const list = h("div", { class: "ml-list" }), view = h("div", { class: "ml-view" });
     let sel = null;
     var wrap;
     function paint() {
       const ms = visibleMails().slice().sort((a, b) => b.day - a.day || (b.id < a.id ? -1 : 1));
-      list.replaceChildren(...ms.map(m => h("div", { class: "ml-row" + (sel === m.id ? " sel" : "") + (st.mailRead[m.id] ? "" : " unread"), tabindex: "0", role: "button", onkeydown: ev => { if (ev.key === "Enter") ev.target.click(); }, onclick: () => {
-        sel = m.id; st.mailRead[m.id] = true; api.save(); api.S.click(); paint(); api.refreshBadges();
-      } }, h("div", { class: "ml-from" }, m.from), h("div", { class: "ml-sub" }, m.subject), h("div", { class: "ml-time" }, m.time))));
+      list.replaceChildren(h("div", { class: "ml-tools" }, h("input", { type: "checkbox", "aria-label": "すべて選択" }), h("span", { class: "ml-tool" }, "受信トレイ"), h("span", { class: "sp" }), h("span", { class: "ml-cnt" }, "1–" + ms.length + " / " + ms.length)),
+        ...ms.map(m => h("div", { class: "ml-row" + (sel === m.id ? " sel" : "") + (st.mailRead[m.id] ? "" : " unread"), tabindex: "0", role: "button", onkeydown: ev => { if (ev.key === "Enter") ev.target.click(); }, onclick: () => {
+          sel = m.id; st.mailRead[m.id] = true; api.save(); api.S.click(); paint(); api.refreshBadges();
+        } },
+          h("input", { type: "checkbox", "aria-label": "選択", onclick: ev => ev.stopPropagation() }),
+          h("button", { class: "ml-star" + (st.mailStar[m.id] ? " on" : ""), "aria-label": "スター", onclick: ev => { ev.stopPropagation(); st.mailStar[m.id] = !st.mailStar[m.id]; api.save(); api.S.click(); paint(); } }, ico("star")),
+          h("div", { class: "ml-mid" }, h("div", { class: "ml-from" }, m.from), h("div", { class: "ml-sub" }, m.subject, h("span", { class: "ml-snip" }, " - " + (m.body[0] || "").slice(0, 40)))),
+          h("div", { class: "ml-right" }, m.att ? ico("clip", "ml-att") : null, h("span", { class: "ml-time" }, m.time)))));
       const m = ms.find(x => x.id === sel);
       if (wrap) wrap.classList.toggle("has-sel", !!m);
-      view.replaceChildren(m ? h("div", {}, h("button", { class: "btn back", onclick: () => { sel = null; paint(); } }, "← 一覧"),
-        h("h3", {}, m.subject), h("div", { class: "ml-meta" }, "差出人：" + m.from + "　<" + m.addr + ">"), h("div", { class: "ml-meta" }, m.time),
-        h("div", { class: "ml-body" }, m.body.map(t => h("p", {}, t)))) : h("div", { class: "adm-empty" }, "メールを選んでください"));
+      view.replaceChildren(m ? h("div", { class: "ml-read" }, h("button", { class: "btn back", onclick: () => { sel = null; paint(); } }, "← 一覧"),
+        h("h3", {}, m.subject),
+        h("div", { class: "ml-head" }, avatar(m.from, m.addr), h("div", { class: "ml-hinfo" }, h("div", {}, h("b", {}, m.from), h("span", { class: "ml-addr" }, " <" + m.addr + ">")), h("div", { class: "ml-meta" }, "宛先：admin_0721@yobanashi-kan.example")), h("span", { class: "ml-date" }, m.time)),
+        h("div", { class: "ml-body" }, m.body.map(t => h("p", {}, t))),
+        m.att ? h("div", { class: "ml-attbox", tabindex: "0", role: "button", onclick: () => { api.S.click(); api.toast("ダウンロード", "「" + m.att + "」は、デスクトップにあります。"); } }, ico("clip"), h("div", {}, h("div", { class: "ml-attname" }, m.att), h("div", { class: "ml-meta" }, "1 KB"))) : null,
+        h("div", { class: "ml-acts" }, h("button", { class: "btn", onclick: () => { api.S.error(); api.toast("返信できません", "このアドレスは送信専用です。"); } }, "返信"), h("button", { class: "btn", onclick: () => { api.S.error(); api.toast("転送できません", "管理者アカウントからの転送は無効になっています。"); } }, "転送")))
+        : h("div", { class: "adm-empty" }, "メールを選んでください"));
     }
     wrap = h("div", { class: "ml" }, list, view);
-    api.openWin("mail", "メール", wrap, { w: 760, h: 440, x: 150, y: 60 });
+    api.openWin("mail", "受信トレイ - 夜ばなし投稿館 メール", wrap, { w: 860, h: 480, x: 130, y: 50 });
     paint();
   }
 
@@ -95,15 +124,15 @@ window.Apps = (function () {
         h("div", { class: "pub-head" }, h("div", { class: "pub-logo" }, h("span", { class: "red" }, name.slice(0, 4)), name.slice(4)), h("div", { class: "pub-post" }, "怖い話を投稿")),
         h("div", { class: "pub-search" }, h("span", { class: "pub-sq" }, "キーワードで怖い話を探す"), h("span", { class: "pub-sb" }, "検索")),
         h("div", { class: "pub-tabs" }, tabs.map(([k, l]) => h("button", { class: "pub-tab" + (tab === k ? " on" : ""), onclick: () => { tab = k; paint(); } }, l))),
-        h("div", { class: "pub-cats" }, D3.cats.slice(0, 8).map((c, i) => h("div", { class: "pub-cat" }, c.length > 2 ? [h("span", { class: "red" }, c.slice(0, 2)), c.slice(2)] : h("span", { class: "red" }, c)))),
-        h("div", { class: "pub-ad" }, h("span", { class: "pub-adl" }, "広告"), h("div", { class: "pub-adt" }, "眠れない夜に。遮光カーテン・防音シート 特集"), h("span", { class: "pub-adb" }, "詳しく見る")),
-        h("div", { class: "pub-notice" }, D3.notices.map(n => h("div", { class: "pub-n" }, h("span", { class: "pub-nd" }, "📣 " + n.d), h("span", { class: n.hot ? "pub-nt hot" : "pub-nt" }, n.t)))),
+        h("div", { class: "pub-cats" }, D3.cats.slice(0, 8).map(c => h("div", { class: "pub-cat" }, c))),
+        h("div", { class: "pub-ad" }, h("div", { class: "pub-adimg" }, h("div", { class: "pub-adh" }, "その不眠、枕のせい？"), h("div", { class: "pub-ads" }, "寝具の専門店 ねむりや　今だけ送料無料"), h("span", { class: "pub-adb" }, "詳しくはこちら")), h("span", { class: "pub-adl" }, "PR")),
+        h("div", { class: "pub-notice" }, D3.notices.map(n => h("div", { class: "pub-n" }, h("span", { class: "pub-nd" }, n.d), h("span", { class: n.hot ? "pub-nt hot" : "pub-nt" }, n.t)))),
         h("div", { class: "pub-h2" }, h("span", { class: "red" }, "怖い話"), tab === "new" ? "新着" : tab === "hall" ? "殿堂入り" : tab === "rank" ? "ランキング" : tab === "long" ? "長編" : "短編"));
       const list = listFor();
       list.forEach((r, i) => view.append(h("div", { class: "pub-row", tabindex: "0", role: "button", onclick: () => { sel = r; page.scrollTop = 0; paint(); }, onkeydown: ev => { if (ev.key === "Enter") { sel = r; paint(); } } },
         thumb(r, tab === "new" ? null : i),
         h("div", { class: "pub-info" }, h("div", { class: "pub-t" }, r.title), h("div", { class: "pub-a" }, "投稿者：" + r.author)),
-        h("div", { class: "pub-side" }, h("div", { class: "pub-cnt" }, h("span", { class: "fl" }, "🔥"), String(r.fire), h("span", { class: "cmi" }, "💬"), String(r.cm)), h("div", { class: "pub-d" }, r.date)))));
+        h("div", { class: "pub-side" }, h("div", { class: "pub-cnt" }, ico("fire", "fl"), String(r.fire), ico("comment", "cmi"), String(r.cm)), h("div", { class: "pub-d" }, String(r.date).split(/[ (]/)[0])))));
       view.append(h("div", { class: "pub-pager" }, h("span", { class: "pg on" }, "1"), h("span", { class: "pg" }, "2"), h("span", { class: "pg" }, "3"), h("span", { class: "pg" }, "…"), h("span", { class: "pg" }, "次へ ›"), h("div", { class: "pub-total" }, "全 " + (212 + items.length * 1) + " 件")));
       if (api.D.externalUrl) view.append(h("div", { class: "pub-ext" }, "外のサイトでも読めます：", h("a", { href: api.D.externalUrl, target: "_blank", rel: "noopener" }, name + "（外のサイトを開く）")));
       view.append(h("div", { class: "pub-foot" }, "© " + name + "　運営：管理人室　お問い合わせ　利用規約"));
@@ -113,8 +142,8 @@ window.Apps = (function () {
       view.append(h("div", { class: "pub-story" },
         h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
         h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),
-        h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　🔥 " + r.fire),
-        (heroHost = h("div", { class: "pub-hero t" + r.tone }, heroFor(r))),
+        h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　怖い " + r.fire),
+        (heroHost = r.id === "p16" ? h("div", { class: "pub-hero t" + r.tone }, heroFor(r)) : null),
         r.body.map(t => h("p", {}, t)),
         h("div", { class: "pub-cmh" }, "読者コメント（" + cs.length + "）"),
         cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"),
@@ -214,112 +243,151 @@ window.Apps = (function () {
     const nq = norm(q); if (!nq) return [];
     return E().search.entries.filter(en => (en.minDay || 0) <= day() && en.keys.some(k => nq.includes(norm(k)))).flatMap(en => en.videos || []);
   }
+  // 画面に出すURL：架空の「.example」は、見た目だけ本物らしいドメインにする（リンクはしない）
+  const showUrl = u => u.replace(/\.example\b/g, ".jp");
+  const siteOf = u => showUrl(u).split("/")[0];
+  const FAV_COLORS = ["#1a73e8", "#d93025", "#188038", "#e37400", "#8430ce", "#007b83", "#b06000", "#5f6368"];
+  const favicon = u => { const d = siteOf(u); return h("span", { class: "sr-fav", style: "background:" + FAV_COLORS[hashN(d, FAV_COLORS.length)] }, d.replace(/^www\./, "")[0].toUpperCase()); };
+  const views = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, "") + "万回視聴" : n.toLocaleString() + "回視聴";
+  // どんな言葉で検索しても出る、ふつうの検索結果（辞書・Q&A・地図・掲示板・フリマ）。開くと、つながらない
+  function filler(q) {
+    const k = hashN(q, 997), e = encodeURIComponent(q).slice(0, 18);
+    return [
+      { t: "「" + q + "」の意味・読み方・使い方 - ことのは辞書", u: "kotonoha-jisho.example/word/" + (1203 + k), s: q + "とは？ 意味や使い方、類語をわかりやすく解説。例文つき。", d: "2025/03/" + String(1 + k % 28).padStart(2, "0"), filler: true },
+      { t: q + "について質問です - 知恵ノ輪", u: "chienowa.example/qa/q" + (4410000 + k * 37), s: "…" + q + "のことで質問です。最近気になっていて、詳しい方いたら教えてください。回答 " + (k % 5 + 1) + "件", d: "20" + (21 + k % 4) + "/" + String(1 + k % 12).padStart(2, "0") + "/" + String(3 + k % 25).padStart(2, "0"), filler: true },
+      { t: q + " 周辺の地図・ルート - まちマップ", u: "machimap.example/search?q=" + e, s: q + "周辺の地図、乗換案内、天気、口コミ。営業時間や電話番号も。", filler: true },
+      { t: q + " - ご近所ノート（地域掲示板）", u: "gokinjo-note.example/bbs/" + (2000 + k), s: ">>" + (3 + k % 40) + " それ知ってる。" + q + "の話でしょ？ 前にも誰か書いてた", d: "2024/" + String(1 + k % 12).padStart(2, "0") + "/" + String(2 + k % 26).padStart(2, "0"), filler: true },
+      { t: "「" + q + "」の出品一覧 - ラクフリ", u: "rakufuri.example/search/" + e, s: q + " の出品 " + (k % 60 + 3) + "件。送料込み・即購入OKの商品も。", filler: true }
+    ];
+  }
   function openSearch(q0) {
     if (api.wins().search && searchHandle) { api.focus("search"); if (q0) searchHandle.go(q0); return; }
     const SD = E().search, st = api.state();
-    const input = h("input", { class: "sr-input", placeholder: "ことばで さがす", autocomplete: "off", "aria-label": "検索語" });
+    const input = h("input", { class: "sr-input", placeholder: "検索、またはURLを入力", autocomplete: "off", "aria-label": "検索語" });
     const sugg = h("div", { class: "sr-sugg hidden" });
+    const barBox = h("div", { class: "sr-box" }, input, sugg);
     const main = h("div", { class: "sr-main" });
     const tabsEl = h("div", { class: "sr-tabs" });
-    let curQ = "", curTab = "all";
-    const logo = (cls) => h("span", { class: cls || "sr-mini", "aria-label": SD.siteName }, [...SD.siteName].map((c, i) => h("span", { style: "color:" + ["#4f8df5", "#e0586b", "#f0b840", "#4f8df5", "#3fb37f"][i % 5] }, c)));
+    let curQ = "", curTab = "all", wrap = null;
+    const logo = cls => h("span", { class: (cls || "sr-mini") + " sr-wordmark", "aria-label": SD.siteName }, h("span", { class: "sr-moon" }), SD.siteName);
     function oddHist() { return day() >= 3 ? SD.historyOdd : []; }
     function home() {
-      curQ = ""; tabsEl.classList.add("hidden");
-      const hist = st.searchHistory.concat(oddHist());
-      main.replaceChildren(h("div", { class: "sr-home" }, logo("sr-logo"),
-        h("div", { class: "sr-hist-h" }, "よく検索されていることば"),
-        h("div", {}, SD.suggest.map(x => h("span", { class: "sr-hist", tabindex: "0", role: "button", onclick: () => go(x), onkeydown: e => { if (e.key === "Enter") go(x); } }, x))),
-        h("div", { class: "sr-hist-h" }, "検索履歴"),
-        hist.length ? h("div", {}, hist.map((x, i) => h("span", { class: "sr-hist" + (i >= st.searchHistory.length ? " odd" : ""), tabindex: "0", role: "button", onclick: () => go(x), onkeydown: e => { if (e.key === "Enter") go(x); } }, x))) : h("div", { class: "cm-none" }, "まだ履歴はありません")));
+      curQ = ""; tabsEl.classList.add("hidden"); if (wrap) wrap.classList.add("is-home");
+      const hbox = h("div", { class: "sr-hbox" }, h("span", { class: "sr-glass" }, "⌕"), input, sugg); input.value = "";
+      main.replaceChildren(h("div", { class: "sr-home" }, logo("sr-logo"), hbox,
+        h("div", { class: "sr-hbtns" }, h("button", { class: "sr-hbtn", onclick: () => go(input.value) }, SD.siteName + " で検索"), h("button", { class: "sr-hbtn", onclick: () => go(SD.suggest[hashN(Date.now(), SD.suggest.length)]) }, "今日の話題")),
+        h("div", { class: "sr-foot" }, h("span", {}, "日本"), h("span", { class: "sp" }), ...["広告", "ビジネス", "検索のしくみ", "プライバシー", "規約", "設定"].map(t => h("span", {}, t)))));
     }
     function paintTabs() {
       tabsEl.classList.remove("hidden");
-      tabsEl.replaceChildren(...[["all", "すべて"], ["img", "画像"], ["vid", "動画"], ["news", "ニュース"]].map(([k, l]) =>
+      tabsEl.replaceChildren(...[["all", "すべて"], ["img", "画像"], ["vid", "動画"], ["news", "ニュース"], ["map", "地図"], ["shop", "ショッピング"]].map(([k, l]) =>
         h("button", { class: "sr-tab" + (curTab === k ? " on" : ""), onclick: () => { curTab = k; api.S.click(); view(); } }, l)));
     }
     function go(q) {
-      q = (q || "").trim(); input.value = q; sugg.classList.add("hidden");
-      const res = runSearch(q); api.S.click();
-      if (res === null) return;
-      curQ = q; curTab = "all";
+      q = (q || "").trim(); sugg.classList.add("hidden");
+      if (!q) return;
+      if (wrap) wrap.classList.remove("is-home"); barBox.append(input, sugg); input.value = q;
+      api.S.click(); curQ = q; curTab = "all";
       if (!st.searchHistory.includes(q)) { st.searchHistory.unshift(q); st.searchHistory = st.searchHistory.slice(0, 6); api.save(); }
       view();
     }
+    const resultItem = (r, q) => h("div", { class: "sr-res", tabindex: "0", role: "button", onclick: () => page(r), onkeydown: e => { if (e.key === "Enter") page(r); } },
+      h("div", { class: "sr-site" }, favicon(r.u), h("div", { class: "sr-sitetxt" }, h("div", { class: "sr-sname" }, siteOf(r.u).replace(/\.(jp|com|net)$/, "")), h("div", { class: "sr-u" }, "https://" + showUrl(r.u).replace(/\//g, " › ")))),
+      h("div", { class: "sr-t" }, r.t), h("div", { class: "sr-s" }, r.d ? h("span", { class: "sr-date" }, r.d + " — ") : null, hl(r.s, q)));
     function view() {
       paintTabs();
-      const res = runSearch(curQ) || [], q = curQ;
-      if (!res.length && curTab !== "vid") { main.replaceChildren(h("div", { class: "sr-none" }, "「" + q + "」" + SD.notFound, h("div", { class: "sr-tip" }, "ことばを変えて、もう一度さがしてみてください。"))); api.S.error(); return; }
+      const real = runSearch(curQ) || [], q = curQ, all = real.concat(filler(q));
+      main.scrollTop = 0;
       if (curTab === "all") {
-        const ms = (0.18 + (q.length * 0.037) % 0.4).toFixed(2);
-        main.replaceChildren(h("div", { class: "sr-count" }, "約 " + res.length + " 件（" + ms + " 秒）"),
-          ...res.map(r => h("div", { class: "sr-res", tabindex: "0", role: "button", onclick: () => page(r), onkeydown: e => { if (e.key === "Enter") page(r); } },
-            h("div", { class: "sr-site" }, h("span", { class: "sr-fav" }, r.u[0].toUpperCase()), h("span", { class: "sr-u" }, r.u.replace(/\//g, " › "))),
-            h("div", { class: "sr-t" }, r.t), h("div", { class: "sr-s" }, hl(r.s, q)))),
-          h("div", { class: "sr-rel2" }, h("div", { class: "sr-hist-h" }, "ほかにも検索されています"), relatedFor(q).map(x => h("span", { class: "sr-hist", tabindex: "0", role: "button", onclick: () => go(x), onkeydown: e => { if (e.key === "Enter") go(x); } }, x))),
-          h("div", { class: "sr-pager" }, h("span", { class: "on" }, "1"), h("span", {}, "2"), h("span", {}, "3"), h("span", {}, "次へ")));
+        const ms = (0.21 + (q.length * 0.037) % 0.4).toFixed(2), cnt = (real.length ? 12000 : 800) + hashN(q, 90000);
+        main.replaceChildren(h("div", { class: "sr-count" }, "約 " + cnt.toLocaleString() + " 件（" + ms + " 秒）"),
+          ...all.map(r => resultItem(r, q)),
+          h("div", { class: "sr-rel2" }, h("div", { class: "sr-relh" }, "他の人はこちらも検索"), h("div", { class: "sr-relgrid" }, relatedFor(q).map(x => h("span", { class: "sr-relq", tabindex: "0", role: "button", onclick: () => go(x), onkeydown: e => { if (e.key === "Enter") go(x); } }, "⌕ " + x)))),
+          h("div", { class: "sr-pager" }, h("span", { class: "on" }, "1"), h("span", {}, "2"), h("span", {}, "3"), h("span", {}, "4"), h("span", {}, "次へ")));
+        return;
       }
-      if (curTab === "img") main.replaceChildren(h("div", { class: "sr-grid" }, res.map((r, i) => h("div", { class: "sr-img", tabindex: "0", role: "button", onclick: () => page(r), onkeydown: e => { if (e.key === "Enter") page(r); } },
-        drawThumb(sceneFor(r), 11 + i * 7 + r.t.length, 200, 130), h("div", { class: "sr-cap" }, r.t.slice(0, 22) + (r.t.length > 22 ? "…" : ""))))));
+      if (curTab === "img") { main.replaceChildren(h("div", { class: "sr-grid" }, all.map((r, i) => h("div", { class: "sr-img", tabindex: "0", role: "button", onclick: () => page(r), onkeydown: e => { if (e.key === "Enter") page(r); } },
+        drawThumb(sceneFor(r), 11 + i * 7 + r.t.length, 200, 130), h("div", { class: "sr-cap" }, siteOf(r.u)), h("div", { class: "sr-cap2" }, r.t.slice(0, 24) + (r.t.length > 24 ? "…" : "")))))); return; }
       if (curTab === "vid") {
         const vs = runVideos(q);
-        main.replaceChildren(...(vs.length ? vs.map((v, i) => h("div", { class: "sr-vid", tabindex: "0", role: "button", onclick: () => video(v), onkeydown: e => { if (e.key === "Enter") video(v); } },
-          h("div", { class: "sr-vthumb" }, drawThumb(v.scene, 23 + i * 5, 200, 118), h("span", { class: "sr-play" }, "▶"), h("span", { class: "sr-dur" }, v.dur)),
-          h("div", {}, h("div", { class: "sr-t" }, v.t), h("div", { class: "sr-s" }, v.ch + "　" + v.views.toLocaleString() + "回視聴　" + v.when)))) : [h("div", { class: "sr-none" }, "「" + q + "」に一致する動画は見つかりませんでした。")]));
+        main.replaceChildren(...(vs.length ? vs.map((v, i) => h("div", { class: "sr-vid", tabindex: "0", role: "button", onclick: () => video(v, vs), onkeydown: e => { if (e.key === "Enter") video(v, vs); } },
+          vthumb(v, 23 + i * 5), h("div", {}, h("div", { class: "sr-t" }, v.t), h("div", { class: "sr-s" }, views(v.views) + "・" + v.when), h("div", { class: "sr-ch" }, avatar(v.ch, v.ch, "sm"), v.ch)))) : [h("div", { class: "sr-none" }, "「" + q + "」に一致する動画はありません。")]));
+        return;
       }
       if (curTab === "news") {
-        const ns = res.filter(r => /news|life/.test(r.u));
-        main.replaceChildren(...(ns.length ? ns.map(r => h("div", { class: "sr-res", tabindex: "0", role: "button", onclick: () => page(r), onkeydown: e => { if (e.key === "Enter") page(r); } },
-          h("div", { class: "sr-site" }, h("span", { class: "sr-fav" }, "N"), h("span", { class: "sr-u" }, "はなみずき町のおしらせ")), h("div", { class: "sr-t" }, r.t), h("div", { class: "sr-s" }, hl(r.s, q)))) : [h("div", { class: "sr-none" }, "「" + q + "」に一致するニュースは見つかりませんでした。")]));
+        const ns = all.filter(r => /news|life|town/.test(r.u));
+        main.replaceChildren(...(ns.length ? ns.map(r => resultItem(r, q)) : [h("div", { class: "sr-none" }, "「" + q + "」に一致するニュースはありません。")]));
+        return;
       }
+      main.replaceChildren(h("div", { class: "sr-none" }, curTab === "map" ? "地図を読み込めませんでした。（位置情報がオフになっています）" : "「" + q + "」に一致する商品はありません。"));
     }
-    // 記事ページ・動画ページの下に付く、反応とコメント
-    function extras(u, title, cmFallback) {
-      const ex = E().pageExtra[u] || { views: 300 + (u.length * 37) % 900, bm: 5, cm: cmFallback || [] };
+    function vthumb(v, seed) {
+      const cap = v.t.replace(/【([^】]*)】.*/, "$1") || v.t.slice(0, 6);
+      return h("div", { class: "sr-vthumb" }, drawThumb(v.scene, seed, 240, 135), h("span", { class: "sr-vcap" }, cap.slice(0, 8)), h("span", { class: "sr-dur" }, v.dur));
+    }
+    // 記事ページ・動画ページの下に付く、コメント
+    function comments(u, cmFallback) {
+      const ex = E().pageExtra[u] || { views: 300 + hashN(u, 900), bm: 2 + hashN(u, 9), cm: cmFallback || [] };
       const cms = ex.cm.filter(c => !c[3] || day() >= c[3]);
-      const react = (label, n) => { const b = h("button", { class: "btn rx" }, label + "　" + n); let on = false; b.addEventListener("click", () => { on = !on; b.classList.toggle("on", on); b.textContent = label + "　" + (n + (on ? 1 : 0)); api.S.click(); }); return b; };
-      return { ex, nodes: [
-        h("div", { class: "sr-rx" }, react("役に立った", Math.round(ex.views / 60)), react("こわい", Math.round(ex.views / 45)), react("ブックマーク", ex.bm)),
-        h("div", { class: "sr-cm-h" }, "コメント（" + cms.length + "）"),
-        cms.length ? cms.map((c, i) => h("div", { class: "sr-cm" + (c[3] ? " odd" : "") }, h("div", { class: "sr-cm-top" }, h("span", { class: "sr-cm-no" }, (i + 1) + "."), h("b", {}, c[0]), h("span", { class: "sr-cm-t" }, c[2])), h("div", {}, c[1]))) : h("div", { class: "cm-none" }, "まだコメントはありません")] };
+      return { ex, nodes: [h("div", { class: "sr-cm-h" }, "コメント " + cms.length + "件"),
+        cms.length ? cms.map((c, i) => h("div", { class: "sr-cm" + (c[3] ? " odd" : "") }, avatar(c[0], c[0] + i, "sm"), h("div", { class: "sr-cmb" }, h("div", { class: "sr-cm-top" }, h("b", {}, c[0]), h("span", { class: "sr-cm-t" }, c[2])), h("div", {}, c[1])))) : h("div", { class: "cm-none" }, "まだコメントはありません")] };
     }
+    const backLink = (label, fn) => h("button", { class: "sr-backlink", onclick: fn }, ico("back"), label);
     function page(r) {
-      api.S.click();
-      const { ex, nodes } = extras(r.u);
+      api.S.click(); main.scrollTop = 0;
+      if (r.filler) {   // ふつうの検索結果は、つながらない
+        main.replaceChildren(backLink("検索結果", () => view()), h("div", { class: "sr-err" }, h("div", { class: "sr-errico" }, "☹"), h("h3", {}, "このサイトにアクセスできません"),
+          h("p", {}, siteOf(r.u) + " からの応答に時間がかかりすぎています。"), h("p", { class: "sr-errcode" }, "ERR_CONNECTION_TIMED_OUT"))); api.S.error(); return;
+      }
+      const { ex, nodes } = comments(r.u);
       const siblings = (runSearch(curQ) || []).filter(x => x.u !== r.u);
-      main.replaceChildren(h("button", { class: "btn", onclick: () => view() }, "← 検索結果にもどる"),
-        h("div", { class: "sr-page" }, h("div", { class: "sr-u" }, r.u), h("h3", {}, r.t),
-          h("div", { class: "sr-pmeta" }, "閲覧数 " + ex.views.toLocaleString() + "　ブックマーク " + ex.bm), r.page.map(t => h("p", {}, t)),
-          r.link ? h("a", { class: "btn primary ext", href: api.D.externalUrl + "#" + r.link.hash, target: "_blank", rel: "noopener" }, r.link.label) : null,
-          nodes,
-          siblings.length ? h("div", { class: "sr-rel" }, h("div", { class: "sr-cm-h" }, "関連ページ"), siblings.map(x => h("div", { class: "sr-relitem", tabindex: "0", role: "button", onclick: () => page(x), onkeydown: ev => { if (ev.key === "Enter") page(x); } }, x.t))) : null));
+      const sname = siteOf(r.u);
+      main.replaceChildren(backLink("検索結果", () => view()),
+        h("div", { class: "sr-webpage" },
+          h("div", { class: "sr-wphead", style: "background:" + FAV_COLORS[hashN(sname, FAV_COLORS.length)] }, h("b", {}, sname.replace(/\.(jp|com|net)$/, "")), h("span", { class: "sp" }), h("span", {}, "ホーム"), h("span", {}, "カテゴリ"), h("span", {}, "お問い合わせ")),
+          h("div", { class: "sr-page" }, h("div", { class: "sr-crumb" }, "ホーム › " + (r.t.split(/[｜|\-]/).pop() || "").trim()), h("h3", {}, r.t.split(/[｜|]/)[0].trim()),
+            h("div", { class: "sr-pmeta" }, (r.d ? r.d + "　" : "") + "閲覧 " + ex.views.toLocaleString() + "　", ico("star"), " " + ex.bm), r.page.map(t => h("p", {}, t)),
+            r.link ? h("a", { class: "sr-extlink", href: api.D.externalUrl + "#" + r.link.hash, target: "_blank", rel: "noopener" }, r.link.label + " ›") : null,
+            h("div", { class: "sr-share" }, "この記事をシェア：", h("span", {}, "ポスト"), h("span", {}, "LINE"), h("span", {}, "URLをコピー")),
+            nodes,
+            siblings.length ? h("div", { class: "sr-rel" }, h("div", { class: "sr-cm-h" }, "関連記事"), siblings.map(x => h("div", { class: "sr-relitem", tabindex: "0", role: "button", onclick: () => page(x), onkeydown: ev => { if (ev.key === "Enter") page(x); } }, x.t))) : null),
+          h("div", { class: "sr-wpfoot" }, "© " + sname.replace(/\.(jp|com|net)$/, "") + "　プライバシーポリシー　運営者情報")));
     }
-    function video(v) {
-      api.S.click();
-      const screen = h("div", { class: "sr-player" }, drawThumb(v.scene, 31, 360, 200), h("button", { class: "sr-bigplay", "aria-label": "再生" }, "▶"));
-      const { nodes } = extras(v.u, v.t, v.cm);
+    function video(v, list) {
+      api.S.click(); main.scrollTop = 0;
+      const ctrl = h("div", { class: "sr-ctrl" }, h("span", { class: "sr-cplay" }, "▶"), h("span", { class: "sr-ctime" }, "0:00 / " + v.dur), h("div", { class: "sr-cbar" }, h("div", { class: "sr-cbuf" })), h("span", {}, "🔊"), h("span", {}, "⚙"), h("span", {}, "⛶"));
+      const screen = h("div", { class: "sr-player" }, drawThumb(v.scene, 31, 640, 360), h("button", { class: "sr-bigplay", "aria-label": "再生" }, "▶"), ctrl);
+      const { nodes } = comments(v.u, v.cm);
       screen.querySelector("button").addEventListener("click", async () => {
         const c = screen.querySelector("canvas"), g = c.getContext("2d"); api.S.noise();
-        for (let i = 0; i < 14; i++) { const id = g.createImageData(c.width, c.height); for (let k = 0; k < id.data.length; k += 4) { const n = Math.random() * 90; id.data[k] = id.data[k + 1] = id.data[k + 2] = n; id.data[k + 3] = 255; } g.putImageData(id, 0, 0); await new Promise(r => setTimeout(r, 90)); }
-        g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.fillStyle = "#cfd6e6"; g.font = "14px sans-serif"; g.textAlign = "center"; g.fillText("この動画は、再生できません。", c.width / 2, c.height / 2);
+        for (let i = 0; i < 14; i++) { const id = g.createImageData(c.width, c.height); for (let k = 0; k < id.data.length; k += 4) { const n = Math.random() * 90; id.data[k] = id.data[k + 1] = id.data[k + 2] = n; id.data[k + 3] = 255; } g.putImageData(id, 0, 0); await new Promise(r => setTimeout(r, 60)); }
+        g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.fillStyle = "#cfd6e6"; g.font = "18px sans-serif"; g.textAlign = "center"; g.fillText("エラーが発生しました。しばらくしてからもう一度お試しください。", c.width / 2, c.height / 2);
         screen.querySelector("button").remove(); api.S.error();
       });
-      main.replaceChildren(h("button", { class: "btn", onclick: () => view() }, "← 動画にもどる"),
-        h("div", { class: "sr-page" }, screen, h("h3", {}, v.t), h("div", { class: "sr-pmeta" }, v.ch + "　" + v.views.toLocaleString() + "回視聴　" + v.when), h("p", {}, v.desc), nodes));
+      const subs = (hashN(v.ch, 90) / 10 + 0.3).toFixed(1).replace(/\.0$/, "");
+      const others = (list || []).filter(x => x !== v);
+      main.replaceChildren(backLink("動画の検索結果", () => view()),
+        h("div", { class: "sr-vpage" }, h("div", { class: "sr-vmain" }, screen, h("h3", { class: "sr-vtitle" }, v.t),
+          h("div", { class: "sr-chrow" }, avatar(v.ch, v.ch), h("div", { class: "sr-chinfo" }, h("b", {}, v.ch), h("div", { class: "sr-chsub" }, "チャンネル登録者数 " + subs + "万人")), h("span", { class: "sr-subbtn" }, "登録"), h("span", { class: "sp" }),
+            h("span", { class: "sr-pill" }, ico("like"), " " + (Math.round(v.views / 37) + hashN(v.t, 30)).toLocaleString()), h("span", { class: "sr-pill" }, ico("share"), " 共有")),
+          h("div", { class: "sr-desc" }, h("b", {}, views(v.views) + "　" + v.when), h("div", {}, v.desc)), nodes),
+          others.length ? h("div", { class: "sr-vside" }, ...others.map((x, i) => h("div", { class: "sr-vrel", tabindex: "0", role: "button", onclick: () => video(x, list) }, vthumb(x, 41 + i), h("div", {}, h("div", { class: "sr-vrt" }, x.t), h("div", { class: "sr-s" }, x.ch), h("div", { class: "sr-s" }, views(x.views)))))) : null));
     }
     function showSugg() {
-      const base = SD.suggest.concat(day() >= 3 ? SD.suggestOdd : []);
       const v = input.value.trim();
-      const items = v ? base.filter(x => x.includes(v)) : base;
-      sugg.replaceChildren(...items.slice(0, 6).map((x, i) => h("div", { class: "sr-sg" + (day() >= 3 && SD.suggestOdd.includes(x) ? " odd" : ""), tabindex: "0", role: "button", onclick: () => go(x), onkeydown: e => { if (e.key === "Enter") go(x); } }, x)));
+      const hist = st.searchHistory.concat(oddHist());
+      const base = SD.suggest.concat(day() >= 3 ? SD.suggestOdd : []);
+      const items = v ? base.filter(x => x.includes(v)).map(x => [x, false]) : hist.slice(0, 4).map(x => [x, true]).concat(base.slice(0, 4).map(x => [x, false]));
+      sugg.replaceChildren(...items.slice(0, 8).map(([x, isH]) => h("div", { class: "sr-sg" + (day() >= 3 && (SD.suggestOdd.includes(x) || SD.historyOdd.includes(x)) ? " odd" : ""), tabindex: "0", role: "button", onmousedown: e => e.preventDefault(), onclick: () => go(x), onkeydown: e => { if (e.key === "Enter") go(x); } }, h("span", { class: "sr-sgi" }, isH ? "🕘" : "⌕"), x)));
       sugg.classList.toggle("hidden", !items.length);
     }
     input.addEventListener("input", () => { api.S.key(); showSugg(); });
     input.addEventListener("focus", showSugg);
+    input.addEventListener("blur", () => setTimeout(() => sugg.classList.add("hidden"), 150));
     input.addEventListener("keydown", e => { if (e.key === "Enter") go(input.value); });
-    const logoBtn = h("button", { class: "sr-logobtn", "aria-label": "トップにもどる", onclick: () => { input.value = ""; api.S.click(); home(); } }, logo("sr-mini"));
-    api.openWin("search", SD.siteName + " - 検索", h("div", { class: "sr" }, h("div", { class: "sr-bar" }, logoBtn, h("div", { class: "sr-box" }, input, sugg),
-      h("button", { class: "btn primary", onclick: () => go(input.value) }, "さがす")), tabsEl, main), { w: 740, h: 520, x: 190, y: 36 });
+    const logoBtn = h("button", { class: "sr-logobtn", "aria-label": "トップにもどる", onclick: () => { api.S.click(); home(); } }, logo("sr-mini"));
+    wrap = h("div", { class: "sr" }, h("div", { class: "sr-bar" }, logoBtn, barBox), tabsEl, main);
+    api.openWin("search", SD.siteName + " - 検索", wrap, { w: 900, h: 600, x: 170, y: 30 });
     searchHandle = { go };
     home();
     if (q0) go(q0);
@@ -327,19 +395,25 @@ window.Apps = (function () {
 
   // ---------- ひとこと（SNS風） ----------
   function openSns() {
-    const feed = h("div", { class: "sn-feed" }), prof = h("div", { class: "sn-prof" });
+    const feed = h("div", { class: "sn-feed" }), side = h("div", { class: "sn-side" });
     let sel = null;
     const items = () => E().sns.filter(s => s.day <= day()).sort((a, b) => b.id < a.id ? -1 : 1);
+    const num = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, "") + "万" : n >= 1000 ? n.toLocaleString() : String(n);
     function paint() {
-      feed.replaceChildren(...items().map(s => h("div", { class: "sn-item", onclick: () => { sel = s; api.S.click(); paint(); } },
-        h("div", { class: "sn-top" }, h("b", {}, s.name), h("span", { class: "sn-h" }, "@" + s.handle), h("span", { class: "sn-time" }, s.time)),
-        h("div", { class: "sn-text" }, s.text), h("div", { class: "sn-likes" }, "♡ " + s.likes))));
-      prof.replaceChildren(sel ? h("div", {}, h("div", { class: "sn-av" }, sel.name.slice(0, 1)), h("h3", {}, sel.name), h("div", { class: "sn-h" }, "@" + sel.handle),
-        h("table", { class: "sn-tbl" },
-          [["登録", "昨日 02:41"], ["フォロー", "1（新管理人）"], ["フォロワー", "0"], ["ひとこと", sel.handle === "admin_0721" ? "1" : "3"]].map(r => h("tr", {}, h("td", {}, r[0]), h("td", {}, r[1]))))) :
-        h("div", { class: "adm-empty small" }, "ひとことを選ぶと、プロフィールが見られます"));
+      feed.replaceChildren(h("div", { class: "sn-head" }, h("span", { class: "on" }, "おすすめ"), h("span", {}, "フォロー中")),
+        ...items().map(s => { const rp = hashN(s.id + "r", 4) + (s.likes > 10 ? 2 : 0), rt = hashN(s.id + "t", 3) + Math.floor(s.likes / 6), vw = s.likes * 41 + 37 + hashN(s.id, 400);
+        return h("div", { class: "sn-item" + (sel === s ? " sel" : ""), onclick: () => { sel = s; api.S.click(); paint(); } }, avatar(s.name, s.handle),
+          h("div", { class: "sn-body" }, h("div", { class: "sn-top" }, h("b", {}, s.name), h("span", { class: "sn-h" }, "@" + s.handle + " · " + s.time)),
+            h("div", { class: "sn-text" }, s.text),
+            h("div", { class: "sn-acts" }, h("span", {}, ico("comment"), rp ? String(rp) : ""), h("span", {}, ico("repost"), rt ? String(rt) : ""), h("span", {}, ico("heart"), s.likes ? String(s.likes) : ""), h("span", {}, ico("views"), num(vw))))); }));
+      const trends = [["日本のトレンド", "#夜ふかし", "1.8万件のポスト"], ["ホラー・トレンド", "#怖い話", "3,211件のポスト"], ["地域", "はなみずき町", "412件のポスト"]].concat(day() >= 3 ? [["トレンド", "02:41", "87件のポスト"]] : []);
+      side.replaceChildren(
+        sel ? h("div", { class: "sn-card" }, avatar(sel.name, sel.handle, "big"), h("h3", {}, sel.name), h("div", { class: "sn-h" }, "@" + sel.handle),
+          h("div", { class: "sn-stat" }, h("b", {}, String(hashN(sel.handle, 300) + 12)), " フォロー　", h("b", {}, String(hashN(sel.handle + "f", 900) + 3)), " フォロワー"), h("div", { class: "sn-h" }, "登録：" + (sel.handle === "admin_0721" ? "2026年10月" : "20" + (14 + hashN(sel.handle, 10)) + "年" + (1 + hashN(sel.handle + "m", 12)) + "月"))) : null,
+        h("div", { class: "sn-box" }, h("div", { class: "sn-box-h" }, "いまどうしてる？"), ...trends.map(t => h("div", { class: "sn-tr" }, h("div", { class: "sn-h" }, t[0]), h("b", {}, t[1]), h("div", { class: "sn-h" }, t[2])))),
+        h("div", { class: "sn-box" }, h("div", { class: "sn-box-h" }, "おすすめユーザー"), ...[["怪談まとめ垢", "kaidan_matome"], ["夜更かし猫", "yofukashi_neko"]].map(([n, hd]) => h("div", { class: "sn-rec" }, avatar(n, hd), h("div", {}, h("b", {}, n), h("div", { class: "sn-h" }, "@" + hd)), h("span", { class: "sn-follow" }, "フォロー")))));
     }
-    api.openWin("sns", "ひとこと", h("div", { class: "sn" }, feed, prof), { w: 640, h: 460, x: 260, y: 70 });
+    api.openWin("sns", "ひとこと", h("div", { class: "sn" }, feed, side), { w: 760, h: 520, x: 240, y: 50 });
     paint();
   }
 

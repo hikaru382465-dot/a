@@ -10,7 +10,7 @@
       else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
       else e.setAttribute(k, attrs[k]);
     }
-    kids.flat().forEach(c => { if (c != null) e.append(c.nodeType ? c : document.createTextNode(c)); });
+    kids.flat(Infinity).forEach(c => { if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c)); });
     return e;
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -189,12 +189,12 @@
     selSt.value = fStatus;
     const q = h("input", { class: "tbl-q", type: "search", placeholder: "タイトル・投稿者で検索", value: fQuery, "aria-label": "検索", oninput: ev => { fQuery = ev.target.value; fill(); } });
     function fill() {
-      const list = rows.filter(e => (fStatus === "all" || status(e.eid) === fStatus) && (!fQuery || (e.title + e.author).includes(fQuery)));
-      tbody.replaceChildren(...list.map(e => { const st = status(e.eid);
-        return h("tr", { tabindex: "0", onclick: () => pick(e), onkeydown: ev => { if (ev.key === "Enter") pick(e); } },
+      const list = rows.filter(e => (fStatus === "all" || (e.legacy ? "approve" : status(e.eid)) === fStatus) && (!fQuery || (e.title + e.author).includes(fQuery)));
+      tbody.replaceChildren(...list.map(e => { const st = e.legacy ? "approve" : status(e.eid);
+        return h("tr", { tabindex: "0", class: e.legacy ? "old" : "", onclick: () => { if (!e.legacy) pick(e); }, onkeydown: ev => { if (ev.key === "Enter" && !e.legacy) pick(e); } },
           h("td", {}, h("input", { type: "checkbox", "aria-label": "選択", onclick: ev => ev.stopPropagation() })),
           h("td", { class: "mono" }, fakeNo(e)), h("td", { class: "ttl" }, e.title), h("td", {}, e.author), h("td", {}, (tab === "hist" ? e.day + "日目 " : "") + e.time),
-          h("td", {}, e.device), h("td", { class: "num" }, String(hashN(e.authorId + "r", 3))), h("td", {}, h("span", { class: "st " + st }, statusLabel(st)))); }));
+          h("td", {}, e.device), h("td", { class: "num" }, String(hashN(e.authorId + "r", 3))), h("td", {}, h("span", { class: "st " + st }, statusLabel(st) + (e.legacy ? "（前任）" : "")))); }));
       if (!list.length) tbody.append(h("tr", {}, h("td", { colspan: "8", class: "tbl-none" }, "該当する投稿はありません")));
       count.textContent = "全 " + rows.length + " 件中 " + list.length + " 件を表示";
     }
@@ -210,8 +210,9 @@
     const finalDay = state.queue.some(e => e.last);
     const bTab1 = h("button", { class: "tab on", onclick: () => { tab = "today"; selId = null; S.click(); renderAdmin(); } }, "本日の投稿");
     const bTab2 = h("button", { class: "tab", onclick: () => { tab = "hist"; selId = null; S.click(); renderAdmin(); } }, "過去の投稿");
+    const bTab3 = h("button", { class: "tab", onclick: () => { tab = "all"; selId = null; S.click(); renderAdmin(); } }, "すべて");
     const top = h("div", { class: "adm-top" },
-      h("span", { class: "site" }, D.siteName.replace("（仮）", "")), h("span", { class: "tag" }, "管理画面"), h("div", { class: "tabs" }, bTab1, bTab2), h("span", { class: "sp" }),
+      h("span", { class: "site" }, D.siteName.replace("（仮）", "")), h("span", { class: "tag" }, "管理画面"), h("div", { class: "tabs" }, bTab1, bTab2, bTab3), h("span", { class: "sp" }),
       h("span", { class: "who" }, "ログイン中：admin_0721"));
     const list = h("div", { class: "adm-list" });
     const detail = h("div", { class: "adm-detail" });
@@ -225,8 +226,9 @@
     mainEl.append(h("div", { class: "adm-left" }, list), detail);
 
     renderAdmin = function () {
-      bTab1.classList.toggle("on", tab === "today"); bTab2.classList.toggle("on", tab === "hist");
-      const rows = tab === "today" ? state.queue : state.history;
+      bTab1.classList.toggle("on", tab === "today"); bTab2.classList.toggle("on", tab === "hist"); bTab3.classList.toggle("on", tab === "all");
+      const legacyRows = () => ((window.GAME_DATA3 || {}).legacy || []).map(l => ({ eid: l.id, legacy: true, title: l.title, author: l.author, authorId: "u_" + l.id.toLowerCase() + "-4417", time: l.date, device: hashN(l.id, 3) ? "スマートフォン" : "パソコン" }));
+      const rows = tab === "today" ? state.queue : tab === "hist" ? state.history : state.queue.concat(state.history, legacyRows());
       list.replaceChildren(...(rows.length ? rows : [h("div", { class: "adm-empty small" }, "まだありません")]).map(e => {
         if (!e.eid) return e;
         const s = status(e.eid);
