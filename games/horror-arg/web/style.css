@@ -760,3 +760,9 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .w-admin .tbl-bar input::placeholder{color:#8f99ae}
 .w-admin .tbl tbody tr.old{cursor:default;color:#9aa3b8}
 .w-admin .tbl tbody tr.old td{color:#9aa3b8}
+
+.sr-vthumb .thumb{filter:brightness(1.9) contrast(1.15) saturate(1.2)}
+.sr-player .thumb{filter:brightness(1.5) contrast(1.1)}
+.sr-vcap{color:#fff;-webkit-text-stroke:2px #000;paint-order:stroke fill;text-shadow:0 2px 6px rgba(0,0,0,.6);font-size:24px}
+.pub-nt.hot{color:#e3e3e6}
+.tbl-q{min-width:220px}

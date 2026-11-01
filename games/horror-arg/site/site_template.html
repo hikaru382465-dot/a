@@ -94,7 +94,7 @@ function side() {
   $("#side").replaceChildren(
     h("div", { class: "ad" }, h("i", {}, "PR"), h("b", {}, "その不眠、枕のせい？"), "寝具の専門店 ねむりや　今だけ送料無料"),
     h("div", { class: "box" }, h("h3", {}, "今週よく読まれている怖い話"), h("ol", {}, top.map(p => h("li", {}, p.title)))),
-    h("div", { class: "box" }, h("h3", {}, "カテゴリ"), h("ul", {}, ["心霊", "不思議", "ヒトコワ", "呪い・祟り", "都市伝説", "意味怖", "短編", "長編"].map(c => h("li", {}, c + "（" + (40 + hashN(c, 400)) + "）")))),
+    h("div", { class: "box" }, h("h3", {}, "カテゴリ"), h("ul", {}, ["心霊", "不思議", "ヒトコワ", "呪い/祟り", "都市伝説", "意味怖", "短編", "長編"].map(c => h("li", {}, c + "（" + (40 + hashN(c, 400)) + "）")))),
     h("div", { class: "box" }, h("h3", {}, "管理人より"), h("ul", {}, h("li", {}, "投稿はおひとり1日3話まで"), h("li", {}, "実在の人物・団体名は伏せてください"), h("li", {}, "削除依頼は投稿フォームの「その他」から"))));
 }
 const TABS = [["new", "新着"], ["blog", "管理人ブログ"], ["about", "サイトについて"]];   // ランキング・殿堂入りは、ゲーム内の公開サイトにある
@@ -111,11 +111,17 @@ function paint() {
   if (tab === "about") m.append(about());
   if (tab === "hidden") m.append(hiddenPage());
 }
+// 「今日 02:41」「昨日 23:12」を、投稿された日の日付に直す（1日目＝10/11）
+function when(t, day) {
+  const m = /^(今日|昨日)?\s*(\d{1,2}):(\d{2})/.exec(t || ""); if (!m) return t;
+  const dt = new Date(2026, 9, 10 + (day || 1)); if (m[1] === "昨日") dt.setDate(dt.getDate() - 1);
+  return dt.getFullYear() + "/" + (dt.getMonth() + 1) + "/" + dt.getDate() + "(" + "日月火水木金土"[dt.getDay()] + ") " + m[2].padStart(2, "0") + ":" + m[3];
+}
 function post(p) {
-  const cm = p.comments;
-  return h("article", {}, h("h2", {}, p.title), h("div", { class: "meta" }, "投稿者：" + p.author + "　" + p.time), p.body.map(t => h("p", {}, t)),
+  const cm = p.comments.filter(c => !c.odd || hashN(p.title, 3) === 0);   // いないはずの人のコメントは、一部の話だけ
+  return h("article", {}, h("h2", {}, p.title), h("div", { class: "meta" }, "投稿者：" + p.author + "　" + when(p.time, p.day)), p.body.map(t => h("p", {}, t)),
     h("div", { class: "share" }, h("span", { class: "fire" }, "ゾッとした " + (3 + hashN(p.title, 60))), h("span", {}, "ポスト"), h("span", {}, "LINE"), h("span", {}, "URLをコピー")),
-    cm.length ? h("div", { class: "cm" }, h("h3", {}, "読者コメント（" + cm.length + "）"), cm.map(c => h("div", { class: c.odd ? "odd" : "" }, h("b", {}, c.n), c.t, h("i", {}, c.at)))) : null);
+    cm.length ? h("div", { class: "cm" }, h("h3", {}, "読者コメント（" + cm.length + "）"), cm.map(c => h("div", { class: c.odd ? "odd" : "" }, h("b", {}, c.n), c.t, h("i", {}, when(c.at, p.day))))) : null);
 }
 function blogPost(b) {
   return h("article", {}, h("h2", {}, b.title), h("div", { class: "meta" }, "元管理人　" + b.date), b.body.map(t => h("p", {}, t)),

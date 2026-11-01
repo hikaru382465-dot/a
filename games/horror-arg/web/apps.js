@@ -139,7 +139,7 @@ window.Apps = (function () {
     }
     function paintStory() {
       const r = sel, cs = r.mine ? visibleComments(r.e) : Array.from({ length: Math.min(r.cm, D3.legacyCm.length) }, (_, k) => {
-        const c = D3.legacyCm[(hashN(r.id, D3.legacyCm.length) + k * 3) % D3.legacyCm.length], hh = (22 + hashN(r.id + k, 9)) % 24, mm = hashN(r.id + "m" + k, 60);
+        const c = D3.legacyCm[(hashN(r.id, D3.legacyCm.length) + k) % D3.legacyCm.length], hh = (19 + hashN(r.id + "h" + (k * 13), 11)) % 24, mm = hashN(r.id + "m" + (k * 29 + 3), 60);
         const dd = new Date(2026, +r.date.slice(5, 7) - 1, +r.date.slice(8, 10) + (hh < 22 ? 1 : 0) + hashN(r.id + "d" + k, 3));
         return { n: c.n, t: c.t, at: (dd.getMonth() + 1) + "/" + dd.getDate() + " " + String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0") }; });
       view.append(h("div", { class: "pub-story" },
@@ -247,10 +247,11 @@ window.Apps = (function () {
     return E().search.entries.filter(en => (en.minDay || 0) <= day() && en.keys.some(k => nq.includes(norm(k)))).flatMap(en => en.videos || []);
   }
   // 画面に出すURL：架空の「.example」は、見た目だけ本物らしいドメインにする（リンクはしない）
-  const showUrl = u => u.replace(/\.example\b/g, ".jp");
+  const showUrl = u => u.replace(/^hanamizuki-town\.example/, "www.town.hanamizuki.lg.jp").replace(/\.example\b/g, ".jp");
   const siteOf = u => showUrl(u).split("/")[0];
   const FAV_COLORS = ["#1a73e8", "#d93025", "#188038", "#e37400", "#8430ce", "#007b83", "#b06000", "#5f6368"];
   const favicon = u => { const d = siteOf(u); return h("span", { class: "sr-fav", style: "background:" + FAV_COLORS[hashN(d, FAV_COLORS.length)] }, d.replace(/^www\./, "")[0].toUpperCase()); };
+  const siteName = r => /^hanamizuki-town/.test(r.u) ? "はなみずき町公式ホームページ" : ((r.t.match(/(?:｜| - )([^｜]+)$/) || [])[1] || siteOf(r.u).replace(/\.(jp|com|net)$/, "")).trim();
   const views = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, "") + "万回視聴" : n.toLocaleString() + "回視聴";
   // どんな言葉で検索しても出る、ふつうの検索結果（辞書・Q&A・地図・掲示板・フリマ）。開くと、つながらない
   function filler(q) {
@@ -278,7 +279,7 @@ window.Apps = (function () {
       curQ = ""; tabsEl.classList.add("hidden"); if (wrap) wrap.classList.add("is-home");
       const hbox = h("div", { class: "sr-hbox" }, h("span", { class: "sr-glass" }, "⌕"), input, sugg); input.value = "";
       main.replaceChildren(h("div", { class: "sr-home" }, logo("sr-logo"), hbox,
-        h("div", { class: "sr-hbtns" }, h("button", { class: "sr-hbtn", onclick: () => go(input.value) }, SD.siteName + " で検索"), h("button", { class: "sr-hbtn", onclick: () => go(SD.suggest[hashN(Date.now(), SD.suggest.length)]) }, "今日の話題")),
+        h("div", { class: "sr-hbtns" }, h("button", { class: "sr-hbtn", onclick: () => go(input.value) }, SD.siteName + "検索"), h("button", { class: "sr-hbtn", onclick: () => go(SD.suggest[hashN(Date.now(), SD.suggest.length)]) }, "今日の話題")),
         h("div", { class: "sr-foot" }, h("span", {}, "日本"), h("span", { class: "sp" }), ...["広告", "ビジネス", "検索のしくみ", "プライバシー", "規約", "設定"].map(t => h("span", {}, t)))));
     }
     function paintTabs() {
@@ -295,7 +296,7 @@ window.Apps = (function () {
       view();
     }
     const resultItem = (r, q) => h("div", { class: "sr-res", tabindex: "0", role: "button", onclick: () => page(r), onkeydown: e => { if (e.key === "Enter") page(r); } },
-      h("div", { class: "sr-site" }, favicon(r.u), h("div", { class: "sr-sitetxt" }, h("div", { class: "sr-sname" }, siteOf(r.u).replace(/\.(jp|com|net)$/, "")), h("div", { class: "sr-u" }, "https://" + showUrl(r.u).replace(/\//g, " › ")))),
+      h("div", { class: "sr-site" }, favicon(r.u), h("div", { class: "sr-sitetxt" }, h("div", { class: "sr-sname" }, siteName(r)), h("div", { class: "sr-u" }, "https://" + showUrl(r.u).replace(/\//g, " › ")))),
       h("div", { class: "sr-t" }, r.t), h("div", { class: "sr-s" }, r.d ? h("span", { class: "sr-date" }, r.d + " — ") : null, hl(r.s, q)));
     function view() {
       paintTabs();
@@ -347,14 +348,14 @@ window.Apps = (function () {
       const sname = siteOf(r.u);
       main.replaceChildren(backLink("検索結果", () => view()),
         h("div", { class: "sr-webpage" },
-          h("div", { class: "sr-wphead", style: "background:" + FAV_COLORS[hashN(sname, FAV_COLORS.length)] }, h("b", {}, sname.replace(/\.(jp|com|net)$/, "")), h("span", { class: "sp" }), h("span", {}, "ホーム"), h("span", {}, "カテゴリ"), h("span", {}, "お問い合わせ")),
+          h("div", { class: "sr-wphead", style: "background:" + (/lg\.jp$/.test(sname) ? "#2d6a4f" : FAV_COLORS[hashN(sname, FAV_COLORS.length)]) }, h("b", {}, siteName(r)), h("span", { class: "sp" }), h("span", {}, "ホーム"), h("span", {}, "カテゴリ"), h("span", {}, "お問い合わせ")),
           h("div", { class: "sr-page" }, h("div", { class: "sr-crumb" }, "ホーム › " + (r.t.split(/[｜|\-]/).pop() || "").trim()), h("h3", {}, r.t.split(/[｜|]/)[0].trim()),
             h("div", { class: "sr-pmeta" }, (r.d ? r.d + "　" : "") + "閲覧 " + ex.views.toLocaleString() + "　", ico("star"), " " + ex.bm), r.page.map(t => h("p", {}, t)),
             r.link ? h("a", { class: "sr-extlink", href: api.D.externalUrl + "#" + r.link.hash, target: "_blank", rel: "noopener" }, r.link.label + " ›") : null,
             h("div", { class: "sr-share" }, "この記事をシェア：", h("span", {}, "ポスト"), h("span", {}, "LINE"), h("span", {}, "URLをコピー")),
             nodes,
             siblings.length ? h("div", { class: "sr-rel" }, h("div", { class: "sr-cm-h" }, "関連記事"), siblings.map(x => h("div", { class: "sr-relitem", tabindex: "0", role: "button", onclick: () => page(x), onkeydown: ev => { if (ev.key === "Enter") page(x); } }, x.t))) : null),
-          h("div", { class: "sr-wpfoot" }, "© " + sname.replace(/\.(jp|com|net)$/, "") + "　プライバシーポリシー　運営者情報")));
+          h("div", { class: "sr-wpfoot" }, "© " + siteName(r) + "　プライバシーポリシー　運営者情報")));
     }
     function video(v, list) {
       api.S.click(); main.scrollTop = 0;
@@ -400,7 +401,9 @@ window.Apps = (function () {
   function openSns() {
     const feed = h("div", { class: "sn-feed" }), side = h("div", { class: "sn-side" });
     let sel = null;
-    const items = () => E().sns.filter(s => s.day <= day()).sort((a, b) => b.id < a.id ? -1 : 1);
+    // 新しい順（「12分」「3時間」「2:41」「10月12日」を、何分前かに直して並べる）
+    const ago = t => { let m; if ((m = /^(\d+)分/.exec(t))) return +m[1]; if ((m = /^(\d+)時間/.exec(t))) return +m[1] * 60; if ((m = /^(\d{1,2}):(\d{2})/.exec(t))) return Math.max(0, 161 - (+m[1] * 60 + +m[2])); if ((m = /(\d+)月(\d+)日/.exec(t))) return 100000 - (+m[1] * 31 + +m[2]); return 9999; };
+    const items = () => E().sns.filter(s => s.day <= day()).sort((a, b) => ago(a.time) - ago(b.time) || (b.id < a.id ? -1 : 1));
     const num = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, "") + "万" : n >= 1000 ? n.toLocaleString() : String(n);
     function paint() {
       feed.replaceChildren(h("div", { class: "sn-head" }, h("span", { class: "on" }, "おすすめ"), h("span", {}, "フォロー中")),
@@ -409,12 +412,12 @@ window.Apps = (function () {
           h("div", { class: "sn-body" }, h("div", { class: "sn-top" }, h("b", {}, s.name), h("span", { class: "sn-h" }, "@" + s.handle + " · " + s.time)),
             h("div", { class: "sn-text" }, s.text),
             h("div", { class: "sn-acts" }, h("span", {}, ico("comment"), rp ? String(rp) : ""), h("span", {}, ico("repost"), rt ? String(rt) : ""), h("span", {}, ico("heart"), s.likes ? String(s.likes) : ""), h("span", {}, ico("views"), num(vw))))); }));
-      const trends = [["日本のトレンド", "#夜ふかし", "1.8万件のポスト"], ["ホラー・トレンド", "#怖い話", "3,211件のポスト"], ["地域", "はなみずき町", "412件のポスト"]].concat(day() >= 3 ? [["トレンド", "02:41", "87件のポスト"]] : []);
-      side.replaceChildren(
+      const trends = [["日本のトレンド", "台風22号", "4.6万件のポスト"], ["エンタメ・トレンド", "#新作ドラマ", "1.2万件のポスト"], ["日本のトレンド", "#夜ふかし", "8,317件のポスト"], ["地域", "はなみずき町", "412件のポスト"]].concat(day() >= 3 ? [["トレンド", "02:41", "87件のポスト"]] : []);
+      side.replaceChildren(...[
         sel ? h("div", { class: "sn-card" }, avatar(sel.name, sel.handle, "big"), h("h3", {}, sel.name), h("div", { class: "sn-h" }, "@" + sel.handle),
           h("div", { class: "sn-stat" }, h("b", {}, String(hashN(sel.handle, 300) + 12)), " フォロー　", h("b", {}, String(hashN(sel.handle + "f", 900) + 3)), " フォロワー"), h("div", { class: "sn-h" }, "登録：" + (sel.handle === "admin_0721" ? "2026年10月" : "20" + (14 + hashN(sel.handle, 10)) + "年" + (1 + hashN(sel.handle + "m", 12)) + "月"))) : null,
         h("div", { class: "sn-box" }, h("div", { class: "sn-box-h" }, "いまどうしてる？"), ...trends.map(t => h("div", { class: "sn-tr" }, h("div", { class: "sn-h" }, t[0]), h("b", {}, t[1]), h("div", { class: "sn-h" }, t[2])))),
-        h("div", { class: "sn-box" }, h("div", { class: "sn-box-h" }, "おすすめユーザー"), ...[["怪談まとめ垢", "kaidan_matome"], ["夜更かし猫", "yofukashi_neko"]].map(([n, hd]) => h("div", { class: "sn-rec" }, avatar(n, hd), h("div", {}, h("b", {}, n), h("div", { class: "sn-h" }, "@" + hd)), h("span", { class: "sn-follow" }, "フォロー")))));
+        h("div", { class: "sn-box" }, h("div", { class: "sn-box-h" }, "おすすめユーザー"), ...[["怪談まとめ垢", "kaidan_matome"], ["夜更かし猫", "yofukashi_neko"]].map(([n, hd]) => h("div", { class: "sn-rec" }, avatar(n, hd), h("div", {}, h("b", {}, n), h("div", { class: "sn-h" }, "@" + hd)), h("span", { class: "sn-follow" }, "フォロー"))))].filter(Boolean));
     }
     api.openWin("sns", "ひとこと", h("div", { class: "sn" }, feed, side), { w: 760, h: 520, x: 240, y: 50 });
     paint();

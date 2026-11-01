@@ -181,7 +181,7 @@
   let selId = null, tab = "today", renderAdmin = () => {}, badgeEl = null;
   const statusLabel = s => ({ pending: "未審査", approve: "承認", reject: "却下", hold: "保留" }[s]);
   let fStatus = "all", fQuery = "";
-  const fakeNo = e => "P-" + String(1000 + hashN(e.eid, 8999));
+  const fakeNo = e => "P-" + String(10000 + hashN(e.eid + "#no", 9000) * 7 % 89999);
   function adminTable(rows, pick) {
     const tbody = h("tbody"), count = h("span", { class: "tbl-count" });
     const selSt = h("select", { "aria-label": "状態で絞り込み", onchange: ev => { fStatus = ev.target.value; fill(); } },
@@ -194,7 +194,7 @@
         return h("tr", { tabindex: "0", class: e.legacy ? "old" : "", onclick: () => { if (!e.legacy) pick(e); }, onkeydown: ev => { if (ev.key === "Enter" && !e.legacy) pick(e); } },
           h("td", {}, h("input", { type: "checkbox", "aria-label": "選択", onclick: ev => ev.stopPropagation() })),
           h("td", { class: "mono" }, fakeNo(e)), h("td", { class: "ttl" }, e.title), h("td", {}, e.author), h("td", {}, (tab === "hist" ? e.day + "日目 " : "") + e.time),
-          h("td", {}, e.device), h("td", { class: "num" }, String(hashN(e.authorId + "r", 3))), h("td", {}, h("span", { class: "st " + st }, statusLabel(st) + (e.legacy ? "（前任）" : "")))); }));
+          h("td", {}, /スマ/.test(e.device) ? "SP" : "PC"), h("td", { class: "num" }, String(hashN(e.authorId + "r", 3))), h("td", {}, h("span", { class: "st " + st }, statusLabel(st) + (e.legacy ? "（前任）" : "")))); }));
       if (!list.length) tbody.append(h("tr", {}, h("td", { colspan: "8", class: "tbl-none" }, "該当する投稿はありません")));
       count.textContent = "全 " + rows.length + " 件中 " + list.length + " 件を表示";
     }

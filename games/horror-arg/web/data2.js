@@ -80,7 +80,7 @@ window.GAME_EXTRA = {
         "※このメールは送信専用です。",
         "――",
         "夜ばなし投稿館 運営事務局"] },
-    { id: "m06", day: 3, from: "（差出人なし）", addr: "-", subject: "撮影日時", time: "2:40",
+    { id: "m06", day: 3, from: "(不明)", addr: "-", subject: "撮影日時", time: "2:40",
       body: ["確認しましたか。", "あの写真は、まだ撮られていません。", "これから、撮ります。"] },
     { id: "m07", day: 3, from: "夜ばなし投稿館 運営事務局", addr: "security@yobanashi-kan.example", subject: "【自動送信】管理者アカウントの同時ログインを検知しました", time: "2:41",
       body: ["admin_0721 様",
@@ -113,6 +113,10 @@ window.GAME_EXTRA = {
 
   // ひとこと（SNS風）。day 以降に出る
   sns: [
+    { id: "s00a", day: 1, handle: "tenki_sukidesu", name: "空もよう", text: "あしたは朝から雨らしい。洗濯物どうしよ", time: "12分", likes: 4 },
+    { id: "s00b", day: 1, handle: "game_yoru", name: "よるのゲーマー", text: "新作ずっとやってたら3時になってた。明日しごとなんだが", time: "47分", likes: 19 },
+    { id: "s00c", day: 2, handle: "nemuriya_official", name: "ねむりや【公式】", text: "＼週末限定／ 枕フェア開催中🛏 #睡眠 #快眠", time: "2時間", likes: 63 },
+    { id: "s00d", day: 3, handle: "konbini_mania", name: "コンビニ巡り", text: "深夜のコンビニ、店員さんがひとりで品出ししてるのえらすぎる", time: "5時間", likes: 31 },
     { id: "s11", day: 3, handle: "kaidan_matome", name: "怪談まとめ@毎晩更新", text: "【噂】夜ばなし投稿館の「投稿元コード」って数字、順番に並べると何か読めるらしい。誰か検証してほしい😇\n#怪談 #洒落怖 #夜ばなし投稿館", time: "3時間", likes: 23 },
     { id: "s12", day: 4, handle: "yofukashi_neko", name: "夜更かし猫🐈‍⬛", text: "あそこの管理人さん毎晩ぴったり同じ時間にログインしてるってほんと？？時計かよｗ", time: "1時間", likes: 7 },
     { id: "s13", day: 4, handle: "kaidan_matome", name: "怪談まとめ@毎晩更新", text: "投稿者IDの末尾4桁が全員おなじって話、スクショ持ってる方いたらDMください🙏 まとめます", time: "38分", likes: 41 },
