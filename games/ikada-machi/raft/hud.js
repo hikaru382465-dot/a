@@ -246,10 +246,29 @@ window.RAFT.parts.hud = function (c) {
     setSlot(oe.veg, 'veg', o.iv || 0); setSlot(oe.fish, 'fish', o.ifi || 0); setSlot(oe.wood, 'wood', o.iw || 0);
     const outK = sim.ovOutN(o) ? (o.out && o.out[o.lastOut] ? o.lastOut : Object.keys(o.out).find(k => o.out[k] > 0)) : 'nabe'; setSlot(oe.out, outK, sim.ovOutN(o));
     setSlot(oe.iveg, 'veg', s.inv.veg || 0); setSlot(oe.ifish, 'fish', s.inv.fish || 0); setSlot(oe.iwood, 'wood', s.inv.wood || 0);
+    upRow('ovUp', o);
     $('ovBar').style.width = (cur ? o.cook.t / cur.sec * 100 : 0) + '%'; $('ovSteam').style.display = cur ? 'block' : 'none'; $('ovNow').textContent = cur ? nameOf(cur.id) : '';
   }
   const ovMove = (what, from, n) => { const ok = from === 'inv' ? sim.ovPut(s, ovId, what, n) : sim.ovTake(s, ovId, what, n); if (ok) refresh(); ovPanel(); };
-  const openOv = id => { ovId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'block'; ovPanel(); };
+  // かまど・ろ過器のレベルアップ（作業台がいる）
+  const upTx = (k, L) => k === 'oven' ? `料理の速さ ×${L.speed}・1枠${L.maxIn}個まで${L.extra ? `・おまけ1皿 ${Math.round(L.extra * 100)}%` : ''}` : `水が1入るまで ${L.sec}秒`;
+  let upLast = {};
+  function upRow(box, o) {
+    const U = D.UPG[o.k], lv = o.lv || 1, cost = sim.upCost(s, o), bench = sim.hasBench(s), cs = c => Object.keys(c).map(k => `${nameOf(k)}${c[k]}`).join('・');
+    const key = [o.id, lv, bench, cost ? sim.canPay(s, cost) : 0].join('|'); if (upLast[box] === key) return; upLast[box] = key;
+    $(box).innerHTML = `<div class="uprow"><b>Lv${lv}</b><span>${upTx(o.k, U.lv[lv - 1])}</span>` + (cost ? `<small>次 Lv${lv + 1}：${upTx(o.k, U.lv[lv])}</small><button id="${box}B" ${bench && sim.canPay(s, cost) ? '' : 'disabled'}>強くする（${cs(cost)}）</button>${bench ? '' : '<small>作業台がいる</small>'}` : '<small>最大レベル</small>') + '</div>';
+    if (cost) $(box + 'B').onclick = () => { sim.objUp(s, o.id); refresh(); upLast[box] = ''; box === 'ovUp' ? ovPanel() : flPanel(); };
+  }
+  let flId = null;
+  function flPanel() {
+    const o = s.objects.find(x => x.id === flId && x.k === 'filter'); if (!o) { $('flbox').style.display = 'none'; return; }
+    const L = sim.upLv(o), full = !s.objects.some(x => x.k === 'tank' && x.w < D.ITEMS.tank.cap);
+    $('flState').textContent = !s.objects.some(x => x.k === 'tank') ? '貯水槽がないので、止まっている' : full ? '貯水槽がいっぱい：止まっている' : `あと${Math.max(0, Math.ceil(L.sec - o.p))}秒で、貯水槽に水が1入る`;
+    upRow('flUp', o);
+  }
+  const openFl = id => { flId = id; upLast.flUp = ''; closeSheet(); ['jobbox', 'cfbox', 'ovbox', 'cnbox', 'boatbox', 'resbox', 'seedbox', 'pickbox'].forEach(q => { $(q).style.display = 'none'; }); $('flbox').style.display = 'block'; flPanel(); };
+  $('bFlClose').onclick = () => { $('flbox').style.display = 'none'; };
+  const openOv = id => { ovId = id; upLast.ovUp = ''; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'none'; $('ovbox').style.display = 'block'; ovPanel(); };
   const openCf = id => { cfId = id; closeSheet(); $('jobbox').style.display = 'none'; $('cfbox').style.display = 'block'; cfPanel(); };
   // 動かす：from='inv'（持ち物→焚き火）／'slot'（焚き火→持ち物）。n＝1 か 'all'
   const cfMove = (what, from, n) => { const ok = from === 'inv' ? sim.cfPut(s, cfId, what, n) : sim.cfTake(s, cfId, what, n); if (ok) refresh(); cfPanel(); };
@@ -392,7 +411,7 @@ window.RAFT.parts.hud = function (c) {
     rackfull: e => `干し魚だなはいっぱい。あと約${e.left}秒で干物`, rackwait: e => `干しているところ。あと約${e.left}秒（魚がまだあれば、足せる）`,
     lookgift: e => `ながめていたら、${nameOf(e.k)}が流れてきた`, scenenew: e => `新しい景色：${D.SCENES[e.k][0]}（図鑑にのった）`,
     caught: e => `かかった：${nameOf(e.k)}`, haul: e => `${e.n}個を持ち物に入れた`, eat: () => '食べた', drink: () => '飲んだ',
-    short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', fished: e => (e.q === 'great' ? 'ナイス！ ' : '') + `釣れた：${nameOf(e.k)}${e.n > 1 ? ' ×' + e.n : ''}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
+    short: () => '材料がたりない', locked: () => '作業台がいる', crafted: e => `${nameOf(e.k)}を作った（持ち物に入った）`, rodcast: () => 'ウキがしずんだら、タップ！', bite: () => 'ひいてる！ いまタップ！', bitegone: () => '逃げられた…', hook: e => (e.q === 'great' ? 'ナイス！ ' : '') + 'かかった！ 押す＝巻く・はなす＝ゆるめる', rodsnap: () => '糸が切れた…（強く巻きすぎ）', rodescape: () => '逃げられた…（ゆるめすぎ）', objlv: e => `${D.UPG[e.k].name}がLv${e.lv}になった`, fished: e => (e.q === 'great' ? 'ナイス！ ' : '') + `釣れた：${nameOf(e.k)}${e.n > 1 ? ' ×' + e.n : ''}`, rodempty: () => 'つりあげた（何も釣れなかった）', placed: () => '置いた',
     miss: () => '床に落ちた！ 海へ投げよう', empty: () => '何もかからなかった',
     netlv: e => `網が Lv${e.lv} になった`, noequip: () => '右下の「持ち物」から、網か釣りざおを手に持とう',
     weather: e => `天気：${D.WEATHER[e.id].name}`, tankinfo: e => `貯水槽 ${e.w}/${e.cap}`, tankempty: () => '貯水槽が空（雨をためる／ろ過器を置く）',
@@ -406,6 +425,7 @@ window.RAFT.parts.hud = function (c) {
       if (e.e === 'campfire') { openCf(e.id); return; }
       if (e.e === 'oven') { openOv(e.id); return; }
       if (e.e === 'catchnet') { openCn(e.id); return; }
+      if (e.e === 'filter') { openFl(e.id); return; }
       if (e.e === 'plotpick') { openSeeds(e.id); return; }
       const f = msgs[e.e]; if (f) { const m = f(e); if (m) toast(m); }
       if (['caught', 'fished', 'bfished', 'bhaul', 'bcrafted', 'traded', 'lookgift', 'scenenew', 'fishnew', 'plotharvest', 'plotplant', 'rackdone', 'rackhang', 'fixed', 'tear', 'dur', 'haul', 'eat', 'drink', 'crafted', 'netlv', 'netup', 'equip', 'placed', 'filtered', 'weather'].includes(e.e)) refresh();
@@ -437,6 +457,11 @@ window.RAFT.parts.hud = function (c) {
     if ($('cfbox').style.display === 'block') cfPanel();
     if ($('ovbox').style.display === 'block') ovPanel();
     if ($('cnbox').style.display === 'block') cnPanel();
+    if ($('flbox').style.display === 'block') flPanel();
+    { const r = s.rod, fb = $('fightbox'), on = !!(r && r.phase === 'fight'); fb.style.display = on ? 'block' : 'none';      // 釣りのやりとり
+      if (on) { const F = D.FIGHT; $('fgZone').style.left = F.zone[0] * 100 + '%'; $('fgZone').style.width = (F.zone[1] - F.zone[0]) * 100 + '%'; $('fgMark').style.left = Math.min(100, r.tn * 100) + '%';
+        $('fgMark').style.background = r.tn > 0.9 ? '#ff8a6a' : r.inZ ? '#fff' : '#ffd36a'; $('fgPg').style.width = Math.max(0, Math.min(1, r.pg)) * 100 + '%';
+        $('fgTx').textContent = r.tn > 0.9 ? '切れそう！ はなして！' : r.tn < F.zone[0] ? (s.rodHold ? '巻いて…' : '押して巻く！') : r.sg > 0 ? 'あばれてる！' : 'いい感じ！'; } }
     if ($('boatbox').style.display === 'block') boatPanel();
     { const F = window.RAFT.faces; if (F) { const n = faceNow(s, t); if ($('jobbox').style.display === 'block' && fc.job !== n) { fc.job = n; $('buddyFace').src = F.img[n]; } if (s.player.inHut && fc.hut !== n) { fc.hut = n; $('hutFace').src = F.img[n]; } } }
     if ($('jobbox').style.display === 'block') { toolsPanel(); $('mood').style.width = s.buddy.mood + '%'; $('jobNow').textContent = 'いまの仕事：' + (s.buddy.job ? D.BUDDY.JOBS[s.buddy.job].name : 'おまかせ（自由に歩く）'); }

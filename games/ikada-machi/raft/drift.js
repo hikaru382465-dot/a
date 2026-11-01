@@ -165,8 +165,9 @@ window.RAFT.parts.drift = function (c) {
     netView(V1, s.buddy.net.cast, s.buddy, R.data.NET_LV[s.buddy.net.lv - 1], dt);
     const rd = s.rod; bob.visible = lineRod.visible = !!rd;
     if (rd) {
-      const dip = rd.phase === 'bite' ? -0.1 - Math.abs(Math.sin(t * 20)) * 0.05 : Math.sin(t * 2.4) * 0.02;
-      bob.position.set(rd.x, 0.08 + dip, rd.z);
+      const fg = rd.phase === 'fight', dip = fg ? -0.12 - Math.abs(Math.sin(t * 13)) * (rd.sg > 0 ? 0.08 : 0.03) : rd.phase === 'bite' ? -0.1 - Math.abs(Math.sin(t * 20)) * 0.05 : Math.sin(t * 2.4) * 0.02;
+      const jx = fg ? Math.sin(t * 7.3) * (rd.sg > 0 ? 0.12 : 0.05) : 0, jz = fg ? Math.cos(t * 5.1) * (rd.sg > 0 ? 0.12 : 0.05) : 0;      // やりとり中：魚があばれて、ウキが左右にゆれる
+      bob.position.set(rd.x + jx, 0.08 + dip, rd.z + jz);
       bobY = 0.12 + dip;
     }
     // ざお（手にもっている間）

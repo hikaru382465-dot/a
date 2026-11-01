@@ -235,3 +235,17 @@ window.RAFT.data.CATCH = { use: 4, fixCost: { wood: 2 }, tearP: 0.03, tearDmg: 1
   { cap: 6, r: 1.0, wear: 0.8, take: ['wood', 'coconut', 'rope', 'cloth', 'seed'], gen: {}, cost: { wood: 8, rope: 3 } },
   { cap: 8, r: 1.15, wear: 0.6, take: ['wood', 'coconut', 'rope', 'cloth', 'seed', 'clay', 'stone'], gen: { fish: 45, iron: 160, glass: 160 }, cost: { wood: 10, clay: 3, stone: 3 } }
 ] };
+// かまど・ろ過器のレベル（lv[i]＝Lv(i+1)。cost＝そのレベルにする材料。作業台がいる）
+window.RAFT.data.UPG = {
+  oven: { name: 'かまど', max: 3, lv: [
+    { speed: 1, maxIn: 8, extra: 0 },
+    { speed: 1.35, maxIn: 12, extra: 0, cost: { clay: 6, stone: 4, iron: 1 } },
+    { speed: 1.7, maxIn: 16, extra: 0.25, cost: { clay: 8, iron: 2, glass: 2 } }] },      // extra＝できたとき、もう1皿おまけの確率
+  filter: { name: 'ろ過器', max: 3, lv: [
+    { sec: 40 },
+    { sec: 28, cost: { wood: 4, cloth: 3, rope: 2 } },
+    { sec: 18, cost: { cloth: 4, iron: 1, glass: 2 } }] }
+};
+// 釣りの「やりとり」：かかったら、押す＝巻く（糸がはる）／はなす＝ゆるめる。はり具合を緑の帯に入れておくと、引きよせが進む
+window.RAFT.data.FIGHT = { zone: [0.3, 0.72], up: 0.6, down: 0.55, gain: 0.15, lose: 0.08, start: 0.25, greatStart: 0.4, snapWear: 10,
+  pull: { 1: [0.9, 1.8], 2: [1.3, 1.3], 3: [1.8, 0.9] } };      // pull[★]＝[あばれる強さ, あばれる間かく(秒)]

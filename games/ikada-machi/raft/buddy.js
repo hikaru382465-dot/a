@@ -58,6 +58,7 @@ window.RAFT.parts.buddy = function (c) {
   el.addEventListener('pointerdown', e => {
     if (c.ui && c.ui.open) return;
     if (c.pinching) { down = null; return; }
+    if (s.rod && s.rod.phase === 'fight') { R.sim.rodHold(s, true); down = { fight: true }; return; }      // やりとり中：押している間、巻く
     if (!c.mode.place && s.boat && s.boat.phase === 'stay' && scr(s.boat.x, 0.35, s.boat.z, e) < 55) { down = { x: e.clientX, y: e.clientY, boat: true }; return; }      // 船をタップ：交渉
     if (!c.mode.place && !s.net.cast && !s.rod) { const rid = hitRes(e); if (rid) { down = { x: e.clientX, y: e.clientY, res: rid }; return; } }      // 住人をタップ：おしゃべり
     if (!c.mode.place && !s.net.cast && !s.rod && hitBuddy(e)) { down = { x: e.clientX, y: e.clientY, buddy: true }; return; }     // 相棒をタップ：お願いの画面
@@ -70,9 +71,11 @@ window.RAFT.parts.buddy = function (c) {
     if (s.hand !== 'net') { s.events.push({ e: 'noequip' }); down = null; return; }
     down.aim = true; aimT0 = performance.now(); c.aim.active = true; setAim(p, 0);
   });
+  el.addEventListener('pointercancel', () => { if (s.rodHold) R.sim.rodHold(s, false); });
   el.addEventListener('pointermove', e => { if (down && down.aim) { const p = world(e); if (p) down.p = p; } });
   el.addEventListener('pointerup', e => {
-    const d = down; down = null; c.aim.active = false;
+    const d = down; down = null; c.aim.active = false; if (s.rodHold) R.sim.rodHold(s, false);
+    if (d && d.fight) return;
     if (!d || c.pinching) return;
     if (d.boat) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openBoat(); return; }
     if (d.res) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 8) c.hud.openTalk(d.res); return; }

@@ -262,7 +262,7 @@
     const o = s.objects.find(x => x.id === id); if (!o) return false;
     if (a) return S.walkNear(s, o.x, o.z, { type: o.k, id }, a);
     if (o.k === 'tank') s.events.push({ e: 'tankinfo', w: o.w, cap: D.ITEMS.tank.cap });
-    if (o.k === 'filter') s.events.push({ e: 'filterinfo', left: Math.max(0, Math.ceil(D.ITEMS.filter.sec - o.p)) });
+    if (o.k === 'filter') s.events.push({ e: 'filter', id: o.id });
     return S.walkNear(s, o.x, o.z, { type: o.k, id });
   };
   // 釣り：海をタップすると糸をたらす（手前のマスから ROD.range まで）。ウキがしずんだ間にタップすると釣れる
@@ -277,14 +277,32 @@
     s.events.push({ e: 'rodcast' }); return true;
   };
   S.reelRod = function (s) {
-    const r = s.rod; if (!r) return false;
+    const r = s.rod; if (!r || r.phase === 'fight') return false;
     s.rod = null; s.player.act = { type: 'throw', t: 0.4 };
     if (r.phase !== 'bite') { s.events.push({ e: 'rodempty' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return true; }
     const g = D.ROD.great, q = Math.abs(r.t / D.ROD.bite - g[0]) <= g[1] ? 'great' : 'good';   // リズム：輪が重なる頃にタップ
     let k = 'fish';
     if (S.rand() > D.ROD.fishP) { const o = ['wood', 'coconut', 'cloth', 'rope']; k = o[Math.floor(S.rand() * o.length)]; }
-    let n = q === 'great' ? 2 : 1; let sp = null; if (k === 'fish') { sp = S.rollFish(s, 'rod', q === 'great'); n += S.addDex(s, sp); } s.inv[k] = (s.inv[k] || 0) + n; s.reelFx = { id: s.uid++, k, x: r.x, z: r.z }; s.events.push({ e: 'fished', k, n, q, sp }); return true;
+    if (k === 'fish') {      // 魚：やりとりを始める（★が多いほど、よくあばれる）
+      const F = D.FIGHT, sp = S.rollFish(s, 'rod', q === 'great');
+      s.rod = { x: r.x, z: r.z, phase: 'fight', t: 0, q, sp, tn: 0.4, pg: q === 'great' ? F.greatStart : F.start, nx: 0.6, sg: 0 }; s.rodHold = false;
+      s.events.push({ e: 'hook', q }); return true;
+    }
+    const n = q === 'great' ? 2 : 1, sp = null; s.inv[k] = (s.inv[k] || 0) + n; s.reelFx = { id: s.uid++, k, x: r.x, z: r.z }; s.events.push({ e: 'fished', k, n, q, sp }); return true;
   };
+  S.rodHold = (s, v) => { s.rodHold = !!v; };
+  function fightStep(s, dt) {      // やりとり：はり具合（tn）と、引きよせ（pg）
+    const r = s.rod, F = D.FIGHT, star = Math.min(3, (D.FISH[r.sp] || {}).star || 1), P = F.pull[star];
+    r.t += dt; r.nx -= dt; if (r.nx <= 0) { r.sg = 0.45; r.nx = P[1] * (0.6 + S.rand() * 0.8); }      // ときどき、魚があばれる
+    if (r.sg > 0) r.sg -= dt;
+    r.tn += ((s.rodHold ? F.up : -F.down) + (r.sg > 0 ? P[0] : 0)) * dt; r.tn = Math.max(0, r.tn);
+    const inZ = r.tn >= F.zone[0] && r.tn <= F.zone[1], worn = S.worn(s, 'rod') ? 0.75 : 1;
+    r.pg += inZ ? F.gain * worn / (1 + 0.3 * (star - 1)) * dt : -F.lose * dt; r.inZ = inZ;
+    if (r.tn >= 1) { s.rod = null; s.rodHold = false; s.dur.rod = Math.max(0, s.dur.rod - F.snapWear); s.events.push({ e: 'rodsnap' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return; }
+    if (r.pg <= 0) { s.rod = null; s.rodHold = false; s.events.push({ e: 'rodescape' }); s.reelFx = { id: s.uid++, k: null, x: r.x, z: r.z }; return; }
+    if (r.pg >= 1) { s.rod = null; s.rodHold = false; s.player.act = { type: 'throw', t: 0.4 };
+      const n = (r.q === 'great' ? 2 : 1) + S.addDex(s, r.sp); s.inv.fish = (s.inv.fish || 0) + n; s.reelFx = { id: s.uid++, k: 'fish', x: r.x, z: r.z }; s.events.push({ e: 'fished', k: 'fish', n, q: r.q, sp: r.sp }); }
+  }
   // ---- 相棒の仕事 ----
   const faceOf = (s, x, z) => { const o = N4.find(([dx, dz]) => !S.has(s, x + dx, z + dz)); return o || [0, 1]; };
   S.edgeCells = s => s.raft.cells.filter(([x, z]) => !S.objAt(s, x, z) && N4.some(([dx, dz]) => !S.has(s, x + dx, z + dz)));
@@ -374,12 +392,21 @@
   const OV_KEY = { veg: 'iv', fish: 'ifi', wood: 'iw' };
   S.ovPut = function (s, id, what, n) {       // 持ち物 → かまど
     const o = s.objects.find(x => x.id === id && x.k === 'oven'), key = OV_KEY[what]; if (!o || !key) return false; o[key] = o[key] || 0;
-    const m = Math.min(n === 'all' ? 99 : n, D.OVEN.maxIn - o[key], s.inv[what] || 0); if (m <= 0) return false; o[key] += m; s.inv[what] -= m; return true;
+    const m = Math.min(n === 'all' ? 99 : n, S.upLv(o).maxIn - o[key], s.inv[what] || 0); if (m <= 0) return false; o[key] += m; s.inv[what] -= m; return true;
   };
   S.ovTake = function (s, id, what, n) {      // かまど → 持ち物（できた料理を取る／入れた物を戻す）
     const o = s.objects.find(x => x.id === id && x.k === 'oven'); if (!o) return false;
     if (what === 'out') { const out = o.out || {}; let any = false; Object.keys(out).forEach(k => { if (out[k] > 0) { s.inv[k] = (s.inv[k] || 0) + out[k]; any = true; } }); o.out = {}; if (any) s.events.push({ e: 'ovengot' }); return any; }
     const key = OV_KEY[what]; if (!key || !o[key]) return false; const m = (n === undefined || n === 'all') ? o[key] : Math.min(n, o[key]); s.inv[what] = (s.inv[what] || 0) + m; o[key] -= m; return true;
+  };
+  // かまど・ろ過器のレベル
+  S.upLv = o => { const U = D.UPG[o.k]; return U.lv[Math.min(U.max, o.lv || 1) - 1]; };
+  S.upCost = (s, o) => { const U = D.UPG[o.k]; return U && (o.lv || 1) < U.max ? S.discount(s, U.lv[o.lv || 1].cost) : null; };
+  S.objUp = function (s, id) {
+    const o = s.objects.find(x => x.id === id), U = o && D.UPG[o.k]; if (!U || (o.lv || 1) >= U.max) return false;
+    if (!S.hasBench(s)) { s.events.push({ e: 'locked' }); return false; }
+    const cost = S.discount(s, U.lv[o.lv || 1].cost); if (!S.canPay(s, cost)) { s.events.push({ e: 'short' }); return false; }
+    S.pay(s, cost); o.lv = (o.lv || 1) + 1; s.events.push({ e: 'objlv', k: o.k, lv: o.lv }); return true;
   };
   S.ovOutN = o => Object.keys(o.out || {}).reduce((a, k) => a + o.out[k], 0);
   S.ovNext = function (o) {      // 入っている材料で、いま作れるいちばんごちそうな料理
@@ -603,7 +630,7 @@
     if (s.weather.id === 'storm') { s.rainT += dt * wm; if (s.rainT >= D.RAIN_SEC) { s.rainT = 0; tanks.forEach(t => { t.w = Math.min(tcap, t.w + 1); }); } }
     s.objects.forEach(o => { if (o.k !== 'oven') return;     // かまど：材料がそろえば、ごちそうから順に作る
       if (!o.cook && S.ovOutN(o) < D.OVEN.maxOut) { const d = S.ovNext(o); if (d) { o.iv = (o.iv || 0) - (d.need.veg || 0); o.ifi = (o.ifi || 0) - (d.need.fish || 0); o.iw = (o.iw || 0) - (d.need.wood || 0); o.cook = { d: d.id, t: 0 }; s.events.push({ e: 'cookstart', d: d.id }); } }
-      if (o.cook) { o.cook.t += dt * (s.res.kuro.live ? D.RESIDENT.perk.kuro.cookMul : 1); const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1; S.note(s, 'cooked'); s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
+      if (o.cook) { o.cook.t += dt * S.upLv(o).speed * (s.res.kuro.live ? D.RESIDENT.perk.kuro.cookMul : 1); const d = D.DISHES.find(x => x.id === o.cook.d); if (o.cook.t >= d.sec) { o.out = o.out || {}; o.out[d.id] = (o.out[d.id] || 0) + 1 + (S.rand() < S.upLv(o).extra ? 1 : 0); S.note(s, 'cooked'); s.dishdex = s.dishdex || {}; if (!s.dishdex[d.id]) s.events.push({ e: 'dishnew', id: d.id }); s.dishdex[d.id] = (s.dishdex[d.id] || 0) + 1; o.lastOut = d.id; o.cook = null; s.events.push({ e: 'cooked', d: d.id }); } } });
     s.objects.forEach(o => {     // 焚き火：燃料があれば、魚を1匹ずつ焼く
       if (o.k !== 'campfire') return; delete o.cook;
       if (!S.cfBurning(o)) { o.burn = false; return; }
@@ -619,8 +646,8 @@
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
       const t = tanks.filter(x => x.w < tcap).sort((a, c) => a.w - c.w)[0];
-      if (!t) { o.p = Math.min(o.p, D.ITEMS.filter.sec); return; }
-      o.p += dt * wm; if (o.p >= D.ITEMS.filter.sec) { o.p = 0; t.w++; s.events.push({ e: 'filtered' }); }
+      if (!t) { o.p = Math.min(o.p, S.upLv(o).sec); return; }
+      o.p += dt * wm; if (o.p >= S.upLv(o).sec) { o.p = 0; t.w++; s.events.push({ e: 'filtered' }); }
     });
     // 相棒（女の子）：おなか・のどが減ったら自分で食べる・飲む。ひまなときは、イカダの上を歩き回る
     const bu = s.buddy, b = s.player; bu.eatT -= dt; bu.wanderT -= dt;
@@ -690,7 +717,7 @@
       if (cast.phase === 'rest' || cast.phase === 'back') rests.push({ cast, nl, w });
     });
     const rd = s.rod;
-    if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite * (S.worn(s, 'rod') ? D.DUR.worn.bite : 1)) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
+    if (rd && rd.phase === 'fight') fightStep(s, dt); else if (rd) { rd.t += dt; if (rd.phase === 'wait' && rd.t >= rd.wait) { rd.phase = 'bite'; rd.t = 0; s.events.push({ e: 'bite' }); } else if (rd.phase === 'bite' && rd.t >= D.ROD.bite * (S.worn(s, 'rod') ? D.DUR.worn.bite : 1)) { rd.phase = 'wait'; rd.t = 0; const w = D.ROD.wait; rd.wait = w[0] + S.rand() * (w[1] - w[0]); s.events.push({ e: 'bitegone' }); } }
     const inRaft = (x, z) => S.has(s, Math.floor(x), Math.floor(z));
     const spots = cnSpots(s); cnStep(s, dt);
     for (let i = s.drift.length - 1; i >= 0; i--) {

@@ -74,7 +74,7 @@ window.RAFT.parts.sound = function (c) {
     ding: t => { tone(t, 1568, 1568, 0.7, 'sine', 0.22); tone(t + 0.02, 2349, 2349, 0.5, 'sine', 0.1); tone(t + 0.28, 1568, 1568, 0.7, 'sine', 0.18); },
     ovget: t => { tone(t, 300, 520, 0.1, 'sine', 0.22); tone(t + 0.08, 420, 760, 0.1, 'sine', 0.2); }
   };
-  const map = { cookstart: 'sizzle', cooked: 'ding', ovengot: 'ovget', throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', crafted: 'built', placed: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', locked: 'no', tankempty: 'no', miss: 'no', filtered: 'caught', rodcast: 'splash', bite: 'caught', fished: 'haul', rodempty: 'equip', grilled: 'caught', bcrafted: 'built', traded: 'built', boatarrive: 'equip', tear: 'no', broken: 'no', fixed: 'built', weak: 'no' };
+  const map = { cookstart: 'sizzle', cooked: 'ding', ovengot: 'ovget', throw: 'throw', splash: 'splash', caught: 'caught', haul: 'haul', empty: 'empty', eat: 'eat', drink: 'drink', crafted: 'built', placed: 'built', netlv: 'netlv', equip: 'equip', noequip: 'no', short: 'no', locked: 'no', tankempty: 'no', miss: 'no', filtered: 'caught', rodcast: 'splash', bite: 'caught', fished: 'haul', rodempty: 'equip', hook: 'splash', rodsnap: 'no', rodescape: 'no', objlv: 'netlv', grilled: 'caught', bcrafted: 'built', traded: 'built', boatarrive: 'equip', tear: 'no', broken: 'no', fixed: 'built', weak: 'no' };
   const rec = {
     splash: () => shot(pick(['splash', 'splash2', 'splash3']), 0.9, 0.95 + Math.random() * 0.1),
     caught: () => shot(pick(['bubble1', 'bubble2', 'bubble3']), 1.4, 0.9 + Math.random() * 0.3),
