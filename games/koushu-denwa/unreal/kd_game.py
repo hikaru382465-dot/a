@@ -156,6 +156,16 @@ GLASS_DIRT = 0.25            # ガラスのくもり具合（0=ほぼ透明 〜 
 FLICKER_BLACK = 0.88         # 点滅で「消えた」瞬間に、画面をこの割合だけ黒くする（0=しない 〜 1=真っ黒）。点滅がグレーに見えるときは大きくする
 DARK_BLACK = 1.0             # 暗転のあいだ、画面をこの割合だけ黒くする（どの光が残っていても、ちゃんと暗くなる）。1.0=真っ黒
 DARK_WORLD = 0.12            # 暗転のとき、月と空の光をこの倍率まで下げる（1=そのまま）
+GHOSTLIGHT_ENABLE = True     # True: ガラスの外に幽霊が見えているあいだ、幽霊の顔に冷たい小さな光（KD_GhostLight）を当てる。False: 当てない
+GHOSTLIGHT_INTENSITY = 8.0   # その光の明るさ（カンデラ）。ジャンプスケア（失敗エンド）のときは2倍。ガラスに光の点が映るなら小さく
+GHOSTLIGHT_RADIUS = 220.0    # その光の届く距離（cm）。小さいほど、電話ボックスの中を照らさない
+GHOSTLIGHT_COLOR = (0.6, 0.75, 1.0)   # その光の色（赤, 緑, 青 各0〜1）。青白い
+GHOSTLIGHT_UP = 45.0         # ガラスに張りつく場面：頭の上へ何cm（光の高さ）
+GHOSTLIGHT_BACK = 40.0       # ガラスに張りつく場面：ガラスと反対がわ（幽霊のうしろ）へ何cm
+GHOSTLIGHT_FRONT = 70.0      # 遠くに立つ場面：顔の前（ボックスのほう）へ何cm
+GHOSTLIGHT_FLICKER = 0.2     # 光のゆらぎ（0.1秒ごとに ±この割合）。0 でゆれない
+GHOST_INTERIOR_DIM = 0.35    # ガラスの外に幽霊が見えているあいだ、ボックスの中の蛍光灯をこの倍率まで暗くする（ガラスの映り込みが減る）。1.0 で暗くしない
+GHOST_INTERIOR_TIME = 0.4    # その暗くなる／戻る時間（秒）
 # ----------------------------------------------------
 
 LOG_PREFIX = "[KD] "
@@ -189,6 +199,16 @@ SETTINGS_DESCR = {
     "FLICKER_BLACK": "点滅の「消えた」瞬間に画面を黒くする割合（0〜1）。点滅が暗くならないなら大きく",
     "DARK_BLACK": "暗転のあいだに画面を黒くする割合（0〜1）",
     "DARK_WORLD": "暗転のとき、月と空の光を何倍まで下げるか",
+    "GHOSTLIGHT_ENABLE": "true: 外の幽霊の顔に、冷たい小さな光を当てる（暗くて見えにくいとき）。false: 当てない",
+    "GHOSTLIGHT_INTENSITY": "幽霊の光の明るさ（カンデラ）。ガラスに光の点が映って目立つなら小さく、幽霊が暗いなら大きく",
+    "GHOSTLIGHT_RADIUS": "幽霊の光の届く距離（cm）。小さいほど、ボックスの中を照らさない",
+    "GHOSTLIGHT_COLOR": "幽霊の光の色（赤, 緑, 青 各0〜1）",
+    "GHOSTLIGHT_UP": "ガラスに張りつく場面で、光を頭の上へ何cm 置くか",
+    "GHOSTLIGHT_BACK": "ガラスに張りつく場面で、光を幽霊のうしろ（ガラスと反対）へ何cm 置くか",
+    "GHOSTLIGHT_FRONT": "遠くに立つ場面で、光を顔の前へ何cm 置くか",
+    "GHOSTLIGHT_FLICKER": "幽霊の光のゆらぎ（±割合）。0 でゆれない",
+    "GHOST_INTERIOR_DIM": "外に幽霊が見えているあいだ、ボックスの中の蛍光灯を何倍まで暗くするか（1.0 で暗くしない）",
+    "GHOST_INTERIOR_TIME": "中の光が暗くなる／戻る時間（秒）",
     "GLASS_DIRT": "ガラスのくもりの強さ（M_KDGlass を使うとき）",
     "WALK_SPEED": "歩く速さ（cm/秒）。テンプレのキャラには効かない",
     "ENTER_RANGE": "入口の前の、E で入れる距離（cm）",
@@ -387,7 +407,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "GHOST_TILT_DEG", "GHOST_TILT_SPEED", "GHOST_JERK", "GHOST_MORPH", "GHOST_JAW_MAX", "GHOST_SMILE_BY_LEVEL", "GHOST_TILT_MODE", "GLASSGHOST_ENABLE", "GLASSGHOST_CARDS", "GLASSGHOST_GAP", "GLASSGHOST_FACES", "GLASSGHOST_LEAN_DEG", "GLASSGHOST_SLIDE", "GLASSGHOST_HEIGHT", "GLASSGHOST_HEAD", "GLASSGHOST_FACE_DEPTH", "GLASSGHOST_GRIN", "GLASSGHOST_SOUND", "GLASSGHOST_HANDS", "HAND_PER_SCARE", "HAND_DELAY", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY"]
+KD_SETTING_NAMES = ["FLASH_OUTSIDE", "FLASH_INSIDE", "TUBE_SCALE", "TUBE_GLOW", "IDLE_DIP", "FLICKER_BLACK", "DARK_BLACK", "DARK_WORLD", "GLASS_DIRT", "WALK_SPEED", "ENTER_RANGE", "SWAY_DEG", "SWAY_SPEED", "BOOK_LABEL", "SAFE_LABEL", "SAFE_CODE", "BOX_CODE", "BOX_CAM_FOV", "BOX_DIST", "BOX_BTN", "BOX_DEBUG", "BOX_HOVER", "BOX_FLIP", "BOX_TOP_H", "ENVELOPE_CODE", "ENVELOPE_DECOYS", "ENVELOPE_WRONG_GHOST", "CODE_FLICKER", "CODE_DARK", "CODE_LIT", "CODE_FINAL_DARK", "CODE_HOLD", "CODE_DARK_BLACK", "CODE_HINT_INTERVAL", "CODE_PERM_SAFE", "DOOR_RANGE", "DIAL_STEP_TIME", "DIAL_SIGN", "TRAP_MARGIN", "PAWN_RADIUS", "PHONE_CAM_DIST", "PHONE_CAM_FOV", "PHONE_KEY_U0", "PHONE_KEY_Z0", "PHONE_KEY_W", "PHONE_KEY_H", "PHONE_KEY_DEBUG", "SAFE_LID_ANGLE", "SAFE_LID_TIME", "SAFE_LID_SIGN", "DIAL_FOV", "DIAL_ZOOM_TIME", "PHONE_BACK", "PHONE_Z", "HATCH_Z", "PHONE_COIN_COST", "START_DIST", "START_POS", "MANUAL_WALK", "ARROW_MOVE", "WALKABLE_ANGLE", "ITEM_RANGE", "READ_RANGE", "LOOK_CONE", "READ_SIZE", "READ_DIST", "ENTER_FADE_OUT", "ENTER_BLACK", "ENTER_FADE_IN", "FLICKER_TIME", "DARK_TIME", "GHOST_HOLD", "POSTER_HOLD", "POSTER_STEP", "POSTER_FRAC", "PUZZLE_COUNT", "PRESSURE_INTERVAL", "DEAD_DIST", "GHOST_YAW", "GHOST_Z", "GHOST_TILT_DEG", "GHOST_TILT_SPEED", "GHOST_JERK", "GHOST_MORPH", "GHOST_JAW_MAX", "GHOST_SMILE_BY_LEVEL", "GHOST_TILT_MODE", "GLASSGHOST_ENABLE", "GLASSGHOST_CARDS", "GLASSGHOST_GAP", "GLASSGHOST_FACES", "GLASSGHOST_LEAN_DEG", "GLASSGHOST_SLIDE", "GLASSGHOST_HEIGHT", "GLASSGHOST_HEAD", "GLASSGHOST_FACE_DEPTH", "GLASSGHOST_GRIN", "GLASSGHOST_SOUND", "GLASSGHOST_HANDS", "HAND_PER_SCARE", "HAND_DELAY", "RESTART_AFTER", "GHOST_SPOTS", "END2_HOLD", "END2_SCARE", "END2_FADE", "END2_SIZE", "BREAK_CODE", "BREAK_FLY_TIME", "BREAK_FLY_DIST", "BREAK_SHAKE", "BREAK_CARD_TIME", "INV_KEY", "INV_DRINK_KEY", "INV_WALLET_KEY", "GHOSTLIGHT_ENABLE", "GHOSTLIGHT_INTENSITY", "GHOSTLIGHT_RADIUS", "GHOSTLIGHT_COLOR", "GHOSTLIGHT_UP", "GHOSTLIGHT_BACK", "GHOSTLIGHT_FRONT", "GHOSTLIGHT_FLICKER", "GHOST_INTERIOR_DIM", "GHOST_INTERIOR_TIME"]
 
 
 def game_world():
@@ -665,6 +685,13 @@ def label_of(a):
 
 class Game:
     """状態：WALK(歩く) → CLOSING(扉が閉まる) → TRAPPED(閉じ込め：IDLE/FLICKER/DARK をくりかえす)"""
+    int_k = 1.0                                   # 幽霊の光まわりの初期値（__init__ でも入れ直す）
+    ghost_out = False
+    gl_actor = gl_comp = None
+    gl_want = gl_vis = gl_dead = gl_warned = False
+    gl_tick = -1
+    gl_flick = 1.0
+    ghost_foot_z = 0.0
 
     def __init__(self, world):
         apply_settings(KD_SETTING_NAMES, log)        # Play のたびに、設定ファイルの数字を読み直す（ファイルを保存して Play するだけで反映）
@@ -689,6 +716,14 @@ class Game:
         self.fade_t = -1.0
         self.errors = 0
         self.mult = 1.0           # 蛍光灯の明るさの倍率
+        self.int_k = 1.0          # 外に幽霊が見えているあいだ、ボックスの中の蛍光灯にかける係数（GHOST_INTERIOR_DIM まで下がる）
+        self.ghost_out = False    # 幽霊がボックスの外に見えている（失敗エンドの目の前の幽霊は含めない）
+        self.gl_actor = self.gl_comp = None   # 幽霊の光（KD_GhostLight）。setup で1回だけ探して持っておく
+        self.gl_want = self.gl_vis = self.gl_dead = False
+        self.gl_tick = -1
+        self.gl_flick = 1.0
+        self.gl_warned = False
+        self.ghost_foot_z = 0.0
         self.door_yaw = DOOR_OPEN_YAW
         self.door_base = 0.0
         self.front_yaw = 0.0
@@ -717,7 +752,7 @@ class Game:
         self.extra = []
         for a in all_actors:
             lab = label_of(a)
-            if lab == "Flashlight" or lab.startswith("TubeLight"):
+            if lab == "Flashlight" or lab.startswith("TubeLight") or lab == "KD_GhostLight":      # 幽霊の光は、点滅・暗転の仲間に入れない（自分で管理する）
                 continue
             try:
                 comps = a.get_components_by_class(unreal.LightComponent)
@@ -755,6 +790,7 @@ class Game:
         self.read_plane = found.get("KD_ReadPlane")
         self.coin = found.get("Coin_10yen")
         self.coin_light = found.get("Coin_Light")
+        self.ghost_light_setup(found.get("KD_GhostLight"))
         self.coins = 0                                       # 持っている10円
         self.read_mat = None
         low = [(k.lower(), v) for k, v in found.items()]
@@ -1062,10 +1098,11 @@ class Game:
 
     def set_lights(self, mult):
         self.mult = mult
+        km = mult * self.int_k                                                  # 外に幽霊が見えているあいだだけ、中の蛍光灯をさらに暗くする（int_k=1 なら今まで通り）
         for c, base in self.tubes:
-            c.set_editor_property("intensity", base * mult)
+            c.set_editor_property("intensity", base * km)
         for mid in self.tube_mats:
-            mid.set_scalar_parameter_value("Flicker", mult * TUBE_GLOW)          # 蛍光灯の見た目も、光といっしょにちらつく
+            mid.set_scalar_parameter_value("Flicker", km * TUBE_GLOW)          # 蛍光灯の見た目も、光といっしょにちらつく
         for bar in self.tube_bars:                                              # 消えたときは、光る棒そのものも隠す（材質が残り光るのを防ぐ）
             try:
                 bar.set_actor_hidden_in_game(mult < 0.05)
@@ -1087,6 +1124,92 @@ class Game:
         if self.eye is not None and stage >= 3:
             self.eye.set_actor_hidden_in_game(False)
 
+    # ---- 幽霊の光（KD_GhostLight）と、中の光を暗くする係数 ----
+    def ghost_light_setup(self, actor):
+        """setup で1回だけ。光の部品を持っておき、色・届く距離・影なしを決めて、消しておく（tick の中で探さない）"""
+        self.gl_actor = actor
+        self.gl_comp = None
+        if actor is None:
+            log("幽霊の光: KD_GhostLight がレベルにありません（setup_game_fp.py を実行し直すと置かれます）。光なしで続けます")
+            return
+        try:
+            c = actor.get_component_by_class(unreal.PointLightComponent)
+            col = GHOSTLIGHT_COLOR
+            c.set_editor_property("light_color", unreal.Color(int(255 * col[0]), int(255 * col[1]), int(255 * col[2]), 255))
+            c.set_editor_property("attenuation_radius", float(GHOSTLIGHT_RADIUS))
+            c.set_editor_property("intensity", float(GHOSTLIGHT_INTENSITY))
+            try:
+                c.set_editor_property("cast_shadows", False)               # ガラスで影ができて光がさえぎられないように（中にも漏れにくい）
+            except Exception as e:  # noqa
+                log("  (幽霊の光の影を切れません。そのまま使います) %s" % e)
+            c.set_visibility(False, False)
+            self.gl_comp = c
+            self.gl_vis = False
+            log("幽霊の光: 使います（明るさ %.1f・届く距離 %.0fcm・影なし・%s）" % (GHOSTLIGHT_INTENSITY, GHOSTLIGHT_RADIUS, "オン" if GHOSTLIGHT_ENABLE else "設定でオフ"))
+        except Exception as e:  # noqa
+            self.gl_comp = None
+            log("  (幽霊の光を準備できません。光なしで続けます) %s" % e)
+
+    def ghost_light_follow(self, x, y, dx, dy, mode):
+        """幽霊の足もと (x, y) と向き (dx, dy)（ガラスに張りつくときはガラスのほう＝内向き、ほかは顔が向く先）から、光を置く場所を決めて動かす。
+        glass: 頭の上 UP・うしろ BACK（顔とガラスのすきまは3cm しかないので、ガラスの外・幽霊のうしろから照らす）／far: 顔の前 FRONT・少し上／dead: 目の前なので近め"""
+        if self.gl_comp is None or self.gl_actor is None:
+            return
+        n = math.hypot(dx, dy)
+        if n < 1e-6:
+            dx, dy, n = 0.0, 1.0, 1.0
+        dx, dy = dx / n, dy / n
+        hz = self.ghost_foot_z + GLASSGHOST_HEIGHT * GLASSGHOST_HEAD
+        if mode == "glass":
+            p = (x - dx * GHOSTLIGHT_BACK, y - dy * GHOSTLIGHT_BACK, hz + GHOSTLIGHT_UP)
+        elif mode == "dead":
+            p = (x + dx * GHOSTLIGHT_FRONT * 0.5, y + dy * GHOSTLIGHT_FRONT * 0.5, hz + GHOSTLIGHT_UP * 0.5)
+        else:
+            p = (x + dx * GHOSTLIGHT_FRONT, y + dy * GHOSTLIGHT_FRONT, hz + 15.0)
+        try:
+            self.gl_actor.set_actor_location(unreal.Vector(p[0], p[1], p[2]), False, False)
+        except Exception as e:  # noqa
+            if not self.gl_warned:
+                self.gl_warned = True
+                log("  (幽霊の光を動かせません) %s" % e)
+
+    def tick_ghost_light(self, dt):
+        """毎フレーム：①中の蛍光灯の係数 int_k を目標へなめらかに動かす ②幽霊の光のオン・オフとゆらぎ（0.1秒ごと）。検索も新しい物の生成もしない"""
+        tgt = 1.0
+        if GHOST_INTERIOR_DIM < 1.0 and self.ghost_out and not self.code_active:
+            tgt = max(0.0, float(GHOST_INTERIOR_DIM))
+        if self.code_active and self.int_k != 1.0:                                # 謎7の場面は mult を自分で決める：何も変えない（すぐ戻す）
+            self.int_k = 1.0
+            self.set_lights(self.mult)
+        elif self.int_k != tgt:
+            step = abs(1.0 - GHOST_INTERIOR_DIM) / max(0.05, GHOST_INTERIOR_TIME) * dt
+            if abs(tgt - self.int_k) <= step:
+                self.int_k = tgt
+            else:
+                self.int_k += step if tgt > self.int_k else -step
+            self.set_lights(self.mult)
+        c = self.gl_comp
+        if c is None:
+            return
+        want = bool(GHOSTLIGHT_ENABLE and self.gl_want)
+        k = int(self.t * 10.0)
+        if want != self.gl_vis:
+            self.gl_vis = want
+            self.gl_tick = -1                                                    # 付け直したら、明るさも決め直す
+            try:
+                c.set_visibility(want, False)
+            except Exception as e:  # noqa
+                if not self.gl_warned:
+                    self.gl_warned = True
+                    log("  (幽霊の光の切りかえ不可) %s" % e)
+        if want and k != self.gl_tick:
+            self.gl_tick = k
+            self.gl_flick = 1.0 + random.uniform(-GHOSTLIGHT_FLICKER, GHOSTLIGHT_FLICKER)
+            try:
+                c.set_editor_property("intensity", GHOSTLIGHT_INTENSITY * (2.0 if self.gl_dead else 1.0) * self.gl_flick)
+            except Exception:  # noqa
+                pass
+
     def ghost_show(self, x, y, face_x=None, face_y=None, level=0, dead=False, hold=10.0, glass=False, lean=0.0):
         if self.ghost is None:
             return
@@ -1104,6 +1227,7 @@ class Game:
             real = self.ghost.get_component_by_class(unreal.SkeletalMeshComponent) is not None          # 本物のモデル（足元が原点）か、仮の筒（中心が原点）か
         except Exception:  # noqa
             real = False
+        self.ghost_foot_z = gz + GHOST_Z
         if not real:
             gz += 80.0
         self.ghost_z = gz + GHOST_Z
@@ -1114,9 +1238,15 @@ class Game:
         gfx = getattr(self, "gfx", None)
         if gfx is not None:
             gfx.begin(level, dead, hold, yaw, glass, lean)
+        self.ghost_out = not dead
+        self.gl_want = bool(GHOSTLIGHT_ENABLE)
+        self.gl_dead = bool(dead)
+        self.ghost_light_follow(x, y, fx - x, fy - y, "dead" if dead else ("glass" if glass else "far"))
 
     def ghost_hide(self):
         self.gslide = None
+        self.ghost_out = False
+        self.gl_want = False
         gfx = getattr(self, "gfx", None)
         if gfx is not None:
             gfx.end()
@@ -1271,6 +1401,7 @@ class Game:
         self.update_flashlight()
         self.tick_sway()
         self.tick_glass_slide(dt)
+        self.tick_ghost_light(dt)
         self.tick_hands(dt)
         if getattr(self, "gfx", None) is not None:
             self.gfx.update(dt)                                   # 幽霊の首かしげと表情（見えていないときは何もしない）
@@ -2930,6 +3061,7 @@ class Game:
             gfx = getattr(self, "gfx", None)
             if gfx is not None:
                 gfx.base_yaw = yaw
+            self.ghost_light_follow(x, y, ix, iy, "glass")                       # すべる幽霊について行く
         except Exception as ex:  # noqa
             self.gslide = None
             log("  (ガラスをすべる動きを止めます) %s" % ex)

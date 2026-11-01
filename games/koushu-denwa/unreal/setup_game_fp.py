@@ -38,6 +38,10 @@ POSTER_GLOW = 0.15                   # 張り紙の、うすい自己発光の�
 GHOST_SCALE = 1.2                    # 本物の幽霊の大きさ（1.0=約160cm）。プレイヤー（約190cm）より少し高くして、見上げる怖さを出す
 GHOST_MODEL = True                  # True: 本物の幽霊のモデル（assets/unreal/ghost/Ghost_rigged.fbx）を置く。取り込みに失敗したら、仮の姿（黒い筒＋白い頭）を置く。False: いつも仮の姿
 GHOST_HEIGHT = 160.0                 # 幽霊の身長（cm）。取り込み後に測って、この高さに合わせる
+GHOST_GLOW = 0.35                    # 幽霊の材質の、うっすら冷たい自己発光の強さ（暗い外でも輪郭が見える）。肌・服が一番強く、髪・口の中は弱い。0 でなし
+GHOST_GLOW_RIM = 1.5                 # ふちだけ強く光らせる（フレネル）割合。GHOST_GLOW にかける倍率。0 でふち光りなし
+GHOST_GLOW_COLOR = (0.55, 0.7, 1.0)  # 自己発光の色（赤, 緑, 青）。青白い
+GHOSTLIGHT_RADIUS = 220.0            # 幽霊の光（KD_GhostLight）をレベルに置くときの、届く距離（cm）。実際の明るさ・色・オンオフは kd_game.py が決める
 RESET_POSTERS = True                 # True: ガラスの文字・目の写真の位置は、実行のたびに、ガラスの面から計算し直す（手で動かした位置は覚えない）。手で動かした位置を残したいなら False
 GLASS_GAP = 2.0                      # ガラスの文字を、ガラスの面から内側へ何cm 離して貼るか（浮いて見えるなら小さく。ガラスにめり込むなら大きく）
 WALL_INSET = 20.0                    # 張り紙を、ボックスの外形（屋根のはみ出しを含む）から内側へ何cm 入れた所に貼るか。外にはみ出すときは大きくする
@@ -93,6 +97,10 @@ STATE = {}
 # 数字は Saved/kd_settings.json に書いてある。メモ帳で開いて数字を変えて保存するだけで効く。
 # （ZIP を取り直しても消えない場所にある。無い項目は、最初の実行で自動で足される）
 SETTINGS_DESCR = {
+    "GHOST_GLOW": "幽霊の材質の、うっすら冷たい自己発光の強さ（0 でなし）。外の幽霊が暗くて見えないなら大きく。setup_game_fp.py の実行し直しで効く",
+    "GHOST_GLOW_RIM": "幽霊のふちだけ強く光らせる割合（GHOST_GLOW にかける倍率）。0 でふち光りなし",
+    "GHOST_GLOW_COLOR": "幽霊の自己発光の色（赤, 緑, 青）",
+    "GHOSTLIGHT_RADIUS": "幽霊の光（KD_GhostLight）をレベルに置くときの届く距離（cm）",
     "FLASH_INSIDE": "閉じ込められたあとの懐中電灯の明るさ（外にいたときの何倍か）。明るすぎたら小さく",
     "TUBE_SCALE": "蛍光灯の光の強さの倍率。明るすぎたら小さく",
     "TUBE_GLOW": "蛍光灯の「光る見た目」の倍率",
@@ -244,7 +252,7 @@ def apply_settings(names, logf):
     logf("設定ファイル: %s（ファイルの値を使ったもの: %s）" % (path, ", ".join(applied) if applied else "なし"))
 
 
-SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_TREE_SIZE", "CODE_TREE_Z", "CODE_TREE_MIN", "CODE_TREE_MAX", "CODE_TREE_ANGLE", "CODE_TREE_PICK", "CODE_TREE_ORDER", "CODE_TREE_TRUNK_R", "CODE_TREE_GLOW", "GLASS_SPREAD", "GLASS_COUNT", "GLASS_SIZE_MIN", "GLASS_SIZE_MAX", "GLASS_TILT", "HAND_COUNT", "HAND_GLOW", "HAND_SIZE_MIN", "HAND_SIZE_MAX", "HAND_HEIGHT_MIN", "HAND_HEIGHT_MAX", "HAND_OUT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED"]
+SETUP_SETTING_NAMES = ["FRONT", "START_DIST", "START_HEIGHT", "COIN_DIST", "COIN_SIDE", "FLASH_INTENSITY", "FLASH_INNER", "FLASH_OUTER", "FLASH_RADIUS", "POSTER_GLOW", "GLASS_GLOW", "WALL_INSET", "GLASS_GAP", "RESET_POSTERS", "GHOST_MODEL", "GHOST_HEIGHT", "POSTER_SCALE", "GLASS_SCALE", "CODE_SCALE", "CODE_TREE_SIZE", "CODE_TREE_Z", "CODE_TREE_MIN", "CODE_TREE_MAX", "CODE_TREE_ANGLE", "CODE_TREE_PICK", "CODE_TREE_ORDER", "CODE_TREE_TRUNK_R", "CODE_TREE_GLOW", "GLASS_SPREAD", "GLASS_COUNT", "GLASS_SIZE_MIN", "GLASS_SIZE_MAX", "GLASS_TILT", "HAND_COUNT", "HAND_GLOW", "HAND_SIZE_MIN", "HAND_SIZE_MAX", "HAND_HEIGHT_MIN", "HAND_HEIGHT_MAX", "HAND_OUT", "TUBE_Z_FROM_TOP", "NIGHT_MODE", "SUN_INTENSITY", "MOON_INTENSITY", "SKY_INTENSITY", "REPLACE_GLASS_MATERIAL", "SAFE_BACK", "SAFE_SIDE", "SAFE_SCALE", "SAFE_TURN", "DIAL_CAM_DIST", "DIAL_CAM_FOV", "KEEP_HAND_PLACEMENT", "BOARD_SCALE", "BOARD_DIST", "BOARD_SIDE", "BOARD_TURN", "PAPER_WIND_MATERIAL", "PAPER_WIND_AMP", "PAPER_WIND_SPEED", "GHOST_GLOW", "GHOST_GLOW_RIM", "GHOST_GLOW_COLOR", "GHOSTLIGHT_RADIUS"]
 
 LOG_LINES = []
 RESULTS = {}
@@ -569,8 +577,23 @@ def ghost_textures():
     return tx
 
 
+def addx(m, a, b, y=0):
+    e = xx(m, unreal.MaterialExpressionAdd, -300, y)
+    mel.connect_material_expressions(a, "", e, "A")
+    mel.connect_material_expressions(b, "", e, "B")
+    return e
+
+
+def cold_const(m, k, y=0):
+    """冷たい青白い色 GHOST_GLOW_COLOR に、強さ k をかけた定数（自己発光に足す用）"""
+    c = xx(m, unreal.MaterialExpressionConstant3Vector, -700, y)
+    col = GHOST_GLOW_COLOR
+    setp(c, "constant", unreal.LinearColor(col[0] * k, col[1] * k, col[2] * k, 1.0))
+    return c
+
+
 def ghost_materials(tx):
-    """幽霊の材質5つ（Blenderの穴の順：肌・口の中・歯・舌・歯ぐき）"""
+    """幽霊の材質5つ（Blenderの穴の順：肌・口の中・歯・舌・歯ぐき）。どれも GHOST_GLOW で、うっすら冷たく自己発光する（暗い外でも輪郭が見える）"""
     skin = new_material("M_GhostSkin")
     setp(skin, "two_sided", True)                                    # 髪の面が、うらから見ても消えないように
     t = xx(skin, unreal.MaterialExpressionTextureSample, -900, 0)
@@ -587,6 +610,22 @@ def ghost_materials(tx):
         setp(tr, "sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
         mel.connect_material_property(tr, "R", MP.MP_ROUGHNESS)
     mel.connect_material_property(cst(skin, 0.0, 900), "", MP.MP_METALLIC)
+    if GHOST_GLOW > 0:
+        # 自己発光 = 肌・服の絵 × 冷たい色 × GHOST_GLOW（白い服ほど強く、黒い髪はほぼ0）＋ 髪にも少しだけ下駄 ＋ ふち（フレネル）の光
+        em = mulx(skin, mulx(skin, t, cold_const(skin, 1.0, 1100), 1000), cst(skin, GHOST_GLOW, 1050), 1000)
+        em = addx(skin, em, cold_const(skin, GHOST_GLOW * 0.08, 1200), 1000)
+        rim_ok = False
+        if GHOST_GLOW_RIM > 0:
+            try:
+                fr = xx(skin, unreal.MaterialExpressionFresnel, -900, 1300)
+                setp(fr, "exponent", 3.0)
+                rim = mulx(skin, fr, cold_const(skin, GHOST_GLOW * GHOST_GLOW_RIM, 1350), 1300)
+                em = addx(skin, em, rim, 1000)
+                rim_ok = True
+            except Exception as e:  # noqa
+                log("  (幽霊のふち光り（フレネル）を作れません。ふつうの自己発光だけにします) %s" % e)
+        mel.connect_material_property(em, "", MP.MP_EMISSIVE_COLOR)
+        log("幽霊の肌・服・髪に自己発光を付けました（強さ %.2f・ふち光り %s・色 %s）" % (GHOST_GLOW, "あり" if rim_ok else "なし", GHOST_GLOW_COLOR))
     mel.recompile_material(skin)
     unreal.EditorAssetLibrary.save_loaded_asset(skin)
 
@@ -594,8 +633,11 @@ def ghost_materials(tx):
         m = new_material(name)
         vc = xx(m, unreal.MaterialExpressionVertexColor, -800, 0)             # Blender で付けた頂点カラー「Col」（口の中の赤みと、歯の黄ばみ）
         mel.connect_material_property(vc, "RGB", MP.MP_BASE_COLOR)
-        if glow > 0:
-            mel.connect_material_property(mulx(m, vc, cst(m, glow, 100), 150), "", MP.MP_EMISSIVE_COLOR)      # 暗い中でも、口の中がうっすら見える
+        if glow > 0 or GHOST_GLOW > 0:
+            em = mulx(m, vc, cst(m, glow, 100), 150)                              # 暗い中でも、口の中がうっすら見える
+            if GHOST_GLOW > 0:
+                em = addx(m, em, cold_const(m, GHOST_GLOW * 0.25, 250), 150)       # 口の中・歯は、肌より弱い冷たい自己発光
+            mel.connect_material_property(em, "", MP.MP_EMISSIVE_COLOR)
         mel.connect_material_property(cst(m, rough, 300), "", MP.MP_ROUGHNESS)
         mel.recompile_material(m)
         unreal.EditorAssetLibrary.save_loaded_asset(m)
@@ -606,6 +648,8 @@ def ghost_materials(tx):
         c = xx(m, unreal.MaterialExpressionConstant3Vector, -600, 0)
         setp(c, "constant", unreal.LinearColor(col[0], col[1], col[2], 1.0))
         mel.connect_material_property(c, "", MP.MP_BASE_COLOR)
+        if GHOST_GLOW > 0:
+            mel.connect_material_property(cold_const(m, GHOST_GLOW * 0.25, 150), "", MP.MP_EMISSIVE_COLOR)     # 舌・歯ぐきも、弱く
         mel.connect_material_property(cst(m, rough, 240), "", MP.MP_ROUGHNESS)
         mel.recompile_material(m)
         unreal.EditorAssetLibrary.save_loaded_asset(m)
@@ -699,6 +743,8 @@ def s_ghost():
     body_m = new_material("M_GhostBody")
     setp(body_m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
     mel.connect_material_property(mulx(body_m, cst(body_m, 1.0, 0), cst(body_m, 0.02, 100), 0), "", MP.MP_EMISSIVE_COLOR)
+    if GHOST_GLOW > 0:                                                       # 仮の黒い筒も、うっすら冷たく光らせる（暗い外でも輪郭が見える）
+        mel.connect_material_property(addx(body_m, cold_const(body_m, GHOST_GLOW * 0.15, 200), cst(body_m, 0.02, 100), 0), "", MP.MP_EMISSIVE_COLOR)
     mel.recompile_material(body_m)
     head_m = new_material("M_GhostHead")
     setp(head_m, "shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
@@ -730,6 +776,26 @@ def s_ghost():
         except Exception:  # noqa
             pass
     log("幽霊（仮）を置きました。最初は見えません")
+
+
+def s_ghost_light():
+    """幽霊の光（KD_GhostLight）：冷たい小さな点の光。最初は消えている。いつ・どこに・どのくらいの明るさで点くかは kd_game.py が決める（幽霊が外に見えるあいだだけ）"""
+    pl = spawn(unreal.PointLight, (0, 3000, 200), (0, 0, 0))
+    lc = pl.get_component_by_class(unreal.PointLightComponent)
+    setp(lc, "mobility", unreal.ComponentMobility.MOVABLE)
+    units = getattr(unreal.LightUnits, "CANDELAS", None) or getattr(unreal.LightUnits, "CANDELA", None)
+    if units is not None:
+        setp(lc, "intensity_units", units)
+    setp(lc, "intensity", 8.0)
+    setp(lc, "attenuation_radius", float(GHOSTLIGHT_RADIUS))
+    setp(lc, "light_color", unreal.Color(153, 191, 255, 255))
+    setp(lc, "cast_shadows", False)                                          # ガラスで影ができないように。中を照らしにくくもなる
+    try:
+        lc.set_visibility(False, False)
+    except Exception as e:  # noqa
+        log("  (幽霊の光を消せません) %s" % e)
+    tag_actor(pl, "KD_GhostLight")
+    log("幽霊の光（KD_GhostLight）を置きました（最初は消えています・届く距離 %.0fcm・影なし）" % GHOSTLIGHT_RADIUS)
 
 
 def s_night():
@@ -1997,6 +2063,7 @@ def main():
     step("ガラスの手形", s_hands, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("暗号の張り紙", s_code_posters, ["張り紙の板", "張り紙の材質", "前回の生成物を消す"])
     step("幽霊（仮）", s_ghost, ["前回の生成物を消す"])
+    step("幽霊の光", s_ghost_light, ["前回の生成物を消す"])
     step("掲示板の画像", s_board_textures, ["環境確認"])
     step("掲示板の材質", s_board_materials, ["掲示板の画像"])
     step("掲示板", s_board, ["掲示板の材質", "張り紙の板", "前回の生成物を消す"])
