@@ -138,7 +138,10 @@ window.Apps = (function () {
       view.append(h("div", { class: "pub-foot" }, "© " + name + "　運営：管理人室　お問い合わせ　利用規約"));
     }
     function paintStory() {
-      const r = sel, cs = r.mine ? visibleComments(r.e) : D3.legacyCm.slice(0, Math.min(r.cm, 4)).map((c, k) => ({ n: c.n, t: c.t, at: "2026/" + r.date.slice(5, 10) + " " + String((22 + k) % 24).padStart(2, "0") + ":" + String(10 + k * 7).padStart(2, "0") }));
+      const r = sel, cs = r.mine ? visibleComments(r.e) : Array.from({ length: Math.min(r.cm, D3.legacyCm.length) }, (_, k) => {
+        const c = D3.legacyCm[(hashN(r.id, D3.legacyCm.length) + k * 3) % D3.legacyCm.length], hh = (22 + hashN(r.id + k, 9)) % 24, mm = hashN(r.id + "m" + k, 60);
+        const dd = new Date(2026, +r.date.slice(5, 7) - 1, +r.date.slice(8, 10) + (hh < 22 ? 1 : 0) + hashN(r.id + "d" + k, 3));
+        return { n: c.n, t: c.t, at: (dd.getMonth() + 1) + "/" + dd.getDate() + " " + String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0") }; });
       view.append(h("div", { class: "pub-story" },
         h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
         h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),

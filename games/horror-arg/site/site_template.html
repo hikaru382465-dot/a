@@ -43,12 +43,43 @@ details summary{cursor:pointer;font-family:var(--sans);font-size:13px;color:var(
 footer{margin-top:30px;font-family:var(--sans);font-size:11px;color:var(--muted);text-align:center}
 @media (prefers-reduced-motion:no-preference){.hid p{animation:fadein 1.2s ease both}.hid p:nth-child(2){animation-delay:.6s}.hid p:nth-child(3){animation-delay:1.2s}.hid p:nth-child(4){animation-delay:1.8s}.hid p:nth-child(5){animation-delay:2.4s}.hid p:nth-child(6){animation-delay:3.2s}}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* ===== 本物の投稿サイトらしく（ゲーム内の公開サイトとそろえる） ===== */
+:root{--bg:#161618;--panel:#1f1f22;--line:#323238;--ink:#e6e6e8;--muted:#9a9aa2;--accent:#3c83b9;--odd:#e8b4a0;--font:"Hiragino Sans","Yu Gothic UI","Meiryo","Noto Sans JP","Noto Sans CJK JP",sans-serif}
+body{font-family:var(--font);padding-left:0;padding-right:0;line-height:1.85}
+.topbar{background:#0f0f11;border-bottom:1px solid #2a2a2e}
+.topin{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:12px 16px}
+.logo{font-size:24px;letter-spacing:.06em;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;font-weight:800}
+.logo .red{color:#e3201b}
+.tag{font-size:11px;letter-spacing:0}
+.topin .sp{flex:1}
+.tsearch{display:flex;border:1px solid #3a3a40;background:#0b0b0d}.tsearch input{background:none;border:none;color:var(--ink);padding:7px 10px;font:inherit;font-size:13px;width:200px}.tsearch span{background:#3c83b9;color:#fff;font-size:12px;padding:8px 12px;font-weight:700}
+.postbtn{background:#3c83b9;color:#fff;border-radius:16px;padding:6px 14px;font-size:12px;font-weight:700;white-space:nowrap}
+.navbar{background:#d9d9dc}.navbar nav{max-width:1080px;margin:0 auto;padding:0 16px;gap:0}
+nav button{color:#24242a;border-radius:0;font-weight:700;min-height:40px;padding:8px 18px}
+nav button.on{background:#fff;color:#24242a;border-color:transparent;box-shadow:inset 0 -3px 0 #3c83b9}
+.wrap{max-width:1080px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;padding:0 16px}
+header{display:none}
+article{border-radius:2px}
+article h2{font-size:18px}
+article p{font-size:15px;line-height:1.95}
+.share{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--muted)}.share span{border:1px solid var(--line);padding:2px 10px;border-radius:2px}.share .fire{margin-right:auto;color:#d9655c;border:none;padding-left:0}
+aside{padding-top:14px}
+.box{background:var(--panel);border:1px solid var(--line);margin-bottom:16px}
+.box h3{margin:0;padding:8px 12px;font-size:13px;border-bottom:1px solid var(--line);background:#26262a}
+.box ol,.box ul{margin:0;padding:6px 12px 8px 30px;font-size:13px}.box li{padding:4px 0;border-bottom:1px dashed #2c2c30}.box li:last-child{border-bottom:none}
+.ad{background:linear-gradient(120deg,#e9eef6,#cfd9e8);color:#18324f;padding:14px;margin-bottom:16px;position:relative;font-size:12px}.ad b{display:block;font-size:16px}.ad i{position:absolute;top:2px;right:4px;font-style:normal;font-size:9px;color:#6a7686}
+footer{border-top:1px solid var(--line);padding-top:14px;max-width:1080px;margin:30px auto 0}
+@media (max-width:860px){.wrap{grid-template-columns:1fr}.tsearch{display:none}}
 </style>
+<div class="topbar"><div class="topin"><h1 class="logo" id="logo2"></h1><span class="sp"></span><div class="tsearch"><input placeholder="キーワードで怖い話を探す" aria-label="サイト内検索"><span>検索</span></div><span class="postbtn">怖い話を投稿</span></div></div>
+<div class="navbar"><nav id="nav"></nav></div>
 <div class="wrap">
-  <header><h1 class="logo" id="logo"></h1><div class="tag">みんなの怖い話　— 毎晩、ひとつ、増えています</div>
-    <nav id="nav"></nav></header>
+  <header><h1 class="logo" id="logo"></h1><div class="tag">実話怪談・不思議な話の投稿サイト｜毎晩更新</div>
+    </header>
   <main id="main"></main>
-  <footer>このサイトの投稿はすべて実話として届いたものです。無断転載はご遠慮ください。</footer>
+  <aside id="side"></aside>
+  <footer>掲載作品の著作権は各投稿者に帰属します。無断転載・転用はご遠慮ください。　|　夜ばなし投稿館　|　お問い合わせは投稿フォームの「その他」から　|　&copy; 2016-2026 yobanashi-kan</footer>
 </div>
 <script>
 const DATA = /*DATA*/null;
@@ -56,7 +87,17 @@ const $ = (s) => document.querySelector(s);
 const h = (tag, attrs, ...kids) => { const e = document.createElement(tag); for (const k in (attrs || {})) { if (k === "class") e.className = attrs[k]; else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]); else e.setAttribute(k, attrs[k]); } kids.flat().forEach(c => { if (c != null) e.append(c.nodeType ? c : document.createTextNode(c)); }); return e; };
 const norm = t => t.replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[\s　、。．.・「」]/g, "").toLowerCase();
 $("#logo").textContent = DATA.site;
-const TABS = [["new", "新着"], ["blog", "管理人ブログ"], ["about", "サイトについて"]];
+{ const nm = DATA.site.replace("（仮）", ""); $("#logo2").replaceChildren(h("span", { class: "red" }, nm.slice(0, 4)), nm.slice(4)); }
+const hashN = (t, m) => String(t).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 99991, 7) % m;
+function side() {
+  const top = DATA.posts.slice().sort((a, b) => (b.comments.length - a.comments.length) || (hashN(b.title, 50) - hashN(a.title, 50))).slice(0, 6);
+  $("#side").replaceChildren(
+    h("div", { class: "ad" }, h("i", {}, "PR"), h("b", {}, "その不眠、枕のせい？"), "寝具の専門店 ねむりや　今だけ送料無料"),
+    h("div", { class: "box" }, h("h3", {}, "今週よく読まれている怖い話"), h("ol", {}, top.map(p => h("li", {}, p.title)))),
+    h("div", { class: "box" }, h("h3", {}, "カテゴリ"), h("ul", {}, ["心霊", "不思議", "ヒトコワ", "呪い・祟り", "都市伝説", "意味怖", "短編", "長編"].map(c => h("li", {}, c + "（" + (40 + hashN(c, 400)) + "）")))),
+    h("div", { class: "box" }, h("h3", {}, "管理人より"), h("ul", {}, h("li", {}, "投稿はおひとり1日3話まで"), h("li", {}, "実在の人物・団体名は伏せてください"), h("li", {}, "削除依頼は投稿フォームの「その他」から"))));
+}
+const TABS = [["new", "新着"], ["blog", "管理人ブログ"], ["about", "サイトについて"]];   // ランキング・殿堂入りは、ゲーム内の公開サイトにある
 let tab = (location.hash || "").replace("#", "");
 if (!TABS.some(t => t[0] === tab) && tab !== "hidden") tab = "new";
 let unlocked = false;
@@ -73,6 +114,7 @@ function paint() {
 function post(p) {
   const cm = p.comments;
   return h("article", {}, h("h2", {}, p.title), h("div", { class: "meta" }, "投稿者：" + p.author + "　" + p.time), p.body.map(t => h("p", {}, t)),
+    h("div", { class: "share" }, h("span", { class: "fire" }, "ゾッとした " + (3 + hashN(p.title, 60))), h("span", {}, "ポスト"), h("span", {}, "LINE"), h("span", {}, "URLをコピー")),
     cm.length ? h("div", { class: "cm" }, h("h3", {}, "読者コメント（" + cm.length + "）"), cm.map(c => h("div", { class: c.odd ? "odd" : "" }, h("b", {}, c.n), c.t, h("i", {}, c.at)))) : null);
 }
 function blogPost(b) {
@@ -81,24 +123,25 @@ function blogPost(b) {
     b.secret ? h("div", { class: "secret", "aria-label": "メモ" }, b.secret) : null);
 }
 function about() {
-  const input = h("input", { id: "pass", placeholder: "合言葉を入力", autocomplete: "off" });
+  const input = h("input", { id: "pass", placeholder: "合言葉", autocomplete: "off" });
   const msg = h("div", { class: "msg", role: "status" });
   const go = () => {
     if (DATA.accept.some(a => norm(a) === norm(input.value))) { unlocked = true; setTab("hidden"); }
-    else { msg.textContent = "合言葉が違います。"; }
+    else { msg.textContent = "合言葉が正しくありません。"; }
   };
   input.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
   return h("div", { class: "about" },
     h("article", {}, h("h2", {}, "このサイトについて"),
-      h("p", {}, "夜ばなし投稿館は、10年前から続く、怪談の投稿サイトです。"),
-      h("p", {}, "投稿は、管理人が毎晩ひとつずつ確認して、承認したものだけを載せています。管理人は毎年交代します。"),
-      h("p", {}, "投稿者への返信は行っていません。")),
-    h("div", { class: "gate" }, h("label", { for: "pass" }, "管理人の方は、こちらから"), h("div", { class: "row" }, input, h("button", { class: "btn", onclick: go }, "入る")), msg));
+      h("p", {}, "夜ばなし投稿館は、読者のみなさんから寄せられた実話怪談・不思議な体験談を掲載している投稿サイトです。2016年の開設から、もうすぐ10年になります。"),
+      h("p", {}, "いただいた投稿は、管理人が毎晩ひとつずつ目を通して、承認したものだけを掲載しています（特定の個人・団体への誹謗中傷、明らかな創作の転載などは掲載しません）。管理人は年に一度交代しています。"),
+      h("p", {}, "申し訳ありませんが、投稿者さま・読者さまへの個別のお返事はしておりません。掲載された作品の削除をご希望の場合は、投稿フォームの「その他」からご連絡ください。")),
+    h("div", { class: "gate" }, h("label", { for: "pass" }, "サイト管理者はこちら（合言葉）"), h("div", { class: "row" }, input, h("button", { class: "btn", onclick: go }, "ログイン")), msg));
 }
 function hiddenPage() {
   return h("article", { class: "hid" }, h("h2", {}, "最初の投稿者より"), h("div", { class: "meta" }, "管理人専用ページ"),
     DATA.hidden.map((t, i) => h("p", { class: i === DATA.hidden.length - 1 ? "last" : (i === 4 ? "last" : "") }, t)));
 }
 DATA.hidden = DATA.hidden || [];
+side();
 paint();
 </script>
