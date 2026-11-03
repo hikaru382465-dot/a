@@ -129,7 +129,7 @@ window.RAFT.parts.objects = function (c) {
     items.forEach(it => {
       if (it.gm) it.gm.opacity = (it.o.burn ? 0.5 : 0.1) + Math.sin(t * 9 + it.o.id) * 0.06 + Math.sin(t * 5.3) * 0.04;
       let idx = 0;
-      if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / D.ITEMS.tank.cap * 3));
+      if (it.o.k === 'tank') idx = Math.min(3, Math.ceil(it.o.w / R.sim.tankCap(it.o) * 3));
       else if (it.o.k === 'filter') idx = (it.o.p > 0 && Math.floor(t * 2) % 2) ? 1 : 0;
       else if (it.o.k === 'catchnet') { idx = !(it.o.dur > 0) ? 2 : R.sim.cnTotal(it.o) > 0 ? 1 : 0; if (it.tex.length === 12) idx = idx * 4 + it.base; const n = R.sim.cnTotal(it.o); if (n !== it.lastN) { it.lastN = n; badge(it, n); } }
       else if (it.o.k === 'hut') idx = it.base + ((s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > it.base + 1 ? 1 : 0);

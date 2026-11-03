@@ -41,6 +41,7 @@ window.RAFT.data = {
     huts:    { name: '石の小屋', lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: 2, tip: '灰色の石の屋根と、石の壁の小屋。広さも、住める人数も、わらの小屋と同じ（2×3マス）' },
     catchnet: { name: '回収ネット', lv: 0, w: 0, place: true, edge: true, tip: 'イカダのふちに付ける。流れてくる物を、自動でためる。タップで取り出す' },
     hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], rnd: true, tip: '自分と相棒の家。タップで中に入って、休める（2×3マス）。見た目は、置くとき、ランダムに決まる' },
+    bigtank: { name: '大きな貯水槽', lv: 0, w: 0, place: true, as: 'tank', cap: 16, tip: '水が16入る大きな貯水槽（作業台Lv2）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -48,6 +49,8 @@ window.RAFT.data = {
     { id: 'bench',  out: 'bench',  cost: { wood: 6 },                   need: null,    tip: '最初に作る。これがあれば、ほかの物が作れる' },
     { id: 'floor',  out: 'floor',  cost: { wood: 4 },                   need: null,    tip: 'イカダを広げる' },
     { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
+    { id: 'bigtank', out: 'bigtank', cost: { wood: 10, rope: 2, clay: 3 }, need: 'bench', bl: 2, tip: '水が16入る大きな貯水槽' },
+    { id: 'benchup', special: 'lvup', up: 'bench', need: 'bench', tip: '作業台を強くする' },
     { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
     { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
     { id: 'rodup',  special: 'lvup', up: 'rod',  need: 'bench', tip: '釣りざおを強くする' },
@@ -58,13 +61,13 @@ window.RAFT.data = {
     { id: 'seat', out: 'seat', cost: { wood: 8, rope: 2, cloth: 1 }, need: 'bench', tip: '座って景色を眺める。ほっとして、贈り物が見つかることも' },
     { id: 'rack', out: 'rack', cost: { wood: 6, rope: 3 }, need: 'bench', tip: '魚をつるして飾る' },
     { id: 'crate', out: 'crate', cost: { wood: 5 }, need: 'bench', tip: '木の箱を飾る' },
-    { id: 'chest', out: 'chest', cost: { wood: 6, iron: 2 }, need: 'bench', tip: '鉄で補強した宝箱' },
+    { id: 'chest', out: 'chest', cost: { wood: 6, iron: 2 }, need: 'bench', bl: 3, tip: '鉄で補強した宝箱' },
     { id: 'plot', out: 'plot', cost: { wood: 5, cloth: 1 }, need: 'bench', tip: '畑を置く。種袋をまくと野菜が育つ' },
     { id: 'oven', out: 'oven', cost: { wood: 2, clay: 6, iron: 1 }, need: 'bench', tip: '粘土で作る石のかまど。料理ができる' },
     { id: 'barrel', out: 'barrel', cost: { wood: 6, iron: 1 }, need: 'bench', tip: '木の樽を作る' },
     { id: 'bed', out: 'bed', cost: { wood: 8, cloth: 3, rope: 2 }, need: 'bench', tip: '布でふかふかのベッド' },
-    { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', tip: '本棚を作る' },
-    { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', tip: '風で回る飾りの風車' },
+    { id: 'shelf', out: 'shelf', cost: { wood: 10, rope: 2 }, need: 'bench', bl: 2, tip: '本棚を作る' },
+    { id: 'windmill', out: 'windmill', cost: { wood: 8, rope: 3, cloth: 2, iron: 1 }, need: 'bench', bl: 2, tip: '風で回る飾りの風車' },
     { id: 'catchnet', out: 'catchnet', cost: { wood: 10 }, need: 'bench', tip: 'イカダのふちに付ける網。流れてくる物を、自動でためる（ふちのマスにだけ置ける）' },
     { id: 'hut', out: 'hut', special: 'hut', cost: { wood: 24, rope: 8, cloth: 6 }, need: 'bench', tip: '家を作る。見た目を54種類から選べる。大きな建物なので、材料は多め。見た目の系統で、材料がちがう（木・石・レンガ・海・緑・雪）' },
     { id: 'filter', out: 'filter', cost: { wood: 6, rope: 2, cloth: 2 }, need: 'bench', tip: '海水から、貯水槽へ水を作る' }
@@ -257,6 +260,10 @@ window.RAFT.data.LVUP = {
     { range: 4.5, great: 0.2, gain: 1 },
     { range: 6, great: 0.26, gain: 1.25, cost: { wood: 6, rope: 3, cloth: 2 } },
     { range: 7.5, great: 0.32, gain: 1.5, cost: { wood: 8, rope: 4, iron: 1, glass: 1 } }] },      // range＝とどくマス／great＝ぴったりの幅／gain＝やりとりで引きよせが進む速さ
+  bench: { name: '作業台', lv: [
+    { off: 0 },
+    { off: 0.1, cost: { wood: 10, rope: 3, iron: 1 } },
+    { off: 0.2, cost: { wood: 14, clay: 6, iron: 2, glass: 2 } }] },      // off＝材料の割引（Lv2で本棚・風車・大きな貯水槽、Lv3で宝箱が作れる）
   plot: { name: '畑', lv: [
     { grow: 1, extra: 0 },
     { grow: 1.3, extra: 0.25, cost: { wood: 6, cloth: 2, clay: 3 } },

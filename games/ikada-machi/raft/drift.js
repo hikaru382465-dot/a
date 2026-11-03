@@ -30,7 +30,7 @@ window.RAFT.parts.drift = function (c) {
   if (IA) for (const k in IA.art) load(k, IA.art[k]);
   if (R.seedArt) for (const k in R.seedArt.art) load(k, R.seedArt.art[k]);
   if (R.dishArt) for (const k in R.dishArt.art) load(k, R.dishArt.art[k]);
-  if (OAr) { for (const k in OAr.icons) load(k, OAr.icons[k]); load('bench', OAr.bench); load('tank', [OAr.tank[3]]); load('filter', [OAr.filter[0]]); }   // 新しい絵で、前のをおきかえる
+  if (OAr) { for (const k in OAr.icons) load(k, OAr.icons[k]); load('bench', OAr.bench); load('tank', [OAr.tank[3]]); load('bigtank', [OAr.tank[3]]); load('filter', [OAr.filter[0]]); }   // 新しい絵で、前のをおきかえる
   const artOf = (k, v) => { const a = artCv[k]; if (!a) return null; const cv = a[(v || 0) % a.length]; return cv.ok ? cv : null; };
   const mk = (k, v) => artOf(k, v) || cache[k] || (cache[k] = icon(k));
   c.itemIcon = k => mk(k, 0);

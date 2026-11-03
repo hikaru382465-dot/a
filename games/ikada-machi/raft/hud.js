@@ -34,7 +34,7 @@ window.RAFT.parts.hud = function (c) {
   function recipes() {
     return D.RECIPES.filter(r => !(r.special === 'fix' && !s.tools.includes(r.tool)) && !(r.special === 'lvup' && r.up === 'rod' && !s.tools.includes('rod'))).map(r => {
       const up = r.special === 'lvup', net = r.special === 'net', nx = net ? sim.nextNet(s) : null, ck = sim.canCraft(s, r);
-      return { key: r.id, t: 'recipe', r, net, nx, ck, up, k: up ? (r.up === 'rod' ? 'rod' : 'plot') : net ? 'net' : r.special === 'fix' ? r.tool : (r.special === 'rod' ? 'rod' : r.out), name: up ? D.LVUP[r.up].name + (sim.nextLv(s, r.up) ? 'を強く' : '（最大）') : net ? (nx ? '網を強く' : '網（最大）') : r.special === 'fix' ? D.TOOLS[r.tool].name + 'を直す' : (r.special === 'rod' ? D.TOOLS.rod.name : D.ITEMS[r.out].name), n: '' };
+      return { key: r.id, t: 'recipe', r, net, nx, ck, up, k: up ? (r.up === 'rod' ? 'rod' : r.up === 'bench' ? 'bench' : 'plot') : net ? 'net' : r.special === 'fix' ? r.tool : (r.special === 'rod' ? 'rod' : r.out), name: up ? D.LVUP[r.up].name + (sim.nextLv(s, r.up) ? 'を強く' : '（最大）') : net ? (nx ? '網を強く' : '網（最大）') : r.special === 'fix' ? D.TOOLS[r.tool].name + 'を直す' : (r.special === 'rod' ? D.TOOLS.rod.name : D.ITEMS[r.out].name), n: '' };
     });
   }
   const r_have = o => o.r.special === 'rod' ? 'もう持っている' : 'もう持っている（イカダに1つ）';
@@ -117,9 +117,9 @@ window.RAFT.parts.hud = function (c) {
       d.querySelectorAll('.hpick').forEach(b => b.onclick = () => { hutSel = +b.dataset.h < 0 ? null : +b.dataset.h; renderBook(); }); return;
     }
     if (o.t === 'recipe') {
-      const cost = o.net ? (o.nx ? sim.discount(s, o.nx.cost) : null) : o.up ? (sim.nextLv(s, o.r.up) ? sim.discount(s, sim.nextLv(s, o.r.up).cost) : null) : sim.costOf(s, o.r), tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.up ? `${o.r.tip}：いまLv${sim.lvOf(s, o.r.up)}${sim.nextLv(s, o.r.up) ? `→Lv${sim.lvOf(s, o.r.up) + 1}（${o.r.up === 'rod' ? `とどく${sim.nextLv(s, 'rod').range}マス・ぴったりが出やすい・巻きやすい` : `育つ速さ×${sim.nextLv(s, 'plot').grow}・収穫が増えることも`}）` : ''}` : o.r.tip;
+      const cost = o.net ? (o.nx ? sim.discount(s, o.nx.cost) : null) : o.up ? (sim.nextLv(s, o.r.up) ? sim.discount(s, sim.nextLv(s, o.r.up).cost) : null) : sim.costOf(s, o.r), tip = o.net && o.nx ? `${o.r.tip}（とどく${o.nx.range}マス・${o.nx.cap}個）` : o.up ? `${o.r.tip}：いまLv${sim.lvOf(s, o.r.up)}${sim.nextLv(s, o.r.up) ? `→Lv${sim.lvOf(s, o.r.up) + 1}（${o.r.up === 'rod' ? `とどく${sim.nextLv(s, 'rod').range}マス・ぴったりが出やすい・巻きやすい` : o.r.up === 'bench' ? `材料が${Math.round(sim.nextLv(s, 'bench').off * 100)}%やすい` : `育つ速さ×${sim.nextLv(s, 'plot').grow}・収穫が増えることも`}）` : ''}` : o.r.tip;
       html += `<p>${tip}</p>` + (cost ? '<ul class="cost">' + Object.keys(cost).map(k => `<li class="${(s.inv[k] || 0) >= cost[k] ? '' : 'no'}">${nameOf(k)}　${s.inv[k] || 0} / ${cost[k]}</li>`).join('') + '</ul>' : '');
-      const why = { locked: '作業台を置くと作れる', have: r_have(o), max: 'これ以上は強くできない', full: 'まだ新品同様', short: '材料がたりない' }[o.ck.why];
+      const why = { locked: '作業台を置くと作れる', benchlv: `作業台Lv${o.r.bl}で作れる`, have: r_have(o), max: 'これ以上は強くできない', full: 'まだ新品同様', short: '材料がたりない' }[o.ck.why];
       if (why) html += `<p class="why">${why}</p>`;
       btn = o.r.special === 'fix' ? '直す' : '作る'; onclick = () => { sim.craft(s, o.r.id); refresh(); };
       html += `<button id="act" ${o.ck.ok ? '' : 'disabled'}>${btn}</button>`;
@@ -262,7 +262,7 @@ window.RAFT.parts.hud = function (c) {
   let flId = null;
   function flPanel() {
     const o = s.objects.find(x => x.id === flId && x.k === 'filter'); if (!o) { $('flbox').style.display = 'none'; return; }
-    const L = sim.upLv(o), full = !s.objects.some(x => x.k === 'tank' && x.w < D.ITEMS.tank.cap);
+    const L = sim.upLv(o), full = !s.objects.some(x => x.k === 'tank' && x.w < sim.tankCap(x));
     $('flState').textContent = !s.objects.some(x => x.k === 'tank') ? '貯水槽がないので、止まっている' : full ? '貯水槽がいっぱい：止まっている' : `あと${Math.max(0, Math.ceil(L.sec - o.p))}秒で、貯水槽に水が1入る`;
     upRow('flUp', o);
   }
