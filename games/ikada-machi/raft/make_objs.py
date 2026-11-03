@@ -186,6 +186,31 @@ def _loopclear(im):      # 投網のロープの輪の中の、白い背景を�
 def _hi(e): e['hi'] = 3; return e
 out = {'ppu': 40, 'icons': icons, 'bench': [_hi(entry(bench2))], 'tank': [_hi(entry(tank_level(tank2, l))) for l in range(4)], 'filter': [_hi(entry(_drip2(frame2, 0))), _hi(entry(_drip2(frame2, 1)))]}
 _nt = _loopclear(cutlib.cut_checker(here.parent / 'art' / 'items' / 'catalog3.png', (556, 386, 746, 566), shrink=1)); out['icons']['net'] = [_hi(entry(_nt))]; out['icons']['net'][0]['ppu'] = round(max(_nt.size) / 0.62)      # 投網（持ち物・手にもつ絵）
+# ひかるの新しい絵（緑背景）：大きな貯水槽（水4段階）・ろ過器（2コマ）・粘土/鉄くず/ガラスのアイコン
+def _green_pieces(path, n, minpx=60):      # 横を n 等分して、はしっこの小さなかけらも、近い組に入れる
+    import make_chars
+    A, fg = cutlib.key_green(path); comps = make_chars.components(fg, minpx); W = A.shape[1]; groups = [[] for _ in range(n)]
+    for pts in comps:
+        cx = sum(p[1] for p in pts) / len(pts); groups[min(n - 1, int(cx / (W / n)))].append(pts)
+    assert all(groups), (path, [len(g) for g in groups]); res = []
+    for g in groups:
+        pts = [p for c in g for p in c]; ys = [p[0] for p in pts]; xs = [p[1] for p in pts]; x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+        cell = np.zeros((y1 - y0 + 1, x1 - x0 + 1, 4), np.uint8)
+        for (py, px) in pts: r, g_, b = (int(v) for v in A[py, px]); cell[py - y0, px - x0] = (r, min(g_, max(r, b) + 4), b, 255)      # ふちの緑をなおす（intで計算）
+        res.append(Image.fromarray(cell, 'RGBA'))
+    return res
+def _fit(im, W):      # 幅 W にそろえて縮める（なめらかに）。うす い縁は切る
+    im = im.resize((W, max(1, round(im.height * W / im.width))), Image.LANCZOS); al = np.array(im.getchannel('A')); im.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8))); return im
+def _same(ims, W):      # 4コマなどを、同じ枠（下はしと横のまんなかをそろえる）に入れる
+    mw = max(i.width for i in ims); mh = max(i.height for i in ims); outs = []
+    for i in ims: cv = Image.new('RGBA', (mw, mh), (0, 0, 0, 0)); cv.alpha_composite(i, ((mw - i.width) // 2, mh - i.height)); outs.append(_fit(cv, W))
+    return outs
+_art_items = here.parent / 'art' / 'items'
+out['bigtank'] = [_hi(entry(i)) for i in _same(_green_pieces(_art_items / 'bigtank.png', 4), 124)]
+out['filter'] = [_hi(entry(i)) for i in _same(_green_pieces(_art_items / 'filter_new.png', 2), 104)]
+for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
+    _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
+out['icons']['bigtank'] = [out['bigtank'][3]]
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 # 小屋の「夜」の絵（窓に明かり）：昼の絵と同じ大きさにそろえる。夜は2コマ目に切りかえる（objects.js）
