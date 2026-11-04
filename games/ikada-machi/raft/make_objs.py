@@ -213,8 +213,9 @@ def _feet(im):      # 足の先（下の輪郭のでっぱり）：左はし・�
         if g and x - g[-1][-1] <= 6: g[-1].append(x)
         else: g.append([x])
     pts = [(float(np.mean(q)), float(low[q[0]])) for q in g]; return pts[0], max(pts, key=lambda p: p[1]), pts[-1]
-def _iso_fix(frames):      # 筏のふち（画面で、きっかり1:2＝26.6度）と、足もとのふちが平行になるよう、たてにずらす（たて線は、たてのまま）
-    (lx, ly), (fx, fy), (rx, ry) = _feet(frames[0]); sl = (fy - ly) / (fx - lx); sr = (fy - ry) / (rx - fx); TS = 0.5 * np.cos(np.radians(30)); d = 2 * TS / (sl + sr); c = TS - sl * d      # ゲームは絵をたてに 1/cos30 のばして出すので、絵の中では 0.5×cos30 の傾きにそろえる
+def _iso_fix(frames, shear=True):      # 筏のふち（画面で、きっかり1:2＝26.6度）と、足もとのふちが平行になるよう、たてにずらす（たて線は、たてのまま）
+    (lx, ly), (fx, fy), (rx, ry) = _feet(frames[0]); sl = (fy - ly) / (fx - lx); sr = (fy - ry) / (rx - fx); TS = 0.5 * np.cos(np.radians(30)); d = 2 * TS / (sl + sr); c = TS - sl * d
+    if not shear: d, c = 0.866, 0.0      # 枠が回って描かれた絵は、ずらすと形がつぶれるので、ゲームののびを打ち消すだけにする      # ゲームは絵をたてに 1/cos30 のばして出すので、絵の中では 0.5×cos30 の傾きにそろえる
     w, h = frames[0].size; nh = int(np.ceil(abs(c) * w + d * h)) + 2; T = -min(0, c * w); outs = []
     for im in frames: outs.append(im.transform((w, nh), Image.AFFINE, (1, 0, 0, -c / d, 1 / d, T / d * -1 + (T / d) * 0), resample=Image.BICUBIC))
     # 切りそろえ（いっしょに）
@@ -224,7 +225,7 @@ def _iso_fix(frames):      # 筏のふち（画面で、きっかり1:2＝26.6�
     foot = TS * (rx - lx) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104)):
-    _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0); out[_k] = [_hi(entry(i)) for i in _fr]
+    _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0, shear=(_k == 'bigtank')); out[_k] = [_hi(entry(i)) for i in _fr]
     for _e in out[_k]: _e['foot'] = round(_ft, 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
