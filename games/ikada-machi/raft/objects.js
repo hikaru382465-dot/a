@@ -70,7 +70,7 @@ window.RAFT.parts.objects = function (c) {
       const cnv = o.k === 'catchnet' ? [[0, 1], [-1, 0], [0, -1], [1, 0]][Math.max(0, cnDirVec(o))] : null, flip = !!cnv && cnv[0] + cnv[1] < 0;      // 奥の辺（-x・-z）のネットは、さかさまにして、網が海がわ（画面の上）へのびるように見せる
       if (o.k === 'catchnet' && !flip) a = a.map(f => ({ cv: subCv(f.cv), ppu: f.ppu, hi: f.hi }));      // 回収ネット：下がわを海にひたす（水にぬれた色にする）
       const [fw, fd] = R.sim.sizeOf(o), cx = o.x + fw / 2, cz = o.z + fd / 2;
-      const ft = OA && OA[ak] && OA[ak][0].foot ? OA[ak][0].foot / ((PPU_OF[ak] || 34) * (OA[ak][0].hi || 1)) * 1.732 : 0;      // 足の先（いちばん手前の角）が、マスの手前の角に来るので、そのぶんカメラ側へずらす
+      const ft = OA && OA[ak] && OA[ak][0].foot ? OA[ak][0].foot / ((PPU_OF[ak] || 34) * (OA[ak][0].hi || 1)) * 2 : 0;      // 足の先（いちばん手前の角）が、マスの手前の角に来るので、そのぶんカメラ側へずらす
       const sf = ((SHIFT_OF[o.k] || 0) + ft) * 0.7071;      // 台つきの絵は、カメラのほうへずらして、台の中心を床の中心に合わせる（浮いて見えないように）
       const cnd = o.k === 'catchnet' && a.length === 12 ? cnDir(o) : 0;      // 回収ネット：つけた辺の向きで、絵をえらぶ
       const base = o.k === 'hut' && a.length > 2 * (o.hv || 0) ? 2 * (o.hv || 0) : o.k === 'catchnet' ? cnd : 0;      // 小屋の見た目ちがい：[昼0, 夜0, 昼1, 夜1, …]

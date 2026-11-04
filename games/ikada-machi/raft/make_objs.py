@@ -214,14 +214,14 @@ def _feet(im):      # 足の先（下の輪郭のでっぱり）：左はし・�
         else: g.append([x])
     pts = [(float(np.mean(q)), float(low[q[0]])) for q in g]; return pts[0], max(pts, key=lambda p: p[1]), pts[-1]
 def _iso_fix(frames):      # 筏のふち（画面で、きっかり1:2＝26.6度）と、足もとのふちが平行になるよう、たてにずらす（たて線は、たてのまま）
-    (lx, ly), (fx, fy), (rx, ry) = _feet(frames[0]); sl = (fy - ly) / (fx - lx); sr = (fy - ry) / (rx - fx); d = 1 / (sl + sr); c = 0.5 - sl * d
+    (lx, ly), (fx, fy), (rx, ry) = _feet(frames[0]); sl = (fy - ly) / (fx - lx); sr = (fy - ry) / (rx - fx); TS = 0.5 * np.cos(np.radians(30)); d = 2 * TS / (sl + sr); c = TS - sl * d      # ゲームは絵をたてに 1/cos30 のばして出すので、絵の中では 0.5×cos30 の傾きにそろえる
     w, h = frames[0].size; nh = int(np.ceil(abs(c) * w + d * h)) + 2; T = -min(0, c * w); outs = []
     for im in frames: outs.append(im.transform((w, nh), Image.AFFINE, (1, 0, 0, -c / d, 1 / d, T / d * -1 + (T / d) * 0), resample=Image.BICUBIC))
     # 切りそろえ（いっしょに）
     bb = [o.getchannel('A').point(lambda v: 255 if v > 120 else 0).getbbox() for o in outs]; y0 = min(b[1] for b in bb); y1 = max(b[3] for b in bb)
     outs = [o.crop((0, y0, w, y1)) for o in outs]
     for o in outs: al = np.array(o.getchannel('A')); o.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
-    foot = 0.25 * (rx - lx); print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
+    foot = TS * (rx - lx) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104)):
     _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0); out[_k] = [_hi(entry(i)) for i in _fr]
