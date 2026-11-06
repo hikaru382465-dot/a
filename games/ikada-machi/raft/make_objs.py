@@ -226,7 +226,7 @@ def _iso_fix(frames, shear=True):      # 筏のふち（画面で、きっかり
     foot = (c * fx + d * fy) - ((c * lx + d * ly) + (c * rx + d * ry)) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104)):
-    _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0, shear=(True if _k == 'bigtank' else 'sym')); out[_k] = [_hi(entry(i)) for i in _fr]
+    _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0, shear=True); out[_k] = [_hi(entry(i)) for i in _fr]
     for _e in out[_k]: _e['foot'] = round(_ft, 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
