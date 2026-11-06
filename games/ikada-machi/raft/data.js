@@ -41,7 +41,7 @@ window.RAFT.data = {
     huts:    { name: '石の小屋', lv: 0, w: 0, place: true, size: [2, 3], as: 'hut', hv: 2, tip: '灰色の石の屋根と、石の壁の小屋。広さも、住める人数も、わらの小屋と同じ（2×3マス）' },
     catchnet: { name: '回収ネット', lv: 0, w: 0, place: true, edge: true, tip: 'イカダのふちに付ける。流れてくる物を、自動でためる。タップで取り出す' },
     hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], rnd: true, tip: '自分と相棒の家。タップで中に入って、休める（2×3マス）。見た目は、置くとき、ランダムに決まる' },
-    bigtank: { name: '大きな貯水槽', lv: 0, w: 0, place: true, as: 'tank', cap: 16, size: [2, 1], tip: '水が16入る大きな貯水槽。たる2つぶんの、横に長い形（2×1マス）' },
+    bigtank: { name: '大きな貯水槽', lv: 0, w: 0, place: true, as: 'tank', cap: 16, tip: '水が16入る大きな貯水槽（たる2つぶん）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
