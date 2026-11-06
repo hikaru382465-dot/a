@@ -215,17 +215,18 @@ def _feet(im):      # 足の先（下の輪郭のでっぱり）：左はし・�
     pts = [(float(np.mean(q)), float(low[q[0]])) for q in g]; return pts[0], max(pts, key=lambda p: p[1]), pts[-1]
 def _iso_fix(frames, shear=True):      # 筏のふち（画面で、きっかり1:2＝26.6度）と、足もとのふちが平行になるよう、たてにずらす（たて線は、たてのまま）
     (lx, ly), (fx, fy), (rx, ry) = _feet(frames[0]); sl = (fy - ly) / (fx - lx); sr = (fy - ry) / (rx - fx); TS = 0.5 * np.cos(np.radians(30)); d = 2 * TS / (sl + sr); c = TS - sl * d
-    if not shear: d, c = 0.866, 0.0      # 枠が回って描かれた絵は、ずらすと形がつぶれるので、ゲームののびを打ち消すだけにする      # ゲームは絵をたてに 1/cos30 のばして出すので、絵の中では 0.5×cos30 の傾きにそろえる
+    if shear == 'sym': d = 0.866; c = d * (sr - sl) / 2      # 高さはそのまま（つぶさない）で、左右の傾きだけ、同じにそろえる
+    elif not shear: d, c = 0.866, 0.0      # 枠が回って描かれた絵は、ずらすと形がつぶれるので、ゲームののびを打ち消すだけにする      # ゲームは絵をたてに 1/cos30 のばして出すので、絵の中では 0.5×cos30 の傾きにそろえる
     w, h = frames[0].size; nh = int(np.ceil(abs(c) * w + d * h)) + 2; T = -min(0, c * w); outs = []
     for im in frames: outs.append(im.transform((w, nh), Image.AFFINE, (1, 0, 0, -c / d, 1 / d, T / d * -1 + (T / d) * 0), resample=Image.BICUBIC))
     # 切りそろえ（いっしょに）
     bb = [o.getchannel('A').point(lambda v: 255 if v > 120 else 0).getbbox() for o in outs]; y0 = min(b[1] for b in bb); y1 = max(b[3] for b in bb)
     outs = [o.crop((0, y0, w, y1)) for o in outs]
     for o in outs: al = np.array(o.getchannel('A')); o.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
-    foot = TS * (rx - lx) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
+    foot = (c * fx + d * fy) - ((c * lx + d * ly) + (c * rx + d * ry)) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104)):
-    _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0, shear=(_k == 'bigtank')); out[_k] = [_hi(entry(i)) for i in _fr]
+    _fr0 = _same(_green_pieces(_art_items / (_k + '.png' if _k == 'bigtank' else 'filter_new.png'), _n), _w); _fr, _ft = _iso_fix(_fr0, shear=(True if _k == 'bigtank' else 'sym')); out[_k] = [_hi(entry(i)) for i in _fr]
     for _e in out[_k]: _e['foot'] = round(_ft, 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
