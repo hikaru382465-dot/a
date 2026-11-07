@@ -226,12 +226,12 @@ def _iso_fix(frames, shear='sym'):      # 筏のふち（画面で、きっか�
     for o in outs: al = np.array(o.getchannel('A')); o.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
     foot = (c * fx + d * fy) - ((c * lx + d * ly) + (c * rx + d * ry)) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
 _art_items = here.parent / 'art' / 'items'
-for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94)):
-    _fr0 = _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png'}[_k], _n), _w); _fr, _ft = _iso_fix(_fr0, shear='sym'); out[_k] = [_hi(entry(i)) for i in _fr]
+for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94), ('hugetank', 4, 124)):
+    _fr0 = _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w); _fr, _ft = _iso_fix(_fr0, shear='sym'); out[_k] = [_hi(entry(i)) for i in _fr]
     for _e in out[_k]: _e['foot'] = round(_ft, 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
-out['icons']['bigtank'] = [out['bigtank'][3]]; out['icons']['hugetank'] = [out['bigtank'][3]]      # 特大は、絵が届くまで、大きな貯水槽の絵を使う
+out['icons']['bigtank'] = [out['bigtank'][3]]; out['icons']['hugetank'] = [out['hugetank'][3]]
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 # 小屋の「夜」の絵（窓に明かり）：昼の絵と同じ大きさにそろえる。夜は2コマ目に切りかえる（objects.js）
