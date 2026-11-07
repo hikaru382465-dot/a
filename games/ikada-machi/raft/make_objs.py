@@ -213,6 +213,11 @@ def _feet(im):      # 足の先（下の輪郭のでっぱり）：左はし・�
         if g and x - g[-1][-1] <= 6: g[-1].append(x)
         else: g.append([x])
     pts = [(float(np.mean(q)), float(low[q[0]])) for q in g]; return pts[0], max(pts, key=lambda p: p[1]), pts[-1]
+def _tone_wood(im, sat=0.55, val=0.93):      # 新しい絵の木の色（赤みのオレンジ）は、ほかの置き物より鮮やかなので、彩度をおさえる（水の青は、そのまま）
+    a = np.array(im).astype(float) / 255; r, g, b = a[..., 0], a[..., 1], a[..., 2]; mx = a[..., :3].max(2); mn = a[..., :3].min(2); s = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0)
+    warm = (r >= g) & (g >= b) & (s > 0.25)      # 赤→黄の木の色だけ
+    k = np.where(warm, sat, 1.0)[..., None]; gray = a[..., :3].mean(2, keepdims=True); rgb = gray + (a[..., :3] - gray) * k; rgb = rgb * np.where(warm, val, 1.0)[..., None]
+    a[..., :3] = np.clip(rgb, 0, 1); return Image.fromarray((a * 255).astype(np.uint8), 'RGBA')
 def _iso_fix(frames, shear='sym'):      # 筏のふち（画面で、きっかり1:2＝26.6度）と、足もとのふちが平行になるよう、たてにずらす（たて線は、たてのまま）
     (lx, ly), (fx, fy), (rx, ry) = _feet(frames[0]); sl = (fy - ly) / (fx - lx); sr = (fy - ry) / (rx - fx); TS = 0.5 * np.cos(np.radians(30)); d = 2 * TS / (sl + sr); c = TS - sl * d
     if shear == 'raw': d, c = 1.0, 0.0      # 絵そのまま（なにも変えない）
@@ -227,7 +232,7 @@ def _iso_fix(frames, shear='sym'):      # 筏のふち（画面で、きっか�
     foot = (c * fx + d * fy) - ((c * lx + d * ly) + (c * rx + d * ry)) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94), ('hugetank', 4, 124)):
-    _fr0 = _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w); _fr, _ft = _iso_fix(_fr0, shear='sym'); out[_k] = [_hi(entry(i)) for i in _fr]
+    _fr0 = [_tone_wood(i) for i in _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w)]; _fr, _ft = _iso_fix(_fr0, shear='sym'); out[_k] = [_hi(entry(i)) for i in _fr]
     for _e in out[_k]: _e['foot'] = round(_ft, 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
