@@ -55,7 +55,7 @@ window.RAFT.parts.objects = function (c) {
   const OA = R.objArt; let oaLeft = 0;
   const SH_OF = { catchnet: 0.7, campfire: 1.15, bench: 1.3, rack: 1.15, oven: 0.95, crate: 0.8, chest: 0.9, plot: 1.05, seat: 0.7, barrel: 0.8, bed: 1.15, shelf: 0.9, windmill: 0.9, hut: 1.5 };      // 足もとの影の大きさ（物ごと）
   const SHIFT_OF = { hut: 2.0 };
-  const PPU_OF = { catchnet: 36, bench: 36, tank: 36, bigtank: 30, filter: 34, campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36, barrel: 34, bed: 30, shelf: 34, windmill: 36, hut: 15.4 }, ART_KEYS = ['bench', 'tank', 'bigtank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut', 'catchnet'];
+  const PPU_OF = { catchnet: 36, bench: 36, tank: 36, bigtank: 30, hugetank: 30, filter: 34, campfire: 44, seat: 36, rack: 42, oven: 38, crate: 36, chest: 36, plot: 36, barrel: 34, bed: 30, shelf: 34, windmill: 36, hut: 15.4 }, ART_KEYS = ['bench', 'tank', 'bigtank', 'hugetank', 'filter', 'campfire', 'seat', 'rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut', 'catchnet'];
   if (OA) ART_KEYS.filter(k => OA[k]).forEach(k => { const arr = OA[k].map(f => { const [cv, g] = I.canvas(f.w, f.h); oaLeft++; const im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); if (--oaLeft === 0) { ART_KEYS.filter(kk => OA[kk]).forEach(kk => { art[kk] = OA[kk].map((f2, i) => mk(OA.cv[kk][i], (PPU_OF[kk] || 34) * (f2.hi ? f2.hi : 1), !!f2.hi)); }); rev = -1; } }; im.src = f.src; return cv; }); (OA.cv = OA.cv || {})[k] = arr; });
   const glowTex = (() => { const [cv, g] = I.canvas(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,190,100,1)'); gr.addColorStop(.4, 'rgba(255,130,50,.4)'); gr.addColorStop(1, 'rgba(255,100,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c.tex(cv); })();
   const shGeo = new THREE.PlaneGeometry(0.85, 0.85); shGeo.rotateX(-Math.PI / 2);
@@ -66,7 +66,7 @@ window.RAFT.parts.objects = function (c) {
   function build() {
     while (group.children.length) group.remove(group.children[0]); items.clear();
     s.objects.forEach(o => {
-      const ak = o.k === 'tank' && (o.cap || 0) > 8 && art.bigtank ? 'bigtank' : o.k; let a = art[ak]; if (!a) return;
+      const ak = o.k === 'tank' && (o.cap || 0) > 16 && art.hugetank ? 'hugetank' : o.k === 'tank' && (o.cap || 0) > 8 && art.bigtank ? 'bigtank' : o.k; let a = art[ak]; if (!a) return;
       const cnv = o.k === 'catchnet' ? [[0, 1], [-1, 0], [0, -1], [1, 0]][Math.max(0, cnDirVec(o))] : null, flip = !!cnv && cnv[0] + cnv[1] < 0;      // 奥の辺（-x・-z）のネットは、さかさまにして、網が海がわ（画面の上）へのびるように見せる
       if (o.k === 'catchnet' && !flip) a = a.map(f => ({ cv: subCv(f.cv), ppu: f.ppu, hi: f.hi }));      // 回収ネット：下がわを海にひたす（水にぬれた色にする）
       const [fw, fd] = R.sim.sizeOf(o), cx = o.x + fw / 2, cz = o.z + fd / 2;

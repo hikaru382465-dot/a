@@ -231,7 +231,7 @@ for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94)):
     for _e in out[_k]: _e['foot'] = round(_ft, 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
-out['icons']['bigtank'] = [out['bigtank'][3]]
+out['icons']['bigtank'] = [out['bigtank'][3]]; out['icons']['hugetank'] = [out['bigtank'][3]]      # 特大は、絵が届くまで、大きな貯水槽の絵を使う
 out['campfire'] = out['icons']['campfire']; out['seat'] = out['icons']['seat']; out['lamp'] = out['icons']['lamp']
 for _k in ('rack', 'oven', 'crate', 'chest', 'plot', 'barrel', 'bed', 'shelf', 'windmill', 'hut'): out[_k] = out['icons'][_k]
 # 小屋の「夜」の絵（窓に明かり）：昼の絵と同じ大きさにそろえる。夜は2コマ目に切りかえる（objects.js）

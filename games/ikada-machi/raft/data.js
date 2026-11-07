@@ -42,6 +42,7 @@ window.RAFT.data = {
     catchnet: { name: '回収ネット', lv: 0, w: 0, place: true, edge: true, tip: 'イカダのふちに付ける。流れてくる物を、自動でためる。タップで取り出す' },
     hut:     { name: '小屋',     lv: 0, w: 0, place: true, size: [2, 3], rnd: true, tip: '自分と相棒の家。タップで中に入って、休める（2×3マス）。見た目は、置くとき、ランダムに決まる' },
     bigtank: { name: '大きな貯水槽', lv: 0, w: 0, place: true, as: 'tank', cap: 16, tip: '水が16入る大きな貯水槽（たる2つぶん）' },
+    hugetank: { name: '特大の貯水槽', lv: 0, w: 0, place: true, as: 'tank', cap: 24, tip: '水が24入る、たる3つぶんの貯水槽（作業台Lv3）' },
     filter:  { name: 'ろ過器',   lv: 0, w: 0, place: true, sec: 40, tip: '海水をろ過して、貯水槽に水を入れる' }
   },
   // 作る：need が 'bench' のものは、イカダに作業台が置かれているときだけ作れる。special:'net' は網の強化（材料は NET_LV の cost）
@@ -50,6 +51,7 @@ window.RAFT.data = {
     { id: 'floor',  out: 'floor',  cost: { wood: 4 },                   need: null,    tip: 'イカダを広げる' },
     { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
     { id: 'bigtank', out: 'bigtank', cost: { wood: 10, rope: 2, clay: 3 }, need: 'bench', bl: 2, tip: '水が16入る大きな貯水槽' },
+    { id: 'hugetank', out: 'hugetank', cost: { wood: 14, rope: 3, clay: 5, iron: 1 }, need: 'bench', bl: 3, tip: '水が24入る、たる3つぶんの貯水槽' },
     { id: 'benchup', special: 'lvup', up: 'bench', need: 'bench', tip: '作業台を強くする' },
     { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
     { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
