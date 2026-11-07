@@ -107,13 +107,15 @@ window.RAFT.parts.objects = function (c) {
   }
   // 干し魚だな：上に干物のアイコンを出す。つるすと薄暗く出て、干し上がるほど、下から上へ明るくなる（かまどの木くずの表示と同じ見せ方）。全部干し上がるとピカッと光ってゆれる
   function rackIcon(it, prog) {
-    if (!it.ri) { const [cv, g] = I.canvas(40, 40); const tx = c.tex(cv); tx.minFilter = tx.magFilter = THREE.NearestFilter; const m = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.56), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; group.add(m); it.ri = { m, cv, g, tx, k: -1 }; }
+    if (!it.ri) { const [cv, g] = I.canvas(40, 40); const tx = c.tex(cv); tx.minFilter = tx.magFilter = THREE.NearestFilter; const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; group.add(m); it.ri = { m, cv, g, tx, k: -1 }; }
     const R = it.ri, ic = c.itemIcon('dried'), step = prog < 0 ? -1 : Math.round(Math.min(1, prog) * 20); R.m.visible = prog >= 0;
     if (prog >= 0) { R.m.position.set(it.m.position.x, it.m.position.y + it.m.scale.y + 0.2 + (prog >= 1 ? Math.abs(Math.sin(t * 4)) * 0.05 : 0), it.m.position.z); R.m.material.opacity = 1; }
-    if (step === R.k && ic && ic.ok !== false) return; if (!ic) return; R.k = step; const g = R.g, W = 40, sc = Math.min(36 / ic.width, 36 / ic.height), w = ic.width * sc, h = ic.height * sc, x = (W - w) / 2, y = (W - h) / 2;
-    g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false; g.globalAlpha = 0.28; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄暗い絵
+    if (step === R.k && ic && ic.ok !== false) return; if (!ic) return; R.k = step; const g = R.g, W = 40, P = 5, S = W - P * 2, sc = Math.min((S - 4) / ic.width, (S - 4) / ic.height), w = ic.width * sc, h = ic.height * sc, x = (W - w) / 2, y = (W - h) / 2 + 1, done = prog >= 1;
+    g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false;
+    g.fillStyle = '#2b1636'; g.fillRect(P, P, S, S); g.strokeStyle = done ? '#ffd88a' : '#6b4231'; g.lineWidth = 2; g.strokeRect(P + 1, P + 1, S - 2, S - 2);      // 四角いわく（持ち物のマスと同じ）
+    g.globalAlpha = 0.42; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄暗い絵
     if (step > 0) { const cut = Math.round(h * (1 - Math.min(1, prog))); g.save(); g.beginPath(); g.rect(0, y + cut, W, h - cut + 1); g.clip(); g.drawImage(ic, x, y, w, h); g.restore(); }      // 下から、明るく
-    if (prog >= 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+    if (done) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
     R.tx.needsUpdate = true;
   }
   build();
