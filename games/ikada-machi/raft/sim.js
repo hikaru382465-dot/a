@@ -149,7 +149,7 @@
   S.nextNet = s => D.NET_LV[s.net.lv];       // 次のレベル（なければ undefined）
   // ミナが住んでいれば、鉄・石を使う物は、その材料が1つ少なくて済む
   S.discount = function (s, cost) { if (!cost) return cost; const off = S.lvData(s, 'bench').off, o = {}; Object.keys(cost).forEach(k => { let n = cost[k]; if (s.res.mina.live && D.RESIDENT.perk.mina.off.includes(k)) n = Math.max(0, n - 1); if (off && n > 1) n = Math.max(1, Math.ceil(n * (1 - off) - 1e-9)); if (n > 0) o[k] = n; }); return o; };
-  S.lvOf = (s, k) => k === 'rod' ? (s.rodLv || 1) : k === 'bench' ? (s.benchLv || 1) : (s.plotLv || 1);
+  S.lvOf = (s, k) => k === 'rod' ? (s.rodLv || 1) : k === 'bench' ? (s.benchLv || 1) : k === 'rack' ? (s.rackLv || 1) : (s.plotLv || 1);
   S.tankCap = o => o.cap || D.ITEMS.tank.cap;
   S.lvData = (s, k) => D.LVUP[k].lv[Math.min(D.LVUP[k].lv.length, S.lvOf(s, k)) - 1];
   S.nextLv = (s, k) => D.LVUP[k].lv[S.lvOf(s, k)];      // なければ undefined
@@ -188,7 +188,7 @@
     S.pay(s, costOf(s, r)); S.tally(s, 'craft', r.id);
     if (r.special === 'fix') { s.dur[r.tool] = 100; s.events.push({ e: 'fixed', k: r.tool }); }
     else if (r.special === 'net') { s.net.lv = S.nextNet(s).lv; s.events.push({ e: 'netlv', lv: s.net.lv }); }
-    else if (r.special === 'lvup') { if (r.up === 'rod') s.rodLv = S.lvOf(s, 'rod') + 1; else if (r.up === 'bench') s.benchLv = S.lvOf(s, 'bench') + 1; else s.plotLv = S.lvOf(s, 'plot') + 1; s.events.push({ e: 'objlv', k: r.up, lv: S.lvOf(s, r.up), up: 1 }); }
+    else if (r.special === 'lvup') { if (r.up === 'rod') s.rodLv = S.lvOf(s, 'rod') + 1; else if (r.up === 'bench') s.benchLv = S.lvOf(s, 'bench') + 1; else if (r.up === 'rack') s.rackLv = S.lvOf(s, 'rack') + 1; else s.plotLv = S.lvOf(s, 'plot') + 1; s.events.push({ e: 'objlv', k: r.up, lv: S.lvOf(s, r.up), up: 1 }); }
     else if (r.special === 'rod') { s.tools.push('rod'); s.events.push({ e: 'crafted', k: 'rod' }); }
     else { s.inv[r.out] = (s.inv[r.out] || 0) + 1; s.events.push({ e: 'crafted', k: r.out }); }
     return true;
@@ -475,7 +475,7 @@
   // ---- 景色を眺める ----
   // 干し魚だな：できた干物があれば取る→魚があれば1匹つるす→どちらもなければ、ようすを知らせる
   S.rackUse = function (s, o) {
-    o.h = o.h || []; const R = D.RACK, done = o.h.filter(t => t >= R.sec).length;
+    o.h = o.h || []; const R = S.lvData(s, 'rack'), done = o.h.filter(t => t >= R.sec).length;
     if (done) { o.h = o.h.filter(t => t < R.sec); s.inv.dried = (s.inv.dried || 0) + done; s.events.push({ e: 'rackdone', n: done }); return true; }
     if (o.h.length < R.max && (s.inv.fish || 0) > 0) { s.inv.fish--; o.h.push(0); s.events.push({ e: 'rackhang', n: o.h.length, max: R.max }); return true; }
     if (!o.h.length) s.events.push({ e: 'racknone' });
@@ -649,7 +649,7 @@
       const P = D.PLOT, cr = D.CROPS[o.c]; if (s.weather.id === 'storm') o.w = P.water;
       if ((o.w || 0) > 0 && o.p < cr.sec) { o.p = Math.min(cr.sec, o.p + dt * S.lvData(s, 'plot').grow * (s.weather.id === 'calm' ? P.calmGrow : 1)); o.w = Math.max(0, o.w - dt * (s.weather.id === 'sunny' ? P.sunDry : 1)); }
     } });
-    s.objects.forEach(o => { if (o.k === 'rack' && o.h) for (let i = 0; i < o.h.length; i++) o.h[i] = Math.min(o.h[i] + dt, D.RACK.sec); });     // 干し魚だな：つるした魚が干物になっていく
+    s.objects.forEach(o => { if (o.k === 'rack' && o.h) for (let i = 0; i < o.h.length; i++) o.h[i] = Math.min(o.h[i] + dt, S.lvData(s, 'rack').sec); });     // 干し魚だな：つるした魚が干物になっていく
     s.objects.forEach(o => {    // ろ過器：貯水槽に空きがあれば、決まった間隔で水が1入る
       if (o.k !== 'filter') return;
       const t = tanks.filter(x => x.w < S.tankCap(x)).sort((a, c) => a.w - c.w)[0];
@@ -752,5 +752,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.rodLv = s.rodLv || 1; out.benchLv = s.benchLv || 1; out.plotLv = s.plotLv || 1; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.rodLv = s.rodLv || 1; out.benchLv = s.benchLv || 1; out.rackLv = s.rackLv || 1; out.plotLv = s.plotLv || 1; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

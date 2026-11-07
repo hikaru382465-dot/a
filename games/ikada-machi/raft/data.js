@@ -52,6 +52,7 @@ window.RAFT.data = {
     { id: 'tank',   out: 'tank',   cost: { wood: 6 },                   need: 'bench', tip: '雨の水がたまる' },
     { id: 'bigtank', out: 'bigtank', cost: { wood: 10, rope: 2, clay: 3 }, need: 'bench', bl: 2, tip: '水が16入る大きな貯水槽' },
     { id: 'hugetank', out: 'hugetank', cost: { wood: 14, rope: 3, clay: 5, iron: 1 }, need: 'bench', bl: 3, tip: '水が24入る、たる3つぶんの貯水槽' },
+    { id: 'rackup', special: 'lvup', up: 'rack', need: 'bench', tip: '干し魚だなをぜんぶ強くする' },
     { id: 'benchup', special: 'lvup', up: 'bench', need: 'bench', tip: '作業台を強くする' },
     { id: 'net',    special: 'net',                                     need: 'bench', tip: '網のレベルを上げる（遠くへ飛ぶ・取れる物が増える）' },
     { id: 'rod',    special: 'rod', cost: { wood: 4, rope: 2 },    need: 'bench', tip: '魚を1匹ずつ釣れる。縄は網でとる' },
@@ -266,6 +267,10 @@ window.RAFT.data.LVUP = {
     { off: 0 },
     { off: 0.1, cost: { wood: 10, rope: 3, iron: 1 } },
     { off: 0.2, cost: { wood: 14, clay: 6, iron: 2, glass: 2 } }] },      // off＝材料の割引（Lv2で本棚・風車・大きな貯水槽、Lv3で宝箱が作れる）
+  rack: { name: '干し魚だな', lv: [
+    { sec: 45, max: 3 },
+    { sec: 32, max: 5, cost: { wood: 6, rope: 3, cloth: 2 } },
+    { sec: 22, max: 8, cost: { wood: 8, rope: 4, cloth: 3, iron: 1 } }] },      // sec＝干物になる秒数／max＝つるせる数（ぜんぶの干し魚だなが、いっしょに強くなる）
   plot: { name: '畑', lv: [
     { grow: 1, extra: 0 },
     { grow: 1.3, extra: 0.25, cost: { wood: 6, cloth: 2, clay: 3 } },
