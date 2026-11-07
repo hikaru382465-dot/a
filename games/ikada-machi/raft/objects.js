@@ -105,6 +105,17 @@ window.RAFT.parts.objects = function (c) {
     if (!it.bd) { const [cv, g] = I.canvas(24, 14); it.bdcv = cv; it.bdg = g; const tx = c.tex(cv); const m = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; m.position.set(it.m.position.x, it.m.position.y + 0.9, it.m.position.z); group.add(m); it.bd = m; it.bdtx = tx; }
     const g = it.bdg; g.clearRect(0, 0, 24, 14); if (n > 0) { g.fillStyle = '#2b1636'; g.fillRect(2, 1, 20, 12); g.fillStyle = '#ffd88a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText(String(n), 12, 11); } it.bdtx.needsUpdate = true; it.bd.visible = n > 0;
   }
+  // 干し魚だな：上に干物のアイコンを出す。つるすと薄暗く出て、干し上がるほど、下から上へ明るくなる（かまどの木くずの表示と同じ見せ方）。全部干し上がるとピカッと光ってゆれる
+  function rackIcon(it, prog) {
+    if (!it.ri) { const [cv, g] = I.canvas(40, 40); const tx = c.tex(cv); tx.minFilter = tx.magFilter = THREE.NearestFilter; const m = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.56), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; group.add(m); it.ri = { m, cv, g, tx, k: -1 }; }
+    const R = it.ri, ic = c.itemIcon('dried'), step = prog < 0 ? -1 : Math.round(Math.min(1, prog) * 20); R.m.visible = prog >= 0;
+    if (prog >= 0) { R.m.position.set(it.m.position.x, it.m.position.y + it.m.scale.y + 0.2 + (prog >= 1 ? Math.abs(Math.sin(t * 4)) * 0.05 : 0), it.m.position.z); R.m.material.opacity = 1; }
+    if (step === R.k && ic && ic.ok !== false) return; if (!ic) return; R.k = step; const g = R.g, W = 40, sc = Math.min(36 / ic.width, 36 / ic.height), w = ic.width * sc, h = ic.height * sc, x = (W - w) / 2, y = (W - h) / 2;
+    g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false; g.globalAlpha = 0.28; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄暗い絵
+    if (step > 0) { const cut = Math.round(h * (1 - Math.min(1, prog))); g.save(); g.beginPath(); g.rect(0, y + cut, W, h - cut + 1); g.clip(); g.drawImage(ic, x, y, w, h); g.restore(); }      // 下から、明るく
+    if (prog >= 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+    R.tx.needsUpdate = true;
+  }
   build();
   // 見えている絵を、直接おせるようにする：画面の点（px）にある物を、手前から順に返す。exact＝その点の絵が不透明、near＝まわり14px以内に不透明
   const px = new Map();      // canvas → 透明度の配列（はじめに1回だけ読む）
@@ -135,6 +146,7 @@ window.RAFT.parts.objects = function (c) {
       else if (it.o.k === 'catchnet') { idx = !(it.o.dur > 0) ? 2 : R.sim.cnTotal(it.o) > 0 ? 1 : 0; if (it.tex.length === 12) idx = idx * 4 + it.base; const n = R.sim.cnTotal(it.o); if (n !== it.lastN) { it.lastN = n; badge(it, n); } }
       else if (it.o.k === 'hut') idx = it.base + ((s.clock.t >= 0.72 || s.clock.t < 0.2) && it.tex.length > it.base + 1 ? 1 : 0);
       else if (it.o.k === 'plot') { const cr = it.o.c && D.CROPS[it.o.c]; if (cr) { const f = it.o.p / cr.sec; idx = f >= 1 ? 4 + Math.max(0, (R.cropIds || []).indexOf(it.o.c)) : f < 0.12 ? 1 : f < 0.4 ? 2 : 3; } }
+      if (it.o.k === 'rack') { const sec = R.sim.lvData(s, 'rack').sec, h = it.o.h || []; rackIcon(it, h.length ? Math.max.apply(null, h) / sec : -1); }
       if (idx !== it.last) { it.m.material.map = it.tex[idx]; if (it.gh) it.gh.material.map = it.tex[idx]; it.last = idx; }
     });
   } };
