@@ -112,8 +112,8 @@ window.RAFT.parts.objects = function (c) {
     if (prog >= 0) { R.m.position.set(it.m.position.x, it.m.position.y + it.m.scale.y + 0.2 + (prog >= 1 ? Math.abs(Math.sin(t * 4)) * 0.05 : 0), it.m.position.z); R.m.material.opacity = 1; }
     if (step === R.k && ic && ic.ok !== false) return; if (!ic) return; R.k = step; const g = R.g, W = 40, P = 5, S = W - P * 2, sc = Math.min((S - 4) / ic.width, (S - 4) / ic.height), w = ic.width * sc, h = ic.height * sc, x = (W - w) / 2, y = (W - h) / 2 + 1, done = prog >= 1;
     g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false;
-    g.fillStyle = '#2b1636'; g.fillRect(P, P, S, S); g.strokeStyle = done ? '#ffd88a' : '#6b4231'; g.lineWidth = 2; g.strokeRect(P + 1, P + 1, S - 2, S - 2);      // 四角いわく（持ち物のマスと同じ）
-    g.globalAlpha = 0.42; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄暗い絵
+    g.fillStyle = '#6aa6bd'; g.fillRect(P, P, S, S); g.strokeStyle = done ? '#ffd45a' : '#2f6a86'; g.lineWidth = 2; g.strokeRect(P + 1, P + 1, S - 2, S - 2);      // 四角いわく（持ち物のマスと同じ）
+    g.globalAlpha = 0.38; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄い絵
     if (step > 0) { const cut = Math.round(h * (1 - Math.min(1, prog))); g.save(); g.beginPath(); g.rect(0, y + cut, W, h - cut + 1); g.clip(); g.drawImage(ic, x, y, w, h); g.restore(); }      // 下から、明るく
     if (done) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
     R.tx.needsUpdate = true;
