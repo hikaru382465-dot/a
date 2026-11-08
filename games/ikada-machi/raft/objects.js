@@ -115,10 +115,10 @@ window.RAFT.parts.objects = function (c) {
     const rr = (x0, y0, w0, h0, r0) => { g.beginPath(); g.moveTo(x0 + r0, y0); g.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, r0); g.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, r0); g.arcTo(x0, y0 + h0, x0, y0, r0); g.arcTo(x0, y0, x0 + w0, y0, r0); g.closePath(); };
     g.fillStyle = 'rgba(30,14,40,0.35)'; rr(P, P + 2, S, S, 5); g.fill();      // 下にうすいかげ
     rr(P, P, S, S, 5); g.fillStyle = '#3a2216'; g.fill();      // 外のふち（こい茶）
-    rr(P + 1.5, P + 1.5, S - 3, S - 3, 4); g.fillStyle = done ? '#e8b640' : '#a8734a'; g.fill();      // 木のわく（できたら金）
+    rr(P + 1.5, P + 1.5, S - 3, S - 3, 4); g.fillStyle = done ? '#cf9a30' : '#85583a'; g.fill();      // 木のわく（できたら金）
     const ix = P + 4, iy = P + 4, iw = S - 8, ih = S - 8; rr(ix, iy, iw, ih, 2.5); g.save(); g.clip();
-    const bg = g.createLinearGradient(0, iy, 0, iy + ih); bg.addColorStop(0, '#f6e4b8'); bg.addColorStop(1, '#e2c58c'); g.fillStyle = bg; g.fillRect(ix, iy, iw, ih);      // 紙のような地
-    const fh = ih * Math.min(1, Math.max(0, prog)); if (fh > 0) { const gl = g.createLinearGradient(0, iy + ih - fh, 0, iy + ih); gl.addColorStop(0, 'rgba(255,238,170,0.5)'); gl.addColorStop(1, 'rgba(255,214,110,0.7)'); g.fillStyle = gl; g.fillRect(ix, iy + ih - fh, iw, fh); }      // 下から、あたたかい色がたまる
+    const bg = g.createLinearGradient(0, iy, 0, iy + ih); bg.addColorStop(0, '#6f5236'); bg.addColorStop(1, '#4f3924'); g.fillStyle = bg; g.fillRect(ix, iy, iw, ih);      // 紙のような地
+    const fh = ih * Math.min(1, Math.max(0, prog)); if (fh > 0) { const gl = g.createLinearGradient(0, iy + ih - fh, 0, iy + ih); gl.addColorStop(0, 'rgba(160,110,50,0.25)'); gl.addColorStop(1, 'rgba(180,120,50,0.45)'); g.fillStyle = gl; g.fillRect(ix, iy + ih - fh, iw, fh); }      // 下から、あたたかい色がたまる
     g.restore(); g.save(); rr(ix, iy, iw, ih, 2.5); g.clip(); g.globalAlpha = 0.4; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄い絵
     if (step > 0) { const cut = Math.round(h * (1 - Math.min(1, prog))); g.save(); g.beginPath(); g.rect(0, y + cut, W, h - cut + 1); g.clip(); g.drawImage(ic, x, y, w, h); g.restore(); }      // 下から、はっきり
     g.restore();
