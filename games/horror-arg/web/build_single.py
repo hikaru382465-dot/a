@@ -16,6 +16,10 @@ scripts = "\n".join((here / n).read_text(encoding="utf-8") for n in
 import base64
 for _w in ["wallpaper_b_dusk_st1", "wallpaper_b_night_st1", "wallpaper_b_red_st1", "wallpaper_b_lit_st1", "wallpaper_b_dusk_st2", "wallpaper_b_night_st2", "wallpaper_b_red_st2", "wallpaper_b_lit_st2", "wallpaper_b_dusk_st3", "wallpaper_b_night_st3", "wallpaper_b_red_st3", "wallpaper_b_lit_st3", "wallpaper_b_dusk_st4", "wallpaper_b_night_st4", "wallpaper_b_red_st4", "wallpaper_b_lit_st4", "wallpaper_b_dusk_fig0", "wallpaper_b_night_fig0", "wallpaper_b_red_fig0", "wallpaper_b_lit_fig0", "wallpaper_b_dusk_fig1", "wallpaper_b_night_fig1", "wallpaper_b_red_fig1", "wallpaper_b_lit_fig1", "wallpaper_b_dusk_fig", "wallpaper_b_night_fig", "wallpaper_b_red_fig", "wallpaper_b_lit_fig", "wallpaper_b_dusk", "wallpaper_b_night", "wallpaper_b_red", "wallpaper_b_lit", "wallpaper_night", "wallpaper_red", "wallpaper_lit", "wallpaper"]:
     css = css.replace(_w + ".jpg", "data:image/jpeg;base64," + base64.b64encode((here / (_w + ".jpg")).read_bytes()).decode())
+# 写真を、1枚のHTMLに埋めこむ（apps.js の PHOTO の文字列 "photos/○○.jpg" を、画像データに置きかえる）
+for _p in sorted((here / "photos").glob("*.jpg")):
+    _uri = "data:image/jpeg;base64," + base64.b64encode(_p.read_bytes()).decode()
+    scripts = scripts.replace('"photos/' + _p.name + '"', '"' + _uri + '"')
 scripts = scripts.replace("</script", "<\\/script")
 
 page = f"""<title>投稿受付中</title>

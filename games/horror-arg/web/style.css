@@ -766,3 +766,10 @@ a.ext{display:inline-block;text-decoration:none;margin:8px 0}
 .sr-vcap{color:#fff;-webkit-text-stroke:2px #000;paint-order:stroke fill;text-shadow:0 2px 6px rgba(0,0,0,.6);font-size:24px}
 .pub-nt.hot{color:#e3e3e6}
 .tbl-q{min-width:220px}
+
+/* 本物の写真のサムネ */
+.pub-pic{object-fit:cover;opacity:1;filter:none}
+.pub-thumb img.pub-pic{display:block}
+.pub-hero img.pub-pic{position:absolute}
+.sr-vthumb .thumb,.sr-img .thumb,.sr-player .thumb{filter:none}
+.sr-vthumb .thumb{filter:brightness(1.12)}

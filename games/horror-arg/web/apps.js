@@ -27,6 +27,13 @@ window.Apps = (function () {
   const AV_COLORS = ["#6b8fd6", "#d67a6b", "#5fae8b", "#c49a3c", "#9a6bd6", "#d66b9e", "#4fa3b8", "#8a8f6b"];
   const avatar = (name, key, cls) => h("span", { class: "av " + (cls || ""), style: "background:" + AV_COLORS[hashN(key || name, AV_COLORS.length)] }, (name || "?").replace(/[（(].*$/, "").trim().slice(0, 1) || "?");
 
+  // 本物の写真（Unsplash。出どころは photos/CREDITS.md）。暗く・粒を足して加工してある
+  const PHOTO = { park: "photos/park.jpg", platform: "photos/platform.jpg", cafe: "photos/cafe.jpg", corridor: "photos/corridor.jpg", phone: "photos/phone.jpg", desk: "photos/desk.jpg",
+    stairs: "photos/stairs.jpg", wall: "photos/wall.jpg", street: "photos/street.jpg", elevator: "photos/elevator.jpg", hospital: "photos/hospital.jpg", house: "photos/house.jpg" };
+  const KIND2PHOTO = { building: "elevator", window: "cafe", room: "desk" };
+  const POST_PHOTO = { L01: "stairs", L02: "corridor", L03: "hospital", L04: "phone", L05: "elevator", L06: "cafe", L07: "desk", L08: "street", L09: "wall", L10: "house",
+    p01: "elevator", p02: "stairs", p03: "house", p04: "desk", p05: "platform", p06: "phone", p07: "park", p08: "cafe", p09: "wall", p10: "hospital", p11: "desk", p12: "corridor", p13: "desk", p14: "corridor", p15: "stairs", p16: "desk" };
+
   // ---------- メール ----------
   const visibleMails = () => E().mails.filter(m => m.day <= day());
   const unread = () => visibleMails().filter(m => !api.state().mailRead[m.id]).length;
@@ -101,8 +108,7 @@ window.Apps = (function () {
     const driftSvg = L => { const x = 78 - L * 9, h = 10 + L * 8, r = 2 + L * 1.2, y = 60 - h;
       return '<g opacity="' + (0.45 + L * 0.12) + '"><circle cx="' + x + '" cy="' + (y - r + 1) + '" r="' + r + '" fill="#050505"/><path d="M' + (x - r * 1.6) + ' 60 q' + (r * .4) + ' -' + (h - r) + ' ' + (r * 1.6) + ' -' + (h - r) + ' q' + (r * 1.2) + ' 0 ' + (r * 1.6) + ' ' + (h - r) + 'z" fill="#050505"/>' + (L >= 4 ? '<ellipse cx="' + x + '" cy="' + (y - r + 1) + '" rx="' + r * .5 + '" ry="' + r * .7 + '" fill="#e8e0d0" opacity=".55"/>' : "") + "</g>"; };
     const DRIFT_IDS = ["L01", "L03", "L05"];
-    const picEl = (r, whole) => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("class", "pub-pic"); s.setAttribute("viewBox", "0 0 84 60"); s.innerHTML = PICS[n] + (drift > 0 && DRIFT_IDS.includes(r.id) ? driftSvg(drift) : ""); s.setAttribute("preserveAspectRatio", whole ? "xMidYMid meet" : "xMidYMid slice"); return s; };
-    const unused = r => { const n = ({ L01: 4, L02: 3, L03: 2, L04: 1, L05: 0, L06: 5, L07: 1, L08: 2, L09: 0, L10: 0 })[r.id] ?? (r.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % PICS.length; return h("svg", { class: "pub-pic", viewBox: "0 0 84 60", "aria-hidden": "true", innerhtml: "" }); };
+    const picEl = (r, whole) => { const im = document.createElement("img"); im.className = "pub-pic"; im.alt = ""; im.loading = "lazy"; im.src = PHOTO[POST_PHOTO[r.id] || "desk"]; if (whole) im.style.objectPosition = "center"; return im; };
     const thumb = (r, i) => h("div", { class: "pub-thumb t" + r.tone }, picEl(r), i != null ? h("span", { class: "pub-rk" + (i < 3 ? " top" : "") }, String(i + 1)) : null, kindBadge(r));
     function listFor() {
       let r = rows();
@@ -146,7 +152,7 @@ window.Apps = (function () {
         h("button", { class: "pub-back", onclick: () => { sel = null; paint(); } }, "‹ 一覧にもどる"),
         h("div", { class: "pub-s-top" }, kindBadge(r), h("h2", {}, r.title)),
         h("div", { class: "pub-s-meta" }, "投稿者：" + r.author + "　" + r.date + "　怖い " + r.fire),
-        (heroHost = r.id === "p16" ? h("div", { class: "pub-hero t" + r.tone }, heroFor(r)) : null),
+        (heroHost = h("div", { class: "pub-hero t" + r.tone }, heroFor(r))),
         r.body.map(t => h("p", {}, t)),
         h("div", { class: "pub-cmh" }, "読者コメント（" + cs.length + "）"),
         cs.length ? cs.map(c => h("div", { class: "cm" + (c.odd ? " odd" : "") }, h("span", { class: "cm-n" }, c.n), h("span", { class: "cm-t" }, c.at), h("div", {}, c.t))) : h("div", { class: "cm-none" }, "まだコメントはありません"),
@@ -197,16 +203,28 @@ window.Apps = (function () {
   // 画像・動画のサムネイル：暗い場面を絵で描く（kind で場面を変える）
   function sceneFor(r) {
     const t = r.t + r.u + r.s;
-    if (/八階|エレベーター|ハイツ|マンション/.test(t)) return "building";
-    if (/階段|病院/.test(t)) return "stairs";
+    if (/八階|エレベーター/.test(t)) return "elevator";
+    if (/ハイツ|マンション|団地|廊下/.test(t)) return "corridor";
+    if (/階段/.test(t)) return "stairs";
+    if (/病院|看護/.test(t)) return "hospital";
     if (/終電|三番線|駅/.test(t)) return "platform";
     if (/公園|遊具/.test(t)) return "park";
-    if (/喫茶|窓際/.test(t)) return "window";
+    if (/喫茶|窓際/.test(t)) return "cafe";
     if (/染み|アパート|壁/.test(t)) return "wall";
     if (/電話|留守/.test(t)) return "phone";
-    return "room";
+    if (/夜道|街灯|住宅地/.test(t)) return "street";
+    if (/実家|仏壇|祖母|空き家|町/.test(t)) return "house";
+    return "desk";
   }
+  // サムネイル：本物の写真を、canvasに「中央をトリミング」して描く（動画の再生ボタン・砂嵐の演出が、そのまま使える）
   function drawThumb(kind, seed, w, hh) {
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = hh; cv.className = "thumb";
+    const g = cv.getContext("2d"); g.fillStyle = "#0d1118"; g.fillRect(0, 0, w, hh);
+    const im = new Image(); im.onload = () => { const sc = Math.max(w / im.width, hh / im.height), dw = im.width * sc, dh = im.height * sc; g.drawImage(im, (w - dw) / 2, (hh - dh) / 2, dw, dh); };
+    im.src = PHOTO[PHOTO[kind] ? kind : (KIND2PHOTO[kind] || "desk")];
+    return cv;
+  }
+  function drawThumbOld(kind, seed, w, hh) {
     const cv = document.createElement("canvas"); cv.width = w; cv.height = hh; cv.className = "thumb";
     const g = cv.getContext("2d");
     let sd = seed || 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
