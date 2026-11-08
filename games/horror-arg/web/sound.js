@@ -203,6 +203,19 @@ window.Snd = (function () {
     },
     // 人影が点滅して消えるときの、ごく小さな「ジッ」（画面の音）
     flick() { if (!ok()) return; const o = dest(0); for (let i = 0; i < 3; i++) burstTo(o, i * 0.11 + Math.random() * 0.04, 0.012, 0.05, "highpass", 3500); toneTo(o, 100, 0, 0.25, "sawtooth", 0.012); },
+    // 動画の中の風の音（スマホのマイクに風が当たる「ボボボ…」と、遠くの風）。PCのスピーカーから
+    wind(dur) {
+      if (!ok()) return; const t0 = ctx.currentTime, d = dur || 20, out = dest(0);
+      const src = ctx.createBufferSource(); src.buffer = pinkBuf(d + 0.2);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.5, t0 + 0.4);
+      for (let x = 0.4; x < d; x += 0.25 + Math.random() * 0.5) g.gain.linearRampToValueAtTime(0.25 + Math.random() * 0.55, t0 + x);   // 風が強くなったり弱くなったり
+      g.gain.linearRampToValueAtTime(0.0001, t0 + d);
+      src.connect(lp); lp.connect(g); g.connect(out); src.start(t0); src.stop(t0 + d + 0.1);
+      return { stop: () => { try { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(0.0001, ctx.currentTime); src.stop(); } catch (e) {} } };
+    },
+    // スマホが手の中でこすれる「ガサッ」
+    rustle() { if (!ok()) return; const o = dest(0); burstTo(o, 0, 0.18, 0.35, "bandpass", 1500, 0.8); burstTo(o, 0.08, 0.12, 0.25, "lowpass", 400); },
     creakLow() { api.creak(true); },   // 床のきしみ（低め）
     whisper() { api.breath(); },   // 古い名前。息に置き換えた
     // 足音：ドスッ…ドスッ。n回、だんだん近く・大きく（左→中央）

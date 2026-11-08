@@ -375,12 +375,58 @@ window.Apps = (function () {
             siblings.length ? h("div", { class: "sr-rel" }, h("div", { class: "sr-cm-h" }, "関連記事"), siblings.map(x => h("div", { class: "sr-relitem", tabindex: "0", role: "button", onclick: () => page(x), onkeydown: ev => { if (ev.key === "Enter") page(x); } }, x.t))) : null),
           h("div", { class: "sr-wpfoot" }, "© " + siteName(r) + "　プライバシーポリシー　運営者情報")));
     }
+    // 手持ちのスマホで撮ったような動画（写真1枚を、手ブレ・ピントの迷い・明るさの自動調整・粒で動かす）。
+    // 13秒ごろ、すべり台のうしろに人影が数コマだけ写る。21秒で電波が切れたように砂嵐→エラー
+    function playHandheld(screen, v, ctrl) {
+      const c = screen.querySelector("canvas"), g = c.getContext("2d"), W = c.width, H = c.height;
+      const im = new Image(); im.src = PHOTO[PHOTO[v.scene] ? v.scene : (KIND2PHOTO[v.scene] || "desk")];
+      const grain = document.createElement("canvas"); grain.width = 160; grain.height = 90; const gg = grain.getContext("2d"), gd = gg.createImageData(160, 90);
+      for (let i = 0; i < gd.data.length; i += 4) { const n = Math.random() * 255; gd.data[i] = gd.data[i + 1] = gd.data[i + 2] = n; gd.data[i + 3] = 255; } gg.putImageData(gd, 0, 0);
+      const ph = [0, 1, 2, 3, 4, 5].map(() => Math.random() * 6.28), END = 21, t0 = performance.now();
+      const wind = api.S.wind && api.S.wind(END), timeEl = ctrl.querySelector(".sr-ctime"), buf = ctrl.querySelector(".sr-cbuf");
+      let jerk = 0, rustled = false;
+      ctrl.querySelector(".sr-cplay").textContent = "❚❚";
+      (function frame(now) {
+        if (!c.isConnected) { wind && wind.stop(); return; }
+        const t = (now - t0) / 1000;
+        if (t >= END) { wind && wind.stop(); return breakDown(); }
+        // 手ブレ：ゆっくりした揺れ（呼吸・歩き）＋細かい震え。13秒前後で、何かに気づいたように大きく振れる
+        if (t > 12.4 && !rustled) { rustled = true; api.S.rustle && api.S.rustle(); }
+        jerk = t > 12.4 && t < 13.4 ? Math.sin((t - 12.4) * Math.PI) : 0;
+        const walk = Math.sin(t * 2 * Math.PI * 1.7 + ph[0]);
+        const x = 9 * Math.sin(t * 0.7 + ph[1]) + 4 * Math.sin(t * 2.3 + ph[2]) + 2.5 * walk + (Math.random() - 0.5) * 1.6 + jerk * 38;
+        const y = 7 * Math.sin(t * 0.55 + ph[3]) + 3.5 * Math.abs(walk) + (Math.random() - 0.5) * 1.6 - jerk * 12;
+        const rot = 0.012 * Math.sin(t * 0.45 + ph[4]) + 0.004 * walk + jerk * 0.03;
+        const zoom = 1.18 + 0.02 * Math.sin(t * 0.25 + ph[5]);
+        const focus = Math.max(0, Math.sin(t * 0.9) - 0.75) * 6 + jerk * 3;          // ピントが迷う
+        const expo = 0.9 + 0.12 * Math.sin(t * 0.33) + (t < 1 ? (1 - t) * 0.6 : 0);  // 明るさの自動調整（はじめは明るすぎて、だんだん落ち着く）
+        g.save(); g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+        g.filter = "brightness(" + expo.toFixed(2) + ") blur(" + focus.toFixed(1) + "px)";
+        g.translate(W / 2 + x, H / 2 + y); g.rotate(rot); g.scale(zoom, zoom);
+        if (im.complete && im.naturalWidth) { const sc = Math.max(W / im.width, H / im.height); g.drawImage(im, -im.width * sc / 2, -im.height * sc / 2, im.width * sc, im.height * sc);
+          // すべり台のうしろの人影（4コマほど）
+          if (t > 13.05 && t < 13.2) { g.filter = "blur(" + (1.5 + focus).toFixed(1) + "px)"; g.fillStyle = "rgba(4,4,6,.88)"; const fx = W * 0.2, fy = -H * 0.08, fh = H * 0.42;
+            g.beginPath(); g.ellipse(fx, fy - fh * 0.42, fh * 0.07, fh * 0.09, 0, 0, 7); g.fill(); g.fillRect(fx - fh * 0.11, fy - fh * 0.33, fh * 0.22, fh * 0.55); }
+        }
+        g.restore();
+        g.globalAlpha = 0.09; g.globalCompositeOperation = "overlay"; g.drawImage(grain, Math.random() * -40, Math.random() * -40, W + 40, H + 40); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        const s = Math.floor(t); timeEl.textContent = "0:" + String(s).padStart(2, "0") + " / " + v.dur; buf.style.width = Math.min(100, (t / 400) * 100 + 18) + "%";
+        requestAnimationFrame(frame);
+      })(t0);
+      async function breakDown() {   // 電波が切れたように、画面が固まってから砂嵐→エラー
+        api.S.noise();
+        for (let i = 0; i < 12; i++) { const id = g.createImageData(W, H); for (let k = 0; k < id.data.length; k += 4) { const n = Math.random() * 90; id.data[k] = id.data[k + 1] = id.data[k + 2] = n; id.data[k + 3] = 255; } g.putImageData(id, 0, 0); await new Promise(r => setTimeout(r, 60)); }
+        g.fillStyle = "#000"; g.fillRect(0, 0, W, H); g.fillStyle = "#cfd6e6"; g.font = "18px sans-serif"; g.textAlign = "center"; g.fillText("エラーが発生しました。しばらくしてからもう一度お試しください。", W / 2, H / 2);
+        ctrl.querySelector(".sr-cplay").textContent = "▶"; api.S.error();
+      }
+    }
     function video(v, list) {
       api.S.click(); main.scrollTop = 0;
       const ctrl = h("div", { class: "sr-ctrl" }, h("span", { class: "sr-cplay" }, "▶"), h("span", { class: "sr-ctime" }, "0:00 / " + v.dur), h("div", { class: "sr-cbar" }, h("div", { class: "sr-cbuf" })), h("span", {}, "🔊"), h("span", {}, "⚙"), h("span", {}, "⛶"));
       const screen = h("div", { class: "sr-player" }, drawThumb(v.scene, 31, 640, 360), h("button", { class: "sr-bigplay", "aria-label": "再生" }, "▶"), ctrl);
       const { nodes } = comments(v.u, v.cm);
       screen.querySelector("button").addEventListener("click", async () => {
+        if (v.play) { screen.querySelector("button").remove(); return playHandheld(screen, v, ctrl); }
         const c = screen.querySelector("canvas"), g = c.getContext("2d"); api.S.noise();
         for (let i = 0; i < 14; i++) { const id = g.createImageData(c.width, c.height); for (let k = 0; k < id.data.length; k += 4) { const n = Math.random() * 90; id.data[k] = id.data[k + 1] = id.data[k + 2] = n; id.data[k + 3] = 255; } g.putImageData(id, 0, 0); await new Promise(r => setTimeout(r, 60)); }
         g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height); g.fillStyle = "#cfd6e6"; g.font = "18px sans-serif"; g.textAlign = "center"; g.fillText("エラーが発生しました。しばらくしてからもう一度お試しください。", c.width / 2, c.height / 2);
