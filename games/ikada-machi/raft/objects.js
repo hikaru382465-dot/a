@@ -112,10 +112,17 @@ window.RAFT.parts.objects = function (c) {
     if (prog >= 0) { R.m.position.set(it.m.position.x, it.m.position.y + it.m.scale.y + 0.2 + (prog >= 1 ? Math.abs(Math.sin(t * 4)) * 0.05 : 0), it.m.position.z); R.m.material.opacity = 1; }
     if (step === R.k && ic && ic.ok !== false) return; if (!ic) return; R.k = step; const g = R.g, W = 40, P = 5, S = W - P * 2, sc = Math.min((S - 4) / ic.width, (S - 4) / ic.height), w = ic.width * sc, h = ic.height * sc, x = (W - w) / 2, y = (W - h) / 2 + 1, done = prog >= 1;
     g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false;
-    g.fillStyle = '#6aa6bd'; g.fillRect(P, P, S, S); g.strokeStyle = done ? '#ffd45a' : '#2f6a86'; g.lineWidth = 2; g.strokeRect(P + 1, P + 1, S - 2, S - 2);      // 四角いわく（持ち物のマスと同じ）
-    g.globalAlpha = 0.38; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄い絵
-    if (step > 0) { const cut = Math.round(h * (1 - Math.min(1, prog))); g.save(); g.beginPath(); g.rect(0, y + cut, W, h - cut + 1); g.clip(); g.drawImage(ic, x, y, w, h); g.restore(); }      // 下から、明るく
-    if (done) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+    const rr = (x0, y0, w0, h0, r0) => { g.beginPath(); g.moveTo(x0 + r0, y0); g.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, r0); g.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, r0); g.arcTo(x0, y0 + h0, x0, y0, r0); g.arcTo(x0, y0, x0 + w0, y0, r0); g.closePath(); };
+    g.fillStyle = 'rgba(30,14,40,0.35)'; rr(P, P + 2, S, S, 5); g.fill();      // 下にうすいかげ
+    rr(P, P, S, S, 5); g.fillStyle = '#3a2216'; g.fill();      // 外のふち（こい茶）
+    rr(P + 1.5, P + 1.5, S - 3, S - 3, 4); g.fillStyle = done ? '#e8b640' : '#a8734a'; g.fill();      // 木のわく（できたら金）
+    const ix = P + 4, iy = P + 4, iw = S - 8, ih = S - 8; rr(ix, iy, iw, ih, 2.5); g.save(); g.clip();
+    const bg = g.createLinearGradient(0, iy, 0, iy + ih); bg.addColorStop(0, '#f6e4b8'); bg.addColorStop(1, '#e2c58c'); g.fillStyle = bg; g.fillRect(ix, iy, iw, ih);      // 紙のような地
+    const fh = ih * Math.min(1, Math.max(0, prog)); if (fh > 0) { const gl = g.createLinearGradient(0, iy + ih - fh, 0, iy + ih); gl.addColorStop(0, 'rgba(255,238,170,0.5)'); gl.addColorStop(1, 'rgba(255,214,110,0.7)'); g.fillStyle = gl; g.fillRect(ix, iy + ih - fh, iw, fh); }      // 下から、あたたかい色がたまる
+    g.restore(); g.save(); rr(ix, iy, iw, ih, 2.5); g.clip(); g.globalAlpha = 0.4; g.drawImage(ic, x, y, w, h); g.globalAlpha = 1;      // 薄い絵
+    if (step > 0) { const cut = Math.round(h * (1 - Math.min(1, prog))); g.save(); g.beginPath(); g.rect(0, y + cut, W, h - cut + 1); g.clip(); g.drawImage(ic, x, y, w, h); g.restore(); }      // 下から、はっきり
+    g.restore();
+    if (done) { g.fillStyle = '#fff6c8'; [[ix + 3, iy + 3], [ix + iw - 5, iy + 6], [ix + 6, iy + ih - 5]].forEach(([sx, sy]) => g.fillRect(sx, sy, 2, 2)); }      // きらっ
     R.tx.needsUpdate = true;
   }
   build();
