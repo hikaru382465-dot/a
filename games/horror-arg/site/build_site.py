@@ -74,7 +74,14 @@ hidden = [
   "十六人目の投稿者は、いま、この画面を見ているあなたです。承認も、却下も、もう、必要ありません。",
 ]
 
+# --- 記事の写真（ゲームの中と同じ本物の写真。小さくして埋めこむ） ---
+from PIL import Image
+def small(p, w=560):
+    im = Image.open(p).convert("RGB"); im = im.resize((w, int(im.height * w / im.width)), Image.LANCZOS)
+    buf = io.BytesIO(); im.save(buf, "JPEG", quality=68, optimize=True)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+pics = {p.stem: small(p) for p in sorted((web / "photos").glob("*.jpg"))}
 html = open(here / "site_template.html", encoding="utf-8").read()
-html = html.replace("/*DATA*/null", json.dumps({"posts": data["posts"], "blog": blog, "hidden": hidden, "pass": data["pass"], "site": data["site"], "photo": photo, "accept": [data["pass"], "あなたが来る前から見ていたのよ"]}, ensure_ascii=False))
+html = html.replace("/*DATA*/null", json.dumps({"posts": data["posts"], "blog": blog, "hidden": hidden, "pass": data["pass"], "site": data["site"], "photo": photo, "pics": pics, "accept": [data["pass"], "あなたが来る前から見ていたのよ"]}, ensure_ascii=False))
 out.write_text(html, encoding="utf-8")
 print("書き出しました:", out, f"({len(html)//1024} KB)", "| 暗号:", secret)
