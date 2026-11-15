@@ -234,10 +234,49 @@ PIX = 1.0      # ドットを大きく（もとの絵の何分の1の細かさ�
 def _pixelize(im, f=PIX, colors=56):      # 細かさを落として（BOX）、色の数をへらす → ぼやけたふちを、ドットのかたまりにそろえる
     w, h = max(1, round(im.width * f)), max(1, round(im.height * f)); sm = im.resize((w, h), Image.BOX); al = np.array(sm.getchannel('A')) > 110
     q = sm.convert('RGB').quantize(colors=colors, method=Image.MEDIANCUT, dither=Image.NONE).convert('RGB'); o = np.array(q); res = np.dstack([o, (al * 255).astype(np.uint8)]); return Image.fromarray(res, 'RGBA')
+# --- お試し：ChatGPTの絵を、ゲームの色の表（パレット）に合わせた、本物のドット絵にする ---
+def _game_palette(n=64):      # すでにあるドット絵の置き物の色から、色の表を作る
+    from PIL import ImageFilter
+    ims = []
+    for k in ('bench', 'oven', 'crate', 'chest', 'shelf', 'rack', 'bed', 'plot', 'windmill', 'barrel'):
+        if k in out['icons']: ims.append(Image.open(io.BytesIO(base64.b64decode(out['icons'][k][0]['src'].split(',')[1]))).convert('RGBA'))
+    ims += [Image.open(io.BytesIO(base64.b64decode(out['tank'][3]['src'].split(',')[1]))).convert('RGBA')]      # 水の青（ふつうの貯水槽）
+    px = np.concatenate([np.array(i).reshape(-1, 4)[np.array(i).reshape(-1, 4)[:, 3] > 128][:, :3] for i in ims]); side = int(np.ceil(np.sqrt(len(px))))
+    pad = np.zeros((side * side, 3), np.uint8); pad[:len(px)] = px; pad[len(px):] = px[:side * side - len(px)] if len(px) >= side * side - len(px) else px[0]
+    q = Image.fromarray(pad.reshape(side, side, 3), 'RGB').quantize(colors=n, method=Image.MEDIANCUT, dither=Image.NONE); pal = np.array(q.getpalette()[:n * 3]).reshape(-1, 3); return pal.astype(float)
+def _pixelart(frames, tw, pal=None, colors=22):      # 絵ごとの色の表（全コマ共通）で、ドット化。ひとつだけ浮いた点は、まわりの色にそろえる
+    from PIL import ImageFilter
+    sm = []
+    for im in frames:
+        w, h = tw, max(1, round(im.height * tw / im.width)); s = im.resize((w, h), Image.BOX); al = np.array(s.getchannel('A')) > 110
+        rgb = s.convert('RGB').filter(ImageFilter.UnsharpMask(radius=0.9, percent=100, threshold=2)); sm.append((np.array(rgb), al))
+    allpx = np.concatenate([r[a] for r, a in sm]); s2 = int(np.ceil(np.sqrt(len(allpx)))); pd = np.zeros((s2 * s2, 3), np.uint8); pd[:len(allpx)] = allpx; pd[len(allpx):] = allpx[0]
+    pal = np.array(Image.fromarray(pd.reshape(s2, s2, 3), 'RGB').quantize(colors=colors, method=Image.MEDIANCUT, dither=Image.NONE).getpalette()[:colors * 3]).reshape(-1, 3).astype(float)
+    outs = []
+    for rgb, al in sm:
+        a = rgb.astype(float); d = ((a[:, :, None, :] - pal[None, None, :, :]) ** 2 * np.array([0.30, 0.59, 0.11])).sum(3); idx = d.argmin(2)
+        for _ in range(2):      # 浮いた点をなおす
+            pad = np.pad(idx, 1, mode='edge'); nb = np.stack([pad[y:y + idx.shape[0], x:x + idx.shape[1]] for y in range(3) for x in range(3) if not (y == 1 and x == 1)])
+            new = idx.copy()
+            for yy in range(idx.shape[0]):
+                for xx in range(idx.shape[1]):
+                    col = nb[:, yy, xx]; same = (col == idx[yy, xx]).sum()
+                    if same <= 1:
+                        vals, cnt = np.unique(col, return_counts=True)
+                        if cnt.max() >= 4: new[yy, xx] = vals[cnt.argmax()]
+            idx = new
+        o = pal[idx].astype(np.uint8); outs.append(Image.fromarray(np.dstack([o, (al * 255).astype(np.uint8)]), 'RGBA'))
+    return outs
+PILOT = ('hugetank',)      # ドット化のお試しをする組
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94), ('hugetank', 4, 124)):
-    _fr0 = [_tone_wood(i) for i in _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w)]; _fr, _ft = _iso_fix(_fr0, shear='sym'); _fr = [_pixelize(i) for i in _fr] if PIX < 1 else _fr; out[_k] = [_hi(entry(i)) for i in _fr]
-    for _e in out[_k]: _e['foot'] = round(_ft * PIX, 1); _e['hi'] = 3 * PIX
+    _pil = _k in PILOT; _w0 = _w
+    if _pil: _w = _w * 2; _pal = _game_palette()
+    _fr0 = [_tone_wood(i) for i in _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w)]; _fr, _ft = _iso_fix(_fr0, shear='sym'); _pf = PIX
+    if _pil: _fr = _pixelart(_fr, _w0 // 2, _pal); _pf = _w0 // 2 / _w; _ft = _ft * _pf * 1.0
+    elif PIX < 1: _fr = [_pixelize(i) for i in _fr]
+    out[_k] = [_hi(entry(i)) for i in _fr]
+    for _e in out[_k]: _e['foot'] = round(_ft * (1 if _pil else PIX), 1); _e['hi'] = 3 * (_w0 / 2 / _w0 * 2 if _pil else PIX) * (0.5 if _pil else 1)
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
 out['icons']['bigtank'] = [out['bigtank'][3]]; out['icons']['hugetank'] = [out['hugetank'][3]]
