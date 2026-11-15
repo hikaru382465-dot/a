@@ -230,10 +230,14 @@ def _iso_fix(frames, shear='sym'):      # 筏のふち（画面で、きっか�
     outs = [o.crop((0, y0, w, y1)) for o in outs]
     for o in outs: al = np.array(o.getchannel('A')); o.putalpha(Image.fromarray(((al > 120) * 255).astype(np.uint8)))
     foot = (c * fx + d * fy) - ((c * lx + d * ly) + (c * rx + d * ry)) / 2; print('iso_fix', round(sl, 2), round(sr, 2), 'c,d', round(c, 3), round(d, 3), 'foot', round(foot, 1)); return outs, foot
+PIX = 1.0      # ドットを大きく（もとの絵の何分の1の細かさにするか）。ぼやけをへらして、ドット絵らしくする
+def _pixelize(im, f=PIX, colors=56):      # 細かさを落として（BOX）、色の数をへらす → ぼやけたふちを、ドットのかたまりにそろえる
+    w, h = max(1, round(im.width * f)), max(1, round(im.height * f)); sm = im.resize((w, h), Image.BOX); al = np.array(sm.getchannel('A')) > 110
+    q = sm.convert('RGB').quantize(colors=colors, method=Image.MEDIANCUT, dither=Image.NONE).convert('RGB'); o = np.array(q); res = np.dstack([o, (al * 255).astype(np.uint8)]); return Image.fromarray(res, 'RGBA')
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94), ('hugetank', 4, 124)):
-    _fr0 = [_tone_wood(i) for i in _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w)]; _fr, _ft = _iso_fix(_fr0, shear='sym'); out[_k] = [_hi(entry(i)) for i in _fr]
-    for _e in out[_k]: _e['foot'] = round(_ft, 1)
+    _fr0 = [_tone_wood(i) for i in _same(_green_pieces(_art_items / {'bigtank': 'bigtank.png', 'filter': 'filter_new.png', 'tank': 'tank_barrel.png', 'hugetank': 'tank_barrel3.png'}[_k], _n), _w)]; _fr, _ft = _iso_fix(_fr0, shear='sym'); _fr = [_pixelize(i) for i in _fr] if PIX < 1 else _fr; out[_k] = [_hi(entry(i)) for i in _fr]
+    for _e in out[_k]: _e['foot'] = round(_ft * PIX, 1); _e['hi'] = 3 * PIX
 for _k, _im in zip(('clay', 'iron', 'glass'), _green_pieces(_art_items / 'mats3.png', 3)):
     _im = _fit(_im, 96); out['icons'][_k] = [entry(_im)]; out['icons'][_k][0]['hi'] = 1; out['icons'][_k][0]['ppu'] = round(max(_im.size) / 0.5)
 out['icons']['bigtank'] = [out['bigtank'][3]]; out['icons']['hugetank'] = [out['hugetank'][3]]
