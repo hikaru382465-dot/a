@@ -107,11 +107,11 @@ window.RAFT.parts.objects = function (c) {
   }
   // 干し魚だな：上に干物のアイコンを出す。つるすと薄暗く出て、干し上がるほど、下から上へ明るくなる（かまどの木くずの表示と同じ見せ方）。全部干し上がるとピカッと光ってゆれる
   function rackIcon(it, prog) {
-    if (!it.ri) { const [cv, g] = I.canvas(40, 40); const tx = c.tex(cv); tx.minFilter = tx.magFilter = THREE.NearestFilter; const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; group.add(m); it.ri = { m, cv, g, tx, k: -1 }; }
+    if (!it.ri) { const [cv, g] = I.canvas(40 * 3, 40 * 3); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.minFilter = tx.magFilter = THREE.LinearFilter; tx.generateMipmaps = false; const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthTest: false })); m.rotation.y = c.cam.yaw; m.renderOrder = 5; group.add(m); it.ri = { m, cv, g, tx, k: -1 }; }
     const R = it.ri, ic = c.itemIcon('dried'), step = prog < 0 ? -1 : Math.round(Math.min(1, prog) * 20); R.m.visible = prog >= 0;
     if (prog >= 0) { R.m.position.set(it.m.position.x, it.m.position.y + it.m.scale.y + 0.2 + (prog >= 1 ? Math.abs(Math.sin(t * 4)) * 0.05 : 0), it.m.position.z); R.m.material.opacity = 1; }
     if (step === R.k && ic && ic.ok !== false) return; if (!ic) return; R.k = step; const g = R.g, W = 40, P = 5, S = W - P * 2, sc = Math.min((S - 4) / ic.width, (S - 4) / ic.height), w = ic.width * sc, h = ic.height * sc, x = (W - w) / 2, y = (W - h) / 2 + 1, done = prog >= 1;
-    g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false;
+    g.setTransform(3, 0, 0, 3, 0, 0); g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = false;
     const rr = (x0, y0, w0, h0, r0) => { g.beginPath(); g.moveTo(x0 + r0, y0); g.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, r0); g.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, r0); g.arcTo(x0, y0 + h0, x0, y0, r0); g.arcTo(x0, y0, x0 + w0, y0, r0); g.closePath(); };
     g.fillStyle = 'rgba(30,14,40,0.35)'; rr(P, P + 2, S, S, 5); g.fill();      // 下にうすいかげ
     rr(P, P, S, S, 5); g.fillStyle = '#3a2216'; g.fill();      // 外のふち（こい茶）
