@@ -4,16 +4,16 @@ window.RAFT.parts.boat = function (c) {
   let m = null, cv = null, t = 0;
   if (OA && OA.icons && OA.icons.boat) { const f = OA.icons.boat[0], [cvs, g] = I.canvas(f.w, f.h), im = new Image(); im.onload = () => { g.drawImage(im, 0, 0); cv = cvs; }; im.src = f.src; }
   const flag = (() => { const [cvf, g] = I.canvas(3, 4); I.rect(g, 0, 0, 3, 3, '#e0503c'); I.rect(g, 0, 3, 1, 1, '#4a2c20'); return cvf; })();
-  const ppu = 52, D = R.data, BW = 190;
+  const ppu = 52, D = R.data, BW = 190, Q = 3;
   // 船の上のふきだし：まだ終わっていない取引の、「ほしい物（いま持っている数/ひつような数）→もらえる物」を出す
   let bub = null, bcv = null, bg = null, btx = null, bkey = '';
   const drawBubble = (b, deals) => {
-    const rowH = 34, H = 14 + deals.length * rowH + 10; if (!bcv) { [bcv, bg] = I.canvas(BW, 120); btx = c.tex(bcv); }
-    bg.setTransform(1, 0, 0, 1, 0, 0); bg.clearRect(0, 0, BW, 120); bg.imageSmoothingEnabled = false; bg.translate(0, 120 - H - 2);      // 下ぞろえ（しっぽの先が、キャンバスの下）
+    const rowH = 34, H = 14 + deals.length * rowH + 10; if (!bcv) { [bcv, bg] = I.canvas(BW * Q, 120 * Q); btx = new THREE.CanvasTexture(bcv); btx.colorSpace = THREE.SRGBColorSpace; btx.minFilter = btx.magFilter = THREE.LinearFilter; btx.generateMipmaps = false; }      // 文字が、ぼやけないように、3倍の細かさで描く
+    bg.setTransform(Q, 0, 0, Q, 0, 0); bg.clearRect(0, 0, BW, 120); bg.imageSmoothingEnabled = false; bg.translate(0, 120 - H - 2);      // 下ぞろえ（しっぽの先が、キャンバスの下）
     const x0 = 2, y0 = 2, w = BW - 4, h = H - 12; bg.fillStyle = '#fff8e6'; bg.strokeStyle = '#3a2216'; bg.lineWidth = 2;
     bg.beginPath(); bg.roundRect ? bg.roundRect(x0, y0, w, h, 8) : bg.rect(x0, y0, w, h); bg.fill(); bg.stroke();
     bg.fillStyle = '#fff8e6'; bg.beginPath(); bg.moveTo(BW / 2 - 7, y0 + h - 1); bg.lineTo(BW / 2, y0 + h + 9); bg.lineTo(BW / 2 + 7, y0 + h - 1); bg.fill(); bg.strokeStyle = '#3a2216'; bg.beginPath(); bg.moveTo(BW / 2 - 7, y0 + h); bg.lineTo(BW / 2, y0 + h + 9); bg.lineTo(BW / 2 + 7, y0 + h); bg.stroke();
-    bg.font = 'bold 12px sans-serif'; bg.textBaseline = 'middle';
+    bg.font = 'bold 13px "DotGothic16", sans-serif'; bg.textBaseline = 'middle';
     const icon = (k, x, y, sz) => { const ic = c.itemIcon(k); if (ic) { const sc = Math.min(sz / ic.width, sz / ic.height); bg.drawImage(ic, x + (sz - ic.width * sc) / 2, y + (sz - ic.height * sc) / 2, ic.width * sc, ic.height * sc); } };
     deals.forEach((d, i) => {
       let x = 10; const cy = y0 + 8 + i * rowH + 14;
