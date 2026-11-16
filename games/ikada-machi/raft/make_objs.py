@@ -267,7 +267,7 @@ def _pixelart(frames, tw, pal=None, colors=22):      # 絵ごとの色の表（�
             idx = new
         o = pal[idx].astype(np.uint8); outs.append(Image.fromarray(np.dstack([o, (al * 255).astype(np.uint8)]), 'RGBA'))
     return outs
-PILOT = ('hugetank',)      # ドット化のお試しをする組
+PILOT = ()      # ドット化のお試しをする組
 _art_items = here.parent / 'art' / 'items'
 for _k, _n, _w in (('bigtank', 4, 124), ('filter', 2, 104), ('tank', 4, 94), ('hugetank', 4, 124)):
     _pil = _k in PILOT; _w0 = _w
