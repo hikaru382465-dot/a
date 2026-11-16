@@ -621,7 +621,21 @@
     s.events.push({ e: 'weather', id });
   }
 
+  // 「いまの目標」
+  const GOAL_OK = {
+    bench: s => s.objects.some(o => o.k === 'bench'), tank: s => s.objects.some(o => o.k === 'tank'), rod: s => s.tools.includes('rod'),
+    fish: s => Object.keys(s.fishdex || {}).length > 0, campfire: s => s.objects.some(o => o.k === 'campfire'), rack: s => s.objects.some(o => o.k === 'rack'),
+    hut: s => s.objects.some(o => o.k === 'hut'), plot: s => s.objects.some(o => o.k === 'plot'), veg: s => Object.keys(s.cropdex || {}).length > 0,
+    oven: s => s.objects.some(o => o.k === 'oven'), net2: s => s.net.lv >= 2, catchnet: s => s.objects.some(o => o.k === 'catchnet'),
+    res: s => S.liveRes(s).length > 0, bench2: s => (s.benchLv || 1) >= 2
+  };
+  S.goalNow = s => D.GOALS.find(g => !(s.goalsDone || {})[g.id]) || null;
+  function goalStep(s) {
+    s.goalsDone = s.goalsDone || {}; const first = !s.goalsReady; s.goalsReady = true;
+    D.GOALS.forEach(g => { if (!s.goalsDone[g.id] && GOAL_OK[g.ok](s)) { s.goalsDone[g.id] = true; if (!first) s.events.push({ e: 'goaldone', text: g.text }); } });
+  }
   S.step = function (s, dt) {
+    s.goalT = (s.goalT || 0) + dt; if (s.goalT >= 0.5) { s.goalT = 0; goalStep(s); }
     // 時計・天気
     s.clock.t += dt / D.DAY_SEC; if (s.clock.t >= 1) { s.clock.t -= 1; s.clock.day++; }
     s.weather.left -= dt; if (s.weather.left <= 0) nextWeather(s);
@@ -752,5 +766,5 @@
   };
 
   S.save = function (s) { try { localStorage.setItem(S.KEY, JSON.stringify(s)); } catch (e) {} };
-  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.rodLv = s.rodLv || 1; out.benchLv = s.benchLv || 1; out.rackLv = s.rackLv || 1; out.plotLv = s.plotLv || 1; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
+  S.load = function () { try { const j = localStorage.getItem(S.KEY); if (!j) return null; const s = JSON.parse(j); if (!(s && s.v === 4)) return null; const base = S.newState(), out = Object.assign(base, s, { events: [], view: { r: 9 } }); out.buddy = Object.assign({}, base.buddy, s.buddy || {}); out.buddy.net = Object.assign({ lv: 1 }, out.buddy.net, { cast: null }); out.buddy.dur = Object.assign({ net: 100, rod: 100 }, out.buddy.dur); out.dur = Object.assign({ net: 100, rod: 100 }, s.dur); out.flags = s.flags || {}; out.goalsDone = s.goalsDone || {}; out.rodLv = s.rodLv || 1; out.benchLv = s.benchLv || 1; out.rackLv = s.rackLv || 1; out.plotLv = s.plotLv || 1; out.boat = s.boat || null; out.look = null; out.player.inHut = null; out.buddy.inHut = null; out.scenes = s.scenes || {}; out.fishdex = s.fishdex || {}; out.cropdex = s.cropdex || {}; out.sleepNight = s.sleepNight == null ? -1 : s.sleepNight; out.dishdex = s.dishdex || {}; out.res = S.newRes(); Object.keys(out.res).forEach(k => { if (s.res && s.res[k]) Object.assign(out.res[k], s.res[k]); out.res[k].path = []; out.res[k].act = null; }); out.diary = s.diary || []; out.diaryDay = s.diaryDay == null ? -1 : s.diaryDay; out.tally = s.tally || null; out.calm = s.calm || 0; out.boatDay = s.boatDay || 0; if (out.net.cast && out.net.cast.by === 'buddy') out.net.cast = null; return out; } catch (e) { return null; } };
 })(window.RAFT);

@@ -417,10 +417,19 @@ window.RAFT.parts.hud = function (c) {
     weather: e => `天気：${D.WEATHER[e.id].name}`, tankinfo: e => `貯水槽 ${e.w}/${e.cap}`, tankempty: () => '貯水槽が空（雨をためる／ろ過器を置く）',
     filterinfo: e => `ろ過器：あと${e.left}秒で水が1入る`, equip: e => e.id === 'rod' ? '釣りざおを持った：海をタップして糸をたらす' : e.id ? '網を持った：海を押し続けて、離すと投げる' : '手に何も持っていない'
   };
-  let acc = 0;
+  let acc = 0, goalFlash = 0, goalShown = '';
+  const goalUpdate = dt => {      // 画面の下の「目標」。達成したら、2.5秒「たっせい！」と出してから、つぎへ
+    const gb = $('goalbar'), g = sim.goalNow(s);
+    if (goalFlash > 0) { goalFlash -= dt; return; }
+    gb.classList.remove('done'); const show = !!g && !s.player.inHut; gb.style.display = show ? 'flex' : 'none';
+    if (show && goalShown !== g.id) { goalShown = g.id; $('goalTx').textContent = g.text; }
+  };
+  c.goalDone = text => { const gb = $('goalbar'); gb.style.display = 'flex'; gb.classList.add('done'); $('goalTx').textContent = 'たっせい！　' + text; goalFlash = 2.5; goalShown = ''; };
   return { update(t, dt) {
+    goalUpdate(dt);
     s.events.splice(0).forEach(e => {
       c.sfx && c.sfx.onEvent(e);
+      if (e.e === 'goaldone') { c.goalDone(e.text); return; }
       if (e.e === 'bench') { openSheet('craft'); return; }
       if (e.e === 'campfire') { openCf(e.id); return; }
       if (e.e === 'oven') { openOv(e.id); return; }

@@ -276,3 +276,20 @@ window.RAFT.data.LVUP = {
     { grow: 1.3, extra: 0.25, cost: { wood: 6, cloth: 2, clay: 3 } },
     { grow: 1.6, extra: 0.5, cost: { clay: 6, stone: 4, cloth: 3 } }] }      // grow＝育つ速さ／extra＝収穫でもう1つ増える確率
 };
+// 「いまの目標」：上から順に、まだ達成していない最初のものを、画面の下に出す（達成したものは保存。条件は、sim.js の GOAL_OK）
+window.RAFT.data.GOALS = [
+  { id: 'bench', text: '作業台を作って、置こう', ok: 'bench' },
+  { id: 'tank', text: '貯水槽を置いて、雨水をためよう', ok: 'tank' },
+  { id: 'rod', text: '釣りざおを作ろう', ok: 'rod' },
+  { id: 'fish', text: '魚を1匹、釣ろう', ok: 'fish' },
+  { id: 'campfire', text: '焚き火を置いて、魚を焼こう', ok: 'campfire' },
+  { id: 'rack', text: '干し魚だなを置こう', ok: 'rack' },
+  { id: 'hut', text: '小屋を作って、置こう', ok: 'hut' },
+  { id: 'plot', text: '畑を置いて、種をまこう', ok: 'plot' },
+  { id: 'veg', text: '野菜を収穫しよう', ok: 'veg' },
+  { id: 'oven', text: 'かまどを作って、料理しよう', ok: 'oven' },
+  { id: 'net2', text: '網を強くしよう', ok: 'net2' },
+  { id: 'catchnet', text: '回収ネットを筏の手前に付けよう', ok: 'catchnet' },
+  { id: 'res', text: '船の人と取引して、仲間にしよう', ok: 'res' },
+  { id: 'bench2', text: '作業台を強くしよう', ok: 'bench2' }
+];
